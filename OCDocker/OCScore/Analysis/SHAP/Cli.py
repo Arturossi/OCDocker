@@ -75,7 +75,7 @@ def build_argparser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv: Optional[list[str]] = None) -> None:
+def main(argv: Optional[list[str]] = None) -> int:
     '''Main entry point for SHAP analysis command-line interface.
     
     Parameters
@@ -106,6 +106,7 @@ def main(argv: Optional[list[str]] = None) -> None:
         save_csv=not args.no_csv,
     )
     print(json.dumps(out.__dict__, indent=2))
+    return 0
 
 if __name__ == "__main__":
     raise SystemExit(main())

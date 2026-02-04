@@ -20,7 +20,7 @@ import pandas as pd
 from optuna.integration import XGBoostPruningCallback
 from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
-from typing import Union
+from typing import Any, Optional, Union
 
 import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
 import OCDocker.Toolbox.Printing as ocprint
@@ -126,6 +126,10 @@ class XGBoostOptimizer:
         self.y_train = np.asarray(y_train)
         self.X_test = np.asarray(X_test)
         self.y_test = np.asarray(y_test)
+
+        # Optional validation data (np.ndarray or cupy arrays)
+        self.X_validation: Optional[Any] = None
+        self.y_validation: Optional[Any] = None
 
         # If the validation dataset is provided, convert it to numpy arrays
         if X_validation is not None and y_validation is not None:
@@ -234,7 +238,7 @@ class XGBoostOptimizer:
         trial_params['early_stopping_rounds'] = self.early_stopping_rounds
 
         # If the validation dataset is provided, use it to get the AUC score
-        if self.X_validation is not None:
+        if self.X_validation is not None and self.y_validation is not None:
             # Train the model and get the AUC score
             model, metric = OCxgboost.run_xgboost(self.X_train, self.y_train, self.X_test, self.y_test, params = trial_params, verbose = self.verbose)
 
@@ -242,7 +246,7 @@ class XGBoostOptimizer:
             y_pred = model.predict(self.X_validation)
 
             # If the use_gpu flag is set
-            if self.use_gpu:
+            if self.use_gpu and hasattr(self.y_validation, "get"):
                 # Convert the predictions to numpy arrays
                 y_validation_np = self.y_validation.get()
             else:

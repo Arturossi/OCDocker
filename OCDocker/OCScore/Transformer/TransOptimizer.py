@@ -26,8 +26,9 @@ import torch.optim as optim
 from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
 from torch.utils.data import DataLoader, Dataset
-from typing import Union
+from typing import Any, Callable, Optional, Sequence, Union
 
+import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Printing as ocprint
 
 # License
@@ -53,7 +54,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 class CustomDataset(Dataset):
     ''' Create a custom dataset for the PyTorch DataLoader. '''
-    def __getitem__(self, idx: int) -> tuple:
+    def __getitem__(self, idx: int) -> tuple[Any, Any]:
         ''' Get the item at the index.
 
         Parameters
@@ -69,7 +70,7 @@ class CustomDataset(Dataset):
 
         return self.features[idx], self.target[idx]
 
-    def __init__(self, features: list, target: list) -> None:
+    def __init__(self, features: Any, target: Any) -> None:
         ''' Initialize the dataset.
 
         Parameters
@@ -200,7 +201,7 @@ class TransformerModel(nn.Module):
         self.fc_out = nn.Linear(d_model, output_dim).to(device)
 
         # Set the supported initialization functions
-        self.init_functions = {
+        self.init_functions: dict[str, Callable[..., Any]] = {
             'xavier_uniform': init.xavier_uniform_,
             'glorot_uniform': init.xavier_uniform_,
             'he_uniform': init.kaiming_uniform_,
@@ -221,7 +222,7 @@ class TransformerModel(nn.Module):
 
         # Other parameters
         self.init_type = init_type
-        self.init_params = init_params
+        self.init_params: dict[str, Any] = init_params
         self.d_model = d_model
         self.device = device
         self.random_seed = random_seed
@@ -232,8 +233,7 @@ class TransformerModel(nn.Module):
 
         if verbose:
             # Print the model
-
-            ocprint.printv(self)
+            ocprint.printv(str(self))
 
     def forward(self, src : torch.Tensor) -> torch.Tensor:
         ''' Forward pass through the model.
@@ -410,8 +410,7 @@ class Transformer(nn.Module):
 
         # Print the model if verbose is True
         if verbose:
-
-            ocprint.printv(self.trans)
+            ocprint.printv(str(self.trans))
 
     def get_model(self) -> nn.Module:
         ''' Get the model.
@@ -717,19 +716,24 @@ class TransOptimizer:
         # Set the device
         self.device = torch.device('cuda' if torch.cuda.is_available() and self.use_gpu else 'cpu')
 
+        # Typed storage for datasets/loaders
+        self.X_train: torch.Tensor
+        self.y_train: torch.Tensor
+        self.X_test: torch.Tensor
+        self.y_test: torch.Tensor
+        self.X_validation: Optional[torch.Tensor] = None
+        self.y_validation: Optional[torch.Tensor] = None
+        self.train_loader: Optional[DataLoader[Any]] = None
+        self.test_loader: Optional[DataLoader[Any]] = None
+        self.validation_loader: Optional[DataLoader[Any]] = None
+
         # Se the X_train and y_train and move it to the device
         self.X_train = torch.tensor(np.asarray(X_train), dtype = torch.float32).to(self.device)
         self.y_train = torch.tensor(np.asarray(y_train), dtype = torch.float32).to(self.device)
 
-        # Set the train loader to None
-        self.train_loader = None
-
         # Set the X_test and y_test and move it to the device
         self.X_test = torch.tensor(np.asarray(X_test), dtype = torch.float32).to(self.device)
         self.y_test = torch.tensor(np.asarray(y_test), dtype = torch.float32).to(self.device)
-
-        # Set the test loader to None
-        self.test_loader = None
 
         # If X_validation is not none (y_validation is not none as well)
         if X_validation is not None:
@@ -741,8 +745,6 @@ class TransOptimizer:
             self.X_validation = None
             self.y_validation = None
 
-        # Set the validation loader to None
-        self.validation_loader = None
 
         # Set the output size
         self.output_size = output_size
@@ -854,11 +856,14 @@ class TransOptimizer:
         # Suggestions for clipping the gradients
         clip_grad = trial.suggest_float('clip_grad', 0.1, 0.5)
 
+        if self.train_loader is None or self.test_loader is None:
+            return float("inf")
+
         # Train and test the model
         test_loss = self.train_test_model(model, self.train_loader, self.test_loader, optimizer, criterion, clip_grad, trial, batch_size, epochs = epochs)
 
         # If a validation set has been provided, calculate the AUC
-        if self.validation_loader is not None:
+        if self.validation_loader is not None and self.X_validation is not None and self.y_validation is not None:
             # Set the model to evaluation mode
             model.eval()
 

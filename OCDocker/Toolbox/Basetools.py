@@ -12,12 +12,11 @@ import OCDocker.Toolbox.Basetools as ocbasetools
 
 # Imports
 ###############################################################################
+import builtins
 import contextlib
-import inspect
-
-from typing import Iterator
 
 from tqdm import tqdm
+from typing import Iterator
 
 # License
 ###############################################################################
@@ -77,8 +76,8 @@ def redirect_to_tqdm() -> Iterator[None]:
             old_print(*args, ** kwargs)
 
     try:
-        # Globaly replace print with new_print
-        inspect.builtins.print = new_print
+        # Globally replace built-in print with new_print
+        builtins.print = new_print
         yield
     finally:
-        inspect.builtins.print = old_print
+        builtins.print = old_print

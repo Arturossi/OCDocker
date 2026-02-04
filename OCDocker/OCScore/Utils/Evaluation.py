@@ -16,6 +16,7 @@ import OCDocker.OCScore.Utils.Evaluation as ocseval
 
 import numpy as np
 import pandas as pd
+import OCDocker.Error as ocerror
 
 from sklearn.metrics import auc, mean_squared_error, roc_curve
 from typing import Union

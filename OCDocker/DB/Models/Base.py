@@ -20,7 +20,7 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import DeclarativeBase, declared_attr
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import OCDocker.Error as ocerror
 
@@ -45,8 +45,10 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 
 # May use session from Initialise - runtime global
+session: Any
 try:  # tolerate import during isolated unit tests
-    from OCDocker.Initialise import session
+    from OCDocker.Initialise import session as _session
+    session = _session
 except Exception:  # pragma: no cover
     session = None
 
@@ -241,7 +243,10 @@ class Base(DeclarativeBase):
         # Open the session
         with session() as s:
             # Perform the search
-            data = s.query(cls).filter(cls.id == idorname).first() if isinstance(idorname, int) else s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).all()
+            if isinstance(idorname, int):
+                data = s.query(cls).filter(cls.id == idorname).all()
+            else:
+                data = s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).all()
 
         return data
 
@@ -293,7 +298,7 @@ class Base(DeclarativeBase):
             # Perform the search
             data = s.query(cls.name).all()
 
-        return data
+        return [row[0] for row in data]
 
     @classmethod
     def find_attribute(cls, column: str, value: Any, operator: str = "==") -> List[DeclarativeMeta]:
@@ -336,7 +341,7 @@ class Base(DeclarativeBase):
             return s.query(cls).filter(OPMAP[operator](col, value)).all()
 
     @classmethod
-    def find_first(cls, idorname: Union[int, str]) -> List[DeclarativeMeta]:
+    def find_first(cls, idorname: Union[int, str]) -> Optional[DeclarativeMeta]:
         ''' Search data in the database.
 
         Parameters
@@ -346,8 +351,8 @@ class Base(DeclarativeBase):
 
         Returns
         -------
-        List[DeclarativeMeta]
-            The data found.
+        DeclarativeMeta | None
+            The first matching row, if any.
         '''
 
         # Check if session is defined

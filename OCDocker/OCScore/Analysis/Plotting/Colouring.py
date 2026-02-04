@@ -14,6 +14,7 @@ import OCDocker.OCScore.Analysis.Plotting.Colouring as ocstatcolour
 ###############################################################################
 import pandas as pd
 import seaborn as sns
+import OCDocker.Error as ocerror
 
 # License
 ###############################################################################

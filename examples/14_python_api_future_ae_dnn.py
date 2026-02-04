@@ -12,8 +12,8 @@ try:
 except Exception as exc:  # pragma: no cover - runtime guard for missing torch
     raise SystemExit(f"PyTorch is required for this example: {exc}")
 
-from OCDocker.OCScore.Dimensionality.future.Autoencoder import Autoencoder
 from OCDocker.OCScore.Dimensionality.future.AETrainer import AETrainer
+from OCDocker.OCScore.Dimensionality.future.Autoencoder import Autoencoder
 from OCDocker.OCScore.DNN.future.DNNOptimizer import DNNOptimizer
 
 

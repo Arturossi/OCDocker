@@ -291,7 +291,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                 # Read the output file
                 return pd.read_csv(outputFile, sep = ",")
             except Exception as e:
-                return ocerror.Error.corrputed_file(f"Failed to read output file '{outputFile}'.", level=ocerror.ReportLevel.ERROR)
+                return ocerror.Error.corrupted_file(f"Failed to read output file '{outputFile}'.", level=ocerror.ReportLevel.ERROR)
         else:
             return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR)
 

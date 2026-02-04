@@ -67,7 +67,9 @@ class ErrorMeta(type):
 
         # Test if the class is the Error class
         if name == "Error":
-            new_class._add_error_methods()
+            add_methods = getattr(new_class, "_add_error_methods", None)
+            if callable(add_methods):
+                add_methods()
 
         return new_class
 
@@ -737,7 +739,17 @@ class Error(metaclass = ErrorMeta):
 
         if Error.output_level >= ReportLevel.DEBUG:
             current_frame = inspect.currentframe()
-            caller_frame = current_frame.f_back.f_back.f_back
+            if current_frame is None:
+                print(f"{base_message}")
+                return
+
+            caller_frame = current_frame
+            for _ in range(3):
+                if caller_frame.f_back is None:
+                    print(f"{base_message}")
+                    return
+                caller_frame = caller_frame.f_back
+
             detailed_message = (f"In function '{caller_frame.f_code.co_name}' "
                                 f"line {caller_frame.f_lineno} "
                                 f"from file '{caller_frame.f_code.co_filename}'.")
@@ -821,7 +833,6 @@ class Error(metaclass = ErrorMeta):
         ReportLevel.ERROR: "\033[1;91m",
         ReportLevel.DEBUG: "\033[1;95m",
     }
-
 
 
 

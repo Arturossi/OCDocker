@@ -23,7 +23,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union, cast
 
 import OCDocker.Error as ocerror
 
@@ -139,7 +139,7 @@ def build_stratified_background(
             idxs.extend(take.tolist())
 
     idxs_arr = np.array(sorted(set(idxs)), dtype=int)
-    return X_arr[idxs_arr]
+    return cast(np.ndarray, X_arr[idxs_arr])
 
 
 def compute_shap_values(

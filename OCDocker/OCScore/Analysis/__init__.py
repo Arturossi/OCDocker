@@ -28,6 +28,7 @@ Modules
 ###############################################################################
 from .Metrics import Ranking as RankingMetrics
 from .Plotting import MetricsPlots as PlottingMetrics
+from typing import Any
 
 # License
 ###############################################################################
@@ -57,13 +58,38 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Public ##
 
 # Unified exports for Analysis package
+run_shap_analysis: Any
+OutputPaths: Any
+StudyHandles: Any
+BestSelections: Any
+select_best_from_studies: Any
+DataHandles: Any
+load_and_prepare_data: Any
+build_neural_net: Any
+compute_shap_values: Any
+shap_plots: Any
+
+build_impact_overview: Any
+plot_impact_arrows_inline_labels: Any
+get_neutral_features: Any
+
 try:
     from .SHAP import (
-        run_shap_analysis, OutputPaths,
-        StudyHandles, BestSelections, select_best_from_studies,
-        DataHandles, load_and_prepare_data,
-        build_neural_net, compute_shap_values, plots as shap_plots,
+        run_shap_analysis as _run_shap_analysis, OutputPaths as _OutputPaths,
+        StudyHandles as _StudyHandles, BestSelections as _BestSelections, select_best_from_studies as _select_best_from_studies,
+        DataHandles as _DataHandles, load_and_prepare_data as _load_and_prepare_data,
+        build_neural_net as _build_neural_net, compute_shap_values as _compute_shap_values, plots as _shap_plots,
     )
+    run_shap_analysis = _run_shap_analysis
+    OutputPaths = _OutputPaths
+    StudyHandles = _StudyHandles
+    BestSelections = _BestSelections
+    select_best_from_studies = _select_best_from_studies
+    DataHandles = _DataHandles
+    load_and_prepare_data = _load_and_prepare_data
+    build_neural_net = _build_neural_net
+    compute_shap_values = _compute_shap_values
+    shap_plots = _shap_plots
 except Exception:
     # Keep optional dependency failures from breaking the package
     run_shap_analysis = None
@@ -79,10 +105,13 @@ except Exception:
 
 try:
     from .Impact import (
-        build_impact_overview,
-        plot_impact_arrows_inline_labels,
-        get_neutral_features,
+        build_impact_overview as _build_impact_overview,
+        plot_impact_arrows_inline_labels as _plot_impact_arrows_inline_labels,
+        get_neutral_features as _get_neutral_features,
     )
+    build_impact_overview = _build_impact_overview
+    plot_impact_arrows_inline_labels = _plot_impact_arrows_inline_labels
+    get_neutral_features = _get_neutral_features
 except Exception:
     build_impact_overview = None
     plot_impact_arrows_inline_labels = None

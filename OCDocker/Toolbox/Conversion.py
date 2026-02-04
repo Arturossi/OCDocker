@@ -20,10 +20,10 @@ import rdkit
 from openbabel import openbabel
 from openbabel import pybel
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import AllChem as _AllChem
 from rdkit.Chem.rdmolfiles import MolToMolFile
 from rdkit.Chem.SaltRemover import SaltRemover
-from typing import Optional, Protocol, Union
+from typing import Any, Optional, Protocol, Union, overload, Literal
 
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Constants as occ
@@ -31,6 +31,9 @@ import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Validation as ocvalidation
 
 from OCDocker.Config import get_config
+
+# Type cast for RDKit AllChem to avoid incomplete stub issues in mypy
+AllChem: Any = _AllChem
 from OCDocker.Toolbox.Constants import order
 
 # License
@@ -73,6 +76,25 @@ except (AttributeError, TypeError):
 class _OBMol(Protocol):
     def SetTitle(self, title: str) -> None: ...
     def DeleteData(self, key: str) -> None: ...
+
+@overload
+def convert_mols(
+    input_file: str,
+    output_file: str,
+    return_molecule: Literal[True],
+    overwrite: bool = False,
+) -> Union[int, rdkit.Chem.rdchem.Mol, _OBMol]:
+    ...
+
+
+@overload
+def convert_mols(
+    input_file: str,
+    output_file: str,
+    return_molecule: Literal[False] = False,
+    overwrite: bool = False,
+) -> Union[int, str]:
+    ...
 
 
 def convert_mols(input_file: str, output_file: str, return_molecule: bool = False, overwrite: bool = False) -> Union[int, str, rdkit.Chem.rdchem.Mol, _OBMol]:
@@ -232,8 +254,11 @@ def convert_mols_from_string(input: str, output: str, mol: Optional[rdkit.Chem.r
             pass
 
         # Return the result of conversion
-        if result != ocerror.Error.ok():
-            return result
+        if isinstance(result, (int, str)):
+            if result != ocerror.Error.ok():
+                return result
+        else:
+            return ocerror.Error.subprocess(message=f"Unexpected conversion result type for '{tmpOutput}'.", level=ocerror.ReportLevel.ERROR)
 
     except Exception as e:
         # Clean up temporary file on error

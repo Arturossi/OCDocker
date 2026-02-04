@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import OCDocker.Error as ocerror
 
 from typing import Dict, Iterable, Optional, Union
 
@@ -411,4 +412,3 @@ def residuals_matrix_from_dict(residuals_dict: Dict[str, pd.DataFrame],
         rows[feat] = row
     # Assemble into a features x categories matrix
     return pd.DataFrame(rows).T
-

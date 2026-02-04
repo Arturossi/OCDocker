@@ -20,6 +20,7 @@ from multiprocessing import Pool
 from sklearn.decomposition import PCA
 from typing import Union
 
+import OCDocker.Error as ocerror
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
 import OCDocker.Toolbox.Printing as ocprint

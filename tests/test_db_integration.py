@@ -17,9 +17,9 @@ These tests verify that:
 import os
 import pytest
 
+from sqlalchemy import text
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import text
 
 from OCDocker.DB.DB import create_tables
 from OCDocker.DB.DBMinimal import cleanup_engine, cleanup_session, create_engine, create_session

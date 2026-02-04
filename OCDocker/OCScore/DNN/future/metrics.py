@@ -119,8 +119,8 @@ def compute_group_metrics(
     if len(fractions) == 0:
         return {}
 
-    ef_by_frac = {f: [] for f in fractions}
-    ndcg_by_frac = {f: [] for f in fractions}
+    ef_by_frac: dict[float, list[float]] = {f: [] for f in fractions}
+    ndcg_by_frac: dict[float, list[float]] = {f: [] for f in fractions}
 
     for tid in unique_targets:
         mask = target_ids == tid

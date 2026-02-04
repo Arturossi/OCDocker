@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 
 # Description
 ###############################################################################
@@ -20,14 +21,14 @@ import os
 
 import numpy as np
 
+from Bio.PDB import SASA
 from Bio.PDB.DSSP import DSSP
 from Bio.PDB.MMCIFParser import MMCIFParser
 from Bio.PDB.PDBExceptions import PDBException
 from Bio.PDB.PDBIO import PDBIO
 from Bio.PDB.PDBParser import PDBParser
-from Bio.PDB import SASA
-from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.SeqUtils import seq1
+from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from openbabel import openbabel
 from threading import Lock
 from typing import Any, Dict, Optional, Tuple, Union
@@ -171,13 +172,52 @@ class Receptor:
         '''
 
         # Name must come first
-        self.name = ""
+        self.name: str = ""
+        self.path: str = ""
+        self.structure: Optional[Bio.PDB.Structure.Structure] = None
+        self.residues: str = ""
         # Track original input path (if any)
-        self.original_path = os.fspath(structure) if isinstance(structure, (str, os.PathLike)) else ""
+        self.original_path: str = os.fspath(structure) if isinstance(structure, (str, os.PathLike)) else ""
         # Track pre-clean path (if any)
-        self.clean_source_path = ""
+        self.clean_source_path: str = ""
         # The molpath not always will exist (should also come first)
-        self.mol2_path = str(mol2_path)
+        self.mol2_path: str = str(mol2_path)
+        # Descriptor-related fields
+        self.sasa: Optional[float] = None
+        self.__c_model: Optional[str] = None
+        self.dipoleMoment: Optional[float] = None
+        self.isoelectricPoint: Optional[float] = None
+        self.instabilityIndex: Optional[float] = None
+        self.__gravy_scale: Optional[str] = None
+        self.GRAVY: Optional[float] = None
+        self.aromaticity: Optional[float] = None
+        self.totalAALength: Optional[int] = None
+        self.avgAALength: Optional[float] = None
+        self.countChain: Optional[int] = None
+        self.__relative_asa_cutoff: Optional[float] = None
+        self.__countAA: Optional[Dict[str, int]] = None
+        self.__AAdata: Optional[Tuple[int, float, int]] = None
+        # Individual AA counts
+        self.countA: Optional[int] = None
+        self.countR: Optional[int] = None
+        self.countN: Optional[int] = None
+        self.countD: Optional[int] = None
+        self.countC: Optional[int] = None
+        self.countQ: Optional[int] = None
+        self.countE: Optional[int] = None
+        self.countG: Optional[int] = None
+        self.countH: Optional[int] = None
+        self.countI: Optional[int] = None
+        self.countL: Optional[int] = None
+        self.countK: Optional[int] = None
+        self.countM: Optional[int] = None
+        self.countF: Optional[int] = None
+        self.countP: Optional[int] = None
+        self.countS: Optional[int] = None
+        self.countT: Optional[int] = None
+        self.countW: Optional[int] = None
+        self.countY: Optional[int] = None
+        self.countV: Optional[int] = None
         # Set the path and structure (NEVER SHOUD BE NONE)
         # If user pass a json
         if from_json_descriptors:
@@ -198,48 +238,13 @@ class Receptor:
                 # If original_path is just the pre-clean PDB, clear it to avoid duplication
                 if self.original_path and os.path.abspath(self.original_path) == os.path.abspath(self.clean_source_path):
                     self.original_path = ""
+        # Ensure structure is valid before continuing
+        if self.structure is None:
+            ocprint.print_error(f"Could not load receptor structure: '{structure}'.")
+            return None
+
         # Set the residues (derived from structure)
         self.residues = get_res(self.structure)
-
-        # Set everything as None
-        self.sasa = None
-        self.__c_model = None
-        self.dipoleMoment = None
-        self.isoelectricPoint = None
-        self.instabilityIndex = None
-
-        self.__gravy_scale = None
-        self.GRAVY = None
-
-        self.aromaticity = None
-
-        self.totalAALength = None
-        self.avgAALength = None
-        self.countChain = None
-
-        self.__relative_asa_cutoff = None
-        self.__countAA = None
-
-        self.countA = None
-        self.countR = None
-        self.countN = None
-        self.countD = None
-        self.countC = None
-        self.countQ = None
-        self.countE = None
-        self.countG = None
-        self.countH = None
-        self.countI = None
-        self.countL = None
-        self.countK = None
-        self.countM = None
-        self.countF = None
-        self.countP = None
-        self.countS = None
-        self.countT = None
-        self.countW = None
-        self.countY = None
-        self.countV = None
 
         # If user pass a json
         if from_json_descriptors:
@@ -247,14 +252,52 @@ class Receptor:
             data = read_descriptors_from_json(from_json_descriptors)
 
             # If data is None, a problem occurred while reading the json file
-            if not data:
+            if not data or not isinstance(data, tuple):
                 ocprint.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
 
-            #region assign
-            self.name, self.sasa, self.dipoleMoment, self.isoelectricPoint, self.instabilityIndex,self.GRAVY, self.aromaticity, self.__countAA, self.countA, self.countR, self.countN, self.countD, self.countC, self.countQ, self.countE, self.countG, self.countH, self.countI, self.countL, self.countK, self.countM, self.countF, self.countP, self.countS, self.countT, self.countW, self.countY, self.countV, self.totalAALength, self.avgAALength, self.countChain = data
+            # Unpack values from JSON tuple
+            (
+                name_val, sasa_val, dipole_val, iso_val, instab_val, gravy_val, arom_val,
+                countAA, countA, countR, countN, countD, countC, countQ, countE, countG,
+                countH, countI, countL, countK, countM, countF, countP, countS, countT,
+                countW, countY, countV, total_len, avg_len, chain_count
+            ) = data
 
-            #endregion
+            self.name = str(name_val)
+            self.sasa = float(sasa_val) if sasa_val is not None else None
+            self.dipoleMoment = float(dipole_val) if dipole_val is not None else None
+            self.isoelectricPoint = float(iso_val) if iso_val is not None else None
+            self.instabilityIndex = float(instab_val) if instab_val is not None else None
+            self.GRAVY = float(gravy_val) if gravy_val is not None else None
+            self.aromaticity = float(arom_val) if arom_val is not None else None
+
+            # AA counts from JSON (dict plus individual counts)
+            self.__countAA = countAA if isinstance(countAA, dict) else {}
+            self.countA = int(countA) if countA is not None else 0
+            self.countR = int(countR) if countR is not None else 0
+            self.countN = int(countN) if countN is not None else 0
+            self.countD = int(countD) if countD is not None else 0
+            self.countC = int(countC) if countC is not None else 0
+            self.countQ = int(countQ) if countQ is not None else 0
+            self.countE = int(countE) if countE is not None else 0
+            self.countG = int(countG) if countG is not None else 0
+            self.countH = int(countH) if countH is not None else 0
+            self.countI = int(countI) if countI is not None else 0
+            self.countL = int(countL) if countL is not None else 0
+            self.countK = int(countK) if countK is not None else 0
+            self.countM = int(countM) if countM is not None else 0
+            self.countF = int(countF) if countF is not None else 0
+            self.countP = int(countP) if countP is not None else 0
+            self.countS = int(countS) if countS is not None else 0
+            self.countT = int(countT) if countT is not None else 0
+            self.countW = int(countW) if countW is not None else 0
+            self.countY = int(countY) if countY is not None else 0
+            self.countV = int(countV) if countV is not None else 0
+
+            self.totalAALength = int(total_len) if total_len is not None else 0
+            self.avgAALength = float(avg_len) if avg_len is not None else 0.0
+            self.countChain = int(chain_count) if chain_count is not None else 0
         else:
             # Check if the name is empty
             if not name:
@@ -275,9 +318,9 @@ class Receptor:
                 # Fallback: call compute_sasa if it wasn't called or failed
                 # Call compute_sasa directly (it's defined in this module)
                 compute_sasa(self.structure)
-            self.sasa = self.structure.sasa
+            self.sasa = float(getattr(self.structure, "sasa", 0.0))
             self.__c_model = c_model # The options are 'mmff94', 'gasteiger' or 'eem2015bm'
-            self.dipoleMoment = compute_dipole_moment(self.path, self.__c_model)
+            self.dipoleMoment = compute_dipole_moment(self.path, self.__c_model or "gasteiger")
             self.isoelectricPoint = compute_isoelectric_point(self.residues)
             self.instabilityIndex = compute_instability_index(self.residues)
 
@@ -292,6 +335,9 @@ class Receptor:
             self.__relative_asa_cutoff = relative_asa_cutoff
 
             self.__countAA = count_surface_AA(self.structure, self.path, self.__relative_asa_cutoff)
+            if not self.__countAA:
+                ocprint.print_error("Problems while counting surface amino acids!")
+                return None
 
             self.countA = self.__countAA["A"]
             self.countR = self.__countAA["R"]
@@ -312,7 +358,6 @@ class Receptor:
             self.countT = self.__countAA["T"]
             self.countW = self.__countAA["W"]
             self.countY = self.__countAA["Y"]
-
             self.countV = self.__countAA["V"]
 
 
@@ -350,7 +395,7 @@ class Receptor:
 
     ## Public ##
 
-    def get_descriptors(self)-> Dict[str, Union[float, int]]:
+    def get_descriptors(self) -> Dict[str, Union[float, int, None]]:
         '''Return the descriptors for the Receptor object.
 
         Parameters
@@ -364,35 +409,35 @@ class Receptor:
         '''
 
         descriptors = {
-          "TotalAALength": self.totalAALength if self.totalAALength else 0,
-          "AvgAALength": self.avgAALength if self.avgAALength else 0,
-          "countChain": self.countChain if self.countChain else 0,
-          "SASA": self.sasa if self.sasa else None,
-          "DipoleMoment": self.dipoleMoment if self.dipoleMoment else None,
-          "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint else None,
-          "GRAVY": self.GRAVY if self.GRAVY else None,
-          "Aromaticity": self.aromaticity if self.aromaticity else None,
-          "InstabilityIndex": self.instabilityIndex if self.instabilityIndex else None,
-          "countA": self.countA if self.countA else 0,
-          "countR": self.countR if self.countR else 0,
-          "countN": self.countN if self.countN else 0,
-          "countD": self.countD if self.countD else 0,
-          "countC": self.countC if self.countC else 0,
-          "countQ": self.countQ if self.countQ else 0,
-          "countE": self.countE if self.countE else 0,
-          "countG": self.countG if self.countG else 0,
-          "countH": self.countH if self.countH else 0,
-          "countI": self.countI if self.countI else 0,
-          "countL": self.countL if self.countL else 0,
-          "countK": self.countK if self.countK else 0,
-          "countM": self.countM if self.countM else 0,
-          "countF": self.countF if self.countF else 0,
-          "countP": self.countP if self.countP else 0,
-          "countS": self.countS if self.countS else 0,
-          "countT": self.countT if self.countT else 0,
-          "countW": self.countW if self.countW else 0,
-          "countY": self.countY if self.countY else 0,
-          "countV": self.countV if self.countV else 0
+            "TotalAALength": self.totalAALength if self.totalAALength is not None else 0,
+            "AvgAALength": self.avgAALength if self.avgAALength is not None else 0,
+            "countChain": self.countChain if self.countChain is not None else 0,
+            "SASA": self.sasa if self.sasa is not None else None,
+            "DipoleMoment": self.dipoleMoment if self.dipoleMoment is not None else None,
+            "IsoelectricPoint": self.isoelectricPoint if self.isoelectricPoint is not None else None,
+            "GRAVY": self.GRAVY if self.GRAVY is not None else None,
+            "Aromaticity": self.aromaticity if self.aromaticity is not None else None,
+            "InstabilityIndex": self.instabilityIndex if self.instabilityIndex is not None else None,
+            "countA": self.countA if self.countA is not None else 0,
+            "countR": self.countR if self.countR is not None else 0,
+            "countN": self.countN if self.countN is not None else 0,
+            "countD": self.countD if self.countD is not None else 0,
+            "countC": self.countC if self.countC is not None else 0,
+            "countQ": self.countQ if self.countQ is not None else 0,
+            "countE": self.countE if self.countE is not None else 0,
+            "countG": self.countG if self.countG is not None else 0,
+            "countH": self.countH if self.countH is not None else 0,
+            "countI": self.countI if self.countI is not None else 0,
+            "countL": self.countL if self.countL is not None else 0,
+            "countK": self.countK if self.countK is not None else 0,
+            "countM": self.countM if self.countM is not None else 0,
+            "countF": self.countF if self.countF is not None else 0,
+            "countP": self.countP if self.countP is not None else 0,
+            "countS": self.countS if self.countS is not None else 0,
+            "countT": self.countT if self.countT is not None else 0,
+            "countW": self.countW if self.countW is not None else 0,
+            "countY": self.countY if self.countY is not None else 0,
+            "countV": self.countV if self.countV is not None else 0,
         }
 
         return descriptors
@@ -425,7 +470,7 @@ class Receptor:
         formatted, aligned table.
         """
 
-        attributes = {
+        attributes: Dict[str, Any] = {
             "Name": self.name,
             "Structure path": self.path,
             "Original path": self.original_path,
@@ -451,7 +496,7 @@ class Receptor:
 
             print(f"{key}: {value if value else '-'}")
 
-    def to_dict(self) -> Dict[str, Union[float, int]]:
+    def to_dict(self) -> Dict[str, Union[str, float, int, None]]:
         '''Return all the properties for the Receptor object.
 
         Parameters
@@ -470,7 +515,7 @@ class Receptor:
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
         properties["mol2Path"] = self.mol2_path if self.mol2_path is not None else "-"
-        properties["Structure"] = self.structure if self.structure is not None else "-"
+        properties["Structure"] = str(self.structure) if self.structure is not None else "-"
 
         # Combine both in one dict and return them
 
@@ -621,9 +666,9 @@ def compute_aromaticity(residues: str) -> float:
 
     ocprint.printv(f"Computing the Aromaticity for protein with amino acid sequence of '{residues}'.")
     protein = ProteinAnalysis(residues.upper())
-    return protein.aromaticity()
+    return float(protein.aromaticity())
 
-def compute_dipole_moment(structure: Union[Bio.PDB.Structure.Structure, str], c_model: str = "gasteiger") -> Optional[float]:
+def compute_dipole_moment(structure: Union[str, os.PathLike], c_model: str = "gasteiger") -> Optional[float]:
     '''Computes the receptor's dipole moment.
 
     Parameters
@@ -639,14 +684,15 @@ def compute_dipole_moment(structure: Union[Bio.PDB.Structure.Structure, str], c_
         The dipole moment of the receptor.
     '''
 
-    ocprint.printv(f"Computing Dipole moment for protein '{structure}'.")
+    structure_path = os.fspath(structure)
+    ocprint.printv(f"Computing Dipole moment for protein '{structure_path}'.")
     # Grab the extension and path
-    extension = ocvalidation.validate_obabel_extension(structure)
+    extension = ocvalidation.validate_obabel_extension(structure_path)
     # Set the moment as None
     moment = None
     # Check if the extension is valid
     if type(extension) != str:
-        ocprint.print_error(f"Problems while reading the ligand file '{structure}'.")
+        ocprint.print_error(f"Problems while reading the ligand file '{structure_path}'.")
     else:
         # Create the conversion object
         obConversion = openbabel.OBConversion()
@@ -655,7 +701,7 @@ def compute_dipole_moment(structure: Union[Bio.PDB.Structure.Structure, str], c_
         # Create the OBMol object
         mol = openbabel.OBMol()
         # Load the input file to the previously loaded OBMol object
-        obConversion.ReadFile(mol, structure)
+        obConversion.ReadFile(mol, structure_path)
         # Create the charge model object
         charge_model = openbabel.OBChargeModel.FindType(c_model)
         # Compute the mol object charges using the charge model
@@ -663,7 +709,7 @@ def compute_dipole_moment(structure: Union[Bio.PDB.Structure.Structure, str], c_
         # Get the dipile moment from the molecule
         dipole = charge_model.GetDipoleMoment(mol)
         # Calcule the dipole moment from the vector with the root of the sum of squares of the coordinates
-        moment = math.sqrt(dipole.GetX()**2+dipole.GetY()**2+dipole.GetZ()**2)
+        moment = float(math.sqrt(dipole.GetX()**2+dipole.GetY()**2+dipole.GetZ()**2))
 
     return moment
 
@@ -692,7 +738,7 @@ def compute_gravy(residues: str, scale: str = "KyteDoolitle") -> float:
 
     ocprint.printv(f"Computing the GRAVY (Grand Average of Hydropathy) for protein with amino acid sequence of '{residues}'.")
     protein = ProteinAnalysis(_filterSequence(residues))
-    return protein.gravy(scale = scale)
+    return float(protein.gravy(scale = scale))
 
 def compute_instability_index(residues: str) -> float:
     '''Calculate the instability index according to Guruprasad et al 1990.
@@ -716,7 +762,7 @@ def compute_instability_index(residues: str) -> float:
 
     ocprint.printv(f"Computing the Instability Index for protein with amino acid sequence of '{residues}'.")
     protein = ProteinAnalysis(_filterSequence(residues))
-    return protein.instability_index()
+    return float(protein.instability_index())
 
 def compute_isoelectric_point(residues: str) -> float:
     '''Computes protein's isoelectric point.
@@ -734,7 +780,7 @@ def compute_isoelectric_point(residues: str) -> float:
 
     ocprint.printv(f"Computing the isoelectric point for protein with amino acid sequence of '{residues}'.")
     protein = ProteinAnalysis(residues)
-    return protein.isoelectric_point()
+    return float(protein.isoelectric_point())
 
 def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> None:
     '''Computes the Solvent Accessible Surface Area of the molecule. NOTE: The sasa value is added to the structure and can be called using the command "model.sasa" (without quotes).
@@ -752,12 +798,12 @@ def compute_sasa(model: Bio.PDB.Structure.Structure, n_points: int = 1000) -> No
         sr = SASA.ShrakeRupley(n_points = n_points)
         sr.compute(model, level="S")
         # Ensure sasa attribute exists even if computation didn't add it
-        if not hasattr(model, 'sasa'):
-            model.sasa = 0.0
+        if not hasattr(model, "sasa"):
+            setattr(model, "sasa", 0.0)
     except (AttributeError, TypeError, Exception):
         # Fallback: if SASA computation fails, set a default value
         # This can happen in test environments or when BioPython isn't configured
-        model.sasa = 0.0
+        setattr(model, "sasa", 0.0)
     return None
 
 def count_AAs_and_chains(structure: Bio.PDB.Structure.Structure) -> Optional[Tuple[int, float, int]]:
@@ -1011,7 +1057,9 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
         # Check if the pdb file should be cleaned
         if clean:
             # Clean the pdb file
-            structure = renumber_pdb_residues(structure)
+            cleaned = renumber_pdb_residues(structure)
+            if cleaned is not None:
+                structure = cleaned
         # Since it is already a structure, return it with empty path
         return "", structure
     elif isinstance(structure, (str, os.PathLike)):
@@ -1115,7 +1163,9 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
 
             # Check if the pdb file should be cleaned (renumber residues)
             if clean:
-                tmp_structure = renumber_pdb_residues(tmp_structure)
+                cleaned = renumber_pdb_residues(tmp_structure)
+                if cleaned is not None:
+                    tmp_structure = cleaned
 
             # If there is a mol2 path and the file does not exist
             if mol2_path and (not os.path.isfile(mol2_path) or overwrite):
@@ -1142,7 +1192,7 @@ def load_mol(structure: Union[str, os.PathLike, Bio.PDB.Structure.Structure], na
         ocprint.print_error("Unsupported molecule data. Please support either a molecule path (string) or an 'rdkit.Chem.rdchem.Mol' object.")
         return "", None
 
-def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[Union[Dict[str, Union[str, float, int]], Tuple[Union[float, str, int]]]]:
+def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int, Dict[str, int]], ...]]]:
     '''Read the descriptors from a json file.
 
     Parameters
@@ -1154,7 +1204,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[
 
     Returns
     -------
-    Dict[str, str | float | int] | Tuple[float | str | int]] | None
+    Dict[str, str | float | int] | Tuple[float | str | int | dict[str, int], ...] | None
         The descriptors dictionary or None if any error occurs.
 
     Raises

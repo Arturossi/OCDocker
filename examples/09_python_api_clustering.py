@@ -5,11 +5,11 @@ This example shows how to cluster docked poses from multiple engines using RMSD
 """
 
 import os
-from OCDocker.Receptor import Receptor
-from OCDocker.Ligand import Ligand
-from OCDocker.Docking.Vina import Vina
 from OCDocker.Docking.PLANTS import PLANTS
+from OCDocker.Docking.Vina import Vina
+from OCDocker.Ligand import Ligand
 from OCDocker.Processing.Preprocessing.RmsdClustering import cluster_rmsd, get_medoids
+from OCDocker.Receptor import Receptor
 from OCDocker.Toolbox.MoleculeProcessing import get_rmsd_matrix
 
 # Perform docking with multiple engines
@@ -96,4 +96,3 @@ for medoid in medoids:
 print("\nMedoids with scores:")
 for pose, info in medoids_dict.items():
     print(f"{pose}: {info}")
-

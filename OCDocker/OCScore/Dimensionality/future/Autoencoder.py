@@ -13,7 +13,7 @@ import torch
 
 import torch.nn as nn
 
-from typing import Any, Dict, List, Optional, Tuple, Union, cast, overload, Literal
+from typing import Any, Dict, List, Optional, Tuple, Union, cast, overload, Literal, TypedDict
 
 # License
 ###############################################################################
@@ -34,6 +34,14 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Classes
 ###############################################################################
+
+
+class ForwardOutput(TypedDict):
+    reconstruction: torch.Tensor
+    latent: torch.Tensor
+    mu: torch.Tensor
+    logvar: torch.Tensor
+    energy: Optional[torch.Tensor]
 
 
 class MLP(nn.Module):
@@ -539,9 +547,10 @@ class Autoencoder(nn.Module):
             Latent tensor (and optional stats).
         '''
 
-        return self.encoder(x, sample=sample, return_stats=return_stats)
+        return cast(Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
+                    self.encoder(x, sample=sample, return_stats=return_stats))
 
-    def forward(self, x: torch.Tensor, sample: bool = True) -> Dict[str, torch.Tensor | None]:
+    def forward(self, x: torch.Tensor, sample: bool = True) -> ForwardOutput:
         '''Forward pass returning reconstruction and auxiliary outputs.
 
         Parameters

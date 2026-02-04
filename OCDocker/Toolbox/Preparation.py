@@ -27,11 +27,12 @@ from abc import ABC, abstractmethod
 from typing import Tuple, Union
 
 import OCDocker.Error as ocerror
+
 from OCDocker.Config import get_config
 from OCDocker.Toolbox.FilesFolders import ensure_parent_dir
 from OCDocker.Toolbox.Printing import print_warning
-from OCDocker.Toolbox import Running as ocrun
 from OCDocker.Toolbox.Running import is_tool_available
+from OCDocker.Toolbox import Running as ocrun
 
 # License
 ###############################################################################
@@ -89,7 +90,7 @@ class PreparationStrategy(ABC):
         input_path: str,
         output_path: str,
         tool_name: str
-    ) -> Union[int, Tuple[int, str]]:
+    ) -> Union[int, str, Tuple[int, str]]:
         '''Fallback to copying file if tool unavailable (shared utility).
 
         Parameters
@@ -103,7 +104,7 @@ class PreparationStrategy(ABC):
 
         Returns
         -------
-        Union[int, Tuple[int, str]]
+        Union[int, str, Tuple[int, str]]
             Error code or tuple of (error_code, stderr)
         '''
 
@@ -198,7 +199,7 @@ class PreparationStrategy(ABC):
         output_path: str,
         log_file: str = "",
         overwrite: bool = False
-    ) -> Union[int, Tuple[int, str]]:
+    ) -> Union[int, str, Tuple[int, str]]:
         '''Prepare a ligand molecule.
 
         Parameters
@@ -214,7 +215,7 @@ class PreparationStrategy(ABC):
 
         Returns
         -------
-        Union[int, Tuple[int, str]]
+        Union[int, str, Tuple[int, str]]
             Error code or tuple of (error_code, stderr)
         '''
 
@@ -227,7 +228,7 @@ class PreparationStrategy(ABC):
         output_path: str,
         log_file: str = "",
         overwrite: bool = False
-    ) -> Union[int, Tuple[int, str]]:
+    ) -> Union[int, str, Tuple[int, str]]:
         '''Prepare a receptor molecule.
 
         Parameters
@@ -243,7 +244,7 @@ class PreparationStrategy(ABC):
 
         Returns
         -------
-        Union[int, Tuple[int, str]]
+        Union[int, str, Tuple[int, str]]
             Error code or tuple of (error_code, stderr)
         '''
 
@@ -310,7 +311,7 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
         output_path: str,
         log_file: str = "",
         overwrite: bool = False
-    ) -> Union[int, Tuple[int, str]]:
+    ) -> Union[int, str, Tuple[int, str]]:
         '''Prepare a ligand molecule.
 
         Parameters
@@ -326,7 +327,7 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
 
         Returns
         -------
-        Union[int, Tuple[int, str]]
+        Union[int, str, Tuple[int, str]]
             Error code or tuple of (error_code, stderr)
         '''
 
@@ -363,7 +364,7 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
         output_path: str,
         log_file: str = "",
         overwrite: bool = False
-    ) -> Union[int, Tuple[int, str]]:
+    ) -> Union[int, str, Tuple[int, str]]:
         '''Prepare a receptor molecule.
 
         Parameters
@@ -379,7 +380,7 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
 
         Returns
         -------
-        Union[int, Tuple[int, str]]
+        Union[int, str, Tuple[int, str]]
             Error code or tuple of (error_code, stderr)
         '''
 
@@ -424,7 +425,7 @@ class SPORESPreparationStrategy(PreparationStrategy):
         log_file: str,
         overwrite: bool,
         entity_label: str
-    ) -> Union[int, Tuple[int, str]]:
+    ) -> Union[int, str, Tuple[int, str]]:
         result = self._handle_existing_output(output_path, overwrite, entity_label)
         if result is not None:
             return result
@@ -500,7 +501,7 @@ class SPORESPreparationStrategy(PreparationStrategy):
         output_path: str,
         log_file: str = "",
         overwrite: bool = False
-    ) -> Union[int, Tuple[int, str]]:
+    ) -> Union[int, str, Tuple[int, str]]:
         '''Prepare a ligand molecule.
 
         Parameters
@@ -516,7 +517,7 @@ class SPORESPreparationStrategy(PreparationStrategy):
 
         Returns
         -------
-        Union[int, Tuple[int, str]]
+        Union[int, str, Tuple[int, str]]
             Error code or tuple of (error_code, stderr)
         '''
 
@@ -534,7 +535,7 @@ class SPORESPreparationStrategy(PreparationStrategy):
         output_path: str,
         log_file: str = "",
         overwrite: bool = False
-    ) -> Union[int, Tuple[int, str]]:
+    ) -> Union[int, str, Tuple[int, str]]:
         '''Prepare a receptor molecule.
 
         Parameters
@@ -612,7 +613,7 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
         output_path: str,
         log_file: str = "",
         overwrite: bool = False
-    ) -> Union[int, Tuple[int, str]]:
+    ) -> Union[int, str, Tuple[int, str]]:
         '''Prepare a ligand molecule.
 
         Parameters
@@ -628,7 +629,7 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
 
         Returns
         -------
-        Union[int, Tuple[int, str]]
+        Union[int, str, Tuple[int, str]]
             Error code or tuple of (error_code, stderr)
         '''
 
@@ -640,7 +641,7 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
         from OCDocker.Toolbox import Validation as ocvalidation
 
         extension = ocvalidation.validate_obabel_extension(input_path)
-        if type(extension) != str:
+        if not isinstance(extension, str):
             from OCDocker.Toolbox import Printing as ocprint
             ocprint.print_error(f"Problems while reading the ligand file '{input_path}'.")
             return extension
@@ -690,7 +691,7 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
         output_path: str,
         log_file: str = "",
         overwrite: bool = False
-    ) -> Union[int, Tuple[int, str]]:
+    ) -> Union[int, str, Tuple[int, str]]:
         '''Prepare a receptor molecule.
 
         Parameters
@@ -706,7 +707,7 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
 
         Returns
         -------
-        Union[int, Tuple[int, str]]
+        Union[int, str, Tuple[int, str]]
             Error code or tuple of (error_code, stderr)
         '''
 

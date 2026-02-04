@@ -162,7 +162,7 @@ def plot_roc_curves(df : pd.DataFrame, feature_cols : list, labels : pd.Series, 
         auc_dict[feature] = roc_auc
 
     # Sort the features by their AUC in descending order
-    sorted_features = sorted(auc_dict, key=auc_dict.get, reverse=True)
+    sorted_features = sorted(auc_dict, key=lambda k: auc_dict[k], reverse=True)
 
     # Create the plot
     plt.figure(figsize=(14, 10))

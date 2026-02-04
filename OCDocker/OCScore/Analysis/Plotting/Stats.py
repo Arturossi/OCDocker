@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 import scipy.stats as sstats
 import seaborn as sns
+import OCDocker.Error as ocerror
 
 from typing import Optional
 
@@ -705,4 +706,3 @@ def save_pca_importance_groups(
     df = importance_df.copy()
     df['Group'] = pd.cut(df['Importance'], bins=bins, labels=labels, include_lowest=True, duplicates='drop')
     df.to_csv(f"{output_dir}/pca{pca_type}_importance_groups_{n_trials}.csv", index=False)
-

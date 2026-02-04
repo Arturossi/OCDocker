@@ -12,9 +12,9 @@ import OCDocker.Toolbox.Printing as ocprint
 
 # Imports
 ###############################################################################
-import datetime
 import inspect
 from typing import Dict
+from datetime import datetime
 
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Logging as oclogging
@@ -60,6 +60,31 @@ def _should_print() -> bool:
         return True
 
 
+def _caller_context(depth: int = 2) -> str:
+    '''Safely build caller context for debug messages.
+
+    Parameters
+    ----------
+    depth : int
+        How many frames to walk back (default 2 for caller of the public API).
+
+    Returns
+    -------
+    str
+        Context string or empty string if unavailable.
+    '''
+
+    frame = inspect.currentframe()
+    for _ in range(depth):
+        if frame is None or frame.f_back is None:
+            return ""
+        frame = frame.f_back
+
+    return (f"In function '{frame.f_code.co_name}' "
+            f"line {frame.f_lineno} "
+            f"from file '{frame.f_code.co_filename}'.")
+
+
 ## Public ##
 
 def print_error(message: str, force: bool = False) -> None:
@@ -77,7 +102,8 @@ def print_error(message: str, force: bool = False) -> None:
         oclogging.configure(level=ocerror.Error.get_output_level())
         log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-            msg = f"ERROR: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'."
+            context = _caller_context()
+            msg = f"ERROR: {message} {context}".strip()
         else:
             msg = f"ERROR: {message}"
         log.error(msg)
@@ -98,9 +124,11 @@ def print_error_log(message: str, logfile: str, mode: str = 'a') -> None:
         Mode to open the file. Default is 'a' (append).
     '''
 
-    today = datetime.datetime.now()
+    today = datetime.now()
     with open(logfile, mode) as f:
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] ERROR: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
+        context = _caller_context()
+        suffix = f" {context}" if context else ""
+        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] ERROR: {message}{suffix}\n")
     return
 
 def print_info(message: str, force: bool = False) -> None:
@@ -118,7 +146,8 @@ def print_info(message: str, force: bool = False) -> None:
         oclogging.configure(level=ocerror.Error.get_output_level())
         log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-            msg = f"INFO: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'."
+            context = _caller_context()
+            msg = f"INFO: {message} {context}".strip()
         else:
             msg = f"INFO: {message}"
         log.info(msg)
@@ -139,9 +168,11 @@ def print_info_log(message: str, logfile:str, mode: str = 'a') -> None:
         Mode to open the file. Default is 'a' (append).
     '''
 
-    today = datetime.datetime.now()
+    today = datetime.now()
     with open(logfile, mode) as f:
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] INFO: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
+        context = _caller_context()
+        suffix = f" {context}" if context else ""
+        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] INFO: {message}{suffix}\n")
     return
 
 def print_section(n: int, name: str, logName: str = "OCDocker_Progress.out") -> None:
@@ -242,7 +273,8 @@ def print_success(message: str, force: bool = False) -> None:
         oclogging.configure(level=ocerror.Error.get_output_level())
         log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-            msg = f"SUCCESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'."
+            context = _caller_context()
+            msg = f"SUCCESS: {message} {context}".strip()
         else:
             msg = f"SUCCESS: {message}"
         log.info(msg)
@@ -263,9 +295,11 @@ def print_success_log(message: str, logfile: str, mode: str = 'a') -> None:
         Mode to open the file. Default is 'a' (append).
     '''
 
-    today = datetime.datetime.now()
+    today = datetime.now()
     with open(logfile, mode) as f:
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] SUCCESS: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
+        context = _caller_context()
+        suffix = f" {context}" if context else ""
+        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] SUCCESS: {message}{suffix}\n")
     return
 
 def print_warning(message: str, force: bool = False) -> None:
@@ -284,7 +318,8 @@ def print_warning(message: str, force: bool = False) -> None:
         log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
             # For logging, don't add "WARNING:" prefix since logger adds it via levelname
-            log_msg = f"{message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'."
+            context = _caller_context()
+            log_msg = f"{message} {context}".strip()
             # For print, add "WARNING:" prefix
             print_msg = f"WARNING: {log_msg}"
         else:
@@ -310,9 +345,11 @@ def print_warning_log(message: str, logfile: str, mode: str = 'a') -> None:
         Mode to open the file. Default is 'a' (append).
     '''
 
-    today = datetime.datetime.now()
+    today = datetime.now()
     with open(logfile, mode) as f:
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] WARNING: {message} In function '{inspect.currentframe().f_back.f_code.co_name}' line {inspect.currentframe().f_back.f_lineno} from file '{inspect.currentframe().f_back.f_code.co_filename}'.\n")
+        context = _caller_context()
+        suffix = f" {context}" if context else ""
+        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] WARNING: {message}{suffix}\n")
     return
 
 def printv(message: str) -> None:

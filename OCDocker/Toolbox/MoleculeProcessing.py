@@ -18,7 +18,7 @@ from functools import lru_cache
 
 from spyrmsd import io, rmsd
 from threading import Lock
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, cast
 
 import OCDocker.Error as ocerror
 
@@ -131,47 +131,6 @@ def build_charmm_to_canonical_map() -> Dict[AtomKey, AtomVal]:
 
     return rev
 
-
-def needs_canonical_pdb_fix(
-    pdb_path: Union[str, os.PathLike],
-    *,
-    collapse_resnames: bool = True,
-) -> bool:
-    '''Check if a PDB file contains CHARMM-style names that should be canonicalized.'''
-
-    input_path = os.fspath(pdb_path)
-    if not os.path.isfile(input_path):
-        return False
-
-    try:
-        rev_map = build_charmm_to_canonical_map()
-    except ImportError as e:
-        ocprint.print_warning(f"pdb2pqr not available; skipping canonical name detection. Error: {e}")
-        return False
-    except Exception as e:
-        ocprint.print_warning(f"Failed to build CHARMM->canonical map. Error: {e}")
-        return False
-
-    try:
-        with open(input_path, "r", encoding="utf-8", errors="replace") as fh:
-            for line in fh:
-                if not (line.startswith("ATOM  ") or line.startswith("HETATM")):
-                    continue
-
-                atom = line[12:16].strip()
-                res = line[17:20].strip()
-                new_res, new_atom = rev_map.get((res, atom), (res, atom))
-
-                if collapse_resnames:
-                    new_res = _CANON_COLLAPSE.get(new_res, new_res)
-
-                if new_res != res or new_atom != atom:
-                    return True
-    except Exception as e:
-        ocprint.print_warning(f"Failed while scanning '{input_path}' for CHARMM names. Error: {e}")
-        return False
-
-    return False
 
 ## Public ##
 
@@ -453,7 +412,8 @@ def get_rmsd(reference: str, molecule: str) -> Union[List[float], float]:
     molAdjMat = mols[0].adjacency_matrix
 
     # Return the symmetric rmsd (account for symmetry because it is important)
-    return rmsd.symmrmsd(refCoordinates, molCoordinates, refAtmNum, molAtmNum, refAdjMat, molAdjMat)
+    return cast(Union[List[float], float],
+                rmsd.symmrmsd(refCoordinates, molCoordinates, refAtmNum, molAtmNum, refAdjMat, molAdjMat))
 
 def get_rmsd_matrix(molecules: List[str]) -> Dict[str, Dict[str, float]]:
     '''Get the rmsd matrix between a list of molecules.
@@ -482,7 +442,7 @@ def get_rmsd_matrix(molecules: List[str]) -> Dict[str, Dict[str, float]]:
             # If the molecule is the same as the otherMolecule
             if molecule == otherMolecule:
                 # Append 0 to the row
-                rmsdRow[otherMolecule] = 0
+                rmsdRow[otherMolecule] = 0.0
             else:
                 # Get the rmsd between the molecule and the other molecule
                 tmpMolecule = get_rmsd(molecule, otherMolecule)
@@ -494,6 +454,47 @@ def get_rmsd_matrix(molecules: List[str]) -> Dict[str, Dict[str, float]]:
 
     # Return the rmsd matrix
     return rmsdMatrix
+
+def needs_canonical_pdb_fix(
+    pdb_path: Union[str, os.PathLike],
+    *,
+    collapse_resnames: bool = True,
+) -> bool:
+    '''Check if a PDB file contains CHARMM-style names that should be canonicalized.'''
+
+    input_path = os.fspath(pdb_path)
+    if not os.path.isfile(input_path):
+        return False
+
+    try:
+        rev_map = build_charmm_to_canonical_map()
+    except ImportError as e:
+        ocprint.print_warning(f"pdb2pqr not available; skipping canonical name detection. Error: {e}")
+        return False
+    except Exception as e:
+        ocprint.print_warning(f"Failed to build CHARMM->canonical map. Error: {e}")
+        return False
+
+    try:
+        with open(input_path, "r", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                if not (line.startswith("ATOM  ") or line.startswith("HETATM")):
+                    continue
+
+                atom = line[12:16].strip()
+                res = line[17:20].strip()
+                new_res, new_atom = rev_map.get((res, atom), (res, atom))
+
+                if collapse_resnames:
+                    new_res = _CANON_COLLAPSE.get(new_res, new_res)
+
+                if new_res != res or new_atom != atom:
+                    return True
+    except Exception as e:
+        ocprint.print_warning(f"Failed while scanning '{input_path}' for CHARMM names. Error: {e}")
+        return False
+
+    return False
 
 def split_poses(ligand: str, ligandName: str, outPath: str, suffix: str = "", logFile: str = "") -> Union[int, Tuple[int, str]]:
     '''Split the input ligand into its poses.

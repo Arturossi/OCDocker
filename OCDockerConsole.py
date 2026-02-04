@@ -23,13 +23,14 @@ import OCDocker.Docking.Future.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina
+import OCDocker.Error as ocerror
 import OCDocker.Ligand as ocl
 import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
 import OCDocker.Receptor as ocr
 import OCDocker.Rescoring.ODDT as ocoddt
-import OCDocker.Toolbox as octools
 import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
+import OCDocker.Toolbox as octools
 
 from OCDocker.Initialise import *
 
@@ -133,7 +134,7 @@ def print_args(program: str = "") -> None:
             Value of the global variable
         '''
 
-        return globals().get(name, default)
+        return str(globals().get(name, default))
     
     def _c(attr_path: str, default: str = '-') -> str:
         '''Get value from config object using dot notation (e.g., 'vina.executable')
@@ -159,7 +160,7 @@ def print_args(program: str = "") -> None:
                 obj = getattr(obj, attr, None)
                 if obj is None:
                     return default
-            return obj if obj != "" else default
+            return str(obj) if obj != "" else default
         except (AttributeError, TypeError):
             return default
 
@@ -324,7 +325,8 @@ if __name__ == "__main__":
     bootstrap(argument_parsing())
 else:
     # CPU cores -2, and 1 if cpu has only one or two cores
-    cpu_cores = os.cpu_count() - 2 if os.cpu_count() and os.cpu_count() > 2 else 1
+    cpu_count = os.cpu_count() or 1
+    cpu_cores = cpu_count - 2 if cpu_count > 2 else 1
     available_cores = cpu_cores - 1
     multiprocess = True
     update = False

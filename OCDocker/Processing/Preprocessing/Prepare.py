@@ -20,7 +20,7 @@ import shutil
 from glob import glob
 from multiprocessing import Pool
 from tqdm import tqdm
-from typing import List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import OCDocker.Docking.Future.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
@@ -62,7 +62,15 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 ## Private ##
 
-def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None, all_boxes: bool = False) -> int:
+def __core_prepare(
+    path: str,
+    overwrite: bool,
+    archive: str,
+    sanitize: bool,
+    spacing: float,
+    targetCentroid: Optional[Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D]] = None,
+    all_boxes: bool = False
+) -> int:
     '''Prepares a database entry to be run in multiple docking software.
 
     Parameters
@@ -89,7 +97,7 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
     # Check if the basename of the working directory is not in the list of ignored directories
     if os.path.basename(path) in ['index']:
         # Skip it
-        return ocerror.Error.unnalowed_dir()
+        return ocerror.Error.unallowed_dir()
 
     # Set the input file name path
     fin = f"{path}/receptor.pdb"
@@ -239,7 +247,16 @@ def __core_prepare(path: str, overwrite: bool, archive: str, sanitize: bool, spa
 
     return ocerror.Error.ok()
 
-def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str, dbName: str, sanitize: bool, molName: str = "", targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None, alternativeLigand: rdkit.Chem.rdchem.Mol = None) -> None:
+def __prepare_molecule(
+    mol: Union[Tuple[str, str], str, rdkit.Chem.rdchem.Mol],
+    overwrite: bool,
+    moltype: str,
+    dbName: str,
+    sanitize: bool,
+    molName: str = "",
+    targetCentroid: Optional[Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D]] = None,
+    alternativeLigand: Optional[rdkit.Chem.rdchem.Mol] = None
+) -> None:
     '''Prepares a molecule, generating output to docking software.
 
     Parameters
@@ -267,10 +284,12 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
     '''
 
     # Find its name and path
-    if type(mol) == tuple:
+    if isinstance(mol, tuple):
         molPath = os.path.split(mol[0])[0]
-    else:
+    elif isinstance(mol, str):
         molPath = os.path.split(mol)[0]
+    else:
+        molPath = ""
 
     # Check if the molName was provided
     if molName == "":
@@ -278,6 +297,7 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
         molName = moltype
 
     if overwrite or not os.path.isfile(f"{molPath}/{moltype}_descriptors.json"):
+        m: Any
         if moltype == "ligand":
             # Safe create dockingFiles dirs
             _ = ocff.safe_create_dir(f"{molPath}/plantsFiles")
@@ -322,9 +342,9 @@ def __prepare_molecule(mol: rdkit.Chem.rdchem.Mol, overwrite: bool, moltype: str
                         # Check if the extension is pdb
                         if mol[0].endswith(".pdb"):
                             # Clean the receptor
-                            _ = ocmolproc.make_only_ATOM_and_CRYST_pdb(structurePath = mol[0])
+                            _ = ocmolproc.clean_for_dssp(structurePath = mol[0])
                         # Create the receptor object
-                        m = ocr.Receptor(mol[0], molName, mol2Path = mol[1])
+                        m = ocr.Receptor(mol[0], molName, mol2_path = mol[1])
                     except Exception as e:
                         errMsg = f"The molecule '{mol[0]}' could not be parsed! Error {e}"
 
@@ -473,7 +493,14 @@ def __prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, s
 
     return None
 
-def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : List[str] = [], sanitize: bool = True,  targetCentroid: Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D] = None) -> List[str]:
+def __sub_core_prepare(
+        dirsToProcess: str,
+        dbName: str,
+        overwrite: bool,
+        mols: Optional[List[str]] = None,
+        sanitize: bool = True,
+        targetCentroid: Optional[Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D]] = None
+    ) -> List[str]:
     '''Runs the prepare function for the dudez database subsets.
 
     Parameters
@@ -497,6 +524,8 @@ def __sub_core_prepare(dirsToProcess: str, dbName: str, overwrite: bool, mols : 
         List of molecule directories.
     '''
 
+    if mols is None:
+        mols = []
     # Check if mols is empty
     if mols:
         # If not, create each dir with the molecule and then move the molecule to it

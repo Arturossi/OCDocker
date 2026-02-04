@@ -82,7 +82,7 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
 
     # If is the index directory, ignore
     if ptn in ['index']:
-        return ocerror.Error.unnalowed_dir()
+        return ocerror.Error.unallowed_dir()
 
     ligandDescriptorPath = f"{ligandDir}/ligand_descriptors.json"
 
@@ -121,7 +121,7 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
         errMsg = f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptorPath}'."
         config = get_config()
         ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_docking_digest_run_report_ERROR.log")
-        return ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.receptor_or_ligand_descriptor_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
 
     return ocerror.Error.ok()
 

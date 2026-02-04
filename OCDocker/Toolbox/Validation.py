@@ -120,14 +120,14 @@ def is_molecule_valid(molecule: str) -> bool:
         elif type(validate_obabel_extension(molecule)) == str:
             try:
                 # Import RDKit lazily to avoid hard dependency at import time
-                import rdkit
+                from rdkit import Chem
                 # Check if the extension is within the supported ones, if yes, parse it
                 if extension == ".mol2":
-                    _ = rdkit.Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True)
+                    _ = Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True)
                 elif extension == ".sdf":
-                    _ = rdkit.Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True)
+                    _ = Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True)
                 elif extension == ".mol":
-                    _ = rdkit.Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True)
+                    _ = Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True)
                 elif extension == ".pdbqt":
                     # RDKit's PDB parser can misread PDBQT atom types (e.g., "A") as elements.
                     # Use OpenBabel to validate PDBQT files instead.
@@ -149,7 +149,7 @@ def is_molecule_valid(molecule: str) -> bool:
                             smi = f.read().strip().split()[0]
                     except (OSError, IOError, FileNotFoundError, IndexError):
                         return False
-                    _ = rdkit.Chem.rdmolfiles.MolFromSmiles(smi, sanitize = True)
+                    _ = Chem.rdmolfiles.MolFromSmiles(smi, sanitize = True)
                 else:
                     # Not suitable extension, so... say False!!!!
                     return False

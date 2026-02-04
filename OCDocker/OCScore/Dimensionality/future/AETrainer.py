@@ -163,7 +163,7 @@ class AETrainer:
 
         self.loss_balancing = self.config.get("optimization", {}).get("loss_balancing", "fixed")
 
-        self.uncertainty = None
+        self.uncertainty: Optional[UncertaintyWeighting] = None
         if self.loss_balancing == "uncertainty":
             self.uncertainty = UncertaintyWeighting(["recon", "energy"]).to(self.device)
 
@@ -274,7 +274,7 @@ class AETrainer:
 
         if self.loss_balancing == "uncertainty" and self.uncertainty is not None and len(losses) > 0:
             # Learn task weights dynamically.
-            total, _ = self.uncertainty(losses)
+            total, _ = cast(Tuple[torch.Tensor, Dict[str, float]], self.uncertainty(losses))
         elif self.loss_balancing == "gradnorm" and len(losses) > 0:
             # Balance tasks by equalizing gradient norms.
             total = self._gradnorm_total(losses)
@@ -318,7 +318,7 @@ class AETrainer:
                 energy_vals = energy_vals.to(self.device)
                 energy_mask = energy_mask.to(self.device)
 
-                z = cast(torch.Tensor, self.model.encode(features, sample=False, return_stats=False))
+                z = self.model.encode(features, sample=False, return_stats=False)
                 embeddings.append(z.detach().cpu().numpy())
 
                 if energy_mask.any():

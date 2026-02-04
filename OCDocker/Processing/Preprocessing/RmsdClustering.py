@@ -24,7 +24,7 @@ from scipy.cluster.hierarchy import ClusterWarning
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import pairwise_distances, silhouette_score
 
-from typing import Dict, List, Union, Optional
+from typing import Dict, List, Union, Optional, cast
 from warnings import simplefilter
 
 import OCDocker.Error as ocerror
@@ -116,15 +116,16 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
 
         # Define the scores and distance_threshold as -1
         scores = -1
-        distance_threshold = -1
+        distance_threshold = -1.0
 
         # Define the last computed result
         last_result = np.array([])
 
         # Create the loop to iterate from max_distance_threshold to min_distance_threshold using step threshold_step
-        for distance_threshold in np.arange(max_distance_threshold, min_distance_threshold, -threshold_step):
+        for distance_threshold_raw in np.arange(max_distance_threshold, min_distance_threshold, -threshold_step):
+            distance_threshold = float(distance_threshold_raw)
             # Perform the clustering
-            results = AgglomerativeClustering(n_clusters = None, distance_threshold = distance_threshold).fit_predict(npdata)
+            results = cast(np.ndarray, AgglomerativeClustering(n_clusters = None, distance_threshold = distance_threshold).fit_predict(npdata))
 
             # Get the number oe elements in each cluster
             cluster_sizes = np.bincount(results)
@@ -287,7 +288,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 linkage_matrix = sch.linkage(npdata, method='ward')
 
                 # Get cluster assignments at the distance threshold
-                clusters_at_threshold = AgglomerativeClustering(n_clusters=None, distance_threshold=distance_threshold).fit_predict(npdata)
+                clusters_at_threshold = cast(np.ndarray, AgglomerativeClustering(n_clusters=None, distance_threshold=distance_threshold).fit_predict(npdata))
                 unique_clusters = np.unique(clusters_at_threshold)
                 n_clusters = len(unique_clusters)
 
@@ -447,7 +448,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     max_y = -np.inf
                     min_y = np.inf
                     for path in paths:
-                        vertices = path.vertices
+                        vertices = np.asarray(path.vertices)
                         if len(vertices) > 0 and vertices.shape[1] >= 2:
                             y_coords = vertices[:, 1]
                             max_y = max(max_y, np.max(y_coords))
@@ -461,7 +462,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                         top_y = -np.inf
                         top_x = None
                         for path in paths:
-                            vertices = path.vertices
+                            vertices = np.asarray(path.vertices)
                             if len(vertices) > 0 and vertices.shape[1] >= 2:
                                 y_coords = vertices[:, 1]
                                 x_coords = vertices[:, 0]
@@ -484,7 +485,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                         if cluster_id < 0:
                             leaf_positions_in_collection = set()
                             for path in paths:
-                                vertices = path.vertices
+                                vertices = np.asarray(path.vertices)
                                 if len(vertices) > 0 and vertices.shape[1] >= 2:
                                     x_coords = vertices[:, 0]
                                     for x in x_coords:
@@ -621,7 +622,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 # Add cluster numbers and colors to legend (only clusters actually colored in the plot)
                 if cluster_color_map and len(clusters_actually_colored) > 1:
                     # Get unique colors and their corresponding cluster IDs for actually colored clusters only
-                    color_to_clusters = {}
+                    color_to_clusters: Dict[object, list[int]] = {}
                     for cluster_id in clusters_actually_colored:
                         if cluster_id in cluster_color_map:
                             cluster_color = cluster_color_map[cluster_id]
@@ -663,10 +664,10 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                                       bbox_to_anchor=(0.98, 0.98), handlelength=2, handletextpad=0.5,
                                       columnspacing=1.0, borderpad=0.5)
                     # Adjust layout to ensure legend fits inside
-                    plt.tight_layout(rect=[0.05, 0.05, 0.95, 0.95])
+                    plt.tight_layout(rect=(0.05, 0.05, 0.95, 0.95))
                 else:
                     # No legend, use standard layout
-                    plt.tight_layout(rect=[0.05, 0.05, 0.95, 0.95])
+                    plt.tight_layout(rect=(0.05, 0.05, 0.95, 0.95))
 
                 # Add the silhouette score (left, top) rounded to 2 decimals
                 # For single cluster, silhouette score is not meaningful, show N/A
@@ -699,7 +700,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 # Also save an index-to-name mapping with representative flags (medoids)
                 try:
                     # Determine representative structures (medoids) using the computed clusters
-                    medoids = set(get_medoids(data, results))
+                    medoids_set = set(get_medoids(data, results))
                     labels = [str(x) for x in data.index.tolist()]
                     map_path = (
                         f"{outputPlot.rsplit('.', 1)[0]}_labels.txt" if "." in outputPlot else f"{outputPlot}_labels.txt"
@@ -707,7 +708,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     with open(map_path, 'w') as mf:
                         mf.write("# Index\tName\tRepresentative\n")
                         for i, name in enumerate(labels):
-                            rep = "YES" if name in medoids else "NO"
+                            rep = "YES" if name in medoids_set else "NO"
                             mf.write(f"{i}\t{name}\t{rep}\n")
                 except (OSError, IOError, PermissionError):
                     # Non-fatal: mapping is best-effort for users of the dendrogram

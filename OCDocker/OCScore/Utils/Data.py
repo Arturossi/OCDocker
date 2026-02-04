@@ -24,7 +24,7 @@ import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from typing import Any, Optional, Union, overload, Literal
+from typing import Any, Optional, Union, overload, Literal, cast
 
 import OCDocker.Error as ocerror
 import OCDocker.OCScore.Utils.IO as ocscoreio
@@ -937,7 +937,7 @@ def reorder_columns_to_match_data_order(
     return df_reordered
 
 
-def split_dataset(X : pd.DataFrame, y : pd.Series, test_size : float = 0.2, random_state : int = 42) -> list[Any]:
+def split_dataset(X : pd.DataFrame, y : pd.Series, test_size : float = 0.2, random_state : int = 42) -> tuple[Any, Any, Any, Any]:
     ''' Split the data into training and testing sets.
 
     Parameters
@@ -964,4 +964,4 @@ def split_dataset(X : pd.DataFrame, y : pd.Series, test_size : float = 0.2, rand
     '''
 
     # Split the data into training and testing sets
-    return train_test_split(X, y, test_size = test_size, random_state = random_state)
+    return cast(tuple[Any, Any, Any, Any], train_test_split(X, y, test_size = test_size, random_state = random_state))

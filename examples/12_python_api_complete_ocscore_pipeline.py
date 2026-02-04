@@ -108,6 +108,7 @@ USE_MULTIPROCESSING = True  # Set to False to process ligands sequentially
 import argparse
 import os
 import time
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -115,8 +116,28 @@ import pandas as pd
 from glob import glob
 from typing import Optional
 
-import OCDocker.Error as ocerror
-import OCDocker.Initialise as init
+# Configure sklearn/joblib to use threading backend for parallel execution
+# This allows sklearn models to use multiple threads while main process uses multiprocessing
+# The threading backend avoids the "Loky-backed parallel loops cannot be called in multiprocessing" issue
+warnings.filterwarnings('ignore', message='.*Loky-backed parallel loops cannot be called in a multiprocessing.*')
+
+# Note: We keep the default multiprocessing start method ('fork' on Linux)
+# which is faster and works well with proper tmp directory isolation
+
+try:
+    import joblib
+    from joblib import parallel_backend, Parallel, delayed
+    
+    # Set default backend to threading so sklearn can parallelize within multiprocessing workers
+    # Threading backend works inside multiprocessing contexts (unlike Loky)
+    joblib.parallel.DEFAULT_BACKEND = 'threading'
+    JOBLIB_AVAILABLE = True
+except (ImportError, AttributeError):
+    # If joblib not available, try setting environment variable
+    os.environ['JOBLIB_BACKEND'] = 'threading'
+    JOBLIB_AVAILABLE = False
+    USE_MULTIPROCESSING = False
+    print("Warning: joblib not available. Multiprocessing disabled.")
 
 # Explicitly bootstrap OCDocker with the specified config file BEFORE other imports
 # This ensures the config is loaded correctly regardless of working directory
@@ -124,6 +145,9 @@ import OCDocker.Initialise as init
 os.environ['OCDOCKER_NO_AUTO_BOOTSTRAP'] = '1'
 
 if OCDOCKER_CONFIG_FILE and os.path.isfile(OCDOCKER_CONFIG_FILE):
+    import OCDocker.Error as ocerror
+    import OCDocker.Initialise as init
+
     print(f"Loading OCDocker configuration from: {OCDOCKER_CONFIG_FILE}")
     bootstrap_ns = argparse.Namespace(
         multiprocess=USE_MULTIPROCESSING,
@@ -154,30 +178,6 @@ import OCDocker.Receptor as ocr
 import OCDocker.Rescoring.ODDT as ocoddt
 import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
-
-# Configure sklearn/joblib to use threading backend for parallel execution
-# This allows sklearn models to use multiple threads while main process uses multiprocessing
-# The threading backend avoids the "Loky-backed parallel loops cannot be called in multiprocessing" issue
-import warnings
-warnings.filterwarnings('ignore', message='.*Loky-backed parallel loops cannot be called in a multiprocessing.*')
-
-# Note: We keep the default multiprocessing start method ('fork' on Linux)
-# which is faster and works well with proper tmp directory isolation
-
-try:
-    import joblib
-    from joblib import parallel_backend, Parallel, delayed
-    
-    # Set default backend to threading so sklearn can parallelize within multiprocessing workers
-    # Threading backend works inside multiprocessing contexts (unlike Loky)
-    joblib.parallel.DEFAULT_BACKEND = 'threading'
-    JOBLIB_AVAILABLE = True
-except (ImportError, AttributeError):
-    # If joblib not available, try setting environment variable
-    os.environ['JOBLIB_BACKEND'] = 'threading'
-    JOBLIB_AVAILABLE = False
-    USE_MULTIPROCESSING = False
-    print("Warning: joblib not available. Multiprocessing disabled.")
 
 def main():
     '''Main function to process all ligands.'''

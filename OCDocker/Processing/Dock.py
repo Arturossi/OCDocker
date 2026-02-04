@@ -62,7 +62,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Private ##
 
 class _Lock(Protocol):
-    def __enter__(self) -> "_Lock": ...
+    def __enter__(self) -> Any: ...
     def __exit__(self, exc_type: object, exc: object, tb: object) -> None: ...
     def acquire(self, *args: Any, **kwargs: Any) -> bool: ...
     def release(self) -> None: ...
@@ -102,7 +102,7 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
 
     # If is the index directory, ignore
     if ptn in ['index']:
-        return ocerror.Error.unnalowed_dir()
+        return ocerror.Error.unallowed_dir()
 
     # Set receptor data
     receptorPath = f"{path}/receptor.pdb"
@@ -154,7 +154,7 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
 
             config = get_config()
             ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
-            return ocerror.Error.docking_algorithm_not_supported(errMsg, level = ocerror.ReportLevel.ERROR)
+            return ocerror.Error.not_supported_docking_algorithm(errMsg, level = ocerror.ReportLevel.ERROR)
         else:
             # Call the docking algorithm function based on the dockingAlgorithms dictionary
             returnState = dockingAlgorithms[dockingAlgorithm](ligandPath, ligandDescriptorPath, receptorPath, receptorDescriptorPath, boxPath, ptn, archive, lock, overwrite = overwrite, digestFormat = digestFormat, all_boxes = all_boxes)
@@ -164,15 +164,15 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
             errMsg = f"There is no receptor descriptor json file for the protein in the path '{receptorDescriptorPath}'. Error found while trying to run the '{dockingAlgorithm}' docking software."
             config = get_config()
             ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
-            _ = ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
+            _ = ocerror.Error.receptor_or_ligand_descriptor_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
 
         if not os.path.isfile(ligandDescriptorPath):
             errMsg = f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptorPath}'. Error found while trying to run the '{dockingAlgorithm}' docking software."
             config = get_config()
             ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_{dockingAlgorithm}_run_report_ERROR.log")
-            _ = ocerror.Error.receptor_or_ligand_descriptor_does_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
+            _ = ocerror.Error.receptor_or_ligand_descriptor_not_exist(errMsg, level = ocerror.ReportLevel.ERROR)
 
-        return ocerror.Error.receptor_or_ligand_descriptor_does_not_exist()
+        return ocerror.Error.receptor_or_ligand_descriptor_not_exist()
 
     # Check if the docking was successful
     if returnState != 0:

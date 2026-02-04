@@ -23,8 +23,9 @@ import pandas as pd
 from joblib import Parallel, delayed
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
-from typing import Union
+from typing import Any, Optional, Union
 
+import OCDocker.Error as ocerror
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.OCScore.Utils.Workers as ocscoreworkers
 import OCDocker.Toolbox.Printing as ocprint
@@ -65,7 +66,7 @@ def optimize_NN(
         no_scores: bool = False,
         only_scores: bool = False,
         use_PCA: bool = False,
-        best_ao_params: Union[dict, None] = None,
+        best_ao_params: Optional[Union[dict, list[dict[str, Any]]]] = None,
         pca_type: int = 80,
         pca_model: Union[str, PCA] = "",
         encoder_dims: tuple[int, int] = (16, 256),
@@ -225,7 +226,7 @@ def optimize_NN(
             new_X_val = [sf_val_data, ligand_val_data, receptor_val_data]
 
             # List to store the best topology for each set
-            best_ao_params = []
+            best_ao_params_list: list[dict[str, Any]] = []
 
             if run_autoencoder_optimization:
 
@@ -309,7 +310,7 @@ def optimize_NN(
 
             for name in ["SF", "LIG", "REC"]:
                 if name == "SF":
-                    best_ao_params.append(
+                    best_ao_params_list.append(
                         {
                             "n_layers_encoder": 1,
                             "activation_function_0_encoder": "Identity",
@@ -334,7 +335,8 @@ def optimize_NN(
                 best_ao_multi_trial = ao_multi_study.trials[best_ao_multi_trial.number]
 
                 # Pick the params from the best_ao_multi_trial
-                best_ao_params.append(best_ao_multi_trial.params)
+                best_ao_params_list.append(best_ao_multi_trial.params)
+            best_ao_params = best_ao_params_list
 
         else:
             if run_autoencoder_optimization:
@@ -583,7 +585,7 @@ def perform_ablation_study_NN(
             evaluated_masks = []
 
         # Apply each feature mask to the full_mask
-        masks = []
+        masks: list[list[int | bool]] = []
         for mask in feature_masks:
             # Start with a fresh copy of the full mask template
             modified_mask = full_mask.copy()
@@ -600,7 +602,7 @@ def perform_ablation_study_NN(
         inner_num_processes = num_processes
 
     # Split masks into roughly equal parts for each process using Round Robin distribution
-    split_masks = [[] for _ in range(inner_num_processes)]
+    split_masks: list[list[list[int | bool]]] = [[] for _ in range(inner_num_processes)]
     for i, mask in enumerate(masks):
         split_masks[i % inner_num_processes].append(mask)
 
@@ -748,7 +750,7 @@ def perform_seed_ablation_study_NN(
         inner_num_processes = num_processes
 
     # Split seeds into roughly equal parts for each process using Round Robin distribution
-    split_seeds = [[] for _ in range(inner_num_processes)]
+    split_seeds: list[list[int]] = [[] for _ in range(inner_num_processes)]
 
     # Distribute the seeds to the processes
     for i, seed in enumerate(seeds):
