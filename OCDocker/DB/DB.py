@@ -19,7 +19,7 @@ import json
 import pandas as pd
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
-from typing import Literal, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Printing as ocprint
@@ -48,8 +48,10 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 
 # May use session from Initialise - runtime global
+session: Any
 try:
-    from OCDocker.Initialise import session
+    from OCDocker.Initialise import session as _session
+    session = _session
 except ImportError:
     session = None
 

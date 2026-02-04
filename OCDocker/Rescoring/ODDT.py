@@ -13,7 +13,7 @@ import OCDocker.Rescoring.ODDT as ocoddt
 # Imports
 ###############################################################################
 import os
-import six
+import six  # type: ignore[import-untyped]
 import time
 import traceback
 
@@ -24,7 +24,7 @@ from glob import glob
 from oddt.scoring import scorer
 from oddt.virtualscreening import virtualscreening as vs
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 import OCDocker.Error as ocerror
 import OCDocker.Ligand as ocl
@@ -144,7 +144,7 @@ def __read_receptor_with_retry(receptor_format: str, receptor_path: str, retries
 
 ## Public ##
 
-def df_to_dict(data: pd.DataFrame) -> Dict[str, Dict[str, float]]:
+def df_to_dict(data: pd.DataFrame) -> Union[int, Dict[str, Dict[str, float]]]:
     '''Convert the data from a pandas dataframe to a dict.
 
     Parameters
@@ -160,10 +160,13 @@ def df_to_dict(data: pd.DataFrame) -> Dict[str, Dict[str, float]]:
 
     # Check if the data is a dataframe
     if not isinstance(data, pd.DataFrame):
-        return ocerror.Error.wrong_type(f"The data must be a pandas dataframe. The type {type(data)} was given.", level = ocerror.ReportLevel.ERROR)
+        return ocerror.Error.wrong_type(
+            f"The data must be a pandas dataframe. The type {type(data)} was given.",
+            level = ocerror.ReportLevel.ERROR
+        )
 
     # Convert the dataframe to dict, one row per index
-    return data.to_dict(orient = "index")
+    return cast(Dict[str, Dict[str, float]], data.to_dict(orient = "index"))
 
 def get_models(outputPath: str) -> List[str]:
     '''Get the models from the output path.
@@ -320,7 +323,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             level = ocerror.ReportLevel.ERROR
         )
 
-    receptorObj.protein = True
+    setattr(receptorObj, "protein", True)
 
     # Find missing ligands
     missing = [ligand for ligand in preparedLigandPath if not os.path.isfile(ligand)]
@@ -724,7 +727,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # If we processed individually, we might have multiple data dicts for the same ligand
     # Merge them by ligand_name
-    merged_datas = {}
+        merged_datas: Dict[str, Dict[str, float]] = {}
     for data in all_datas:
         lig_name = data.get("ligand_name", ligandName)
         if lig_name in merged_datas:

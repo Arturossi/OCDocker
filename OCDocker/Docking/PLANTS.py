@@ -222,14 +222,14 @@ class PLANTS:
                         receptor.mol2_path = mol2_path
                         return receptor.mol2_path
                     else:
-                        _ = ocprint.print_error(f"The mol2 file could not be generated for '{receptor.path}'.")
+                        ocprint.print_error(f"The mol2 file could not be generated for '{receptor.path}'.")
                         return None
             else:
                 # Check if the object has a valid path
                 if receptor.path:
                     return receptor.path
                 else:
-                    _ = ocprint.print_error(f"Invalid receptor path for the following path: '{receptor.path}'.")
+                    ocprint.print_error(f"Invalid receptor path for the following path: '{receptor.path}'.")
                     return None
         elif isinstance(receptor, str):
             # Since is a string, check if the file exists
@@ -354,7 +354,7 @@ class PLANTS:
         return None
 
 
-    def read_log(self, onlyBest: bool = True) -> Dict[int, Dict[int, float]]:
+    def read_log(self, onlyBest: bool = True) -> Dict[int, Dict[str, float]]:
         '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
 
         Parameters
@@ -364,7 +364,7 @@ class PLANTS:
 
         Returns
         -------
-        Dict[int, Dict[int, float]]
+        Dict[int, Dict[str, float]]
             The dictionary with the data from complexes.
         '''
 
@@ -380,7 +380,7 @@ class PLANTS:
         return read_log(f"{self.output_csv}/{rankingFile}", onlyBest = onlyBest)
 
 
-    def read_rescore_logs(self, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
+    def read_rescore_logs(self, onlyBest: bool = False) -> Dict[str, Dict[str, float]]:
         ''' Reads the data from the rescore log files.
 
         Parameters
@@ -390,7 +390,7 @@ class PLANTS:
 
         Returns
         -------
-        Dict[str, List[Union[str, float]]]
+        Dict[str, Dict[str, float]]
             A dictionary with the data from the rescore log files.
         '''
 
@@ -398,7 +398,7 @@ class PLANTS:
         rescoreLogPaths = self.get_rescore_log_paths(onlyBest = onlyBest)
 
         # Create the dictionary
-        rescoreLogData = {}
+        rescoreLogData: Dict[str, Dict[str, float]] = {}
 
         # For each rescore log path
         for rescoreLogPath in rescoreLogPaths:
@@ -425,12 +425,15 @@ class PLANTS:
                 inner_dict = next(iter(log_data.values()))
                 # Convert lists with single values to just the value
                 # PLANTS read_log returns lists when onlyBest=True, but we want single values
-                converted_dict = {}
+                converted_dict: Dict[str, float] = {}
                 for dict_key, value in inner_dict.items():
-                    if isinstance(value, list) and len(value) == 1:
-                        converted_dict[dict_key] = value[0]
-                    else:
-                        converted_dict[dict_key] = value
+                    try:
+                        if isinstance(value, list) and len(value) == 1:
+                            converted_dict[dict_key] = float(value[0])
+                        else:
+                            converted_dict[dict_key] = float(value)
+                    except (TypeError, ValueError):
+                        continue
                 rescoreLogData[key] = converted_dict
             else:
                 # Empty log data
@@ -509,7 +512,7 @@ class PLANTS:
         return output
 
 
-    def run_prepare_ligand(self, logFile: str = "", overwrite: bool = False) -> Union[Tuple[int, str], int]:
+    def run_prepare_ligand(self, logFile: str = "", overwrite: bool = False) -> Union[Tuple[int, str], int, str]:
         '''Run SPORES for ligand.
 
         Parameters
@@ -533,7 +536,7 @@ class PLANTS:
         )
 
 
-    def run_prepare_receptor(self, logFile: str = "", overwrite: bool = False) -> Union[Tuple[int, str], int]:
+    def run_prepare_receptor(self, logFile: str = "", overwrite: bool = False) -> Union[Tuple[int, str], int, str]:
         '''Run SPORES for receptor.
 
         Parameters
@@ -588,7 +591,7 @@ class PLANTS:
             # If is the default scoring function and skipDefaultScoring is True
             if not (scoring_function == config.plants.scoring and skipDefaultScoring):
                 # Run vina to rescore
-                _ = run_rescore(confFile, pose_list, outPath, self.prepared_receptor, scoring_function, self.binding_site_center[0], self.binding_site_center[1], self.binding_site_center[2], self.binding_site_radius, logFile = logFile, overwrite = overwrite)
+                run_rescore(confFile, pose_list, outPath, self.prepared_receptor, scoring_function, self.binding_site_center[0], self.binding_site_center[1], self.binding_site_center[2], self.binding_site_radius, logFile = logFile, overwrite = overwrite)
 
         return None
 
@@ -688,6 +691,8 @@ def box_to_plants(box_file: str, conf_file: str, receptor: str, ligand: str, out
             return binding_site
 
         # Get the center and the binding site center
+        if not isinstance(binding_site, tuple):
+            return ocerror.Error.read_file(message=f"Invalid binding site data for '{box_file}'.", level=ocerror.ReportLevel.ERROR)
         center, binding_site_radius = binding_site
 
     # Write the file
@@ -877,18 +882,27 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
         return ocerror.Error.read_file(message=f"Found a problem while reading the box file: {e}", level = ocerror.ReportLevel.ERROR)
 
     # Check if center coordinates were found
-    if center['x'] is None or center['y'] is None or center['z'] is None:
+    cx = center['x']
+    cy = center['y']
+    cz = center['z']
+    if cx is None or cy is None or cz is None:
         return ocerror.Error.read_file(message=f"Could not find center coordinates in box file '{boxFile}'. Expected REMARK line with coordinates at columns 30-54.", level = ocerror.ReportLevel.ERROR)
 
     # Find which is the biggest value in each coordinate
     # If HEADER line was not found, positions will be None, so use a default radius
-    if positions['min_x'] is None or positions['max_x'] is None:
+    min_x = positions['min_x']
+    max_x = positions['max_x']
+    min_y = positions['min_y']
+    max_y = positions['max_y']
+    min_z = positions['min_z']
+    max_z = positions['max_z']
+    if min_x is None or max_x is None or min_y is None or max_y is None or min_z is None or max_z is None:
         # Throw an error
         return ocerror.Error.read_file(message=f"Could not find min and max x coordinates in box file '{boxFile}'. Expected HEADER line with coordinates at columns 30-78.", level = ocerror.ReportLevel.ERROR)
     else:
-        xMax = max(abs(center['x'] - positions['min_x']), abs(positions['max_x'] - center['x']))
-        yMax = max(abs(center['y'] - positions['min_y']), abs(positions['max_y'] - center['y']))
-        zMax = max(abs(center['z'] - positions['min_z']), abs(positions['max_z'] - center['z']))
+        xMax = max(abs(cx - min_x), abs(max_x - cx))
+        yMax = max(abs(cy - min_y), abs(max_y - cy))
+        zMax = max(abs(cz - min_z), abs(max_z - cz))
 
         # Get the biggest value among the coordinates (do not divide it, to allow more space for the protein)
         radius = max(xMax, yMax, zMax)
@@ -897,7 +911,7 @@ def get_binding_site(boxFile: str, spacing: float = 2.9) -> Union[Tuple[Tuple[fl
         radius += round(spacing * radius, 3)
 
     # Return the data
-    return ((center['x'], center['y'], center['z']), radius)
+    return ((cx, cy, cz), radius)
 
 
 def get_docked_poses(posesPath: str) -> List[str]:
@@ -953,7 +967,7 @@ def get_pose_index_from_file_path(filePath: str) -> int:
     return int(filename)
 
 
-def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
+def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
     '''Read the PLANTS log path, returning a dict with data from complexes.
 
     Parameters
@@ -965,7 +979,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
 
     Returns
     -------
-    Dict[int, Dict[int, float]]
+    Dict[int, Dict[str, float]]
         A dictionary with the data from the PLANTS log file.
     '''
 
@@ -983,30 +997,31 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
                 # If onlyBest is True
                 if onlyBest:
                     # Return the built the dictionary
-                    return { 1: {
-                            "PLANTS_TOTAL_SCORE": [df.TOTAL_SCORE[:1].values[0]],
-                            "PLANTS_SCORE_RB_PEN": [df.SCORE_RB_PEN[:1].values[0]],
-                            "PLANTS_SCORE_NORM_HEVATOMS": [df.SCORE_NORM_HEVATOMS[:1].values[0]],
-                            "PLANTS_SCORE_NORM_CRT_HEVATOMS": [df.SCORE_NORM_CRT_HEVATOMS[:1].values[0]],
-                            "PLANTS_SCORE_NORM_WEIGHT": [df.SCORE_NORM_WEIGHT[:1].values[0]],
-                            "PLANTS_SCORE_NORM_CRT_WEIGHT": [df.SCORE_NORM_CRT_WEIGHT[:1].values[0]],
-                            "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [df.SCORE_RB_PEN_NORM_CRT_HEVATOMS[:1].values[0]],
+                    return {
+                        1: {
+                            "PLANTS_TOTAL_SCORE": float(df.TOTAL_SCORE[:1].values[0]),
+                            "PLANTS_SCORE_RB_PEN": float(df.SCORE_RB_PEN[:1].values[0]),
+                            "PLANTS_SCORE_NORM_HEVATOMS": float(df.SCORE_NORM_HEVATOMS[:1].values[0]),
+                            "PLANTS_SCORE_NORM_CRT_HEVATOMS": float(df.SCORE_NORM_CRT_HEVATOMS[:1].values[0]),
+                            "PLANTS_SCORE_NORM_WEIGHT": float(df.SCORE_NORM_WEIGHT[:1].values[0]),
+                            "PLANTS_SCORE_NORM_CRT_WEIGHT": float(df.SCORE_NORM_CRT_WEIGHT[:1].values[0]),
+                            "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": float(df.SCORE_RB_PEN_NORM_CRT_HEVATOMS[:1].values[0]),
                         }
                     }
                 else:
                     # Create the dict
-                    data = {}
+                    data: Dict[int, Dict[str, float]] = {}
                     # For each row
                     for _, row in df.iterrows():
                         # Add the data to the dict
                         data[get_pose_index_from_file_path(str(row['LIGAND_ENTRY']))] = {
-                            "PLANTS_TOTAL_SCORE": row['TOTAL_SCORE'],
-                            "PLANTS_SCORE_RB_PEN": row['SCORE_RB_PEN'],
-                            "PLANTS_SCORE_NORM_HEVATOMS": row['SCORE_NORM_HEVATOMS'],
-                            "PLANTS_SCORE_NORM_CRT_HEVATOMS": row['SCORE_NORM_CRT_HEVATOMS'],
-                            "PLANTS_SCORE_NORM_WEIGHT": row['SCORE_NORM_WEIGHT'],
-                            "PLANTS_SCORE_NORM_CRT_WEIGHT": row['SCORE_NORM_CRT_WEIGHT'],
-                            "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": row['SCORE_RB_PEN_NORM_CRT_HEVATOMS'],
+                            "PLANTS_TOTAL_SCORE": float(row['TOTAL_SCORE']),
+                            "PLANTS_SCORE_RB_PEN": float(row['SCORE_RB_PEN']),
+                            "PLANTS_SCORE_NORM_HEVATOMS": float(row['SCORE_NORM_HEVATOMS']),
+                            "PLANTS_SCORE_NORM_CRT_HEVATOMS": float(row['SCORE_NORM_CRT_HEVATOMS']),
+                            "PLANTS_SCORE_NORM_WEIGHT": float(row['SCORE_NORM_WEIGHT']),
+                            "PLANTS_SCORE_NORM_CRT_WEIGHT": float(row['SCORE_NORM_CRT_WEIGHT']),
+                            "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": float(row['SCORE_RB_PEN_NORM_CRT_HEVATOMS']),
                         }
                     # Return the dict
                     return data
@@ -1078,7 +1093,7 @@ def run_plants(confFile: str, outputPlants: str, overwrite: bool = False, logFil
     return ocrun.run(cmd, logFile = logFile)
 
 
-def run_prepare_ligand(input_ligand_path: str, output_ligand: str, log_file: str = "", overwrite: bool = False) -> Union[Tuple[int, str], int]:
+def run_prepare_ligand(input_ligand_path: str, output_ligand: str, log_file: str = "", overwrite: bool = False) -> Union[Tuple[int, str], int, str]:
     ''' Run SPORES for ligand.
 
     Parameters
@@ -1100,7 +1115,7 @@ def run_prepare_ligand(input_ligand_path: str, output_ligand: str, log_file: str
     return strategy.prepare_ligand(input_ligand_path, output_ligand, log_file, overwrite=overwrite)
 
 
-def run_prepare_receptor(input_receptor_path: str, output_receptor: str, log_file: str = "", overwrite: bool = False) -> Union[Tuple[int, str], int]:
+def run_prepare_receptor(input_receptor_path: str, output_receptor: str, log_file: str = "", overwrite: bool = False) -> Union[Tuple[int, str], int, str]:
     ''' Run SPORES for receptor.
 
     Parameters

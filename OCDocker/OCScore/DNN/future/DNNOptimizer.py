@@ -26,7 +26,7 @@ import torch.optim as optim
 from optuna.samplers import TPESampler
 from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from torch.utils.data import DataLoader
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -231,6 +231,10 @@ class DNNOptimizer:
     >>> dnn.optimize(n_trials=1)
     """
 
+    rank_train: Optional[Dict[str, Any]]
+    rank_val: Optional[Dict[str, Any]]
+    mask: Optional[torch.Tensor]
+
     def __init__(
             self,
             X_train: Union[np.ndarray, pd.DataFrame],
@@ -239,7 +243,7 @@ class DNNOptimizer:
             y_test: Union[np.ndarray, pd.Series],
             X_validation: Union[np.ndarray, pd.DataFrame, None] = None,
             y_validation: Union[np.ndarray, pd.Series, None] = None,
-            mask: Union[list[Union[int, bool]], np.ndarray] = [],
+            mask: Optional[Union[list[Union[int, bool]], np.ndarray]] = None,
             storage: str = "sqlite:///NNoptimization.db",
             encoder_params: Union[None, dict] = None,
             output_size: int = 1,
@@ -415,8 +419,8 @@ class DNNOptimizer:
         '''
 
         if stage_cfg.get("energy_loss", "huber") == "mse":
-            return nn.MSELoss()(preds, targets)
-        return nn.HuberLoss()(preds, targets)
+            return cast(torch.Tensor, nn.MSELoss()(preds, targets))
+        return cast(torch.Tensor, nn.HuberLoss()(preds, targets))
 
     def _evaluate_energy(self, model: nn.Module) -> Dict[str, float]:
         '''Evaluate energy regression performance on validation split.
@@ -659,7 +663,7 @@ class DNNOptimizer:
 
         # Deep merge with overrides
         # Only one level deep to keep config predictable and avoid accidental deletions.
-        merged = copy.deepcopy(default_config)
+        merged: Dict[str, Any] = copy.deepcopy(default_config)
         for key, sub in future_config.items():
             if isinstance(sub, dict) and key in merged:
                 merged[key].update(sub)
@@ -765,7 +769,7 @@ class DNNOptimizer:
             Selected rows.
         '''
 
-        return data[idx]
+        return cast(np.ndarray, data[idx])
 
     def _to_numpy(self, data: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
         '''Convert input data to numpy array.
@@ -782,7 +786,7 @@ class DNNOptimizer:
         '''
 
         if isinstance(data, pd.DataFrame):
-            return data.values
+            return cast(np.ndarray, data.values)
         return np.asarray(data)
 
     def _train_stage1(self, model: nn.Module) -> None:

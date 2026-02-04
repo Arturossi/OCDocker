@@ -62,7 +62,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 def _generate_digest_generic(
     digestPath: str,
     logPath: str,
-    read_log_func: Callable[[str], Dict[int, Dict[int, float]]],
+    read_log_func: Callable[[str], Dict[int, Dict[str, float]]],
     overwrite: bool = False,
     digestFormat: str = "json",
     box_id: Optional[str] = None,
@@ -196,7 +196,7 @@ def _get_docked_poses_generic(posesPath: str, error_method: Callable) -> List[st
     return []
 
 
-def _read_log_generic(path: str, scoring_key: str, engine: str, error_log: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
+def _read_log_generic(path: str, scoring_key: str, engine: str, error_log: str, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
     '''Read the vinalike log path, returning the data from complexes.
 
     Parameters
@@ -214,12 +214,12 @@ def _read_log_generic(path: str, scoring_key: str, engine: str, error_log: str, 
 
     Returns
     -------
-    Dict[int, Dict[int, float]]
+    Dict[int, Dict[str, float]]
         A dictionary with the data from the vina log file.
     '''
 
     # Create a dictionary to store the info
-    data = {}
+    data: Dict[int, Dict[str, float]] = {}
 
     # Check if file exists
     if os.path.isfile(path):
@@ -250,7 +250,11 @@ def _read_log_generic(path: str, scoring_key: str, engine: str, error_log: str, 
                     # Check if there are 4 elements in the splitLine
                     if len(splitLine) == 4:
                         # Assign the data in the dictionary with the pose as key and the affinity as value
-                        data[int(splitLine[0])] = {scoring_key: splitLine[1]}
+                        try:
+                            score_val = float(splitLine[1])
+                        except (ValueError, TypeError):
+                            continue
+                        data[int(splitLine[0])] = {scoring_key: score_val}
 
                 # If onlyBest is True
                 if onlyBest:
@@ -448,7 +452,7 @@ def get_vina_docked_poses(posesPath: str) -> List[str]:
     return _get_docked_poses_generic(posesPath, ocerror.Error.dir_not_exist)
 
 
-def read_smina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
+def read_smina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
     '''Wrapper for reading the Smina log file.
 
     Parameters
@@ -460,7 +464,7 @@ def read_smina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, flo
 
     Returns
     -------
-    Dict[int, Dict[int, float]]
+    Dict[int, Dict[str, float]]
         A dictionary with the data from the Smina log file.
     '''
 
@@ -486,7 +490,7 @@ def read_smina_rescoring_log(path: str) -> float:
     return _read_rescoring_log_generic(path, "Affinity", "smina", "smina_read_log_ERROR.log")
 
 
-def read_vina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
+def read_vina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
     '''Wrapper for reading the Vina log file.
 
     Parameters
@@ -498,7 +502,7 @@ def read_vina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[int, floa
 
     Returns
     -------
-    Dict[int, Dict[int, float]]
+    Dict[int, Dict[str, float]]
         A dictionary with the data from the Vina log file.
     '''
 

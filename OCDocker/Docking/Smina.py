@@ -166,6 +166,37 @@ class Smina:
         return ""
 
 
+    def __process_ligand(self, ligandPath: str) -> str:
+        '''Process the ligand to output to mol2 if needed.
+
+        Parameters
+        ----------
+        ligandPath : str
+            The path for the ligand.
+
+        Returns
+        -------
+        str
+            The Path of the ligand with mol2 extension.
+        '''
+
+        # Get the extension (with dot) in lowercase
+        ligandExtension = os.path.splitext(ligandPath)[1].lower()
+
+        # If it's .mol2 we do not need to convert it
+        if ligandExtension == ".mol2":
+            # So return the ligandPath
+            return ligandPath
+
+        # Create the output path
+        outputLigandPath = f"{os.path.dirname(ligandPath)}/{os.path.splitext(os.path.basename(ligandPath))[0]}.mol2"
+
+        # Process the ligand
+        occonversion.convert_mols(ligandPath, outputLigandPath)
+
+        return outputLigandPath
+
+
     def __parse_receptor_path(self, receptor: Union[str, ocr.Receptor]) -> str:
         '''Parse the receptor path, handling its type.
 
@@ -284,7 +315,7 @@ class Smina:
         return
 
 
-    def read_log(self, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
+    def read_log(self, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
         '''Read the SMINA log path, returning a dict with data from complexes.
 
         Parameters
@@ -294,14 +325,14 @@ class Smina:
 
         Returns
         -------
-        Dict[int, Dict[int, float]]
+        Dict[int, Dict[str, float]]
             A dictionary with the data from the SMINA log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
         '''
 
         return read_log(self.smina_log, onlyBest = onlyBest)
 
 
-    def read_rescore_logs(self, outPath: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
+    def read_rescore_logs(self, outPath: str, onlyBest: bool = False) -> Dict[str, float]:
         ''' Reads the data from the rescore log files.
 
         Parameters
@@ -313,7 +344,7 @@ class Smina:
 
         Returns
         -------
-        Dict[str, List[Union[str, float]]]
+        Dict[str, float]
             A dictionary with the data from the rescore log files.
         '''
 
@@ -323,7 +354,7 @@ class Smina:
         return read_rescore_logs(rescoreLogPaths, onlyBest = onlyBest)
 
 
-    def run_prepare_ligand(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+    def run_prepare_ligand(self, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run the convert ligand command to pdbqt.
 
         Returns
@@ -340,7 +371,7 @@ class Smina:
         )
 
 
-    def run_prepare_ligand_from_cmd(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
+    def run_prepare_ligand_from_cmd(self, logFile: str = "") -> Union[int, str, Tuple[int, str]]:
         '''Run obabel convert ligand to pdbqt using the 'self.inputLigandPath' attribute. [DEPRECATED]
 
         Parameters
@@ -357,7 +388,7 @@ class Smina:
         )
 
 
-    def run_prepare_receptor(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+    def run_prepare_receptor(self, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
         Returns
@@ -376,7 +407,7 @@ class Smina:
         )
 
 
-    def run_prepare_receptor_from_cmd(self, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+    def run_prepare_receptor_from_cmd(self, logFile: str = "", overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt script using the 'self.prepareReceptorCmd' attribute. [DEPRECATED]
 
         Parameters
@@ -425,7 +456,7 @@ class Smina:
             # If is the default scoring function and skipDefaultScoring is True
             if not (scoring_function == config.smina.scoring and skipDefaultScoring):
                 # Run smina to rescore
-                _ = run_rescore(self.config, ligand, outPath, scoring_function, logFile = logFile, splitLigand = splitLigand, overwrite = overwrite)
+                run_rescore(self.config, ligand, outPath, scoring_function, logFile = logFile, splitLigand = splitLigand, overwrite = overwrite)
 
                 # Set the splitLigand as False (to avoid running it again without need)
                 splitLigand = False
@@ -488,7 +519,7 @@ class Smina:
         return ocrun.run(self.smina_cmd, logFile=logFile)
 
 
-    def split_poses(self, outPath: str = "", logFile: str = "") -> int:
+    def split_poses(self, outPath: str = "", logFile: str = "") -> Union[int, Tuple[int, str]]:
         '''Split the ligand resulted from smina into its poses.
 
         Parameters
@@ -674,7 +705,7 @@ def get_rescore_log_paths(outPath: str) -> List[str]:
     return [f for f in glob(f"{outPath}/*_rescoring.log") if os.path.isfile(f)]
 
 
-def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
+def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = False) -> Dict[str, float]:
     ''' Reads the data from the rescore log files.
 
     Parameters
@@ -691,7 +722,7 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
     '''
 
     # Create the dictionary
-    rescoreLogData = {}
+    rescoreLogData: Dict[str, float] = {}
 
     # If the rescoreLogPaths is not a list
     if not isinstance(rescoreLogPaths, list):
@@ -750,7 +781,7 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
     return rescoreLogData
 
 
-def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
     '''Run obabel convert ligand to pdbqt using the openbabel python library.
 
     Parameters
@@ -771,7 +802,7 @@ def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str, overwrite: 
     out_extension = os.path.splitext(prepared_ligand)[1]
 
     # Check if the extension is valid
-    if type(extension) != str:
+    if not isinstance(extension, str):
         ocprint.print_error(f"Problems while reading the ligand file '{input_ligand_path}'.")
         return extension
 
@@ -792,7 +823,7 @@ def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str, overwrite: 
         return ocerror.Error.subprocess(message=f"Error while running ligand conversion: {e}", level = ocerror.ReportLevel.ERROR)
 
 
-def run_prepare_ligand_from_cmd(input_ligand_path: str, prepared_ligand: str, log_file: str = "") -> Union[int, Tuple[int, str]]:
+def run_prepare_ligand_from_cmd(input_ligand_path: str, prepared_ligand: str, log_file: str = "") -> Union[int, str, Tuple[int, str]]:
     '''Converts the ligand to .pdbqt using obabel. [DEPRECATED]
 
     Parameters
@@ -817,7 +848,7 @@ def run_prepare_ligand_from_cmd(input_ligand_path: str, prepared_ligand: str, lo
     return ocrun.run(cmd, logFile=log_file)
 
 
-def run_prepare_receptor(input_receptor_path: str, prepared_receptor: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+def run_prepare_receptor(input_receptor_path: str, prepared_receptor: str, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
     '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
     Parameters
@@ -838,7 +869,7 @@ def run_prepare_receptor(input_receptor_path: str, prepared_receptor: str, overw
     return strategy.prepare_receptor(input_receptor_path, prepared_receptor, "", overwrite=overwrite)
 
 
-def run_prepare_receptor_from_cmd(input_receptor_path: str, output_receptor: str, log_file: str = "") -> Union[int, Tuple[int, str]]:
+def run_prepare_receptor_from_cmd(input_receptor_path: str, output_receptor: str, log_file: str = "") -> Union[int, str, Tuple[int, str]]:
     '''Converts the receptor to .pdbqt using obabel. [DEPRECATED]
 
     Parameters

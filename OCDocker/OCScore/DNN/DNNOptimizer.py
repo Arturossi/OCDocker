@@ -28,7 +28,7 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import roc_curve
 from torch.utils.data import DataLoader, Dataset
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -330,10 +330,11 @@ class NeuralNet(nn.Module):
         # If the there are multiple branches
         if isinstance(encoder_params, list):
             # Create the MultiBranchDynamicNN
-            self.NN = MultiBranchDynamicNN(input_size, output_size, hidden_layers, activation_data, self.encoder, self.device)
+            self.NN = MultiBranchDynamicNN(cast(List[int], input_size), output_size, hidden_layers, activation_data, self.encoder, self.device)
         else:
             # Create the DynamicNN
-            self.NN = DynamicNN(input_size, output_size, hidden_layers, activation_data, self.encoder, self.device, mask = self.mask)
+            input_size_single = input_size[0] if isinstance(input_size, list) else input_size
+            self.NN = DynamicNN(cast(int, input_size_single), output_size, hidden_layers, activation_data, self.encoder, self.device, mask = self.mask)
 
         # Set the parameters: batch size, epochs, learning rate, clip grad.
         self.batch_size = nn_params['batch_size']
@@ -362,12 +363,12 @@ class NeuralNet(nn.Module):
         self.verbose = verbose
 
         # Since it is the instantiation of the class, set the prediction to None
-        self.prediction = None
+        self.prediction: Optional[np.ndarray] = None
 
         # If verbose is True, print the neural network
         if verbose:
 
-            ocprint.printv(self.NN)
+            ocprint.printv(str(self.NN))
 
     def get_model(self) -> nn.Module:
         '''Get the neural network model.'''
@@ -601,12 +602,17 @@ class NeuralNet(nn.Module):
 
                 # Convert the predictions and the labels to numpy
                 validation_predictions_np = validation_predictions.detach().cpu().numpy()
-                y_validation_np = y_validation.cpu().numpy()
+                if y_validation is None:
+                    y_validation_np = np.asarray([])
+                elif isinstance(y_validation, torch.Tensor):
+                    y_validation_np = y_validation.cpu().numpy()
+                else:
+                    y_validation_np = np.asarray(y_validation)
 
                 self.prediction = validation_predictions_np
 
-                # If there is a nan in the predictions, set the AUC to 0
-                if np.isnan(validation_predictions_np).any():
+                # If no validation labels or NaNs in predictions, set metrics to defaults
+                if y_validation_np.size == 0 or np.isnan(validation_predictions_np).any():
                     validation_auc = 0.0
                     pr_auc = 0.0
                     log_loss_value = float("inf")
@@ -829,7 +835,7 @@ class DynamicNN(nn.Module):
             # Set the first_layer flag to False
             first_layer = False
 
-        return x
+        return cast(torch.Tensor, x)
 
 
 class MultiBranchDynamicNN(nn.Module):
@@ -1019,7 +1025,7 @@ class MultiBranchDynamicNN(nn.Module):
             x = layer(x.to(self.device))
 
         # Return the tensor
-        return x
+        return cast(torch.Tensor, x)
 
 
 class CustomDataset(Dataset):
@@ -1049,7 +1055,7 @@ class CustomDataset(Dataset):
 
         return self.features[idx], self.target[idx]
 
-    def __init__(self, features: torch.Tensor, target: torch.Tensor) -> None:
+    def __init__(self, features: Union[torch.Tensor, np.ndarray, List[Any]], target: Union[torch.Tensor, np.ndarray, List[Any]]) -> None:
         ''' Initialize the CustomDataset class
 
         Parameters
@@ -1059,6 +1065,11 @@ class CustomDataset(Dataset):
         target : torch.Tensor
             Target tensor
         '''
+
+        if not isinstance(features, torch.Tensor):
+            features = torch.tensor(np.asarray(features), dtype=torch.float32)
+        if not isinstance(target, torch.Tensor):
+            target = torch.tensor(np.asarray(target), dtype=torch.float32)
 
         self.features = features
         self.target = target
@@ -1111,10 +1122,10 @@ class MultiBranchCustomDataset(Dataset):
         return self.features1[idx], self.features2[idx], self.features3[idx], self.target[idx]
 
     def __init__(self,
-                 features1 : torch.Tensor,
-                 features2 : torch.Tensor,
-                 features3 : torch.Tensor,
-                 target : torch.Tensor
+                 features1 : Union[torch.Tensor, np.ndarray, List[Any]],
+                 features2 : Union[torch.Tensor, np.ndarray, List[Any]],
+                 features3 : Union[torch.Tensor, np.ndarray, List[Any]],
+                 target : Union[torch.Tensor, np.ndarray, List[Any]]
                 ) -> None:
         ''' Initialize the MultiBranchCustomDataset class
 
@@ -1130,10 +1141,18 @@ class MultiBranchCustomDataset(Dataset):
             Target tensor
         '''
 
+        if not isinstance(features1, torch.Tensor):
+            features1 = torch.tensor(np.asarray(features1), dtype=torch.float32)
+        if not isinstance(features2, torch.Tensor):
+            features2 = torch.tensor(np.asarray(features2), dtype=torch.float32)
+        if not isinstance(features3, torch.Tensor):
+            features3 = torch.tensor(np.asarray(features3), dtype=torch.float32)
+        if not isinstance(target, torch.Tensor):
+            target = torch.tensor(np.asarray(target), dtype=torch.float32)
+
         self.features1 = features1
         self.features2 = features2
         self.features3 = features3
-
         self.target = target
 
     def __len__(self) -> int:
@@ -1359,7 +1378,7 @@ class DNNOptimizer:
             try:
                 self.X_train = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(self.device)
             except Exception as e:
-                ocprint.print_error(e)
+                    ocprint.print_error(str(e))
 
             # Set the input size to the size of the X_train object shape (number of features)
             self.input_size = self.X_train.shape[1]
@@ -1538,17 +1557,19 @@ class DNNOptimizer:
             else:
                 activation_data.append((activation_function, {}))
 
+        model: nn.Module
         # If the first element in the encoder is a list
         if self.encoder is not None and isinstance(self.encoder, list) and self.encoder and isinstance(self.encoder[0], list):
             # Create the NN model with multiple branches
-            model = MultiBranchDynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device)
+            model = MultiBranchDynamicNN(cast(List[int], self.input_size), self.output_size, hidden_layers, activation_data, self.encoder, self.device)
         else:
             # Create the NN model
-            model = DynamicNN(self.input_size, self.output_size, hidden_layers, activation_data, self.encoder, self.device, self.mask)
+            input_size_single = self.input_size[0] if isinstance(self.input_size, list) else self.input_size
+            model = DynamicNN(cast(int, input_size_single), self.output_size, hidden_layers, activation_data, self.encoder, self.device, self.mask)
 
         # Print the model architecture
         if self.verbose:
-            ocprint.printv(model)
+                ocprint.printv(str(model))
 
         # Suggestions for the optimizer
         optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'RMSprop', 'SGD'])
@@ -1639,10 +1660,13 @@ class DNNOptimizer:
 
             # Convert the predictions and the labels to numpy
             validation_predictions_np = validation_predictions.detach().cpu().numpy()
-            y_validation_np = self.y_validation.cpu().numpy()
+            if isinstance(self.y_validation, torch.Tensor):
+                y_validation_np = self.y_validation.cpu().numpy()
+            else:
+                y_validation_np = np.asarray(self.y_validation)
 
             # If there is a nan in the predictions, set the AUC to 0
-            if np.isnan(validation_predictions_np).any():
+            if y_validation_np.size == 0 or np.isnan(validation_predictions_np).any():
                 validation_auc = 0.0
                 pr_auc = 0.0
                 log_loss_value = float("inf")
@@ -1722,7 +1746,7 @@ class DNNOptimizer:
 
         # Print the model architecture
         if self.verbose:
-            ocprint.printv(model)
+                ocprint.printv(str(model))
 
         model.train_model(
             self.X_train,

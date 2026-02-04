@@ -448,7 +448,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     max_y = -np.inf
                     min_y = np.inf
                     for path in paths:
-                        vertices = np.asarray(path.vertices)
+                        vertices = cast(np.ndarray, np.asarray(path.vertices))
                         if len(vertices) > 0 and vertices.shape[1] >= 2:
                             y_coords = vertices[:, 1]
                             max_y = max(max_y, np.max(y_coords))
@@ -462,7 +462,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                         top_y = -np.inf
                         top_x = None
                         for path in paths:
-                            vertices = np.asarray(path.vertices)
+                            vertices = cast(np.ndarray, np.asarray(path.vertices))
                             if len(vertices) > 0 and vertices.shape[1] >= 2:
                                 y_coords = vertices[:, 1]
                                 x_coords = vertices[:, 0]
@@ -485,7 +485,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                         if cluster_id < 0:
                             leaf_positions_in_collection = set()
                             for path in paths:
-                                vertices = np.asarray(path.vertices)
+                                vertices = cast(np.ndarray, np.asarray(path.vertices))
                                 if len(vertices) > 0 and vertices.shape[1] >= 2:
                                     x_coords = vertices[:, 0]
                                     for x in x_coords:
@@ -638,13 +638,13 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
 
                     # If only one unique color, show just one entry
                     if len(color_to_clusters) == 1:
-                        color_key = list(color_to_clusters.keys())[0]
-                        cluster_color = cluster_color_map[sorted(color_to_clusters[color_key])[0]]
+                        first_color_key = next(iter(color_to_clusters))
+                        cluster_color = cluster_color_map[sorted(color_to_clusters[first_color_key])[0]]
                         legend_handles.append(Line2D([0], [0], color=cluster_color, linestyle='-', linewidth=3))
                         legend_labels.append('Cluster')
                     else:
                         # Multiple unique colors - show each unique color
-                        for color_key, cluster_ids in color_to_clusters.items():
+                        for color_key_obj, cluster_ids in color_to_clusters.items():
                             cluster_color = cluster_color_map[sorted(cluster_ids)[0]]  # Get color from first cluster with this color
                             legend_handles.append(Line2D([0], [0], color=cluster_color, linestyle='-', linewidth=3))
                             legend_labels.append(f'Cluster {sorted(cluster_ids)[0]}')
@@ -741,7 +741,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     ocprint.print_warning(f"Fallback traceback: {traceback.format_exc()}")
 
         # Return the results
-        return results
+        return cast(np.ndarray, results)
 
     else:
         return ocerror.Error.unsupported_clustering_algorithm(f"The clustering algorithm '{algorithm}' is not supported. Currently the supported algorithms are: 'agglomerativeClustering'.")

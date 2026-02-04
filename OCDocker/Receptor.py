@@ -31,7 +31,7 @@ from Bio.SeqUtils import seq1
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from openbabel import openbabel
 from threading import Lock
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union, cast
 
 import OCDocker.Error as ocerror
 
@@ -256,6 +256,30 @@ class Receptor:
                 ocprint.print_error(f"Problems while parsing json file: '{from_json_descriptors}'")
                 return None
 
+            def _to_float(val: object) -> Optional[float]:
+                if isinstance(val, (int, float)):
+                    return float(val)
+                if isinstance(val, str):
+                    try:
+                        return float(val)
+                    except ValueError:
+                        return None
+                return None
+
+            def _to_int(val: object) -> Optional[int]:
+                if isinstance(val, bool):
+                    return int(val)
+                if isinstance(val, int):
+                    return int(val)
+                if isinstance(val, float):
+                    return int(val)
+                if isinstance(val, str):
+                    try:
+                        return int(float(val))
+                    except ValueError:
+                        return None
+                return None
+
             # Unpack values from JSON tuple
             (
                 name_val, sasa_val, dipole_val, iso_val, instab_val, gravy_val, arom_val,
@@ -265,39 +289,39 @@ class Receptor:
             ) = data
 
             self.name = str(name_val)
-            self.sasa = float(sasa_val) if sasa_val is not None else None
-            self.dipoleMoment = float(dipole_val) if dipole_val is not None else None
-            self.isoelectricPoint = float(iso_val) if iso_val is not None else None
-            self.instabilityIndex = float(instab_val) if instab_val is not None else None
-            self.GRAVY = float(gravy_val) if gravy_val is not None else None
-            self.aromaticity = float(arom_val) if arom_val is not None else None
+            self.sasa = _to_float(sasa_val)
+            self.dipoleMoment = _to_float(dipole_val)
+            self.isoelectricPoint = _to_float(iso_val)
+            self.instabilityIndex = _to_float(instab_val)
+            self.GRAVY = _to_float(gravy_val)
+            self.aromaticity = _to_float(arom_val)
 
             # AA counts from JSON (dict plus individual counts)
             self.__countAA = countAA if isinstance(countAA, dict) else {}
-            self.countA = int(countA) if countA is not None else 0
-            self.countR = int(countR) if countR is not None else 0
-            self.countN = int(countN) if countN is not None else 0
-            self.countD = int(countD) if countD is not None else 0
-            self.countC = int(countC) if countC is not None else 0
-            self.countQ = int(countQ) if countQ is not None else 0
-            self.countE = int(countE) if countE is not None else 0
-            self.countG = int(countG) if countG is not None else 0
-            self.countH = int(countH) if countH is not None else 0
-            self.countI = int(countI) if countI is not None else 0
-            self.countL = int(countL) if countL is not None else 0
-            self.countK = int(countK) if countK is not None else 0
-            self.countM = int(countM) if countM is not None else 0
-            self.countF = int(countF) if countF is not None else 0
-            self.countP = int(countP) if countP is not None else 0
-            self.countS = int(countS) if countS is not None else 0
-            self.countT = int(countT) if countT is not None else 0
-            self.countW = int(countW) if countW is not None else 0
-            self.countY = int(countY) if countY is not None else 0
-            self.countV = int(countV) if countV is not None else 0
+            self.countA = _to_int(countA) or 0
+            self.countR = _to_int(countR) or 0
+            self.countN = _to_int(countN) or 0
+            self.countD = _to_int(countD) or 0
+            self.countC = _to_int(countC) or 0
+            self.countQ = _to_int(countQ) or 0
+            self.countE = _to_int(countE) or 0
+            self.countG = _to_int(countG) or 0
+            self.countH = _to_int(countH) or 0
+            self.countI = _to_int(countI) or 0
+            self.countL = _to_int(countL) or 0
+            self.countK = _to_int(countK) or 0
+            self.countM = _to_int(countM) or 0
+            self.countF = _to_int(countF) or 0
+            self.countP = _to_int(countP) or 0
+            self.countS = _to_int(countS) or 0
+            self.countT = _to_int(countT) or 0
+            self.countW = _to_int(countW) or 0
+            self.countY = _to_int(countY) or 0
+            self.countV = _to_int(countV) or 0
 
-            self.totalAALength = int(total_len) if total_len is not None else 0
-            self.avgAALength = float(avg_len) if avg_len is not None else 0.0
-            self.countChain = int(chain_count) if chain_count is not None else 0
+            self.totalAALength = _to_int(total_len) or 0
+            self.avgAALength = _to_float(avg_len) or 0.0
+            self.countChain = _to_int(chain_count) or 0
         else:
             # Check if the name is empty
             if not name:
@@ -1273,11 +1297,19 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[
         # If the returnData flag is on
         if returnData:
             # Return the entire dict
-            return data
+            return cast(Dict[str, Union[str, float, int]], data)
 
         # Since we have all keys, read them and return their values
         #region Return data
-        return data["Name"], data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA, data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"], data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"], data["TotalAALength"], data["AvgAALength"], data["countChain"]
+        return cast(
+            Tuple[Union[str, float, int, Dict[str, int]], ...],
+            (
+                data["Name"], data["SASA"], data["DipoleMoment"], data["IsoelectricPoint"], data["InstabilityIndex"], data["GRAVY"], data["Aromaticity"], countAA,
+                data["countA"], data["countR"], data["countN"], data["countD"], data["countC"], data["countQ"], data["countE"], data["countG"], data["countH"], data["countI"],
+                data["countL"], data["countK"], data["countM"], data["countF"], data["countP"], data["countS"], data["countT"], data["countW"], data["countY"], data["countV"],
+                data["TotalAALength"], data["AvgAALength"], data["countChain"]
+            ),
+        )
 
         #endregion
     # Key error (when there is a missing key)

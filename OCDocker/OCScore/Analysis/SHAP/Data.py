@@ -127,6 +127,8 @@ def load_and_prepare_data(
     X_val = ocscoredata.invert_values_conditionally(data['X_val'])
     y_val = data['y_val'].values
 
+    if X_train is None:
+        raise ValueError("Training data (X_train) is not available after preprocessing.")
     feature_names = list(X_train.columns)
     return DataHandles(
         X_train=X_train,

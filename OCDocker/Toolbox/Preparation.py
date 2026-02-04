@@ -676,7 +676,7 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
 
         # Use conversion utility
         from OCDocker.Toolbox import Conversion as occonversion
-        return occonversion.convert_mols(input_path, output_path, overwrite=overwrite)
+        return occonversion.convert_mols(input_path, output_path, return_molecule=False, overwrite=overwrite)
 
 
 # Functions
@@ -717,4 +717,4 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
 
         # Similar to ligand but for receptor
         from OCDocker.Toolbox import Conversion as occonversion
-        return occonversion.convert_mols(input_path, output_path, overwrite=overwrite)
+        return occonversion.convert_mols(input_path, output_path, return_molecule=False, overwrite=overwrite)

@@ -294,11 +294,12 @@ def get_score(
                         row['db'] = 'UNKNOWN'
                     data_list.append(row)
 
-                data = pd.DataFrame(data_list)
+                df_db = pd.DataFrame(data_list)
 
-                if data.empty:
+                if df_db.empty:
                     ocerror.Error.data_not_found("No data found in database.")
                     raise ValueError("No data found in database.")
+                data = df_db
 
         except (ImportError, AttributeError) as e:
             ocerror.Error.data_not_found(f"Failed to read from database: {e}. Please provide data as DataFrame or file path.")
@@ -309,14 +310,18 @@ def get_score(
         if not os.path.isfile(data):
             ocerror.Error.file_not_exist(f"Data file not found: {data}")
             raise FileNotFoundError(f"Data file not found: {data}")
-        data = ocscoreio.load_data(data)
+        loaded = ocscoreio.load_data(data)
+        if not isinstance(loaded, pd.DataFrame):
+            ocerror.Error.value_error("Loaded data is not a pandas DataFrame.")
+            raise ValueError("Loaded data is not a pandas DataFrame.")
+        data = loaded
 
     # Ensure data is a DataFrame
     if not isinstance(data, pd.DataFrame):
         ocerror.Error.value_error("Data must be a pandas DataFrame or a path to a CSV file.")
         raise ValueError("Data must be a pandas DataFrame or a path to a CSV file.")
 
-    df = data
+    df = cast(pd.DataFrame, data)
 
     # Enforce column order from config before any preprocessing (scaler/PCA/mask)
     if enforce_reference_column_order:

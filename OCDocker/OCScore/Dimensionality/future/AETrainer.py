@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from torch.utils.data import ConcatDataset, DataLoader, Dataset
-from typing import Dict, List, Optional, cast
+from typing import Dict, List, Optional, Tuple, cast
 
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -279,7 +279,10 @@ class AETrainer:
             # Balance tasks by equalizing gradient norms.
             total = self._gradnorm_total(losses)
         else:
-            total = sum(losses.values()) if losses else torch.tensor(0.0, device=self.device)
+            if losses:
+                total = torch.stack(list(losses.values())).sum()
+            else:
+                total = torch.tensor(0.0, device=self.device)
 
         if beta_vae > 0.0:
             total = total + beta_vae * kld

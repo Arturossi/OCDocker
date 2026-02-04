@@ -243,7 +243,7 @@ def convert_mols_from_string(input: str, output: str, mol: Optional[rdkit.Chem.r
         MolToMolFile(mol, tmpOutput)
 
         # Convert it to the desired format (This will not cause an infinite loop since the input extension is always mol)
-        result = convert_mols(tmpOutput, output, overwrite=overwrite)
+        result = convert_mols(tmpOutput, output, return_molecule=False, overwrite=overwrite)
 
         # Clean up temporary file
         try:

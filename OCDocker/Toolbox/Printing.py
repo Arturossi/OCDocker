@@ -80,6 +80,9 @@ def _caller_context(depth: int = 2) -> str:
             return ""
         frame = frame.f_back
 
+    if frame is None:
+        return ""
+
     return (f"In function '{frame.f_code.co_name}' "
             f"line {frame.f_lineno} "
             f"from file '{frame.f_code.co_filename}'.")

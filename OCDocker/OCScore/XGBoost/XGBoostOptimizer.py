@@ -20,7 +20,7 @@ import pandas as pd
 from optuna.integration import XGBoostPruningCallback
 from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
 import OCDocker.Toolbox.Printing as ocprint
@@ -246,9 +246,9 @@ class XGBoostOptimizer:
             y_pred = model.predict(self.X_validation)
 
             # If the use_gpu flag is set
-            if self.use_gpu and hasattr(self.y_validation, "get"):
-                # Convert the predictions to numpy arrays
-                y_validation_np = self.y_validation.get()
+            if self.use_gpu:
+                # Convert the predictions to numpy arrays (CuPy -> NumPy)
+                y_validation_np = cast(Any, self.y_validation).get()
             else:
                 y_validation_np = self.y_validation
 

@@ -298,7 +298,7 @@ class Vina:
         return None
 
 
-    def read_log(self, onlyBest: bool = False) -> Dict[int, Dict[int, float]]:
+    def read_log(self, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
         '''Read the vina log path, returning a dict with data from complexes.
 
         Parameters
@@ -308,14 +308,14 @@ class Vina:
 
         Returns
         -------
-        Dict[int, Dict[int, float]] | int
+        Dict[int, Dict[str, float]] | int
             A dictionary with the data from the vina log file. If any error occurs, it will return the exit code of the command (based on the Error.py code table).
         '''
 
         return read_log(self.vina_log, onlyBest = onlyBest)
 
 
-    def read_rescore_logs(self, outPath: str, onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
+    def read_rescore_logs(self, outPath: str, onlyBest: bool = False) -> Dict[str, float]:
         ''' Reads the data from the rescore log files.
 
         Parameters
@@ -327,7 +327,7 @@ class Vina:
 
         Returns
         -------
-        Dict[str, List[Union[str, float]]]
+        Dict[str, float]
             A dictionary with the data from the rescore log files.
         '''
 
@@ -423,7 +423,7 @@ class Vina:
             # If is the default scoring function and skipDefaultScoring is True
             if not (scoring_function == config.vina.scoring and skipDefaultScoring):
                 # Run vina to rescore
-                _ = run_rescore(self.config, ligand, outPath, scoring_function, logFile = logFile, splitLigand = splitLigand, overwrite = overwrite)
+                run_rescore(self.config, ligand, outPath, scoring_function, logFile = logFile, splitLigand = splitLigand, overwrite = overwrite)
 
                 # Set the splitLigand as False (to avoid running it again without need)
                 splitLigand = False
@@ -453,10 +453,12 @@ class Vina:
 
         # Run the command
 
+        if not self.vina_cmd:
+            return ocerror.Error.not_set("Vina command not initialized.", level=ocerror.ReportLevel.ERROR)
         return ocrun.run(self.vina_cmd, logFile = self.vina_log)
 
 
-    def split_poses(self, outPath: str = "", logFile: str = "") -> int:
+    def split_poses(self, outPath: str = "", logFile: str = "") -> Union[int, Tuple[int, str]]:
         '''Split the ligand resulted from vina into its poses.
 
         Parameters
@@ -638,7 +640,7 @@ def get_rescore_log_paths(outPath: str) -> List[str]:
     return [f for f in glob(f"{outPath}/*_rescoring.log") if os.path.isfile(f)]
 
 
-def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = False) -> Dict[str, List[Union[str, float]]]:
+def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = False) -> Dict[str, float]:
     ''' Reads the data from the rescore log files.
 
     Parameters
@@ -655,7 +657,7 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
     '''
 
     # Create the dictionary
-    rescoreLogData = {}
+    rescoreLogData: Dict[str, float] = {}
 
     # If the rescoreLogPaths is not a list
     if not isinstance(rescoreLogPaths, list):
@@ -717,7 +719,7 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
     return rescoreLogData
 
 
-def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "", overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
     '''Prepares the ligand using 'prepare_ligand' from MGLTools suite.
 
     Parameters
@@ -734,7 +736,7 @@ def run_prepare_ligand(inputLigandPath: str, outputLigand: str, logFile: str = "
     return strategy.prepare_ligand(inputLigandPath, outputLigand, logFile, overwrite=overwrite)
 
 
-def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+def run_prepare_receptor(inputReceptorPath: str, outputReceptor: str, logFile: str = "", overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
     '''Convert a box (DUDE like format) to vina input.
 
     Parameters
@@ -853,7 +855,7 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
     return None
 
 
-def run_vina(confFile: str, ligand: str, outPath: str, logFile: str = "") -> int:
+def run_vina(confFile: str, ligand: str, outPath: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
     '''Run vina.
 
     Parameters
@@ -906,4 +908,3 @@ def run_vina(confFile: str, ligand: str, outPath: str, logFile: str = "") -> int
 
     # Run the command
     return ocrun.run(cmd, logFile=logFile)
-

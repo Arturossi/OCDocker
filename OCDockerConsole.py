@@ -18,6 +18,7 @@ import textwrap as tw
 
 from glob import glob
 from pprint import pprint
+from typing import Any
 
 import OCDocker.Docking.Future.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
@@ -155,7 +156,7 @@ def print_args(program: str = "") -> None:
         if cfg is None:
             return default
         try:
-            obj = cfg
+            obj: Any = cfg
             for attr in attr_path.split('.'):
                 obj = getattr(obj, attr, None)
                 if obj is None:

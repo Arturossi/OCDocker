@@ -255,7 +255,7 @@ def __prepare_molecule(
     sanitize: bool,
     molName: str = "",
     targetCentroid: Optional[Union[Tuple[float, float, float], rdkit.Geometry.rdGeometry.Point3D]] = None,
-    alternativeLigand: Optional[rdkit.Chem.rdchem.Mol] = None
+    alternativeLigand: Optional[Union[str, rdkit.Chem.rdchem.Mol]] = None
 ) -> None:
     '''Prepares a molecule, generating output to docking software.
 
@@ -306,8 +306,13 @@ def __prepare_molecule(
             _ = ocff.safe_create_dir(f"{molPath}/gninaFiles")
 
             try:
+                ligand_input: Union[str, rdkit.Chem.rdchem.Mol]
+                if isinstance(mol, tuple):
+                    ligand_input = mol[0]
+                else:
+                    ligand_input = mol
                 # Create the ligand object
-                m = ocl.Ligand(mol, molName, sanitize = sanitize)
+                m = ocl.Ligand(ligand_input, molName, sanitize = sanitize)
                 # Test if the Radius of Gyration is None
                 if not m.RadiusOfGyration:
                     # Print a warning
@@ -337,7 +342,7 @@ def __prepare_molecule(
 
         elif moltype == "receptor":
                 # If is a tuple
-                if type(mol) == tuple:
+                if isinstance(mol, tuple):
                     try:
                         # Check if the extension is pdb
                         if mol[0].endswith(".pdb"):
@@ -352,7 +357,7 @@ def __prepare_molecule(
                         config = get_config()
                         ocprint.print_error_log(errMsg, f"{config.logdir}/{dbName}_error_Parse.log")
                         return None
-                else:
+                elif isinstance(mol, str):
                     try:
                         # Create the receptor object
                         m = ocr.Receptor(mol, molName)
@@ -363,6 +368,12 @@ def __prepare_molecule(
                         config = get_config()
                         ocprint.print_error_log(errMsg, f"{config.logdir}/{dbName}_error_Parse.log")
                         return None
+                else:
+                    _ = ocerror.Error.wrong_type(
+                        f"The receptor '{mol}' has an unsupported type. Expected a file path or (pdb, mol2) tuple.",
+                        level=ocerror.ReportLevel.ERROR,
+                    )
+                    return None
         else:
             _ = ocerror.Error.unknown("Unknown molecule type", level = ocerror.ReportLevel.ERROR)
             return None

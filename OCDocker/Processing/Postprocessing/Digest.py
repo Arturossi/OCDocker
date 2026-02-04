@@ -148,7 +148,7 @@ def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], arch
     '''
 
     # Track error codes from all digest operations
-    error_codes = []
+    error_codes: List[int] = []
 
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
@@ -169,7 +169,7 @@ def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], arch
     # Return the most severe error code, or OK if all succeeded
     if error_codes:
         # Return the first non-OK error code (errors are already logged by core functions)
-        return error_codes[0]
+        return int(error_codes[0])
     return ocerror.Error.ok()
 
 def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive: str, overwrite: bool, digestFormat: str, desc: str, all_boxes: bool) -> int:
@@ -195,7 +195,7 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
     '''
 
     # Arguments to pass to each Thread in the Thread Pool
-    arguments = []
+    arguments: List[Tuple[str, str, str, bool, str, bool]] = []
 
     # For each file in complexList
     for cl in complexList:
@@ -205,7 +205,7 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
             arguments.append((cl[0], ligandDir, archive, overwrite, digestFormat, all_boxes))
 
     # Track error codes from all digest operations
-    error_codes = []
+    error_codes: List[int] = []
 
     try:
         # Create a Thread pool with the maximum available_cores
@@ -227,7 +227,7 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
     # Return the most severe error code, or OK if all succeeded
     if error_codes:
         # Return the first non-OK error code (errors are already logged by core functions)
-        return error_codes[0]
+        return int(error_codes[0])
     return ocerror.Error.ok()
 
 def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overwrite: bool, digestFormat: str, desc: str, all_boxes: bool) -> int:
@@ -253,7 +253,7 @@ def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overw
     '''
 
     # Track error codes from all digest operations
-    error_codes = []
+    error_codes: List[int] = []
 
     # For each file in dirs
     for ligandDir in tqdm(iterable = complex[1], total = len(complex[1]), desc=desc):
@@ -269,15 +269,15 @@ def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overw
     # Return the most severe error code, or OK if all succeeded
     if error_codes:
         # Return the first non-OK error code (errors are already logged by core functions)
-        return error_codes[0]
+        return int(error_codes[0])
     return ocerror.Error.ok()
 
-def __thread_generate_digest(arguments: list) -> int:
+def __thread_generate_digest(arguments: Tuple[str, str, str, bool, str, bool]) -> int:
     '''Thread aid function to call __core_generate_digest.
 
     Parameters
     ----------
-    arguments : list
+    arguments : Tuple[str, str, str, bool, str, bool]
         The arguments to be passed to __core_generate_digest.
 
     Returns

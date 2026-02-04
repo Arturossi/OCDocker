@@ -104,9 +104,9 @@ class Autoencoder(nn.Module):
         The size of the input. It should be a positive integer.
     encoding_dim : list
         The size of the encoding. It should be a list of integers.
-    encoder_activation_fn : list[tuple(nn.Module, dict[str, Any]]
+    encoder_activation_fn : list[tuple(type[nn.Module], dict[str, Any]]
         The activation functions to be used in the encoder. It should be a list of tuples where each tuple will be the activation function and its parameters.
-    decoder_activation_fn : list[tuple(nn.Module, dict[str, Any]]
+    decoder_activation_fn : list[tuple(type[nn.Module], dict[str, Any]]
         The activation functions to be used in the decoder. It should be a list of tuples where each tuple will be the activation function and its parameters.
     decoding_dim : list
         The size of the decoding. It should be a list of integers.
@@ -117,8 +117,8 @@ class Autoencoder(nn.Module):
     def __init__(self,
                  input_size : int,
                  encoding_dim : list,
-                 encoder_activation_fn : list[tuple[nn.Module, dict[str, Any]]],
-                 decoder_activation_fn : list[tuple[nn.Module, dict[str, Any]]],
+                 encoder_activation_fn : list[tuple[type[nn.Module], dict[str, Any]]],
+                 decoder_activation_fn : list[tuple[type[nn.Module], dict[str, Any]]],
                  decoding_dim : list,
                  device : torch.device = torch.device("cpu")
                 ) -> None:
@@ -130,9 +130,9 @@ class Autoencoder(nn.Module):
             The size of the input. It should be a positive integer.
         encoding_dim : list
             The size of the encoding. It should be a list of integers.
-        encoder_activation_fn : list[tuple[nn.Module, dict[str, Any]]]
+        encoder_activation_fn : list[tuple[type[nn.Module], dict[str, Any]]]
             The activation functions to be used in the encoder. It should be a list of tuples where each tuple will be the activation function and its parameters.
-        decoder_activation_fn : list[tuple[nn.Module, dict[str, Any]]]
+        decoder_activation_fn : list[tuple[type[nn.Module], dict[str, Any]]]
             The activation functions to be used in the decoder. It should be a list of tuples where each tuple will be the activation function and its parameters.
         decoding_dim : list
             The size of the decoding. It should be a list of integers.
@@ -337,6 +337,14 @@ class AutoencoderOptimizer:
         If True, the Autoencoder will print the training and testing information. It should be a boolean. Default is False.
     '''
 
+    X_train: torch.Tensor
+    X_test: torch.Tensor
+    X_validation: Optional[torch.Tensor]
+    train_loader: Optional[DataLoader]
+    test_loader: Optional[DataLoader]
+    validation_loader: Optional[DataLoader]
+    device: torch.device
+
     def __init__(self,
             X_train: Union[np.ndarray, pd.DataFrame, pd.Series],
             X_test: Union[np.ndarray, pd.DataFrame, pd.Series],
@@ -451,11 +459,13 @@ class AutoencoderOptimizer:
         model.eval()
 
         # Set the total loss to 0.0
-        total_loss = 0
+        total_loss: float = 0.0
 
         # If the loader is None, use the test_loader
         if loader is None:
             loader = self.test_loader
+        if loader is None:
+            raise ValueError("No DataLoader available for evaluation.")
 
         # Set the torch.no_grad() to avoid computing gradients
         # This is important for the evaluation phase to save memory and computations
@@ -480,8 +490,7 @@ class AutoencoderOptimizer:
         # Compute the RMSE
         rmse = np.sqrt(average_loss)
 
-
-        return rmse
+        return float(rmse)
 
     def objective(self, trial : optuna.Trial) -> float:
         '''Objective function for the Optuna optimization. It is used to optimize the Autoencoder.
@@ -523,7 +532,7 @@ class AutoencoderOptimizer:
                 encoder_hidden_layers.append(trial.suggest_int(f'n_units_layer_{i}_encoder', self.power_of_two_options[0], self.power_of_two_options[-1]))
 
         # Suggestions for the activation functions of the encoder
-        encoder_activation_data = []
+        encoder_activation_data: List[Tuple[type[nn.Module], Dict[str, Any]]] = []
 
         for i in range(len(encoder_hidden_layers)):
             activation_function_str = trial.suggest_categorical(f'activation_function_{i}_encoder', self.activation_functions_str)
@@ -567,7 +576,7 @@ class AutoencoderOptimizer:
                 decoder_hidden_layers.append(trial.suggest_categorical(f'n_units_layer_{i}_decoder', self.power_of_two_options))
 
         # Suggestions for the activation functions of the decoder
-        decoder_activation_data = []
+        decoder_activation_data: List[Tuple[type[nn.Module], Dict[str, Any]]] = []
 
         # For each layer in the encoder (same number of layers as the decoder)
         for i in range(len(encoder_hidden_layers)):
@@ -779,6 +788,10 @@ class AutoencoderOptimizer:
         # Set the model to training mode (this is important for some layers which behave differently during training and evaluation)
         model.train()
 
+        if self.train_loader is None:
+            raise ValueError("Training DataLoader is not initialized.")
+        train_loader = self.train_loader
+
         # Loop over the epochs
         for epoch in range(epochs):
             # Print verbose information
@@ -789,7 +802,7 @@ class AutoencoderOptimizer:
             running_loss = 0.0
 
             # Loop over the training data
-            for data, _ in self.train_loader:
+            for data, _ in train_loader:
                 # Check if the data is on the same device as the model
                 data = data.to(self.device)
 
@@ -815,7 +828,7 @@ class AutoencoderOptimizer:
                 running_loss = running_loss + loss.item()
 
             # Compute the average loss
-            average_loss = running_loss / len(self.train_loader)
+            average_loss = running_loss / len(train_loader)
 
             # Compute the RMSE
             rmse = np.sqrt(average_loss)

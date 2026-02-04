@@ -20,7 +20,7 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import DeclarativeBase, declared_attr
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import OCDocker.Error as ocerror
 
@@ -248,7 +248,7 @@ class Base(DeclarativeBase):
             else:
                 data = s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).all()
 
-        return data
+        return cast(List[DeclarativeMeta], data)
 
     @classmethod
     def find_all(cls) -> List[DeclarativeMeta]:
@@ -273,7 +273,7 @@ class Base(DeclarativeBase):
             # Perform the search
             data = s.query(cls).all()
 
-        return data
+        return cast(List[DeclarativeMeta], data)
 
     @classmethod
     def find_all_names(cls) -> List[str]:
@@ -338,7 +338,7 @@ class Base(DeclarativeBase):
 
         # Open the session
         with session() as s:
-            return s.query(cls).filter(OPMAP[operator](col, value)).all()
+            return cast(List[DeclarativeMeta], s.query(cls).filter(OPMAP[operator](col, value)).all())
 
     @classmethod
     def find_first(cls, idorname: Union[int, str]) -> Optional[DeclarativeMeta]:
@@ -361,14 +361,14 @@ class Base(DeclarativeBase):
             _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
             # Return an empty list
-            return []
+            return None
 
         # Open the session
         with session() as s:
             # Perform the search
             data = s.query(cls).filter(cls.id == idorname).first() if isinstance(idorname, int) else s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).first()
 
-        return data
+        return cast(Optional[DeclarativeMeta], data)
 
     @classmethod
     def insert(cls, payload: dict, ignorePresence: bool = False) -> bool:

@@ -23,9 +23,10 @@ from openbabel import openbabel
 from rdkit import Chem, DataStructs, RDLogger as _RDLogger
 from rdkit.Chem import AllChem as _AllChem, Descriptors, Descriptors3D, MACCSkeys as _MACCSkeys
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
+from rdkit.Geometry.rdGeometry import Point3D
 from rdkit.Chem.SaltRemover import SaltRemover
 from threading import Lock
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING, overload, Literal
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING, overload, Literal, cast
 
 import OCDocker.Error as ocerror
 
@@ -40,9 +41,7 @@ AllChem: Any = _AllChem
 MACCSkeys: Any = _MACCSkeys
 
 if TYPE_CHECKING:
-    def findFpDensityMorgan1(mol: rdkit.Chem.rdchem.Mol) -> Optional[float]: ...
-    def findFpDensityMorgan2(mol: rdkit.Chem.rdchem.Mol) -> Optional[float]: ...
-    def findFpDensityMorgan3(mol: rdkit.Chem.rdchem.Mol) -> Optional[float]: ...
+    from typing import Callable
 
 # License
 ###############################################################################
@@ -356,19 +355,19 @@ class Ligand:
         min_z = " " * (8 - len(str(round(box["min_z"], 3)))) + str(round(box["min_z"], 3))
         max_z = " " * (8 - len(str(round(box["max_z"], 3)))) + str(round(box["max_z"], 3))
 
-        dim_x = " " * (8 - len(str(round(dim_x, 3)))) + str(round(dim_x, 3))
-        dim_y = " " * (8 - len(str(round(dim_y, 3)))) + str(round(dim_y, 3))
-        dim_z = " " * (8 - len(str(round(dim_z, 3)))) + str(round(dim_z, 3))
+        dim_x_str = " " * (8 - len(str(round(dim_x, 3)))) + str(round(dim_x, 3))
+        dim_y_str = " " * (8 - len(str(round(dim_y, 3)))) + str(round(dim_y, 3))
+        dim_z_str = " " * (8 - len(str(round(dim_z, 3)))) + str(round(dim_z, 3))
 
-        center_x = " " * (8 - len(str(round(center_x, 3)))) + str(round(center_x, 3))
-        center_y = " " * (8 - len(str(round(center_y, 3)))) + str(round(center_y, 3))
-        center_z = " " * (8 - len(str(round(center_z, 3)))) + str(round(center_z, 3))
+        center_x_str = " " * (8 - len(str(round(center_x, 3)))) + str(round(center_x, 3))
+        center_y_str = " " * (8 - len(str(round(center_y, 3)))) + str(round(center_y, 3))
+        center_z_str = " " * (8 - len(str(round(center_z, 3)))) + str(round(center_z, 3))
 
         # Write out the box file (following the one given in the DUD-E database)
         with open(f"{save_path}/box0.pdb", 'w') as f:
             f.write(f"HEADER    CORNERS OF BOX      {min_x}{min_y}{min_z}{max_x}{max_y}{max_z}\n")
-            f.write(f"REMARK    CENTER (X Y Z)      {center_x}{center_y}{center_z}\n")
-            f.write(f"REMARK    DIMENSIONS (X Y Z)  {dim_x}{dim_y}{dim_z}\n")
+            f.write(f"REMARK    CENTER (X Y Z)      {center_x_str}{center_y_str}{center_z_str}\n")
+            f.write(f"REMARK    DIMENSIONS (X Y Z)  {dim_x_str}{dim_y_str}{dim_z_str}\n")
             f.write(f"ATOM      1  DUA BOX     1    {min_x}{min_y}{min_z}\n")
             f.write(f"ATOM      2  DUB BOX     1    {max_x}{min_y}{min_z}\n")
             f.write(f"ATOM      3  DUC BOX     1    {max_x}{min_y}{max_z}\n")
@@ -1003,7 +1002,7 @@ def _optimize_mol(mol: Chem.rdchem.Mol) -> bool:
         pass
     try:
         status = AllChem.UFFOptimizeMolecule(mol)
-        return status == 0
+        return bool(status == 0)
     except Exception:
         return False
 
@@ -1095,7 +1094,7 @@ def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = T
     conf = mol.GetConformer()
 
     # Compute the centroid of the molecule and return it
-    return ComputeCentroid(conf)
+    return cast(Point3D, ComputeCentroid(conf))
 
 
 def get_smiles(molecule: rdkit.Chem.rdchem.Mol) -> Union[str, int]:
@@ -1145,6 +1144,8 @@ def load_mol(
         The molecule object and the path to the molecule.
     '''
 
+    mol: Any = None
+
     # Check if the type of the variable molecule is a string or a rdkit.Chem.rdchem.Mol
     if isinstance(molecule, Chem.rdchem.Mol):
         # Clone to avoid mutating the caller's molecule
@@ -1179,7 +1180,6 @@ def load_mol(
         return "", mol
 
     if isinstance(molecule, str):
-        mol: Any = None
         # Check if file exists
         if not os.path.isfile(molecule):
             # File does not exist
@@ -1465,10 +1465,10 @@ def read_descriptors_from_json(path: str, return_data: bool = False) -> Optional
                 data['Ligand'] = data.pop('Name')
             data.pop('Path', None)  # Remove 'Path' if it exists
 
-            return data
+            return cast(Dict[str, Union[str, float, int]], data)
 
         # If not returning as data, return tuple of values
-        return tuple(data[key] for key in keys)
+        return cast(Tuple[Union[str, float, int], ...], tuple(data[key] for key in keys))
 
     except KeyError as e:
         # This should rarely happen now since we check for missing keys above

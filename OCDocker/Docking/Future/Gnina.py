@@ -86,15 +86,14 @@ class Gnina:
             cmd.append("--no_gpu")
         else:
             # Check if CUDA_VISIBLE_DEVICES is set
-            if os.environ.get("CUDA_VISIBLE_DEVICES") is not None:
-                # Set the GPU variable
-                CUDA_VISIBLE_DEVICES = os.environ.get("CUDA_VISIBLE_DEVICES")
+            cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES")
+            if cuda_visible:
                 # Check if it is a list
-                if "," in CUDA_VISIBLE_DEVICES:
+                if "," in cuda_visible:
                     # It is a list, get the first element
-                    CUDA_VISIBLE_DEVICES = CUDA_VISIBLE_DEVICES.split(",")[0]
+                    cuda_visible = cuda_visible.split(",")[0]
                 # Set the GPU
-                cmd.extend(["--device", CUDA_VISIBLE_DEVICES])
+                cmd.extend(["--device", cuda_visible])
 
         cmd.extend(["--out", self.output_gnina, "--log", self.gnina_log, "--cpu", "1"])
 
@@ -184,9 +183,9 @@ class Gnina:
         '''
 
         # Check the type of ligand variable
-        if type(ligand) == ocl.Ligand:
+        if isinstance(ligand, ocl.Ligand):
             return ligand.path
-        elif type(ligand) == str:
+        elif isinstance(ligand, str):
             # Since is a string, check if the file exists
             if os.path.isfile(ligand):
                 # Exists! Process it then!
@@ -198,6 +197,37 @@ class Gnina:
         _ = ocerror.Error.wrong_type(f"The ligand '{ligand}' is not the type 'ocl.Ligand'. It is STRONGLY recomended that you provide an 'ocl.Ligand' object.", level = ocerror.ReportLevel.ERROR)
 
         return ""
+
+
+    def __process_ligand(self, ligandPath: str) -> str:
+        '''Process the ligand to output to mol2 if needed.
+
+        Parameters
+        ----------
+        ligandPath : str
+            The path for the ligand.
+
+        Returns
+        -------
+        str
+            The Path of the ligand with mol2 extension.
+        '''
+
+        # Get the extension (with dot) in lowercase
+        ligandExtension = os.path.splitext(ligandPath)[1].lower()
+
+        # If it's .mol2 we do not need to convert it
+        if ligandExtension == ".mol2":
+            # So return the ligandPath
+            return ligandPath
+
+        # Create the output path
+        outputLigandPath = f"{os.path.dirname(ligandPath)}/{os.path.splitext(os.path.basename(ligandPath))[0]}.mol2"
+
+        # Process the ligand
+        occonversion.convert_mols(ligandPath, outputLigandPath)
+
+        return outputLigandPath
 
 
     def __parse_receptor_path(self, receptor: Union[str, ocr.Receptor]) -> str:
@@ -215,9 +245,9 @@ class Gnina:
         '''
 
         # Check the type of receptor variable
-        if type(receptor) == ocr.Receptor:
+        if isinstance(receptor, ocr.Receptor):
             return receptor.path
-        elif type(receptor) == str:
+        elif isinstance(receptor, str):
             # Since is a string, check if the file exists
             if os.path.isfile(receptor):
                 # Exists! Return it!
@@ -283,7 +313,7 @@ class Gnina:
         return ocrun.run(self.gnina_cmd, logFile=logFile)
 
 
-    def run_prepare_ligand(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+    def run_prepare_ligand(self, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run the convert ligand command to pdbqt.
 
         Returns
@@ -295,7 +325,7 @@ class Gnina:
         return run_prepare_ligand(self.input_ligand_path, self.prepared_ligand, overwrite=overwrite)
 
 
-    def run_prepare_ligand_from_cmd(self, logFile: str = "") -> Union[int, Tuple[int, str]]:
+    def run_prepare_ligand_from_cmd(self, logFile: str = "") -> Union[int, str, Tuple[int, str]]:
         '''Run obabel convert ligand to pdbqt using the 'self.inputLigandPath' attribute. [DEPRECATED]
 
         Parameters
@@ -317,7 +347,7 @@ class Gnina:
         )
 
 
-    def run_prepare_receptor(self, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+    def run_prepare_receptor(self, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
         Returns
@@ -334,7 +364,7 @@ class Gnina:
         )
 
 
-    def run_prepare_receptor_from_cmd(self, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+    def run_prepare_receptor_from_cmd(self, logFile: str = "", overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt script using the 'self.prepareReceptorCmd' attribute. [DEPRECATED]
 
         Parameters
@@ -548,7 +578,7 @@ def generate_digest(digestPath: str, logPath: str, overwrite: bool = False, dige
 
     return ocerror.Error.file_exists(f"The file '{digestPath}' already exists. If you want to overwrite it yse the overwrite flag.", level = ocerror.ReportLevel.WARNING)
 
-def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
+def read_log(path: str) -> Dict[str, List[float]]:
     '''Read the gnina log path, returning the data from complexes.
 
     Parameters
@@ -575,7 +605,7 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
                 return {"gnina_pose": [np.nan], "gnina_affinity": [np.nan]}
 
             # Create a dictionary to store the info
-            data = {"gnina_pose": [], "gnina_affinity": []}
+            data: Dict[str, List[float]] = {"gnina_pose": [], "gnina_affinity": []}
 
             # Initiate the last read line as empty
             lastReadLine = ""
@@ -588,8 +618,14 @@ def read_log(path: str) -> Dict[str, List[Union[str, float]]]:
                     if line.startswith("-----+"):
                         # Split the last line
                         lastLine = lastReadLine.split()
-                        data["gnina_pose"].append(lastLine[0])
-                        data["gnina_affinity"].append(lastLine[1])
+                        try:
+                            pose_val = float(lastLine[0])
+                            aff_val = float(lastLine[1])
+                        except (IndexError, ValueError):
+                            pose_val = float("nan")
+                            aff_val = float("nan")
+                        data["gnina_pose"].append(pose_val)
+                        data["gnina_affinity"].append(aff_val)
                         break
 
                     # Assign the last read line as the current line
@@ -664,7 +700,7 @@ def run_gnina(config: str, preparedLigand: str, outputGnina: str, gninaLog: str,
     return ocrun.run(cmd, logFile = logPath)
 
 
-def run_prepare_ligand(inputLigandPath: str, preparedLigand: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+def run_prepare_ligand(inputLigandPath: str, preparedLigand: str, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
     '''Run obabel convert ligand to pdbqt using the openbabel python library.
 
     Parameters
@@ -683,7 +719,7 @@ def run_prepare_ligand(inputLigandPath: str, preparedLigand: str, overwrite: boo
     return strategy.prepare_ligand(inputLigandPath, preparedLigand, "", overwrite=overwrite)
 
 
-def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
+def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFile: str = "") -> Union[int, str, Tuple[int, str]]:
     '''Converts the ligand to .pdbqt using obabel. [DEPRECATED]
 
     Parameters
@@ -710,7 +746,7 @@ def run_prepare_ligand_from_cmd(inputLigandPath: str, preparedLigand: str, logFi
     return ocrun.run(cmd, logFile=logFile)
 
 
-def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str, overwrite: bool = False) -> Union[int, Tuple[int, str]]:
+def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
     '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
     Parameters
@@ -730,7 +766,7 @@ def run_prepare_receptor(inputReceptorPath: str, preparedReceptor: str, overwrit
     return strategy.prepare_receptor(inputReceptorPath, preparedReceptor, "", overwrite=overwrite)
 
 
-def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> Union[int, Tuple[int, str]]:
+def run_prepare_receptor_from_cmd(inputReceptorPath: str, outputReceptor: str, logFile: str = "") -> Union[int, str, Tuple[int, str]]:
     '''Converts the receptor to .pdbqt using obabel. [DEPRECATED]
 
     Parameters

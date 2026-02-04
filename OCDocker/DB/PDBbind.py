@@ -22,6 +22,7 @@ import OCDocker.Error as ocerror
 
 from OCDocker.Config import get_config
 from OCDocker.Toolbox.Constants import order
+import OCDocker.Toolbox.Constants as occ
 
 
 # License
@@ -106,24 +107,24 @@ def read_index() -> Optional[Dict[str, Dict[str, Union[str, float]]]]:
                 splitedLine = line.split()
 
                 # Extract Kd/Ki and type (Kd/Ki)
-                tp, kdki = splitedLine[4].split("=")
+                tp, kdki_str = splitedLine[4].split("=")
 
                 # Normalize the Kd/Ki values to a consistent unit (mol/L)
                 config = get_config()
-                if "mM" in kdki:
-                    kdki = float(kdki.replace("mM", "")) * order[config.paths.pdbbind_kdki_order]["m"]
-                elif "uM" in kdki:
-                    kdki = float(kdki.replace("uM", "")) * order[config.paths.pdbbind_kdki_order]["u"]
-                elif "nM" in kdki:
-                    kdki = float(kdki.replace("nM", "")) * order[config.paths.pdbbind_kdki_order]["n"]
-                elif "pM" in kdki:
-                    kdki = float(kdki.replace("pM", "")) * order[config.paths.pdbbind_kdki_order]["p"]
-                elif "fM" in kdki:
-                    kdki = float(kdki.replace("fM", "")) * order[config.paths.pdbbind_kdki_order]["f"]
-                elif "cM" in kdki:
-                    kdki = float(kdki.replace("cM", "")) * order[config.paths.pdbbind_kdki_order]["c"]
+                if "mM" in kdki_str:
+                    kdki = float(kdki_str.replace("mM", "")) * order[config.paths.pdbbind_kdki_order]["m"]
+                elif "uM" in kdki_str:
+                    kdki = float(kdki_str.replace("uM", "")) * order[config.paths.pdbbind_kdki_order]["u"]
+                elif "nM" in kdki_str:
+                    kdki = float(kdki_str.replace("nM", "")) * order[config.paths.pdbbind_kdki_order]["n"]
+                elif "pM" in kdki_str:
+                    kdki = float(kdki_str.replace("pM", "")) * order[config.paths.pdbbind_kdki_order]["p"]
+                elif "fM" in kdki_str:
+                    kdki = float(kdki_str.replace("fM", "")) * order[config.paths.pdbbind_kdki_order]["f"]
+                elif "cM" in kdki_str:
+                    kdki = float(kdki_str.replace("cM", "")) * order[config.paths.pdbbind_kdki_order]["c"]
                 else:  # Assume M if not otherwise specified
-                    kdki = float(kdki.replace("M", "")) * order[config.paths.pdbbind_kdki_order]["M"]
+                    kdki = float(kdki_str.replace("M", "")) * order[config.paths.pdbbind_kdki_order]["M"]
 
                 # Create a dictionary for this protein and its data
                 protein_entry = {

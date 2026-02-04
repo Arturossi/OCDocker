@@ -77,7 +77,16 @@ _description = tw.dedent("""\033[1;93m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 \033[1;0m""")
 
-output_level = ocerror.ReportLevel.NONE
+# Runtime globals (populated by bootstrap)
+output_level: ocerror.ReportLevel = ocerror.ReportLevel.NONE
+args: Optional[argparse.Namespace] = None
+update: bool = False
+config_file: str = "OCDocker.cfg"
+overwrite: bool = False
+db_url: Optional[Union[URL, str]] = None
+optdb_url: Optional[Union[URL, str]] = None
+engine: Any = None
+session: Any = None
 
 # NOTE: Configuration values are now managed via OCDocker.Config module.
 # Use `from OCDocker.Config import get_config` to access configuration.
@@ -140,7 +149,7 @@ def __inner_initialise_models(oddt_sf: str) -> None:
             if bit.startswith('pdbbind'):
                 new_kwargs['pdbbind_version'] = int(bit.replace('pdbbind', ''))
             elif bit.startswith('plec'):
-                new_kwargs['version'] = bit.replace('plec', '')
+                new_kwargs['version'] = int(bit.replace('plec', ''))
             elif bit.startswith('p'):
                 new_kwargs['depth_protein'] = int(bit.replace('p', ''))
             elif bit.startswith('l'):
@@ -962,10 +971,18 @@ def create_ocdocker_conf() -> None:
     confPlants = confPlants if not answer else answer
 
     answer = input(f"How many structures will be generated. Default [{confPlants_cluster_structures}] (press enter to keep default): ")
-    confPlants_cluster_structures = confPlants_cluster_structures if not answer else answer
+    if answer:
+        try:
+            confPlants_cluster_structures = int(answer)
+        except ValueError:
+            confPlants_cluster_structures = confPlants_cluster_structures
 
     answer = input(f"PLANTS cluster RMSD parameter. Default [{confPlants_cluster_rmsd}] (press enter to keep default): ")
-    confPlants_cluster_rmsd = confPlants_cluster_rmsd if not answer else answer
+    if answer:
+        try:
+            confPlants_cluster_rmsd = float(answer)
+        except ValueError:
+            confPlants_cluster_rmsd = confPlants_cluster_rmsd
 
     answer = input(f"PLANTS search speed parameter. Default [{confPlants_search_speed}] (press enter to keep default): ")
     confPlants_search_speed = confPlants_search_speed if not answer else answer
@@ -1039,10 +1056,18 @@ def create_ocdocker_conf() -> None:
     confODDT = confODDT if not answer else answer
 
     answer = input(f"ODDT seed parameter. Default [{confODDT_seed}] (press enter to keep default): ")
-    confODDT_seed = confODDT_seed if not answer else answer
+    if answer:
+        try:
+            confODDT_seed = int(answer)
+        except ValueError:
+            confODDT_seed = confODDT_seed
 
     answer = input(f"ODDT chunk size parameter. Default [{confODDT_chunk_size}] (press enter to keep default): ")
-    confODDT_chunk_size = confODDT_chunk_size if not answer else answer
+    if answer:
+        try:
+            confODDT_chunk_size = int(answer)
+        except ValueError:
+            confODDT_chunk_size = confODDT_chunk_size
 
     answer = input(f"ODDT available scoring functions (separated by ',') (The supported scoring functions are: rfscore_v1_pdbbind2016, rfscore_v2_pdbbind2016, rfscore_v3_pdbbind2016, nnscore_pdbbind2016, plecrf_pdbbind2016). Default [{confODDT_scoring_functions}] (press enter to keep default): ")
     confODDT_scoring_functions = confODDT_scoring_functions if not answer else answer
@@ -1553,7 +1578,7 @@ _SYNC_SKIP_NAMES = {
 try:
     # Provide harmless defaults when building docs (or tests)
     if os.getenv("OC_BUILD_DOCS") == "1":
-        if "session" not in globals() and MagicMock:
+        if "session" not in globals():
             session = MagicMock(name="session")
         if "db_url" not in globals():
             db_url = "sqlite:///:memory:"

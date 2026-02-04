@@ -21,7 +21,7 @@ import multiprocessing as mp
 from glob import glob
 from multiprocessing import Pool
 from tqdm import tqdm
-from typing import Any, List, Protocol, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 import OCDocker.Docking.Future.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
@@ -61,11 +61,9 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 ## Private ##
 
-class _Lock(Protocol):
-    def __enter__(self) -> Any: ...
-    def __exit__(self, exc_type: object, exc: object, tb: object) -> None: ...
-    def acquire(self, *args: Any, **kwargs: Any) -> bool: ...
-    def release(self) -> None: ...
+# Use Any for lock typing to avoid strict protocol mismatches between
+# multiprocessing lock implementations across Python versions.
+_Lock = Any
 
 
 DockArgs = Tuple[str, str, str, str, _Lock, bool, str, bool]
@@ -223,7 +221,7 @@ def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: st
     '''
 
     # Track error codes from all docking operations
-    error_codes = []
+    error_codes: List[int] = []
 
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
@@ -247,7 +245,7 @@ def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: st
     # Return the most severe error code, or OK if all succeeded
     if error_codes:
         # Return the first non-OK error code (errors are already logged by core functions)
-        return error_codes[0]
+        return int(error_codes[0])
     return ocerror.Error.ok()
 
 def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, dockingAlgorithm: str, overwrite: bool, digestFormat: str, desc: str, all_boxes: bool) -> int:
@@ -285,7 +283,7 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
             raw_arguments.append((cl[0], ligandDir, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes))
 
     # Track error codes from all docking operations
-    error_codes = []
+    error_codes: List[int] = []
 
     try:
         # Create a shared lock for all workers to guard shared outputs
@@ -314,7 +312,7 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
     if error_codes:
         # Return the first non-OK error code (errors are already logged by core functions)
         # In case of multiple errors, return the first one encountered
-        return error_codes[0]
+        return int(error_codes[0])
     return ocerror.Error.ok()
 
 def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, receptorDescriptorPath: str, boxPath: str, ptn: str, archive: str, lock: _Lock, overwrite: bool = False, digestFormat: str = "json", all_boxes: bool = False) -> int:

@@ -131,12 +131,15 @@ def run_shap_analysis(
         use_pdb_train=True,
         random_seed=42,
     )
+    mask = best.mask
+    if isinstance(mask, np.ndarray):
+        mask = mask.tolist()
     neural = build_neural_net(
         input_dim=data.X_train.shape[1],
         autoencoder_params=best.autoencoder_params,
         nn_params=best.nn_params,
         seed=best.seed,
-        mask=best.mask,
+        mask=mask,
         use_gpu=None,
         verbose=False,
     )

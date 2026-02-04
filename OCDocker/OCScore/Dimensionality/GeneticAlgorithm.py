@@ -20,7 +20,7 @@ import pandas as pd
 from numpy.random import default_rng
 from sklearn.metrics import auc, roc_curve
 from tqdm import tqdm
-from typing import Any, Union
+from typing import Any, List, Optional, Union, cast
 
 import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
 import OCDocker.Toolbox.Printing as ocprint
@@ -109,7 +109,7 @@ class GeneticAlgorithm:
         self.fixed_features_index = fixed_features_index if fixed_features_index is not None else []
         self.verbose = verbose
         self.early_stopping_rounds = early_stopping_rounds
-        self.direction = None
+        self.direction: Optional[str] = None
         self.use_gpu = use_gpu
 
         if use_gpu:
@@ -237,15 +237,15 @@ class GeneticAlgorithm:
         else:
             best_score = 0
 
-        best_individual = None
-        best_score2 = None
-        best_model = None
+        best_individual: Optional[np.ndarray] = None
+        best_score2: Optional[float] = None
+        best_model: Optional[OCxgboost.XGBRegressor] = None
 
         # Perform the genetic algorithm for the specified number of generations
         for generation in tqdm(range(trial_params['number_of_generations'])):
             # Create lists to store the fitness scores and the models
-            fitnesses = []
-            models = []
+            fitnesses: List[float] = []
+            models: List[OCxgboost.XGBRegressor] = []
 
             # For each individual in the population
             for individual in population:
@@ -261,33 +261,33 @@ class GeneticAlgorithm:
                     ocprint.printv(f"{f[0]} - {len(individual.nonzero()[0])} - {f[1].n_features_in_}")
 
             # Convert to numpy arrays
-            fitnesses = np.array(fitnesses)
-            models = np.array(models)
+            fitnesses_arr = np.asarray(fitnesses)
+            models_arr = np.asarray(models, dtype=object)
 
             # If the direction in study is minimize
             if self.direction == "minimize":
                 # Get the best score in the current generation
-                best_score_in_generation = np.min(fitnesses)
+                best_score_in_generation = np.min(fitnesses_arr)
 
                 # Get the index of the best score
-                best_score_index = np.argmin(fitnesses)
+                best_score_index = np.argmin(fitnesses_arr)
 
                 # Set the has_better_score flag to best_score_in_generation < best_score
                 has_better_score = best_score_in_generation < best_score
             else:
                 # Get the best score in the current generation
-                best_score_in_generation = np.max(fitnesses)
+                best_score_in_generation = np.max(fitnesses_arr)
 
                 # Get the index of the best score
-                best_score_index = np.argmax(fitnesses)
+                best_score_index = np.argmax(fitnesses_arr)
 
                 # Set the has_better_score flag to best_score_in_generation > best_score
                 has_better_score = best_score_in_generation > best_score
 
             if self.verbose:
                 ocprint.printv(f"pop: {population}")
-                ocprint.printv(f"argmin: {np.argmin(fitnesses)}")
-                ocprint.printv(f"argmax: {np.argmax(fitnesses)}")
+                ocprint.printv(f"argmin: {np.argmin(fitnesses_arr)}")
+                ocprint.printv(f"argmax: {np.argmax(fitnesses_arr)}")
                 ocprint.printv(f"best_score: {best_score_in_generation}")
                 ocprint.printv(f"best_score_index: {best_score_index}")
 
@@ -307,7 +307,7 @@ class GeneticAlgorithm:
                 best_individual = population[best_score_index]
 
                 # Get the best model (loaded from pickle file)
-                best_model = models[best_score_index]
+                best_model = cast(OCxgboost.XGBRegressor, models_arr[best_score_index])
 
                 # If the validation dataset is provided (if X_validation is not None y_validation is not None as well)
                 if self.X_validation is not None:
@@ -343,12 +343,12 @@ class GeneticAlgorithm:
             # Perform crossover and mutation to create the new population using the current population pairs by pairs
             for _ in range(trial_params['population_size'] // 2):
                 # Select the parents using tournament selection
-                parent1 = self.tournament_selection(population, fitnesses)
+                parent1 = self.tournament_selection(population, fitnesses_arr)
                 parent2 = None
 
                 # Ensure that parent2 is different from parent1
                 while parent2 is None or np.array_equal(parent2, parent1):
-                    parent2 = self.tournament_selection(population, fitnesses)
+                    parent2 = self.tournament_selection(population, fitnesses_arr)
 
                 # Perform crossover and mutation to create 2 children
                 child1 = self.crossover(parent1, parent2)
@@ -371,7 +371,10 @@ class GeneticAlgorithm:
 
         # Return the best individual and the best score
 
-        return best_individual, best_model, best_score, best_score2
+        if best_individual is None or best_model is None:
+            raise RuntimeError("Genetic algorithm did not produce a valid best individual/model.")
+
+        return cast(np.ndarray, best_individual), cast(OCxgboost.XGBRegressor, best_model), float(best_score), best_score2
 
     def initialize_population(self, number_of_features: int, population_size: int) -> np.ndarray:
         '''
@@ -580,7 +583,7 @@ class GeneticAlgorithm:
 
         # Return the selected individual
 
-        return population[winner_index]
+        return cast(np.ndarray, population[winner_index])
 
 
 # Functions

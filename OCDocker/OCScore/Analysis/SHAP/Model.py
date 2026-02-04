@@ -15,7 +15,7 @@ from OCDocker.OCScore.Analysis.SHAP.Model import build_neural_net
 from __future__ import annotations
 import torch
 
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union, cast
 
 from OCDocker.OCScore.DNN.DNNOptimizer import NeuralNet
 
@@ -83,6 +83,7 @@ def build_neural_net(
     if use_gpu is None:
         use_gpu = torch.cuda.is_available()
 
+    mask_typed = cast(Optional[List[Union[int, bool]]], mask)
     neural = NeuralNet(
         input_dim,
         1,
@@ -91,7 +92,7 @@ def build_neural_net(
         random_seed=seed,
         use_gpu=use_gpu,
         verbose=verbose,
-        mask=mask,
+        mask=mask_typed,
     )
     neural.NN.eval()
     return neural

@@ -553,8 +553,9 @@ def perform_ablation_study_NN(
         If the parallel backend is not "joblib" or "multiprocessing".
     '''
 
+    masks_to_use = masks
     # If no masks are provided
-    if not masks:
+    if not masks_to_use:
         # Filter the SFs
         sf = X_train.filter(regex = r"(VINA|SMINA|ODDT|PLANTS).*").columns.tolist()
 
@@ -585,7 +586,7 @@ def perform_ablation_study_NN(
             evaluated_masks = []
 
         # Apply each feature mask to the full_mask
-        masks: list[list[int | bool]] = []
+        generated_masks: list[list[int | bool]] = []
         for mask in feature_masks:
             # Start with a fresh copy of the full mask template
             modified_mask = full_mask.copy()
@@ -593,17 +594,19 @@ def perform_ablation_study_NN(
             for index, value in zip(sf_indexes, mask):
                 modified_mask[index] = value
             if not evaluated_masks or "".join(map(str, modified_mask)) not in evaluated_masks:
-                masks.append(modified_mask)
+                generated_masks.append(modified_mask)
+
+        masks_to_use = generated_masks
 
     # Adjust num_processes if the size of the masks array is smaller
-    if len(masks) < num_processes:
-        inner_num_processes = len(masks)
+    if len(masks_to_use) < num_processes:
+        inner_num_processes = len(masks_to_use)
     else:
         inner_num_processes = num_processes
 
     # Split masks into roughly equal parts for each process using Round Robin distribution
     split_masks: list[list[list[int | bool]]] = [[] for _ in range(inner_num_processes)]
-    for i, mask in enumerate(masks):
+    for i, mask in enumerate(masks_to_use):
         split_masks[i % inner_num_processes].append(mask)
 
     # Check the parallel backend

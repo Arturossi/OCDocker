@@ -256,7 +256,7 @@ class TransformerModel(nn.Module):
         # Apply final linear layer
         output = self.fc_out(output)  # This uses the complete feature vector
 
-        return output
+        return cast(torch.Tensor, output)
 
     def initialize_weights(self) -> None:
         ''' Initialize the weights of the model. '''
@@ -406,7 +406,7 @@ class Transformer(nn.Module):
         # Set the verbose flag
         self.verbose = verbose
 
-        self.prediction = None
+        self.prediction: Optional[np.ndarray] = None
 
         # Print the model if verbose is True
         if verbose:
@@ -616,7 +616,10 @@ class Transformer(nn.Module):
 
                 # Convert the predictions and the labels to numpy
                 validation_predictions_np = validation_predictions.detach().cpu().numpy()
-                y_validation_np = y_validation.cpu().numpy()
+                if isinstance(y_validation, torch.Tensor):
+                    y_validation_np = y_validation.cpu().numpy()
+                else:
+                    y_validation_np = np.asarray(y_validation)
 
                 # Set the prediction
                 self.prediction = y_validation_np
@@ -784,6 +787,7 @@ class TransOptimizer:
         init_type = trial.suggest_categorical('init_type', ['zeros', 'orthogonal', 'normal', 'uniform', 'constant', 'xavier_normal', 'xavier_uniform', 'he_normal', 'he_uniform', 'sparse', 'eye'])
 
         # If the initialization typem requires parameters, suggest them
+        init_params: Dict[str, Any] = {}
         if init_type in ['normal']:
             mean = trial.suggest_float('mean', -1, 1)
             std = trial.suggest_float('std', 0.1, 1)
@@ -804,8 +808,6 @@ class TransOptimizer:
             a = trial.suggest_float('a', 0, 1)
             nonlinearity = trial.suggest_categorical('nonlinearity', ['relu', 'leaky_relu', 'tanh', 'sigmoid'])
             init_params = {'a': a, 'nonlinearity': nonlinearity}
-        else:
-            init_params = {}
 
         # Model setup
         model = TransformerModel(
@@ -1085,7 +1087,7 @@ class TransOptimizer:
             raise optuna.exceptions.TrialPruned()
 
 
-        return rmse
+            return float(rmse)
 
 
 # Functions

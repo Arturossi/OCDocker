@@ -39,7 +39,7 @@ import sys
 
 from glob import glob
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # License
 ###############################################################################
@@ -112,7 +112,7 @@ def _box_sort_key(path: Path) -> Tuple[int, object]:
             return (0, int(suffix))
     return (1, stem)
 
-def _ensure_mol2_poses(pose_paths: List[str], dest_dir: Path, pose_engine_map: Dict[str, str] = None) -> Tuple[List[str], Dict[str, str]]:
+def _ensure_mol2_poses(pose_paths: List[str], dest_dir: Path, pose_engine_map: Optional[Dict[str, str]] = None) -> Tuple[List[str], Dict[str, str]]:
     '''Ensure a list of poses in MOL2 format, converting when needed.
 
     Returns a list of .mol2 paths and a mapping mol2->original path.
@@ -910,12 +910,15 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
             return os.path.isfile(p) and os.access(p, os.X_OK)
         return shutil.which(p) is not None
 
+    _vina_bin: Optional[str]
+    _smina_bin: Optional[str]
+    _plants_bin: Optional[str]
     try:
         from OCDocker.Config import get_config
         config = get_config()
-        v = config.vina.executable
-        s = config.smina.executable
-        p = config.plants.executable
+        v: Optional[str] = config.vina.executable
+        s: Optional[str] = config.smina.executable
+        p: Optional[str] = config.plants.executable
     except Exception:
         # Fallback if config is not available
         v = s = p = None
@@ -1318,8 +1321,8 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
 
         # Convert representative to appropriate format for each engine's rescoring
         # Vina/Smina need PDBQT, PLANTS needs MOL2
-        rep_pdbqt = None
-        rep_mol2_final = None
+        rep_pdbqt: Optional[Union[str, Path]] = None
+        rep_mol2_final: Optional[Union[str, Path]] = None
 
         import OCDocker.Toolbox.Conversion as occonversion
         import shutil
@@ -1388,7 +1391,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                         if not data:
                             ocprint.print_warning(f"Vina rescoring log files found but no data extracted. Log paths: {log_paths}")
                         else:
-                            vals: Dict[str, float] = {}
+                            vina_vals: Dict[str, float] = {}
                             # Data structure: Dict[str, List[Union[str, float]]] according to type hint, but actual return is Dict[str, float]
                             # Key format: "rescoring_{scoring_function}_{pose_number}" or "vina_{scoring_function}_rescoring"
                             for k, v in data.items():
@@ -1411,7 +1414,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                                                 clean_key = k
                                         else:
                                             clean_key = k
-                                        vals[clean_key] = float(v)
+                                        vina_vals[clean_key] = float(v)
                                     elif isinstance(v, list) and len(v) > 0:
                                         # Handle list case (type hint says List[Union[str, float]])
                                         # Extract the numeric value
@@ -1440,11 +1443,11 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                                                     clean_key = k
                                             else:
                                                 clean_key = k
-                                            vals[clean_key] = numeric_val
+                                            vina_vals[clean_key] = numeric_val
                                 except (ValueError, TypeError, KeyError) as e:
                                     ocprint.print_warning(f"Failed to parse Vina rescoring value for {k}: {e}. Value type: {type(v)}, value: {v}")
-                            if vals:
-                                rescoring["vina"] = vals
+                            if vina_vals:
+                                rescoring["vina"] = vina_vals
                             else:
                                 ocprint.print_warning(f"Vina rescoring data found but no valid values extracted. Data structure: {data}")
                 except Exception as e:
@@ -1496,7 +1499,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                         else:
                             ocprint.printv(f"Found Smina rescoring log files: {log_paths}")
                             data = s_read(log_paths, onlyBest=True)
-                            vals: Dict[str, float] = {}
+                            smina_vals: Dict[str, float] = {}
                             # Data structure: Dict[str, float] (read_rescoring_log returns float, not list)
                             # Key format: "rescoring_{scoring_function}_{pose_number}" or "smina_{scoring_function}_rescoring"
                             for k, v in data.items():
@@ -1529,14 +1532,14 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                                                 clean_key = k
                                         else:
                                             clean_key = k
-                                        vals[clean_key] = float(v)
+                                        smina_vals[clean_key] = float(v)
                                     elif isinstance(v, list) and len(v) > 0:
                                         # Handle list case (shouldn't happen but just in case)
-                                        vals[k] = float(v[0] if not isinstance(v[0], (list, tuple)) else v[0][0])
+                                        smina_vals[k] = float(v[0] if not isinstance(v[0], (list, tuple)) else v[0][0])
                                 except (ValueError, TypeError, KeyError) as e:
                                     ocprint.print_warning(f"Failed to parse Smina rescoring value for {k}: {e}")
-                            if vals:
-                                rescoring["smina"] = vals
+                            if smina_vals:
+                                rescoring["smina"] = smina_vals
                             else:
                                 ocprint.print_warning(f"Smina rescoring data found but no valid values extracted. Data structure: {data}")
                     except Exception as e:
@@ -1549,7 +1552,13 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
             plants_rep = str(rep_mol2_final) if rep_mol2_final and Path(rep_mol2_final).exists() else str(rep_path)
             pose_list.write_text(plants_rep + "\n")
             # Extract center/radius from the box
-            center, radius = get_binding_site(str(box_path))
+            binding_site = get_binding_site(str(box_path))
+            if isinstance(binding_site, int):
+                ocprint.print_warning(f"Failed to read binding site from {box_path}. Skipping PLANTS rescoring.")
+                binding_site = None
+            if binding_site is None:
+                continue
+            center, radius = binding_site
             # Get scoring functions from config
             plants_sfs = config.plants.scoring_functions if config.plants.scoring_functions else ["chemplp", "plp", "plp95"]
             for sf in plants_sfs:
@@ -1979,14 +1988,16 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
     # Imports after env is ready
     import OCDocker.Ligand as ocl
     import OCDocker.Receptor as ocr
+    import importlib
+    engine_mod: Any
     if args.engine == "vina":
-        import OCDocker.Docking.Vina as engine_mod
+        engine_mod = importlib.import_module("OCDocker.Docking.Vina")
         eng = "vina"
     elif args.engine == "smina":
-        import OCDocker.Docking.Smina as engine_mod
+        engine_mod = importlib.import_module("OCDocker.Docking.Smina")
         eng = "smina"
     else:
-        import OCDocker.Docking.PLANTS as engine_mod
+        engine_mod = importlib.import_module("OCDocker.Docking.PLANTS")
         eng = "plants"
 
     # Validate engine binary availability based on configuration
@@ -2163,7 +2174,7 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
 
         if not args.skip_rescore:
             if eng in ("vina", "smina"):
-                runner.run_rescore(str(box_files_dir), skipDefaultScoring=True)
+                runner.run_rescore(str(box_files_dir), prep_lig_path, skipDefaultScoring=True)
             else:
                 pose_list = runner.write_pose_list(overwrite=True)
                 if pose_list:
@@ -2204,7 +2215,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    return args.func(args)
+    return int(args.func(args))
 
 
 if __name__ == "__main__":
