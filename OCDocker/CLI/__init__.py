@@ -1512,27 +1512,27 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                                     if isinstance(v, (int, float)):
                                         # Normalize key: extract scoring function and create clean key
                                         # Keys can be: "smina_vinardo_rescoring", "rescoring_vina_1", "rescoring_dkoes_scoring_1", etc.
-                                        sf_name: Optional[str] = None
+                                        smina_sf_name: Optional[str] = None
                                         if k.startswith("smina_") and k.endswith("_rescoring"):
                                             # Format: "smina_{scoring_function}_rescoring"
-                                            sf_name = k.replace("smina_", "").replace("_rescoring", "")
-                                            clean_key = f"smina_{sf_name}"
+                                            smina_sf_name = k.replace("smina_", "").replace("_rescoring", "")
+                                            clean_key = f"smina_{smina_sf_name}"
                                         elif k.startswith("rescoring_"):
                                             # Format: "rescoring_{scoring_function}_{pose_number}"
                                             parts = k.replace("rescoring_", "").split("_")
                                             if len(parts) >= 1:
                                                 # Handle multi-part scoring function names like "dkoes_scoring"
                                                 # Try to match against known scoring functions
-                                                sf_name = None
+                                                smina_sf_name = None
                                                 for known_sf in smina_sfs:
                                                     # Check if the key starts with this scoring function
                                                     if "_".join(parts[:len(known_sf.split("_"))]) == known_sf:
-                                                        sf_name = known_sf
+                                                        smina_sf_name = known_sf
                                                         break
-                                                if not sf_name and parts:
+                                                if not smina_sf_name and parts:
                                                     # Fallback: use first part
-                                                    sf_name = parts[0]
-                                                clean_key = f"smina_{sf_name}" if sf_name else k
+                                                    smina_sf_name = parts[0]
+                                                clean_key = f"smina_{smina_sf_name}" if smina_sf_name else k
                                             else:
                                                 clean_key = k
                                         else:
