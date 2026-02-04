@@ -428,8 +428,11 @@ class PLANTS:
                 converted_dict: Dict[str, float] = {}
                 for dict_key, value in inner_dict.items():
                     try:
-                        if isinstance(value, list) and len(value) == 1:
-                            converted_dict[dict_key] = float(value[0])
+                        if isinstance(value, list):
+                            if len(value) == 1:
+                                converted_dict[dict_key] = float(value[0])
+                            else:
+                                continue
                         else:
                             converted_dict[dict_key] = float(value)
                     except (TypeError, ValueError):

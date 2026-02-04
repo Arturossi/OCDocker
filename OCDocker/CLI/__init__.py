@@ -1596,7 +1596,12 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                                             key = f"plants_{sf}"
                                             if key not in plants_rescoring_data:
                                                 try:
-                                                    plants_rescoring_data[key] = float(score_value)
+                                                    if isinstance(score_value, list):
+                                                        if len(score_value) != 1:
+                                                            continue
+                                                        plants_rescoring_data[key] = float(score_value[0])
+                                                    else:
+                                                        plants_rescoring_data[key] = float(score_value)
                                                 except (TypeError, ValueError):
                                                     continue
                                         break  # Only take first pose when onlyBest=True
