@@ -342,7 +342,7 @@ def test_read_log_invalid_line_format(tmp_path, monkeypatch):
     # Line 1 has 6 elements, line 2 has 3 elements, line 3 has 4 elements
     assert len(result) == 1
     assert 3 in result
-    assert result[3][vina_scoring] == "-5.50"
+    assert result[3][vina_scoring] == -5.5
 
 
 def test_read_log_nonexistent_file(tmp_path, monkeypatch):
@@ -455,7 +455,7 @@ def test_smina_log_and_rescoring_parsing(tmp_path, monkeypatch):
     
     data = basevina.read_smina_log(str(log))
     assert set(data.keys()) == {1, 3}
-    assert data[3][smina_scoring] == "-6.75"  # type: ignore
+    assert data[3][smina_scoring] == -6.75  # type: ignore
 
     resc = tmp_path / "rescore_smina.log"
     resc.write_text("Affinity: -6.71 (kcal/mol)\n")
@@ -487,7 +487,7 @@ def test_vina_log_and_rescoring_parsing(tmp_path, monkeypatch):
     
     data = basevina.read_vina_log(str(log))
     assert set(data.keys()) == {1, 2}
-    assert data[1][vina_scoring] == "-7.50"  # type: ignore
+    assert data[1][vina_scoring] == -7.5  # type: ignore
 
     best_only = basevina.read_vina_log(str(log), onlyBest=True)
     assert set(best_only.keys()) == {1}
@@ -507,4 +507,4 @@ def test_vina_log_and_rescoring_parsing(tmp_path, monkeypatch):
     j = json.loads(out_json.read_text())
     # Top level contains base keys and pose keys as strings
     assert "vina_affinity" in j
-    assert "1" in j and j["1"][vina_scoring] == "-7.50"  # type: ignore
+    assert "1" in j and j["1"][vina_scoring] == -7.5  # type: ignore

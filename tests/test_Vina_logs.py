@@ -69,10 +69,10 @@ def test_read_log(vina_mod, tmp_path):
     vina_scoring = config.vina.scoring
     
     data = vina_mod.read_log(str(log))
-    assert data[1][vina_scoring] == "-7.0"
-    assert data[2][vina_scoring] == "-6.5"
+    assert data[1][vina_scoring] == -7.0
+    assert data[2][vina_scoring] == -6.5
     best = vina_mod.read_log(str(log), onlyBest=True)
-    assert best == {1: {vina_scoring: "-7.0"}}
+    assert best == {1: {vina_scoring: -7.0}}
 
 
 @pytest.mark.order(17)

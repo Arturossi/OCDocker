@@ -212,6 +212,17 @@ def _missing_external_tools() -> Set[str]:
 
     missing = {name for name, exe in tools.items() if not _exe_available(exe)}
 
+    # DSSP (used for surface AA counts in Receptor)
+    try:
+        from OCDocker.Config import get_config
+        cfg = get_config()
+        dssp_candidate = getattr(cfg.tools, "dssp", "dssp")
+    except Exception:
+        dssp_candidate = "dssp"
+    dssp_candidates = [dssp_candidate, "mkdssp", "dssp"]
+    if not any(_exe_available(c) for c in dssp_candidates if c):
+        missing.add("dssp")
+
     # Python OpenBabel bindings (used by Receptor/Conversion)
     try:
         import openbabel  # type: ignore
@@ -237,12 +248,15 @@ def pytest_collection_modifyitems(config, items):
 
     # Map test modules to required tools
     required_by_file = {
-        "test_Vina.py": {"vina", "prepare_ligand4", "prepare_receptor4", "openbabel-py"},
         "test_vina_prepare.py": {"prepare_ligand4", "prepare_receptor4"},
-        "test_Smina.py": {"smina", "prepare_ligand4", "prepare_receptor4", "openbabel-py"},
-        "test_PLANTS.py": {"plants", "obabel", "openbabel-py"},
+        "test_Smina.py": {"smina", "prepare_ligand4", "prepare_receptor4", "openbabel-py", "dssp"},
+        "test_Smina_utils.py": {"dssp"},
+        "test_PLANTS.py": {"plants", "obabel", "openbabel-py", "dssp"},
+        "test_Vina.py": {"vina", "prepare_ligand4", "prepare_receptor4", "openbabel-py", "dssp"},
+        "test_preparation_strategy.py": {"dssp"},
+        "test_integration_docking_workflow.py": {"dssp"},
         "test_plants_prepare.py": {"plants", "obabel"},
-        "test_Receptor.py": {"openbabel-py"},
+        "test_Receptor.py": {"openbabel-py", "dssp"},
     }
 
     for item in items:

@@ -354,7 +354,7 @@ class PLANTS:
         return None
 
 
-    def read_log(self, onlyBest: bool = True) -> Dict[int, Dict[str, float]]:
+    def read_log(self, onlyBest: bool = True) -> Dict[int, Dict[str, Union[float, List[float]]]]:
         '''Read the PLANTS log path, returning a pd.dataframe with data from complexes.
 
         Parameters
@@ -985,7 +985,7 @@ def get_pose_index_from_file_path(filePath: str) -> int:
     return int(filename)
 
 
-def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
+def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, Union[float, List[float]]]]:
     '''Read the PLANTS log path, returning a dict with data from complexes.
 
     Parameters
@@ -997,7 +997,7 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
 
     Returns
     -------
-    Dict[int, Dict[str, float]]
+    Dict[int, Dict[str, Union[float, List[float]]]]
         A dictionary with the data from the PLANTS log file.
     '''
 
@@ -1017,18 +1017,18 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
                     # Return the built the dictionary
                     return {
                         1: {
-                            "PLANTS_TOTAL_SCORE": float(df.TOTAL_SCORE[:1].values[0]),
-                            "PLANTS_SCORE_RB_PEN": float(df.SCORE_RB_PEN[:1].values[0]),
-                            "PLANTS_SCORE_NORM_HEVATOMS": float(df.SCORE_NORM_HEVATOMS[:1].values[0]),
-                            "PLANTS_SCORE_NORM_CRT_HEVATOMS": float(df.SCORE_NORM_CRT_HEVATOMS[:1].values[0]),
-                            "PLANTS_SCORE_NORM_WEIGHT": float(df.SCORE_NORM_WEIGHT[:1].values[0]),
-                            "PLANTS_SCORE_NORM_CRT_WEIGHT": float(df.SCORE_NORM_CRT_WEIGHT[:1].values[0]),
-                            "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": float(df.SCORE_RB_PEN_NORM_CRT_HEVATOMS[:1].values[0]),
+                            "PLANTS_TOTAL_SCORE": [float(df.TOTAL_SCORE[:1].values[0])],
+                            "PLANTS_SCORE_RB_PEN": [float(df.SCORE_RB_PEN[:1].values[0])],
+                            "PLANTS_SCORE_NORM_HEVATOMS": [float(df.SCORE_NORM_HEVATOMS[:1].values[0])],
+                            "PLANTS_SCORE_NORM_CRT_HEVATOMS": [float(df.SCORE_NORM_CRT_HEVATOMS[:1].values[0])],
+                            "PLANTS_SCORE_NORM_WEIGHT": [float(df.SCORE_NORM_WEIGHT[:1].values[0])],
+                            "PLANTS_SCORE_NORM_CRT_WEIGHT": [float(df.SCORE_NORM_CRT_WEIGHT[:1].values[0])],
+                            "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": [float(df.SCORE_RB_PEN_NORM_CRT_HEVATOMS[:1].values[0])],
                         }
                     }
                 else:
                     # Create the dict
-                    data: Dict[int, Dict[str, float]] = {}
+                    data: Dict[int, Dict[str, Union[float, List[float]]]] = {}
                     # For each row
                     for _, row in df.iterrows():
                         # Add the data to the dict

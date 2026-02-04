@@ -66,12 +66,12 @@ def test_read_log(tmp_path):
     smina_scoring = config.smina.scoring
     
     data = ocsmina.read_log(str(log_file))
-    assert data[1][smina_scoring] == "-7.5" # type: ignore
-    assert data[2][smina_scoring] == "-6.5" # type: ignore
+    assert data[1][smina_scoring] == -7.5 # type: ignore
+    assert data[2][smina_scoring] == -6.5 # type: ignore
 
     best = ocsmina.read_log(str(log_file), onlyBest=True)
     assert list(best.keys()) == [1]
-    assert best[1][smina_scoring] == "-7.5" # type: ignore
+    assert best[1][smina_scoring] == -7.5 # type: ignore
 
 
 @pytest.mark.order(10)

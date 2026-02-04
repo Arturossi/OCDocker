@@ -349,7 +349,7 @@ def test_generate_digest(smina, sample_paths):
     from OCDocker.Config import get_config
     config = get_config()
     smina_scoring = config.smina.scoring
-    assert data['2'][smina_scoring] == '-7.0'
+    assert data['2'][smina_scoring] == -7.0
 
 
 @pytest.mark.order(14)

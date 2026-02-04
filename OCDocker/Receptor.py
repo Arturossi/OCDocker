@@ -18,6 +18,7 @@ import Bio
 import json
 import math
 import os
+import shutil
 
 import numpy as np
 
@@ -140,7 +141,7 @@ class Receptor:
     allDescriptors = [f"count{i}" for i in descriptors_names["count"]] + single_descriptors
 
 
-    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], name: str, mol2_path: str = "", c_model: str = "gasteiger", gravy_scale: str = "KyteDoolitle", relative_asa_cutoff: float = 0.7, from_json_descriptors: str = "", overwrite: bool = False, clean: bool = False, canonicalize_pdb: Union[bool, str] = "auto") -> None:
+    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], name: str, mol2_path: str = "", c_model: str = "gasteiger", gravy_scale: str = "KyteDoolitle", relative_asa_cutoff: float = 0.7, from_json_descriptors: str = "", overwrite: bool = False, clean: bool = False, canonicalize_pdb: Union[bool, str] = "auto", allow_missing_surface: bool = False) -> None:
         '''Constructor of the class Receptor.
 
         Parameters
@@ -165,6 +166,9 @@ class Receptor:
             Flag to denote if the pdb file will be cleaned, by default False.
         canonicalize_pdb : bool | str, optional
             Whether to canonicalize CHARMM-style PDB names. Use True, False, or "auto".
+        allow_missing_surface : bool, optional
+            If True, allows initialization to continue when DSSP/surface AA counts
+            are unavailable, using zeroed surface counts. Default is False.
 
         Returns
         -------
@@ -360,8 +364,40 @@ class Receptor:
 
             self.__countAA = count_surface_AA(self.structure, self.path, self.__relative_asa_cutoff)
             if not self.__countAA:
-                ocprint.print_error("Problems while counting surface amino acids!")
-                return None
+                if allow_missing_surface:
+                    ocprint.print_warning(
+                        "Surface AA counts unavailable; using zeroed surface counts because "
+                        "allow_missing_surface=True."
+                    )
+                    self.__countAA = {
+                        "A": 0,
+                        "R": 0,
+                        "N": 0,
+                        "D": 0,
+                        "C": 0,
+                        "Q": 0,
+                        "E": 0,
+                        "G": 0,
+                        "H": 0,
+                        "I": 0,
+                        "L": 0,
+                        "K": 0,
+                        "M": 0,
+                        "F": 0,
+                        "P": 0,
+                        "S": 0,
+                        "T": 0,
+                        "W": 0,
+                        "Y": 0,
+                        "V": 0,
+                        "X": 0,
+                    }
+                else:
+                    ocprint.print_error(
+                        "Problems while counting surface amino acids. DSSP is required. "
+                        "Set allow_missing_surface=True to proceed without surface counts."
+                    )
+                    return None
 
             self.countA = self.__countAA["A"]
             self.countR = self.__countAA["R"]
@@ -941,6 +977,31 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
     # Run the DSSP
     config = get_config()
+    dssp_exe = str(getattr(config.tools, "dssp", "") or "")
+    candidates = [dssp_exe] if dssp_exe else []
+    # Common fallback names used by DSSP installations
+    for candidate in ("mkdssp", "dssp"):
+        if candidate not in candidates:
+            candidates.append(candidate)
+    resolved: Optional[str] = None
+    for candidate in candidates:
+        if not candidate:
+            continue
+        if os.path.isabs(candidate):
+            if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+                resolved = candidate
+                break
+        else:
+            if shutil.which(candidate) is not None:
+                resolved = candidate
+                break
+    if not resolved:
+        ocprint.print_warning(
+            "DSSP executable not available; surface AA counts cannot be computed."
+        )
+        return None
+    dssp_exe = resolved
+    
     try:
         # Get the extension of the structure path
         extension = os.path.splitext(structurePath)[1].lower()
@@ -955,8 +1016,8 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
             ocprint.print_warning(f"The structure file '{structurePath}' does not have a .cif or .mmcif extension. Assuming it is a PDB file for DSSP processing.")
             extension = "PDB"
 
-        dsspData = DSSP(structure[0], structurePath, dssp = config.tools.dssp, file_type=extension)
-    except PDBException as e:
+        dsspData = DSSP(structure[0], structurePath, dssp = dssp_exe, file_type=extension)
+    except (PDBException, FileNotFoundError, OSError) as e:
         # DSSP failed due to structure/DSSP mismatch or other PDB-related issues
         ocprint.print_error(f"DSSP failed for structure '{structurePath}': {e}")
         return None
@@ -972,7 +1033,7 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
 
         # Create the dssp command
         config = get_config()
-        dssp_command = [config.tools.dssp, "-i", structurePath, "-o", f"{structureDirName}/{structureName}.dssp"]
+        dssp_command = [dssp_exe, "-i", structurePath, "-o", f"{structureDirName}/{structureName}.dssp"]
         # Run the command
         run_result = ocrun.run(dssp_command)
         if isinstance(run_result, tuple):

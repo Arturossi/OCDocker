@@ -128,7 +128,7 @@ def test_smina_log_parsing(docking_modules, tmp_path):
     smina_scoring = config.smina.scoring
     
     result = ocsmina.read_log(str(log_file))
-    expected = {1: {smina_scoring: "-6.0"}}
+    expected = {1: {smina_scoring: -6.0}}
     assert result == expected
 
     rescoring = tmp_path / "smina_res.log"
@@ -150,8 +150,8 @@ def test_vina_log_parsing(docking_modules, tmp_path):
     
     result = ocvina.read_log(str(log_file))
     expected = {
-        1: {vina_scoring: "-8.0"},
-        2: {vina_scoring: "-7.5"},
+        1: {vina_scoring: -8.0},
+        2: {vina_scoring: -7.5},
     }
     assert result == expected
 
