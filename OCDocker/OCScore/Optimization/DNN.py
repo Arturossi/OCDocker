@@ -594,7 +594,7 @@ def perform_ablation_study_NN(
             for index, value in zip(sf_indexes, mask):
                 modified_mask[index] = value
             if not evaluated_masks or "".join(map(str, modified_mask)) not in evaluated_masks:
-                generated_masks.append(modified_mask)
+                generated_masks.append(modified_mask.tolist())
 
         masks_to_use = generated_masks
 

@@ -480,8 +480,8 @@ class AETrainer:
             self.gradnorm_weights = torch.ones(len(losses), device=self.device)
         if self.gradnorm_initial is None or self.gradnorm_initial.numel() != len(losses):
             self.gradnorm_initial = torch.tensor([loss.detach().item() for loss in losses.values()], device=self.device)
-        assert self.gradnorm_weights is not None
-        assert self.gradnorm_initial is not None
+        if self.gradnorm_weights is None or self.gradnorm_initial is None:
+            raise RuntimeError("GradNorm weights/initial values were not initialized.")
 
         weights = self.gradnorm_weights
         initial = self.gradnorm_initial

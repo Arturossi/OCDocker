@@ -357,9 +357,12 @@ class GeneticAlgorithm:
                 child2 = self.crossover(parent2, parent1)
                 child2 = self.mutation(child2, trial_params['mutation_rate'])
 
-                assert parent1.shape[0] == parent2.shape[0], "Inconsistent gene size parents mismatch."
-                assert child1.shape[0] == child2.shape[0], "Inconsistent gene size childs mismatch."
-                assert parent1.shape[0] == child1.shape[0], "Inconsistent gene size parent/child mismatch."
+                if parent1.shape[0] != parent2.shape[0]:
+                    raise RuntimeError("Inconsistent gene size parents mismatch.")
+                if child1.shape[0] != child2.shape[0]:
+                    raise RuntimeError("Inconsistent gene size childs mismatch.")
+                if parent1.shape[0] != child1.shape[0]:
+                    raise RuntimeError("Inconsistent gene size parent/child mismatch.")
 
                 # Add the children to the new population
                 new_population.extend([child1, child2])
@@ -367,14 +370,15 @@ class GeneticAlgorithm:
             # Update the population
             population = np.array(new_population)
 
-            assert all(individual.shape[0] == number_of_features for individual in population), "Inconsistent gene size detected in entire population."
+            if not all(individual.shape[0] == number_of_features for individual in population):
+                raise RuntimeError("Inconsistent gene size detected in entire population.")
 
         # Return the best individual and the best score
 
         if best_individual is None or best_model is None:
             raise RuntimeError("Genetic algorithm did not produce a valid best individual/model.")
 
-        return cast(np.ndarray, best_individual), cast(OCxgboost.XGBRegressor, best_model), float(best_score), best_score2
+        return best_individual, best_model, float(best_score), best_score2
 
     def initialize_population(self, number_of_features: int, population_size: int) -> np.ndarray:
         '''
@@ -414,7 +418,8 @@ class GeneticAlgorithm:
                     random_index = self.rng.integers(0, number_of_features)
                 individual[random_index] = True
 
-        assert all(individual.shape[0] == number_of_features for individual in population), "Inconsistent gene size detected in initialize pop."
+        if not all(individual.shape[0] == number_of_features for individual in population):
+            raise RuntimeError("Inconsistent gene size detected in initialize pop.")
 
 
         return population

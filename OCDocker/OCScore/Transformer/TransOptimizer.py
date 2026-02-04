@@ -26,7 +26,7 @@ import torch.optim as optim
 from optuna.samplers import TPESampler
 from sklearn.metrics import auc, roc_curve
 from torch.utils.data import DataLoader, Dataset
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Union, cast
 
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Printing as ocprint
@@ -1086,8 +1086,7 @@ class TransOptimizer:
         if trial.should_prune():
             raise optuna.exceptions.TrialPruned()
 
-
-            return float(rmse)
+        return float(rmse)
 
 
 # Functions

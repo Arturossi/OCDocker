@@ -127,7 +127,8 @@ def build_stratified_background(
 
     rng = np.random.default_rng(seed)
     X_arr = _ensure_2d(X)
-    assert len(meta) == X_arr.shape[0], "meta rows must align with X rows"
+    if len(meta) != X_arr.shape[0]:
+        raise ValueError("meta rows must align with X rows")
 
     idxs: List[int] = []
     for combo, g in meta.groupby(list(strata_cols), dropna=False):

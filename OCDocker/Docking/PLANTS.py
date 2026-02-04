@@ -693,9 +693,18 @@ def box_to_plants(box_file: str, conf_file: str, receptor: str, ligand: str, out
         # Get the center and the binding site center
         if not isinstance(binding_site, tuple):
             return ocerror.Error.read_file(message=f"Invalid binding site data for '{box_file}'.", level=ocerror.ReportLevel.ERROR)
-        center, binding_site_radius = binding_site
+        center_coords, radius = binding_site
+        if radius is None:
+            return ocerror.Error.read_file(message=f"Invalid binding site radius for '{box_file}'.", level=ocerror.ReportLevel.ERROR)
+        center = center_coords
+        binding_site_radius = radius
 
     # Write the file
+    if center is None or binding_site_radius is None:
+        return ocerror.Error.read_file(
+            message=f"Invalid binding site data for '{box_file}'.",
+            level=ocerror.ReportLevel.ERROR,
+        )
     return write_config_file(conf_file, receptor, ligand, output_plants, center[0], center[1], center[2], binding_site_radius)
 
 

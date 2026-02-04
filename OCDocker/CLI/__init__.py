@@ -39,7 +39,7 @@ import sys
 
 from glob import glob
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 # License
 ###############################################################################
@@ -1557,53 +1557,52 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                 ocprint.print_warning(f"Failed to read binding site from {box_path}. Skipping PLANTS rescoring.")
                 binding_site = None
             if binding_site is None:
-                continue
-            center, radius = binding_site
-            # Get scoring functions from config
-            plants_sfs = config.plants.scoring_functions if config.plants.scoring_functions else ["chemplp", "plp", "plp95"]
-            for sf in plants_sfs:
-                try:
-                    # Each scoring function must have its own output directory (PLANTS requirement)
-                    outPath_sf = Path(ctx["plants"]["dir"]) / f"run_{sf}"
-                    conf_sf = Path(ctx["plants"]["dir"]) / f"{name}_rescoring_{sf}.txt"
-                    write_rescoring_config_file(str(conf_sf), ctx["plants"]["prep_rec"], str(pose_list), str(outPath_sf), center[0], center[1], center[2], radius, scoringFunction=sf)
-                    p_rescore(str(conf_sf), str(pose_list), str(outPath_sf), ctx["plants"]["prep_rec"], sf, center[0], center[1], center[2], radius, overwrite=True)
-                except Exception as e:
-                    ocprint.print_warning(f"PLANTS rescoring with {sf} failed: {e}. Continuing with other scoring functions...")
-            # Read PLANTS rescoring results
-            try:
-                from OCDocker.Docking.PLANTS import read_log as plants_read_log
-                plants_rescoring_data: Dict[str, float] = {}
+                ocprint.print_warning(f"Skipping PLANTS rescoring for '{box_path}' due to missing binding site.")
+            else:
+                center, radius = binding_site
+                # Get scoring functions from config
+                plants_sfs = config.plants.scoring_functions if config.plants.scoring_functions else ["chemplp", "plp", "plp95"]
                 for sf in plants_sfs:
-                    # Each scoring function has its own directory: run_{scoring_function}
-                    ranking_file = Path(ctx["plants"]["dir"]) / f"run_{sf}" / "bestranking.csv"
-                    if ranking_file.exists():
-                        try:
-                            log_data = plants_read_log(str(ranking_file), onlyBest=True)
-                            if log_data:
-                                # PLANTS returns Dict[int, Dict[int, float]] where first int is pose number, second is score type
-                                # When onlyBest=True, typically only one pose (key 1)
-                                for pose_num, scores in log_data.items():
-                                    # scores is Dict[int, float] where int is score type code
-                                    # We want TOTAL_SCORE which is typically the first or main score
-                                    # Extract all scores and use meaningful keys
-                                    for score_type_code, score_value in scores.items():
-                                        # Use scoring function name and score type
-                                        key = f"plants_{sf}"
-                                        # Store the main score (TOTAL_SCORE is typically the first one)
-                                        if key not in plants_rescoring_data or score_type_code == 0:
-                                            plants_rescoring_data[key] = float(score_value) if isinstance(score_value, (int, float)) else float(score_value[0]) if isinstance(score_value, (list, tuple)) else 0.0
-                                    break  # Only take first pose when onlyBest=True
-                        except Exception as e:
-                            ocprint.print_warning(f"Failed to read PLANTS rescoring results for {sf}: {e}")
+                    try:
+                        # Each scoring function must have its own output directory (PLANTS requirement)
+                        outPath_sf = Path(ctx["plants"]["dir"]) / f"run_{sf}"
+                        conf_sf = Path(ctx["plants"]["dir"]) / f"{name}_rescoring_{sf}.txt"
+                        write_rescoring_config_file(str(conf_sf), ctx["plants"]["prep_rec"], str(pose_list), str(outPath_sf), center[0], center[1], center[2], radius, scoringFunction=sf)
+                        p_rescore(str(conf_sf), str(pose_list), str(outPath_sf), ctx["plants"]["prep_rec"], sf, center[0], center[1], center[2], radius, overwrite=True)
+                    except Exception as e:
+                        ocprint.print_warning(f"PLANTS rescoring with {sf} failed: {e}. Continuing with other scoring functions...")
+                # Read PLANTS rescoring results
+                try:
+                    from OCDocker.Docking.PLANTS import read_log as plants_read_log
+                    plants_rescoring_data: Dict[str, float] = {}
+                    for sf in plants_sfs:
+                        # Each scoring function has its own directory: run_{scoring_function}
+                        ranking_file = Path(ctx["plants"]["dir"]) / f"run_{sf}" / "bestranking.csv"
+                        if ranking_file.exists():
+                            try:
+                                log_data = plants_read_log(str(ranking_file), onlyBest=True)
+                                if log_data:
+                                    # PLANTS returns Dict[int, Dict[str, float]] where first int is pose number
+                                    for _, scores in log_data.items():
+                                        # scores is Dict[str, float]
+                                        for score_type_code, score_value in scores.items():
+                                            key = f"plants_{sf}"
+                                            if key not in plants_rescoring_data:
+                                                try:
+                                                    plants_rescoring_data[key] = float(score_value)
+                                                except (TypeError, ValueError):
+                                                    continue
+                                        break  # Only take first pose when onlyBest=True
+                            except Exception as e:
+                                ocprint.print_warning(f"Failed to read PLANTS rescoring results for {sf}: {e}")
+                        else:
+                            ocprint.print_warning(f"PLANTS rescoring ranking file not found: {ranking_file}")
+                    if plants_rescoring_data:
+                        rescoring["plants"] = plants_rescoring_data
                     else:
-                        ocprint.print_warning(f"PLANTS rescoring ranking file not found: {ranking_file}")
-                if plants_rescoring_data:
-                    rescoring["plants"] = plants_rescoring_data
-                else:
-                    ocprint.print_warning("No PLANTS rescoring data found")
-            except Exception as e:
-                ocprint.print_warning(f"Failed to read PLANTS rescoring results: {e}")
+                        ocprint.print_warning("No PLANTS rescoring data found")
+                except Exception as e:
+                    ocprint.print_warning(f"Failed to read PLANTS rescoring results: {e}")
 
         # ODDT (can rescore independently, doesn't require docking)
         if "oddt" in rescoring_engines:

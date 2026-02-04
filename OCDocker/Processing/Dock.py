@@ -699,7 +699,13 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
 
                     # Check if the generated receptor has size 0 or is invalid
                     if not ocvalidation.is_molecule_valid_with_retry(plants.prepared_receptor):
-                        prep_cmd = plants.preparation_strategy.get_receptor_command(plants.input_receptor_path, plants.prepared_receptor)
+                        input_receptor_path = plants.input_receptor_path
+                        if input_receptor_path is None:
+                            errMsg = f"Receptor path is not set for PLANTS preparation of '{plants.prepared_receptor}'."
+                            config = get_config()
+                            ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_plants_run_report_ERROR.log")
+                            return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
+                        prep_cmd = plants.preparation_strategy.get_receptor_command(input_receptor_path, plants.prepared_receptor)
                         errMsg = f"SPORES has made an output of 0kb for receptor '{plants.prepared_receptor}'... Here is its command line so you might be able to debug it by hand.\n{' '.join(prep_cmd)}"
                         config = get_config()
                         ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_plants_run_report_ERROR.log")

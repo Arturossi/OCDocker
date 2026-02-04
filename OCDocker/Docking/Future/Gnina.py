@@ -225,6 +225,7 @@ class Gnina:
         outputLigandPath = f"{os.path.dirname(ligandPath)}/{os.path.splitext(os.path.basename(ligandPath))[0]}.mol2"
 
         # Process the ligand
+        from OCDocker.Toolbox import Conversion as occonversion
         occonversion.convert_mols(ligandPath, outputLigandPath)
 
         return outputLigandPath

@@ -334,7 +334,7 @@ class NeuralNet(nn.Module):
         else:
             # Create the DynamicNN
             input_size_single = input_size[0] if isinstance(input_size, list) else input_size
-            self.NN = DynamicNN(cast(int, input_size_single), output_size, hidden_layers, activation_data, self.encoder, self.device, mask = self.mask)
+            self.NN = DynamicNN(input_size_single, output_size, hidden_layers, activation_data, self.encoder, self.device, mask = self.mask)
 
         # Set the parameters: batch size, epochs, learning rate, clip grad.
         self.batch_size = nn_params['batch_size']
@@ -500,7 +500,8 @@ class NeuralNet(nn.Module):
 
         # If a validation set has been provided, create the validation loader (if X_validation is not None, y_validation is not None as well)
         if X_validation is not None:
-            assert y_validation is not None
+            if y_validation is None:
+                raise ValueError("y_validation must be provided when X_validation is not None.")
             if isinstance(X_validation, list):
                 validation_loader = DataLoader(
                     dataset = MultiBranchCustomDataset(X_validation[0], X_validation[1], X_validation[2], y_validation),
@@ -835,7 +836,7 @@ class DynamicNN(nn.Module):
             # Set the first_layer flag to False
             first_layer = False
 
-        return cast(torch.Tensor, x)
+        return x
 
 
 class MultiBranchDynamicNN(nn.Module):
@@ -1025,7 +1026,7 @@ class MultiBranchDynamicNN(nn.Module):
             x = layer(x.to(self.device))
 
         # Return the tensor
-        return cast(torch.Tensor, x)
+        return x
 
 
 class CustomDataset(Dataset):
@@ -1565,7 +1566,7 @@ class DNNOptimizer:
         else:
             # Create the NN model
             input_size_single = self.input_size[0] if isinstance(self.input_size, list) else self.input_size
-            model = DynamicNN(cast(int, input_size_single), self.output_size, hidden_layers, activation_data, self.encoder, self.device, self.mask)
+            model = DynamicNN(input_size_single, self.output_size, hidden_layers, activation_data, self.encoder, self.device, self.mask)
 
         # Print the model architecture
         if self.verbose:
@@ -1612,7 +1613,7 @@ class DNNOptimizer:
             )
 
         # If a validation set has been provided, create the validation loader (If X_validation is not None, y_validation is not None as well)
-        if self.X_validation is not None:
+        if self.X_validation is not None and self.y_validation is not None:
             # If the input is a list create the validation loader
             if isinstance(self.X_validation, list):
                 # Create the validation loader for the multi branch dataset
@@ -1650,8 +1651,8 @@ class DNNOptimizer:
         log_loss_value = float("inf")
         mae = 0.0
         if self.validation_loader is not None:
-            assert self.X_validation is not None
-            assert self.y_validation is not None
+            if self.X_validation is None or self.y_validation is None:
+                raise RuntimeError("Validation loader is set but X_validation/y_validation is missing.")
             # Set the model to evaluation mode
             model.eval()
 

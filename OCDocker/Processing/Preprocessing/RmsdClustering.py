@@ -448,7 +448,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     max_y = -np.inf
                     min_y = np.inf
                     for path in paths:
-                        vertices = cast(np.ndarray, np.asarray(path.vertices))
+                        vertices = np.asarray(path.vertices)
                         if len(vertices) > 0 and vertices.shape[1] >= 2:
                             y_coords = vertices[:, 1]
                             max_y = max(max_y, np.max(y_coords))
@@ -462,7 +462,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                         top_y = -np.inf
                         top_x = None
                         for path in paths:
-                            vertices = cast(np.ndarray, np.asarray(path.vertices))
+                            vertices = np.asarray(path.vertices)
                             if len(vertices) > 0 and vertices.shape[1] >= 2:
                                 y_coords = vertices[:, 1]
                                 x_coords = vertices[:, 0]
@@ -485,7 +485,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                         if cluster_id < 0:
                             leaf_positions_in_collection = set()
                             for path in paths:
-                                vertices = cast(np.ndarray, np.asarray(path.vertices))
+                                vertices = np.asarray(path.vertices)
                                 if len(vertices) > 0 and vertices.shape[1] >= 2:
                                     x_coords = vertices[:, 0]
                                     for x in x_coords:
@@ -741,7 +741,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     ocprint.print_warning(f"Fallback traceback: {traceback.format_exc()}")
 
         # Return the results
-        return cast(np.ndarray, results)
+        return results
 
     else:
         return ocerror.Error.unsupported_clustering_algorithm(f"The clustering algorithm '{algorithm}' is not supported. Currently the supported algorithms are: 'agglomerativeClustering'.")

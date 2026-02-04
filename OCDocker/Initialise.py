@@ -473,7 +473,7 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     global args, update, config_file, output_level, overwrite
     args = ns
     update = bool(getattr(ns, 'update', False))
-    config_file = getattr(ns, 'config_file', None) or os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg')
+    config_file = str(getattr(ns, 'config_file', None) or os.getenv('OCDOCKER_CONFIG') or 'OCDocker.cfg')
 
     # Ensure output_level is ALWAYS a ReportLevel enum
     raw_level = getattr(ns, 'output_level', ocerror.ReportLevel.WARNING)
