@@ -1,0 +1,375 @@
+#!/usr/bin/env python3
+
+# Description
+###############################################################################
+'''
+Coverage tests for Processing.Preprocessing.Prepare.
+'''
+
+# Imports
+###############################################################################
+import importlib
+import importlib.util as util
+import sys
+import types
+
+from contextlib import nullcontext
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+import OCDocker.Error as ocerror
+
+# License
+###############################################################################
+'''
+OCDocker
+Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+Federal University of Rio de Janeiro
+Carlos Chagas Filho Institute of Biophysics
+Laboratory for Molecular Modeling and Dynamics
+
+This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
+developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
+
+Contact: Artur Duque Rossi - arturossi10@gmail.com
+'''
+
+# Classes
+###############################################################################
+
+
+class _FakePool:
+    def __init__(self, _workers, raise_on_enter=False):
+        self._raise_on_enter = raise_on_enter
+
+    def __enter__(self):
+        if self._raise_on_enter:
+            raise IOError("pool failed")
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        _ = (exc_type, exc, tb)
+        return False
+
+    def imap_unordered(self, fn, arguments):
+        return (fn(arg) for arg in arguments)
+
+
+class _LigandOk:
+    def __init__(self, _src, _name, sanitize=True):
+        _ = sanitize
+        self.RadiusOfGyration = 1.0
+        self.created_boxes = 0
+        self.exported = 0
+
+    def create_box(self, centroid=None, overwrite=False):
+        _ = centroid
+        _ = overwrite
+        self.created_boxes += 1
+
+    def is_valid(self):
+        return True
+
+    def to_json(self, overwrite):
+        _ = overwrite
+        self.exported += 1
+        return 0
+
+
+class _LigandInvalid(_LigandOk):
+    def is_valid(self):
+        return False
+
+
+class _LigandStub:
+    def __init__(self, _src, _name, sanitize=True):
+        _ = sanitize
+        self.RadiusOfGyration = 1.0
+
+    def create_box(self, centroid=None, overwrite=False):
+        _ = (centroid, overwrite)
+
+    def is_valid(self):
+        return True
+
+    def to_json(self, overwrite):
+        _ = overwrite
+        return 0
+
+
+class _ReceptorStub:
+    def __init__(self, _src, _name, mol2_path=None):
+        _ = mol2_path
+
+    def is_valid(self):
+        return True
+
+    def to_json(self, overwrite):
+        _ = overwrite
+        return 0
+
+
+# Functions
+###############################################################################
+## Private ##
+
+def _import_prepare(monkeypatch):
+    importlib.import_module("OCDocker.Docking")
+    importlib.import_module("OCDocker.Docking.Future")
+    importlib.import_module("OCDocker.Toolbox")
+
+    rdkit_mod = types.ModuleType("rdkit")
+    rdkit_mod.Geometry = types.SimpleNamespace(rdGeometry=types.SimpleNamespace(Point3D=object))
+    rdkit_mod.Chem = types.SimpleNamespace(rdchem=types.SimpleNamespace(Mol=object))
+
+    gnina = types.ModuleType("OCDocker.Docking.Future.Gnina")
+    gnina.gen_gnina_conf = lambda *a, **k: None  # type: ignore[attr-defined]
+
+    plants = types.ModuleType("OCDocker.Docking.PLANTS")
+    plants.generate_plants_files_database = lambda *a, **k: None  # type: ignore[attr-defined]
+    plants.box_to_plants = lambda *a, **k: None  # type: ignore[attr-defined]
+
+    smina = types.ModuleType("OCDocker.Docking.Smina")
+    smina.gen_smina_conf = lambda *a, **k: None  # type: ignore[attr-defined]
+
+    vina = types.ModuleType("OCDocker.Docking.Vina")
+    vina.generate_vina_files_database = lambda *a, **k: None  # type: ignore[attr-defined]
+    vina.box_to_vina = lambda *a, **k: None  # type: ignore[attr-defined]
+
+    ligand_mod = types.ModuleType("OCDocker.Ligand")
+    ligand_mod.Ligand = _LigandStub  # type: ignore[attr-defined]
+    ligand_mod.get_centroid = lambda *a, **k: (0.0, 0.0, 0.0)  # type: ignore[attr-defined]
+
+    receptor_mod = types.ModuleType("OCDocker.Receptor")
+    receptor_mod.Receptor = _ReceptorStub  # type: ignore[attr-defined]
+
+    basetools_mod = types.ModuleType("OCDocker.Toolbox.Basetools")
+    basetools_mod.redirect_to_tqdm = lambda: nullcontext()  # type: ignore[attr-defined]
+
+    filesfolders_mod = types.ModuleType("OCDocker.Toolbox.FilesFolders")
+    filesfolders_mod.safe_create_dir = lambda *a, **k: ocerror.ErrorCode.OK  # type: ignore[attr-defined]
+
+    logging_mod = types.ModuleType("OCDocker.Toolbox.Logging")
+    logging_mod.backup_log = lambda *a, **k: None  # type: ignore[attr-defined]
+
+    molproc_mod = types.ModuleType("OCDocker.Toolbox.MoleculeProcessing")
+    molproc_mod.clean_for_dssp = lambda *a, **k: None  # type: ignore[attr-defined]
+
+    printing_mod = types.ModuleType("OCDocker.Toolbox.Printing")
+    printing_mod.print_warning = lambda *a, **k: None  # type: ignore[attr-defined]
+    printing_mod.print_info = lambda *a, **k: None  # type: ignore[attr-defined]
+    printing_mod.print_error = lambda *a, **k: None  # type: ignore[attr-defined]
+    printing_mod.print_error_log = lambda *a, **k: None  # type: ignore[attr-defined]
+
+    config_mod = types.ModuleType("OCDocker.Config")
+    config_mod.get_config = lambda: SimpleNamespace(multiprocess=False, available_cores=1, logdir="/tmp")  # type: ignore[attr-defined]
+
+    monkeypatch.setitem(sys.modules, "OCDocker.Docking.Future.Gnina", gnina)
+    monkeypatch.setitem(sys.modules, "OCDocker.Docking.PLANTS", plants)
+    monkeypatch.setitem(sys.modules, "OCDocker.Docking.Smina", smina)
+    monkeypatch.setitem(sys.modules, "OCDocker.Docking.Vina", vina)
+    monkeypatch.setitem(sys.modules, "rdkit", rdkit_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.Ligand", ligand_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.Receptor", receptor_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.Toolbox.Basetools", basetools_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.Toolbox.FilesFolders", filesfolders_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.Toolbox.Logging", logging_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.Toolbox.MoleculeProcessing", molproc_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.Toolbox.Printing", printing_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.Config", config_mod)
+
+    path = Path(__file__).resolve().parents[1] / "OCDocker" / "Processing" / "Preprocessing" / "Prepare.py"
+    spec = util.spec_from_file_location("ocprepare_coverage_module", path)
+    assert spec and spec.loader
+    module = util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+## Public ##
+
+@pytest.fixture
+def ocprepare(monkeypatch):
+    return _import_prepare(monkeypatch)
+
+
+@pytest.mark.order(134)
+def test_prepare_dispatches_between_parallel_serial_and_single(monkeypatch, ocprepare):
+    calls = {"backup": 0, "parallel": 0, "serial": 0, "single": 0}
+    monkeypatch.setattr(ocprepare.oclogging, "backup_log", lambda *_a, **_k: calls.__setitem__("backup", calls["backup"] + 1))
+    monkeypatch.setattr(ocprepare, "__prepare_parallel", lambda *_a, **_k: calls.__setitem__("parallel", calls["parallel"] + 1))
+    monkeypatch.setattr(ocprepare, "__prepare_no_parallel", lambda *_a, **_k: calls.__setitem__("serial", calls["serial"] + 1))
+    monkeypatch.setattr(ocprepare, "__prepare_single", lambda *_a, **_k: calls.__setitem__("single", calls["single"] + 1))
+
+    monkeypatch.setattr(ocprepare, "get_config", lambda: SimpleNamespace(multiprocess=True))
+    ocprepare.prepare(["/tmp/a"], overwrite=False, archive="dudez", sanitize=True, spacing=0.33)
+
+    monkeypatch.setattr(ocprepare, "get_config", lambda: SimpleNamespace(multiprocess=False))
+    ocprepare.prepare(["/tmp/a"], overwrite=False, archive="dudez", sanitize=True, spacing=0.33)
+
+    ocprepare.prepare("/tmp/a", overwrite=False, archive="dudez", sanitize=True, spacing=0.33)
+
+    assert calls["backup"] == 2
+    assert calls["parallel"] == 1
+    assert calls["serial"] == 1
+    assert calls["single"] == 1
+
+
+@pytest.mark.order(135)
+def test_thread_prepare_and_single_call_core(monkeypatch, ocprepare):
+    monkeypatch.setattr(ocprepare.ocbasetools, "redirect_to_tqdm", lambda: nullcontext())
+    monkeypatch.setattr(ocprepare, "__core_prepare", lambda *a, **k: ocerror.ErrorCode.OK)
+
+    rc = ocprepare.__thread_prepare(("/tmp/a", False, "dudez", True, 0.33, False))
+    assert rc == ocerror.ErrorCode.OK
+
+    assert ocprepare.__prepare_single("/tmp/a", False, "dudez", True, 0.33, False) is None
+
+
+@pytest.mark.order(136)
+def test_prepare_no_parallel_iterates_all_paths(monkeypatch, ocprepare):
+    monkeypatch.setattr(ocprepare.ocbasetools, "redirect_to_tqdm", lambda: nullcontext())
+    monkeypatch.setattr(ocprepare, "tqdm", lambda iterable, **kwargs: iterable)
+    seen = []
+    monkeypatch.setattr(ocprepare, "__core_prepare", lambda path, *_a, **_k: seen.append(path) or ocerror.ErrorCode.OK)
+
+    assert ocprepare.__prepare_no_parallel(["/tmp/a", "/tmp/b"], False, "dudez", True, 0.33, "x", False) is None
+    assert seen == ["/tmp/a", "/tmp/b"]
+
+
+@pytest.mark.order(137)
+def test_prepare_parallel_handles_ioerror(monkeypatch, tmp_path, ocprepare):
+    logs = []
+    errs = []
+    monkeypatch.setattr(ocprepare, "get_config", lambda: SimpleNamespace(available_cores=2, logdir=str(tmp_path)))
+    monkeypatch.setattr(ocprepare, "Pool", lambda workers: _FakePool(workers, raise_on_enter=True))
+    monkeypatch.setattr(ocprepare.ocprint, "print_error_log", lambda msg, path: logs.append((msg, path)))
+    monkeypatch.setattr(ocprepare.ocprint, "print_error", lambda msg: errs.append(msg))
+
+    assert ocprepare.__prepare_parallel(["/tmp/a"], False, "dudez", True, 0.33, "x", False) is None
+    assert logs
+    assert errs
+
+
+@pytest.mark.order(138)
+def test_sub_core_prepare_calls_prepare_molecule_for_pdbbind_and_dudez(monkeypatch, tmp_path, ocprepare):
+    root = tmp_path / "ligands"
+    process_dir = root / "molA"
+    process_dir.mkdir(parents=True, exist_ok=True)
+
+    created = []
+    prepared = []
+    monkeypatch.setattr(ocprepare.ocff, "safe_create_dir", lambda p: created.append(p) or ocerror.ErrorCode.OK)
+    monkeypatch.setattr(ocprepare, "__prepare_molecule", lambda *a, **k: prepared.append((a, k)) or None)
+
+    dirs1 = ocprepare.__sub_core_prepare(str(root), "pdbbind", overwrite=False, mols=None, sanitize=True, targetCentroid=(1.0, 2.0, 3.0))
+    assert str(process_dir) in dirs1
+    assert prepared[-1][0][0].endswith("ligand.sdf")
+
+    dirs2 = ocprepare.__sub_core_prepare(str(root), "dudez", overwrite=False, mols=None, sanitize=True, targetCentroid=(1.0, 2.0, 3.0))
+    assert str(process_dir) in dirs2
+    assert prepared[-1][0][0].endswith("ligand.smi")
+    assert created
+
+
+@pytest.mark.order(139)
+def test_sub_core_prepare_mols_list_branch_moves_files(monkeypatch, tmp_path, ocprepare):
+    root = tmp_path / "ligands"
+    root.mkdir(parents=True, exist_ok=True)
+    ligand_file = root / "lig.and.smi"
+    ligand_file.write_text("CCO", encoding="utf-8")
+    existing_dir = root / "existing"
+    existing_dir.mkdir(parents=True, exist_ok=True)
+
+    dirs_created = []
+    moved = []
+    monkeypatch.setattr(ocprepare.ocff, "safe_create_dir", lambda p: dirs_created.append(p) or ocerror.ErrorCode.OK)
+    monkeypatch.setattr(ocprepare.shutil, "move", lambda src, dst: moved.append((src, dst)))
+    monkeypatch.setattr(ocprepare, "__prepare_molecule", lambda *a, **k: None)
+
+    out = ocprepare.__sub_core_prepare(str(root), "dudez", overwrite=False, mols=[str(ligand_file)], sanitize=True, targetCentroid=(0.0, 0.0, 0.0))
+    assert str(existing_dir) in out
+    assert dirs_created
+    assert moved
+
+
+@pytest.mark.order(140)
+def test_prepare_molecule_ligand_unknown_and_receptor_wrong_type(monkeypatch, tmp_path, ocprepare):
+    calls = {"unknown": 0, "wrong_type": 0}
+    monkeypatch.setattr(ocprepare.ocerror.Error, "unknown", lambda *a, **k: calls.__setitem__("unknown", calls["unknown"] + 1) or ocerror.ErrorCode.UNKNOWN)
+    monkeypatch.setattr(ocprepare.ocerror.Error, "wrong_type", lambda *a, **k: calls.__setitem__("wrong_type", calls["wrong_type"] + 1) or ocerror.ErrorCode.WRONG_TYPE)
+
+    _ = ocprepare.__prepare_molecule(str(tmp_path / "x.smi"), overwrite=True, moltype="weird", dbName="dudez", sanitize=True)
+    _ = ocprepare.__prepare_molecule(123, overwrite=True, moltype="receptor", dbName="dudez", sanitize=True)  # type: ignore[arg-type]
+
+    assert calls["unknown"] == 1
+    assert calls["wrong_type"] == 1
+
+
+@pytest.mark.order(141)
+def test_prepare_molecule_ligand_valid_and_invalid_paths(monkeypatch, tmp_path, ocprepare):
+    ligand_file = tmp_path / "ligand.smi"
+    ligand_file.write_text("CCO", encoding="utf-8")
+
+    monkeypatch.setattr(ocprepare.ocff, "safe_create_dir", lambda _p: ocerror.ErrorCode.OK)
+    monkeypatch.setattr(ocprepare.ocl, "Ligand", _LigandOk)
+
+    assert ocprepare.__prepare_molecule(str(ligand_file), overwrite=True, moltype="ligand", dbName="dudez", sanitize=True) is None
+
+    malformed_logs = []
+    monkeypatch.setattr(ocprepare.ocl, "Ligand", _LigandInvalid)
+    monkeypatch.setattr(ocprepare, "get_config", lambda: SimpleNamespace(logdir=str(tmp_path / "logs")))
+    monkeypatch.setattr(ocprepare.ocprint, "print_error_log", lambda msg, path: malformed_logs.append((msg, path)))
+    assert ocprepare.__prepare_molecule(str(ligand_file), overwrite=True, moltype="ligand", dbName="dudez", sanitize=True) is None
+    assert malformed_logs
+
+
+@pytest.mark.order(142)
+def test_core_prepare_index_and_missing_reference_centroid(monkeypatch, tmp_path, ocprepare):
+    rc_index = ocprepare.__core_prepare(str(tmp_path / "index"), False, "dudez", True, 0.33)
+    assert rc_index == ocerror.ErrorCode.UNALLOWED_DIR
+
+    work = tmp_path / "ptnA"
+    work.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(ocprepare, "__prepare_molecule", lambda *a, **k: None)
+    rc_missing = ocprepare.__core_prepare(str(work), False, "dudez", True, 0.33, targetCentroid=None)
+    assert rc_missing == ocerror.ErrorCode.FILE_NOT_EXIST
+
+
+@pytest.mark.order(143)
+def test_core_prepare_generates_configs_single_and_multibox(monkeypatch, tmp_path, ocprepare):
+    work = tmp_path / "ptnB"
+    work.mkdir(parents=True, exist_ok=True)
+    (work / "compounds" / "ligands").mkdir(parents=True, exist_ok=True)
+    process_dir = tmp_path / "proc1"
+    boxes = process_dir / "boxes"
+    boxes.mkdir(parents=True, exist_ok=True)
+    (boxes / "box0.pdb").write_text("box0", encoding="utf-8")
+    (boxes / "box1.pdb").write_text("box1", encoding="utf-8")
+
+    monkeypatch.setattr(ocprepare, "__prepare_molecule", lambda *a, **k: None)
+    monkeypatch.setattr(ocprepare, "__sub_core_prepare", lambda *a, **k: [str(process_dir)])
+
+    calls = {"gnina": 0, "vina_db": 0, "plants_db": 0, "smina": 0, "box_vina": 0, "box_plants": 0, "mkdir": 0}
+    monkeypatch.setattr(ocprepare.ocgnina, "gen_gnina_conf", lambda *a, **k: calls.__setitem__("gnina", calls["gnina"] + 1))
+    monkeypatch.setattr(ocprepare.ocvina, "generate_vina_files_database", lambda *a, **k: calls.__setitem__("vina_db", calls["vina_db"] + 1))
+    monkeypatch.setattr(ocprepare.ocplants, "generate_plants_files_database", lambda *a, **k: calls.__setitem__("plants_db", calls["plants_db"] + 1))
+    monkeypatch.setattr(ocprepare.ocsmina, "gen_smina_conf", lambda *a, **k: calls.__setitem__("smina", calls["smina"] + 1))
+    monkeypatch.setattr(ocprepare.ocvina, "box_to_vina", lambda *a, **k: calls.__setitem__("box_vina", calls["box_vina"] + 1))
+    monkeypatch.setattr(ocprepare.ocplants, "box_to_plants", lambda *a, **k: calls.__setitem__("box_plants", calls["box_plants"] + 1))
+    monkeypatch.setattr(ocprepare.ocff, "safe_create_dir", lambda _p: calls.__setitem__("mkdir", calls["mkdir"] + 1) or ocerror.ErrorCode.OK)
+
+    rc_single = ocprepare.__core_prepare(str(work), False, "dudez", True, 0.33, targetCentroid=(1.0, 2.0, 3.0), all_boxes=False)
+    assert rc_single == ocerror.ErrorCode.OK
+    assert calls["vina_db"] >= 1
+    assert calls["plants_db"] >= 1
+
+    rc_multi = ocprepare.__core_prepare(str(work), False, "dudez", True, 0.33, targetCentroid=(1.0, 2.0, 3.0), all_boxes=True)
+    assert rc_multi == ocerror.ErrorCode.OK
+    assert calls["box_vina"] >= 2
+    assert calls["box_plants"] >= 2
+    assert calls["mkdir"] >= 8

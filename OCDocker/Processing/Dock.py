@@ -22,10 +22,13 @@ from types import ModuleType
 from tqdm import tqdm
 from typing import Any, List, Literal, Optional, Tuple, Union
 
+_fcntl: Optional[ModuleType]
 try:
-    import fcntl as _fcntl
+    import fcntl as _fcntl_import
 except ImportError:  # pragma: no cover - non-POSIX fallback
     _fcntl = None
+else:
+    _fcntl = _fcntl_import
 
 fcntl: Optional[ModuleType] = _fcntl
 
