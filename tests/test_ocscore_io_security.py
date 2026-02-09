@@ -8,6 +8,7 @@ Security tests for OCScore serialized-object loading.
 
 # Imports
 ###############################################################################
+import joblib
 import pickle
 
 import pytest
@@ -95,3 +96,28 @@ def test_allow_unsafe_runtime_helper_enables_deserialization(tmp_path, monkeypat
 
     loaded = ocscoreio.load_object(str(file_path), serialization_method="pickle")
     assert loaded == payload
+
+    # Prevent env leakage to subsequent tests
+    monkeypatch.delenv("OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION", raising=False)
+    monkeypatch.delenv("OCDOCKER_ALLOW_SCRIPT_EXEC", raising=False)
+
+
+@pytest.mark.order(82)
+def test_load_object_joblib_with_trust(tmp_path, monkeypatch):
+    file_path = tmp_path / "obj.joblib"
+    payload = {"a": 1, "b": [1, 2, 3]}
+    joblib.dump(payload, str(file_path))
+
+    monkeypatch.delenv("OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION", raising=False)
+
+    loaded = ocscoreio.load_object(str(file_path), serialization_method="joblib", trusted=True)
+    assert loaded == payload
+
+
+@pytest.mark.order(83)
+def test_load_object_invalid_serialization_method_raises_value_error(tmp_path):
+    file_path = tmp_path / "obj.any"
+    file_path.write_text("dummy", encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        _ = ocscoreio.load_object(str(file_path), serialization_method="not-a-method", trusted=True)

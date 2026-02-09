@@ -115,3 +115,6 @@ def test_allow_unsafe_runtime_sets_selected_flags(monkeypatch):
     assert ocsec.env_flag_enabled(ocsec.ENV_ALLOW_UNSAFE_DESERIALIZATION) is False
     assert ocsec.env_flag_enabled(ocsec.ENV_ALLOW_SCRIPT_EXEC) is True
 
+    # Prevent env leakage to subsequent tests
+    monkeypatch.delenv(ocsec.ENV_ALLOW_UNSAFE_DESERIALIZATION, raising=False)
+    monkeypatch.delenv(ocsec.ENV_ALLOW_SCRIPT_EXEC, raising=False)

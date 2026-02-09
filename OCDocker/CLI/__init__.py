@@ -904,7 +904,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
         # Ignore logging configuration errors (non-critical for core functionality)
         pass
 
-    report: Dict[str, Dict[str, str]] = {}
+    report: Dict[str, Any] = {}
 
     # Config source
     try:

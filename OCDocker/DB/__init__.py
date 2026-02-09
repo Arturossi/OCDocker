@@ -21,6 +21,8 @@ Modules
 
 # Imports
 ###############################################################################
+from types import ModuleType
+from typing import Optional
 
 # License
 ###############################################################################
@@ -50,7 +52,8 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Public ##
 
 # Expose submodules so that Sphinx autodoc can import as `from OCDocker.DB import DB`.
-DB_IMPORT_ERROR = None
+DB_IMPORT_ERROR: Optional[ImportError] = None
+DB: Optional[ModuleType]
 
 try:  # optional during docs build
     from . import DB as DB

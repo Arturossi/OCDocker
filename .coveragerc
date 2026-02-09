@@ -7,7 +7,6 @@ omit =
     */tests/*
     */test_*.py
     */__pycache__/*
-    */__init__.py
     */setup.py
     */conftest.py
     # Omit heavyweight bootstrap that is not unit-test friendly

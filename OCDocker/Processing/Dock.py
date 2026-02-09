@@ -18,13 +18,16 @@ import shutil
 from contextlib import contextmanager
 from glob import glob
 from multiprocessing import Pool
+from types import ModuleType
 from tqdm import tqdm
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Literal, Optional, Tuple, Union
 
 try:
-    import fcntl
+    import fcntl as _fcntl
 except ImportError:  # pragma: no cover - non-POSIX fallback
-    fcntl = None
+    _fcntl = None
+
+fcntl: Optional[ModuleType] = _fcntl
 
 import OCDocker.Docking.Future.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
@@ -78,7 +81,7 @@ class _NoOpLock:
     def __enter__(self) -> "_NoOpLock":
         return self
 
-    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> bool:
+    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> Literal[False]:
         return False
 
 
