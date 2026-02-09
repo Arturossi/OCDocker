@@ -41,8 +41,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -60,7 +60,7 @@ def optimize_NN(
         df_path: str,
         storage_id: int,
         base_models_folder: str,
-        data: dict = {},
+        data: Optional[dict[str, Any]] = None,
         storage: str = "sqlite:///NN_optimization.db",
         use_pdb_train: bool = True,
         no_scores: bool = False,
@@ -96,7 +96,7 @@ def optimize_NN(
     base_models_folder : str
         The base models folder to use.
     data : dict, optional
-        The data dictionary. Default is {}. If not empty, the data dictionary will be used instead of loading the data. This is useful for multiprocessing to avoid loading the data multiple times.
+        The data dictionary. Default is None (treated as empty dict). If not empty, the data dictionary will be used instead of loading the data. This is useful for multiprocessing to avoid loading the data multiple times.
     storage : str, optional
         The storage to use. Default is "sqlite:///NN_optimization.db".
     use_pdb_train : bool, optional
@@ -147,6 +147,9 @@ def optimize_NN(
     ValueError
         If the parallel backend is not "joblib" or "multiprocessing".
     '''
+
+    if data is None:
+        data = {}
 
     # Check if the data dictionary is empty
     if not data:
@@ -497,7 +500,7 @@ def perform_ablation_study_NN(
         load_if_exists : bool,
         study_name : str,
         storage : str,
-        masks : list = [],
+        masks : Optional[list] = None,
         output_size : int = 1,
         parallel_backend : str = "joblib",
         n_jobs : int = 1
@@ -539,7 +542,7 @@ def perform_ablation_study_NN(
     storage : str
         The storage to use.
     masks : list[], optional
-        List of masks to be applied. If empty, all masks for scoring functions will be generated and used. This option is useful for splitting ablation in multiple computers. The default is [].
+        List of masks to be applied. If empty, all masks for scoring functions will be generated and used. This option is useful for splitting ablation in multiple computers. The default is None (treated as empty list).
     output_size : int, optional
         The output size. Default is 1.
     parallel_backend : str, optional
@@ -552,6 +555,9 @@ def perform_ablation_study_NN(
     ValueError
         If the parallel backend is not "joblib" or "multiprocessing".
     '''
+
+    if masks is None:
+        masks = []
 
     masks_to_use = masks
     # If no masks are provided
@@ -683,7 +689,7 @@ def perform_seed_ablation_study_NN(
         study_name : str,
         storage : str,
         mask : np.ndarray,
-        seeds : list = [],
+        seeds : Optional[list] = None,
         output_size : int = 1,
         parallel_backend : str = "joblib",
         n_jobs : int = 1
@@ -725,7 +731,7 @@ def perform_seed_ablation_study_NN(
     mask : np.ndarray
         The mask to be applied.
     seeds : list
-        List of seeds to be applied. If empty, all seeds for scoring functions will be generated and used. This option is useful for splitting ablation in multiple computers. If empty, all seeds from 0 to 1000 will be used. The default is [].
+        List of seeds to be applied. If empty, all seeds for scoring functions will be generated and used. This option is useful for splitting ablation in multiple computers. If empty, all seeds from 0 to 1000 will be used. The default is None (treated as empty list).
     output_size : int, optional
         The output size. Default is 1.
     parallel_backend : str, optional
@@ -738,6 +744,9 @@ def perform_seed_ablation_study_NN(
     ValueError
         If the parallel backend is not "joblib" or "multiprocessing".
     '''
+
+    if seeds is None:
+        seeds = []
 
     # Check if seeds is empty
     if not seeds:

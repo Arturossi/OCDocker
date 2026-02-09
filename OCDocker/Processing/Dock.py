@@ -12,16 +12,19 @@ import OCDocker.Processing.Dock as ocdock
 
 # Imports
 ###############################################################################
-import gc
 import os
 import shutil
 
-import multiprocessing as mp
-
+from contextlib import contextmanager
 from glob import glob
 from multiprocessing import Pool
 from tqdm import tqdm
 from typing import Any, List, Tuple, Union
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - non-POSIX fallback
+    fcntl = None
 
 import OCDocker.Docking.Future.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
@@ -48,8 +51,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -67,6 +70,52 @@ _Lock = Any
 
 
 DockArgs = Tuple[str, str, str, str, _Lock, bool, str, bool]
+
+
+class _NoOpLock:
+    '''No-op lock used to avoid global serialization in multiprocessing.'''
+
+    def __enter__(self) -> "_NoOpLock":
+        return self
+
+    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> bool:
+        return False
+
+
+@contextmanager
+def __receptor_file_lock(prepared_receptor_path: str):
+    '''Acquire an inter-process lock for a shared prepared receptor artifact.'''
+
+    lock_path = f"{prepared_receptor_path}.lock"
+    lock_handle = None
+    try:
+        lock_dir = os.path.dirname(lock_path)
+        if lock_dir:
+            os.makedirs(lock_dir, exist_ok=True)
+        lock_handle = open(lock_path, "a+", encoding="utf-8")
+        if fcntl is not None:
+            fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
+        yield
+    finally:
+        if lock_handle is not None:
+            if fcntl is not None:
+                try:
+                    fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
+                except OSError:
+                    pass
+            lock_handle.close()
+
+
+def __needs_receptor_preparation(prepared_receptor_path: str, overwrite: bool, retry: bool = True) -> bool:
+    '''Check whether a prepared receptor file must be (re)generated.'''
+
+    if overwrite:
+        return True
+    if not os.path.isfile(prepared_receptor_path):
+        return True
+    if retry:
+        return not ocvalidation.is_molecule_valid_with_retry(prepared_receptor_path)
+    return not ocvalidation.is_molecule_valid(prepared_receptor_path)
 
 
 def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: str, lock: _Lock, overwrite: bool, digestFormat: str = "json", all_boxes: bool = False) -> int:
@@ -225,8 +274,8 @@ def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: st
 
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
-        # Reuse a single lock across the sequential docking tasks
-        lock = mp.Lock()
+        # Use a no-op lock in sequential mode (no synchronization needed)
+        lock = _NoOpLock()
 
         # For each file in dirs
         for cl in tqdm(iterable = complexList, total = len(complexList), desc=desc):
@@ -236,11 +285,6 @@ def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: st
                 # Track non-zero error codes
                 if return_code != ocerror.ErrorCode.OK:
                     error_codes.append(return_code)
-
-            # Clear the memory
-            gc.collect()
-        # Clear the memory
-        gc.collect()
 
     # Return the most severe error code, or OK if all succeeded
     if error_codes:
@@ -286,9 +330,9 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
     error_codes: List[int] = []
 
     try:
-        # Create a shared lock for all workers to guard shared outputs
+        # Use a no-op lock to avoid serializing workers globally
         config = get_config()
-        shared_lock = mp.Lock()
+        shared_lock = _NoOpLock()
         # Inject lock into arguments
         arguments: List[DockArgs] = [
             (arg[0], arg[1], arg[2], arg[3], shared_lock, arg[4], arg[5], arg[6])
@@ -301,12 +345,17 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
                 # Track non-zero error codes
                 if return_code != ocerror.ErrorCode.OK:
                     error_codes.append(return_code)
-                # Clear the memory
-                gc.collect()
-    except IOError as e:
+    except KeyboardInterrupt:
+        # Preserve interruption semantics for user-initiated aborts
+        raise
+    except Exception as e:
         config = get_config()
-        ocprint.print_error_log(f"Problem while running docking software {dockingAlgorithm} in parallel. Exception: {e}", f"{config.logdir}/{archive}_docking_report.log")
-        return ocerror.Error.docking_failed(f"Problem while running docking software {dockingAlgorithm} in parallel. Exception: {e}", level = ocerror.ReportLevel.ERROR)
+        err_msg = (
+            f"Problem while running docking software {dockingAlgorithm} in parallel. "
+            f"Exception [{type(e).__name__}]: {e}"
+        )
+        ocprint.print_error_log(err_msg, f"{config.logdir}/{archive}_docking_report.log")
+        return ocerror.Error.docking_failed(err_msg, level = ocerror.ReportLevel.ERROR)
 
     # Return the most severe error code, or OK if all succeeded
     if error_codes:
@@ -458,30 +507,32 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                         return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
-                if overwrite or not os.path.isfile(gnina.prepared_receptor) or not ocvalidation.is_molecule_valid_with_retry(gnina.prepared_receptor):
-                    # Start the lock with statement
-                    with lock:
-                        try:
-                            # Run the prepare receptor
-                            result = gnina.run_prepare_receptor(overwrite=overwrite)
-                            # If result is a tuple
-                            if isinstance(result, tuple):
-                                # If the result is not 0
-                                if result[0] != 0:
-                                    # Throw the generic Exception
-                                    raise Exception(result[1])
-                            # Otherwise is an int
-                            else:
-                                # If the result is not 0
-                                if result != 0:
-                                    # Throw the generic Exception
-                                    raise Exception("The prepare receptor routine returned an error code different than 0.")
-                        except Exception as e:
-                            errMsg = f"Could not run the prepare receptor routine for the protein in dir '{gnina.input_receptor_path}'. Error found while trying to run the 'gnina' docking software. Error: {e}"
+                if __needs_receptor_preparation(gnina.prepared_receptor, overwrite, retry=True):
+                    try:
+                        # Lock only the shared receptor artifact path (cross-process)
+                        with __receptor_file_lock(gnina.prepared_receptor):
+                            # Double-check under lock to avoid duplicate preparation
+                            if __needs_receptor_preparation(gnina.prepared_receptor, overwrite, retry=False):
+                                # Run the prepare receptor
+                                result = gnina.run_prepare_receptor(overwrite=overwrite)
+                                # If result is a tuple
+                                if isinstance(result, tuple):
+                                    # If the result is not 0
+                                    if result[0] != 0:
+                                        # Throw the generic Exception
+                                        raise Exception(result[1])
+                                # Otherwise is an int
+                                else:
+                                    # If the result is not 0
+                                    if result != 0:
+                                        # Throw the generic Exception
+                                        raise Exception("The prepare receptor routine returned an error code different than 0.")
+                    except Exception as e:
+                        errMsg = f"Could not run the prepare receptor routine for the protein in dir '{gnina.input_receptor_path}'. Error found while trying to run the 'gnina' docking software. Error: {e}"
 
-                            config = get_config()
-                            ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_gnina_run_report_ERROR.log")
-                            return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
+                        config = get_config()
+                        ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_gnina_run_report_ERROR.log")
+                        return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                     # Check if the generated receptor has size 0 or is invalid
                     if not ocvalidation.is_molecule_valid_with_retry(gnina.prepared_receptor):
@@ -672,30 +723,32 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                         return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
-                if overwrite or not os.path.isfile(plants.prepared_receptor) or not ocvalidation.is_molecule_valid_with_retry(plants.prepared_receptor):
-                    # Start the lock with statement
-                    with lock:
-                        try:
-                            # Run the prepare receptor
-                            result = plants.run_prepare_receptor(overwrite=overwrite)
-                            # If result is a tuple
-                            if isinstance(result, tuple):
-                                # If the result is not 0
-                                if result[0] != 0:
-                                    # Throw the generic Exception
-                                    raise Exception(result[1])
-                            # Otherwise is an int
-                            else:
-                                # If the result is not 0
-                                if result != 0:
-                                    # Throw the generic Exception
-                                    raise Exception("The prepare receptor routine returned an error code different than 0.")
-                        except Exception as e:
-                            errMsg = f"Could not run the prepare receptor routine for the protein in dir '{plants.input_receptor_path}'. Error found while trying to run the 'PLANTS' docking software. Error: {e}"
+                if __needs_receptor_preparation(plants.prepared_receptor, overwrite, retry=True):
+                    try:
+                        # Lock only the shared receptor artifact path (cross-process)
+                        with __receptor_file_lock(plants.prepared_receptor):
+                            # Double-check under lock to avoid duplicate preparation
+                            if __needs_receptor_preparation(plants.prepared_receptor, overwrite, retry=False):
+                                # Run the prepare receptor
+                                result = plants.run_prepare_receptor(overwrite=overwrite)
+                                # If result is a tuple
+                                if isinstance(result, tuple):
+                                    # If the result is not 0
+                                    if result[0] != 0:
+                                        # Throw the generic Exception
+                                        raise Exception(result[1])
+                                # Otherwise is an int
+                                else:
+                                    # If the result is not 0
+                                    if result != 0:
+                                        # Throw the generic Exception
+                                        raise Exception("The prepare receptor routine returned an error code different than 0.")
+                    except Exception as e:
+                        errMsg = f"Could not run the prepare receptor routine for the protein in dir '{plants.input_receptor_path}'. Error found while trying to run the 'PLANTS' docking software. Error: {e}"
 
-                            config = get_config()
-                            ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_plants_run_report_ERROR.log")
-                            return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
+                        config = get_config()
+                        ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_plants_run_report_ERROR.log")
+                        return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                     # Check if the generated receptor has size 0 or is invalid
                     if not ocvalidation.is_molecule_valid_with_retry(plants.prepared_receptor):
@@ -890,30 +943,32 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
                         return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
-                if overwrite or not os.path.isfile(smina.prepared_receptor) or not ocvalidation.is_molecule_valid_with_retry(smina.prepared_receptor):
-                    # Start the lock with statement
-                    with lock:
-                        try:
-                            # Run the prepare receptor
-                            result = smina.run_prepare_receptor(overwrite=overwrite)
-                            # If result is a tuple
-                            if isinstance(result, tuple):
-                                # If the result is not 0
-                                if result[0] != 0:
-                                    # Throw the generic Exception
-                                    raise Exception(result[1])
-                            # Otherwise is an int
-                            else:
-                                # If the result is not 0
-                                if result != 0:
-                                    # Throw the generic Exception
-                                    raise Exception("The prepare receptor routine returned an error code different than 0.")
-                        except Exception as e:
-                            errMsg = f"Could not run the prepare receptor routine for the protein in dir '{smina.input_receptor_path}'. Error found while trying to run the 'smina' docking software. Error: {e}"
+                if __needs_receptor_preparation(smina.prepared_receptor, overwrite, retry=True):
+                    try:
+                        # Lock only the shared receptor artifact path (cross-process)
+                        with __receptor_file_lock(smina.prepared_receptor):
+                            # Double-check under lock to avoid duplicate preparation
+                            if __needs_receptor_preparation(smina.prepared_receptor, overwrite, retry=False):
+                                # Run the prepare receptor
+                                result = smina.run_prepare_receptor(overwrite=overwrite)
+                                # If result is a tuple
+                                if isinstance(result, tuple):
+                                    # If the result is not 0
+                                    if result[0] != 0:
+                                        # Throw the generic Exception
+                                        raise Exception(result[1])
+                                # Otherwise is an int
+                                else:
+                                    # If the result is not 0
+                                    if result != 0:
+                                        # Throw the generic Exception
+                                        raise Exception("The prepare receptor routine returned an error code different than 0.")
+                    except Exception as e:
+                        errMsg = f"Could not run the prepare receptor routine for the protein in dir '{smina.input_receptor_path}'. Error found while trying to run the 'smina' docking software. Error: {e}"
 
-                            config = get_config()
-                            ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_smina_run_report_ERROR.log")
-                            return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
+                        config = get_config()
+                        ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_smina_run_report_ERROR.log")
+                        return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                     # Check if the generated receptor has size 0 or is invalid
                     if not ocvalidation.is_molecule_valid_with_retry(smina.prepared_receptor):
@@ -1095,30 +1150,32 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
                         return ocerror.Error.ligand_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                 # If prepared receptor has the overwrite flag on, does not exists, has size 0 or is not valid
-                if overwrite or not os.path.isfile(vina.prepared_receptor) or not ocvalidation.is_molecule_valid_with_retry(vina.prepared_receptor):
-                    # Start the lock with statement
-                    with lock:
-                        try:
-                            # Run the prepare receptor
-                            result = vina.run_prepare_receptor(useOpenBabel = False, overwrite=overwrite) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for now
-                            # If result is a tuple
-                            if isinstance(result, tuple):
-                                # If the result is not 0
-                                if result[0] != 0:
-                                    # Throw the generic Exception
-                                    raise Exception(result[1])
-                            # Otherwise is an int
-                            else:
-                                # If the result is not 0
-                                if result != 0:
-                                    # Throw the generic Exception
-                                    raise Exception("The prepare receptor routine returned an error code different than 0.")
-                        except Exception as e:
-                            errMsg = f"Could not run the prepare receptor routine for the protein in dir '{vina.input_receptor_path}'. Error found while trying to run the 'vina' docking software. Error: {e}"
+                if __needs_receptor_preparation(vina.prepared_receptor, overwrite, retry=True):
+                    try:
+                        # Lock only the shared receptor artifact path (cross-process)
+                        with __receptor_file_lock(vina.prepared_receptor):
+                            # Double-check under lock to avoid duplicate preparation
+                            if __needs_receptor_preparation(vina.prepared_receptor, overwrite, retry=False):
+                                # Run the prepare receptor
+                                result = vina.run_prepare_receptor(useOpenBabel = False, overwrite=overwrite) # useOpenBabel has proven to be a dangerous option, it is better to avoid its use for now
+                                # If result is a tuple
+                                if isinstance(result, tuple):
+                                    # If the result is not 0
+                                    if result[0] != 0:
+                                        # Throw the generic Exception
+                                        raise Exception(result[1])
+                                # Otherwise is an int
+                                else:
+                                    # If the result is not 0
+                                    if result != 0:
+                                        # Throw the generic Exception
+                                        raise Exception("The prepare receptor routine returned an error code different than 0.")
+                    except Exception as e:
+                        errMsg = f"Could not run the prepare receptor routine for the protein in dir '{vina.input_receptor_path}'. Error found while trying to run the 'vina' docking software. Error: {e}"
 
-                            config = get_config()
-                            ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_vina_run_report_ERROR.log")
-                            return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
+                        config = get_config()
+                        ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_vina_run_report_ERROR.log")
+                        return ocerror.Error.receptor_not_prepared(errMsg, level = ocerror.ReportLevel.ERROR)
 
                     # Check if the generated receptor has size 0 or is invalid
                     if not ocvalidation.is_molecule_valid_with_retry(vina.prepared_receptor):

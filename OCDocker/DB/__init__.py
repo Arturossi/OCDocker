@@ -33,8 +33,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -50,11 +50,15 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Public ##
 
 # Expose submodules so that Sphinx autodoc can import as `from OCDocker.DB import DB`.
+DB_IMPORT_ERROR = None
+
 try:  # optional during docs build
     from . import DB as DB
-except Exception:
-    pass
+except ImportError as exc:
+    DB = None
+    DB_IMPORT_ERROR = exc
 
 __all__ = [
     'DB',
+    'DB_IMPORT_ERROR',
 ]

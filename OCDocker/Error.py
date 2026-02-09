@@ -29,8 +29,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -298,11 +298,12 @@ class ErrorMethodFactory:
         '''
 
         # Creating the method
-        def error_method(message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+        def error_method(message: str = "", level: Union[ReportLevel, int, None] = None) -> int:
             '''{docstring}'''
 
-            # If the level is not specified, use the default level
-            return Error.report(code, message, level or default_level)
+            # If the level is not specified, use this error's default level
+            effective_level: Union[ReportLevel, int] = default_level if level is None else level
+            return Error.report(code, message, effective_level)
 
         # Creating dynamic docstring
         error_method.__doc__ = f" Return this when {description}.\n\n        Parameters\n        ----------\n        message : string, optional\n            Message to be printed. Default is \"\".\n        level : ReportLevel, optional\n            Level of message to be printed. Default is ReportLevel.{default_level.name}.\n\n        Returns\n        -------\n        int\n            The code for this error ({code})."
@@ -710,7 +711,7 @@ class Error(metaclass = ErrorMeta):
 
 
     @staticmethod
-    def print_message(message: str, level: ReportLevel) -> None:
+    def print_message(message: str, level: Union[ReportLevel, int]) -> None:
         ''' Print a message with a specific level.
 
         Parameters
@@ -730,12 +731,22 @@ class Error(metaclass = ErrorMeta):
         if not message:
             return
 
+        # Normalize level to ReportLevel
+        try:
+            report_level = level if isinstance(level, ReportLevel) else ReportLevel(level)
+        except (TypeError, ValueError):
+            report_level = ReportLevel.WARNING
+
+        # Respect configured verbosity: only print when message level is enabled
+        if Error.output_level < report_level:
+            return
+
         # Get the color for the level
-        setcolor = Error.color.get(level, '\033[1;0m')
+        setcolor = Error.color.get(report_level, '\033[1;0m')
 
         # Get the current time
-        time_str = Error.get_time(level)
-        base_message = f"[{time_str}] {setcolor}{level.name}\033[1;0m: {message}"
+        time_str = Error.get_time(report_level)
+        base_message = f"[{time_str}] {setcolor}{report_level.name}\033[1;0m: {message}"
 
         if Error.output_level >= ReportLevel.DEBUG:
             current_frame = inspect.currentframe()
@@ -759,7 +770,7 @@ class Error(metaclass = ErrorMeta):
 
 
     @staticmethod
-    def report(code: ErrorCode, message: str = "", level: ReportLevel = ReportLevel.WARNING) -> int:
+    def report(code: ErrorCode, message: str = "", level: Union[ReportLevel, int] = ReportLevel.WARNING) -> int:
         '''Report an error based on the given code.
 
         Parameters
@@ -833,7 +844,6 @@ class Error(metaclass = ErrorMeta):
         ReportLevel.ERROR: "\033[1;91m",
         ReportLevel.DEBUG: "\033[1;95m",
     }
-
 
 
 

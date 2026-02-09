@@ -14,6 +14,8 @@ import OCDocker.OCScore.XGBoost.OCxgboost as OCxgboost
 
 import numpy as np
 
+from typing import Any, Optional
+
 from xgboost import XGBRegressor
 
 # License
@@ -27,8 +29,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -48,7 +50,7 @@ def run_xgboost(
         y_train : np.ndarray,
         X_test : np.ndarray,
         y_test : np.ndarray,
-        params : dict = {},
+        params : Optional[dict[str, Any]] = None,
         verbose : bool = False
     ) -> tuple[XGBRegressor, float]:
     '''
@@ -65,7 +67,7 @@ def run_xgboost(
     y_test : np.ndarray
         The test labels.
     params : dict, optional
-        The hyperparameters for the XGBoost model. Default is an empty dictionary.
+        The hyperparameters for the XGBoost model. Default is None (treated as an empty dictionary).
     verbose : bool, optional
         Whether to print the training logs. Default is False.
 
@@ -76,6 +78,9 @@ def run_xgboost(
     roc_auc : float
         The AUC score of the trained model.
     '''
+
+    if params is None:
+        params = {}
 
     # Create the XGBoost model
     model = XGBRegressor(**params)

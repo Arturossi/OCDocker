@@ -26,6 +26,7 @@ from sklearn.decomposition import PCA
 from typing import Optional
 
 import OCDocker.OCScore.Analysis.Plotting as ocstatplot
+import OCDocker.Toolbox.Security as ocsec
 
 # License
 ###############################################################################
@@ -38,8 +39,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -83,7 +84,7 @@ def compute_pca_feature_importance(pca_model: PCA, feature_names: list[str]) -> 
     return importance_df
 
 
-def load_pca_model(pickle_file: str) -> PCA:
+def load_pca_model(pickle_file: str, trusted: bool = False) -> PCA:
     ''' Load PCA model from disk.
     
     Security
@@ -95,11 +96,23 @@ def load_pca_model(pickle_file: str) -> PCA:
     ----------
     pickle_file : str
         Path to the PCA model pickle file.
+    trusted : bool, optional
+        Explicit opt-in that the serialized model is trusted.
+        If False, loading is blocked unless
+        ``OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION=1`` is set.
+        Default is False.
     Returns
     -------
     PCA
         Fitted PCA model loaded from the pickle file.
     '''
+
+    ocsec.require_trusted_input(
+        trusted=trusted,
+        operation="pickle deserialization",
+        env_var="OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION",
+        source=pickle_file,
+    )
 
     with open(pickle_file, 'rb') as f:
         return pickle.load(f)
@@ -140,7 +153,7 @@ def run_pca_analysis(
             continue
 
         try:
-            pca_model = load_pca_model(model_path)
+            pca_model = load_pca_model(model_path, trusted=True)
             importance_df = compute_pca_feature_importance(pca_model=pca_model, feature_names=data_matrix.columns.tolist())
 
             ocstatplot.plot_pca_importance_barplot(importance_df, pca_type, n_features, n_trials, output_dir)
@@ -203,5 +216,4 @@ def run_statistical_tests(df: pd.DataFrame, n_trials: int, colour_mapping: dict[
 
     print("\nStatistical analysis complete. Results saved to 'csvs/' and 'plots/'.")
     plt.close('all')
-
 

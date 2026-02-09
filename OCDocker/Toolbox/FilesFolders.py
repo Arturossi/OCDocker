@@ -29,6 +29,7 @@ from typing import Any, Dict, List, Union
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Basetools as ocbasetools
 import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Toolbox.Security as ocsec
 import OCDocker.Toolbox.Validation as ocvalidation
 
 from OCDocker.Initialise import clrs
@@ -44,8 +45,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -81,9 +82,54 @@ def _validate_path_within_base(dest_path: str, base_path: str) -> bool:
     abs_dest = os.path.abspath(dest_path)
     abs_base = os.path.abspath(base_path)
 
-    # Check if destination is exactly the base or is a subdirectory of base
-    # Using os.sep ensures cross-platform compatibility
-    return abs_dest == abs_base or abs_dest.startswith(abs_base + os.sep)
+    # Use commonpath to avoid prefix tricks (e.g., /tmp/out vs /tmp/outside)
+    try:
+        return os.path.commonpath([abs_dest, abs_base]) == abs_base
+    except ValueError:
+        # Different drives/roots
+        return False
+
+
+def _validate_safe_tar_member(member: tarfile.TarInfo, base_path: str) -> Union[str, None]:
+    '''Validate a tar member before extraction.
+
+    Parameters
+    ----------
+    member : tarfile.TarInfo
+        Tar archive member metadata.
+    base_path : str
+        Destination base directory.
+
+    Returns
+    -------
+    str | None
+        None if the member is safe, otherwise an error message.
+    '''
+
+    # Only allow regular files and directories.
+    # Links and special files can be abused for path traversal and privilege issues.
+    if member.issym() or member.islnk():
+        return f"Unsafe link entry detected in archive entry '{member.name}'."
+    if member.isdev() or member.ischr() or member.isblk() or member.isfifo():
+        return f"Unsupported special file entry detected in archive entry '{member.name}'."
+    if not (member.isfile() or member.isdir()):
+        return f"Unsupported archive entry type detected in archive entry '{member.name}'."
+
+    dest_path = os.path.abspath(os.path.join(base_path, member.name))
+    if not _validate_path_within_base(dest_path, base_path):
+        return f"Unsafe path detected in archive entry '{member.name}'. Aborting extraction to avoid path traversal."
+
+    # Ensure parent directory does not resolve outside base through symlinks.
+    base_real = os.path.realpath(base_path)
+    parent_real = os.path.realpath(os.path.dirname(dest_path))
+    if not _validate_path_within_base(parent_real, base_real):
+        return f"Unsafe symlink-resolved parent path detected for archive entry '{member.name}'."
+
+    # Never write to a symlink path even if it is inside base.
+    if os.path.islink(dest_path):
+        return f"Unsafe destination symlink detected for archive entry '{member.name}'."
+
+    return None
 
 
 ## Public ##
@@ -189,24 +235,40 @@ def from_hdf5(filePath: str) -> Union[None, Any]:
         _ = ocerror.Error.read_file(f"Problems while reading the hdf5 file '{filePath}'. Error: {e}")
     return data
 
-def from_pickle(filePath: str) -> Union[None, Any]:
+def from_pickle(filePath: str, trusted: bool = False) -> Union[None, Any]:
     '''Unpickle a pickle file into an object.
 
     Security
     --------
     Only load pickle files from trusted sources. Pickle deserialization can
     execute arbitrary code if the file is malicious or untrusted.
+    This function enforces explicit trust: pass ``trusted=True`` or set
+    ``OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION=1``.
 
     Parameters
     ----------
     filePath : str
         Path to the pickle file.
+    trusted : bool, optional
+        Explicit opt-in that the file comes from a trusted source.
+        Default is False.
 
     Returns
     -------
     None | Any
         The object if success or None otherwise.
     '''
+
+    try:
+        ocsec.require_trusted_input(
+            trusted=trusted,
+            operation="pickle deserialization",
+            env_var="OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION",
+            source=filePath,
+        )
+    except PermissionError as e:
+        _ = ocerror.Error.read_file(str(e), level=ocerror.ReportLevel.ERROR)
+        return None
 
     data = None
     try:
@@ -442,21 +504,37 @@ def untar(fname: str, out_path: str = ".", delete: bool = False) -> int:
                 # Prepare for safe extraction (prevent path traversal)
                 # SECURITY: Path traversal protection ensures extracted files cannot escape the output directory
                 abs_out = os.path.abspath(out_path)
+                os.makedirs(abs_out, exist_ok=True)
                 members = tar.getmembers()
                 # Redirect output to tqdm.write
                 with ocbasetools.redirect_to_tqdm():
                     # Go over each member
                     for member in tqdm(iterable=members, total=len(members)):
-                        # Compute destination path and validate it's inside out_path
-                        dest_path = os.path.join(abs_out, member.name)
-                        # Use helper function for path traversal validation
-                        if not _validate_path_within_base(dest_path, abs_out):
+                        # Validate member safety before extraction
+                        member_error = _validate_safe_tar_member(member, abs_out)
+                        if member_error:
                             return ocerror.Error.untar_file(
-                                message=f"Unsafe path detected in archive entry '{member.name}'. Aborting extraction to avoid path traversal.",
+                                message=member_error,
                                 level=ocerror.ReportLevel.ERROR,
                             )
-                        # Extract member
-                        tar.extract(member=member, path=out_path)
+                        dest_path = os.path.abspath(os.path.join(abs_out, member.name))
+
+                        # Extract only directory and regular file entries in a controlled way
+                        if member.isdir():
+                            os.makedirs(dest_path, exist_ok=True)
+                        else:
+                            parent_dir = os.path.dirname(dest_path)
+                            if parent_dir:
+                                os.makedirs(parent_dir, exist_ok=True)
+                            source = tar.extractfile(member)
+                            if source is None:
+                                return ocerror.Error.untar_file(
+                                    message=f"Could not read data for archive entry '{member.name}'.",
+                                    level=ocerror.ReportLevel.ERROR,
+                                )
+                            with source:
+                                with open(dest_path, "wb") as handle:
+                                    shutil.copyfileobj(source, handle)
             # Report success on untarring the file
             _ = ocerror.Error.ok(f"The file {fname} has been {clrs['g']}successfully{clrs['n']} untarred to the dir {out_path}!", level = ocerror.ReportLevel.SUCCESS)
             # If delete flag is set, delete file

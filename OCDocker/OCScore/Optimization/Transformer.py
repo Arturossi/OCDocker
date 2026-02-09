@@ -16,7 +16,7 @@ import OCDocker.OCScore.Optimization.Transformer as octrans
 from joblib import Parallel, delayed
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
-from typing import Union
+from typing import Any, Optional, Union
 
 import OCDocker.Error as ocerror
 import OCDocker.OCScore.Utils.Data as ocscoredata
@@ -35,8 +35,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -54,7 +54,7 @@ def optimize_Transformer(
         df_path: str,
         storage_id: int,
         base_models_folder: str,
-        data: dict = {},
+        data: Optional[dict[str, Any]] = None,
         storage: str = "sqlite:///Transformer_optimization.db",
         use_pdb_train: bool = True,
         no_scores: bool = False,
@@ -82,7 +82,7 @@ def optimize_Transformer(
     base_models_folder : str
         The base models folder.
     data : dict, optional
-        The data dictionary. Default is {}. If not empty, the data dictionary will be used instead of loading the data. This is useful for multiprocessing to avoid loading the data multiple times.
+        The data dictionary. Default is None (treated as empty dict). If not empty, the data dictionary will be used instead of loading the data. This is useful for multiprocessing to avoid loading the data multiple times.
     storage : str, optional
         The storage string for the database. The default is "sqlite:///Transformer_optimization.db".
     use_pdb_train : bool, optional
@@ -119,6 +119,9 @@ def optimize_Transformer(
     ValueError
         If the parallel backend is invalid.
     '''
+
+    if data is None:
+        data = {}
 
     # Check if the data dictionary is empty
     if not data:

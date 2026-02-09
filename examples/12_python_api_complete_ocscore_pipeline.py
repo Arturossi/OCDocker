@@ -178,6 +178,10 @@ import OCDocker.Receptor as ocr
 import OCDocker.Rescoring.ODDT as ocoddt
 import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
+import OCDocker.Toolbox.Security as ocsec
+
+# Allow unsafe deserialization
+ocsec.allow_unsafe_runtime(deserialization=True, script_exec=False)
 
 def main():
     '''Main function to process all ligands.'''

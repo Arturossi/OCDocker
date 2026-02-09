@@ -19,7 +19,7 @@ import time
 import numpy as np
 
 from optuna.samplers import TPESampler
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -40,8 +40,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -166,7 +166,7 @@ def GAWorker(
         X_validation : Union[np.ndarray, None] = None,
         y_validation : Union[np.ndarray, None] = None,
         storage : str = "sqlite:///GA.db",
-        best_params : dict = {},
+        best_params : Optional[dict] = None,
         n_trials : int = 100,
         study_name : str = "GA_Feature_Selection",
         random_state : int = 42,
@@ -200,7 +200,7 @@ def GAWorker(
     storage : str, optional
         Storage string. The default is "sqlite:///GA.db".
     best_params : dict, optional
-        Best parameters. The default is {}.
+        Best parameters. The default is None (treated as an empty dict).
     algorithm : str, optional
         Algorithm. The default is "ga".
     n_trials : int, optional
@@ -223,6 +223,9 @@ def GAWorker(
     best_score : float
         Best score.
     '''
+
+    if best_params is None:
+        best_params = {}
 
     if verbose:
         ocprint.printv(f"Process {pid} starting optimization")
@@ -694,7 +697,7 @@ def XGBworker(
         n_jobs : int = 10,
         study_name : str = "XGB_Optimization",
         early_stopping_rounds : int = 50,
-        params : dict = {}
+        params : Optional[dict] = None
     ) -> optuna.study.Study:
     ''' XGBoost optimization worker function.
 
@@ -738,13 +741,16 @@ def XGBworker(
     early_stopping_rounds : int, optional
         Early stopping rounds. The default is 50.
     params : dict, optional
-        Parameters. The default is {}.
+        Parameters. The default is None (treated as an empty dict).
 
     Returns
     -------
     study_pre : optuna.study.Study
         Study object.
     '''
+
+    if params is None:
+        params = {}
 
     if verbose:
         ocprint.printv(f"Process {pid} starting optimization")

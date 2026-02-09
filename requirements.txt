@@ -30,7 +30,7 @@ optuna-integration>=4.0.0
 rdkit>=2024.09.1
 openbabel>=3.1.1.1
 biopython>=1.84
-oddt @ git+https://github.com/Arturossi/oddt.git@master
+oddt @ git+https://github.com/Arturossi/oddt.git@6e5629ed05aa4931421b14cace8f2fea5bff5bb6
 spyrmsd>=0.8.0
 
 # Data analysis and visualization

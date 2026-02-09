@@ -17,7 +17,7 @@ import pytest
 
 from pathlib import Path
 
-from OCDocker.CLI.__init__ import _preparse_global_args, _require_file, build_parser
+from OCDocker.CLI.__init__ import _preparse_global_args, _require_file, build_parser, cmd_script
 
 # License
 ###############################################################################
@@ -30,8 +30,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -91,3 +91,19 @@ def test_require_file_valid_and_errors(tmp_path):
     with pytest.raises(SystemExit) as ei2:
         _require_file("…/placeholder", "--file")
     assert ei2.value.code == 2
+
+
+@pytest.mark.order(67)
+def test_cmd_script_requires_security_opt_in(tmp_path, monkeypatch):
+    script = tmp_path / "script.py"
+    script.write_text("print('hello')", encoding="utf-8")
+
+    monkeypatch.delenv("OCDOCKER_ALLOW_SCRIPT_EXEC", raising=False)
+    args = argparse.Namespace(
+        script_file=str(script),
+        script_args=[],
+        allow_unsafe_exec=False,
+    )
+
+    rc = cmd_script(args)
+    assert rc == 2

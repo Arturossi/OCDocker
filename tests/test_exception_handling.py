@@ -34,8 +34,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -109,12 +109,12 @@ def test_exception_specificity_in_file_operations(tmp_path):
     assert result == ocerror.ErrorCode.OK
     
     # Read should succeed
-    loaded = ocff.from_pickle(str(test_file))
+    loaded = ocff.from_pickle(str(test_file), trusted=True)
     assert loaded == data
     
     # Try to read corrupted file
     test_file.write_bytes(b"corrupted pickle data")
-    result = ocff.from_pickle(str(test_file))
+    result = ocff.from_pickle(str(test_file), trusted=True)
     # Should return None and handle exception gracefully
     assert result is None
 
@@ -125,7 +125,7 @@ def test_file_operations_log_errors(tmp_path, caplog):
 
     # Try to read a non-existent file
     non_existent = tmp_path / "nonexistent.pkl"
-    result = ocff.from_pickle(str(non_existent))
+    result = ocff.from_pickle(str(non_existent), trusted=True)
     
     # Should return None and log error
     assert result is None

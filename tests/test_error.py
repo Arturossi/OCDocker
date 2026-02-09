@@ -23,8 +23,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -71,3 +71,50 @@ def test_set_output_level_enum_and_int():
         assert ocerror.Error.get_output_level() == ocerror.ReportLevel.INFO
     finally:
         ocerror.Error.set_output_level(prev)
+
+
+@pytest.mark.order(4)
+def test_dynamic_error_methods_use_default_levels(capsys):
+    prev = ocerror.Error.get_output_level()
+    try:
+        ocerror.Error.set_output_level(ocerror.ReportLevel.DEBUG)
+        _ = ocerror.Error.file_not_exist("missing file test") # type: ignore
+        _ = ocerror.Error.skip("skip test") # type: ignore
+    finally:
+        ocerror.Error.set_output_level(prev)
+
+    captured = capsys.readouterr()
+    assert "ERROR" in captured.out
+    assert "missing file test" in captured.out
+    assert "INFO" in captured.out
+    assert "skip test" in captured.out
+
+
+@pytest.mark.order(5)
+def test_output_level_none_suppresses_messages(capsys):
+    prev = ocerror.Error.get_output_level()
+    try:
+        ocerror.Error.set_output_level(ocerror.ReportLevel.NONE)
+        _ = ocerror.Error.file_not_exist("this should not be shown") # type: ignore
+        ocerror.Error.print_message("this should also not be shown", ocerror.ReportLevel.ERROR)
+    finally:
+        ocerror.Error.set_output_level(prev)
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+
+
+@pytest.mark.order(6)
+def test_print_message_respects_output_threshold(capsys):
+    prev = ocerror.Error.get_output_level()
+    try:
+        ocerror.Error.set_output_level(ocerror.ReportLevel.ERROR)
+        ocerror.Error.print_message("info should be hidden", ocerror.ReportLevel.INFO)
+        ocerror.Error.print_message("error should be visible", ocerror.ReportLevel.ERROR)
+    finally:
+        ocerror.Error.set_output_level(prev)
+
+    captured = capsys.readouterr()
+    assert "info should be hidden" not in captured.out
+    assert "ERROR" in captured.out
+    assert "error should be visible" in captured.out
