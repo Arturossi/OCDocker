@@ -10,6 +10,7 @@ Functional tests for OCScore.Utils.IO helpers.
 ###############################################################################
 import builtins
 import pickle
+import sys
 
 import numpy as np
 import pandas as pd
@@ -138,3 +139,48 @@ def test_load_object_torch_import_error_raises_value_error(monkeypatch, tmp_path
     with pytest.raises(ValueError):
         _ = ocscoreio.load_object(str(file_path), serialization_method="torch", trusted=True)
 
+
+@pytest.mark.order(96)
+def test_load_object_auto_torch_success_with_fake_torch(monkeypatch, tmp_path):
+    file_path = tmp_path / "model.pt"
+    file_path.write_text("fake", encoding="utf-8")
+
+    fake_torch = type("FakeTorchModule", (), {"load": staticmethod(lambda *a, **k: {"kind": "torch", "path": a[0]})})
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+    loaded = ocscoreio.load_object(str(file_path), serialization_method="auto", trusted=True)
+    assert loaded["kind"] == "torch"
+    assert loaded["path"] == str(file_path)
+
+
+@pytest.mark.order(97)
+def test_load_object_auto_unknown_extension_uses_joblib(monkeypatch, tmp_path):
+    file_path = tmp_path / "object.bin"
+    file_path.write_text("fake", encoding="utf-8")
+    monkeypatch.setattr(ocscoreio.joblib, "load", lambda path: {"kind": "joblib", "path": path})
+
+    loaded = ocscoreio.load_object(str(file_path), serialization_method="auto", trusted=True)
+    assert loaded == {"kind": "joblib", "path": str(file_path)}
+
+
+@pytest.mark.order(98)
+def test_load_mask_falls_back_to_pickle_when_joblib_load_fails(monkeypatch, tmp_path):
+    models_dir = tmp_path / "models"
+    models_dir.mkdir(parents=True, exist_ok=True)
+    mask_file = models_dir / "fallback_mask.pkl"
+    mask_file.write_text("placeholder", encoding="utf-8")
+
+    calls = []
+
+    def _fake_load(path, serialization_method="auto", trusted=False):
+        calls.append((path, serialization_method, trusted))
+        if serialization_method == "joblib":
+            raise ValueError("joblib failed")
+        return [1, 0, 1]
+
+    monkeypatch.setattr(ocscoreio, "load_object", _fake_load)
+
+    loaded = ocscoreio.load_mask("fallback", models_dir=str(models_dir))
+    np.testing.assert_array_equal(loaded, np.array([1, 0, 1], dtype=int))
+    assert calls[0][1] == "joblib"
+    assert calls[1][1] == "pickle"

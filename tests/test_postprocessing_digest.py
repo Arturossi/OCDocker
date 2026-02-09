@@ -290,3 +290,45 @@ def test_public_generate_digest_dispatches(monkeypatch, ocdigest):
     assert called["parallel"] == 1
     assert called["serial"] == 1
     assert called["single"] == 1
+
+
+@pytest.mark.order(172)
+def test_generate_digest_no_parallel_returns_ok_when_all_succeed(monkeypatch, ocdigest):
+    monkeypatch.setattr(ocdigest.ocbasetools, "redirect_to_tqdm", lambda: nullcontext())
+    monkeypatch.setattr(ocdigest, "tqdm", lambda iterable, **kwargs: iterable)
+    monkeypatch.setattr(ocdigest, "__core_generate_digest", lambda *a, **k: ocerror.ErrorCode.OK)
+
+    rc = ocdigest.__generate_digest_no_parallel(
+        complexList=[("p1", ["l1", "l2"])],
+        archive="pdbbind",
+        overwrite=False,
+        digestFormat="json",
+        desc="x",
+        all_boxes=False,
+    )
+    assert rc == ocerror.ErrorCode.OK
+
+
+@pytest.mark.order(173)
+def test_generate_digest_parallel_returns_ok_when_all_succeed(monkeypatch, ocdigest):
+    monkeypatch.setattr(ocdigest, "get_config", lambda: SimpleNamespace(available_cores=2, logdir="/tmp"))
+    monkeypatch.setattr(ocdigest, "Pool", lambda workers: _FakePool(workers, codes=[ocerror.ErrorCode.OK, ocerror.ErrorCode.OK]))
+    monkeypatch.setattr(ocdigest, "tqdm", lambda iterable, **kwargs: iterable)
+
+    rc = ocdigest.__generate_digest_parallel(
+        complexList=[("p1", ["l1", "l2"])],
+        archive="dudez",
+        overwrite=False,
+        digestFormat="json",
+        desc="x",
+        all_boxes=False,
+    )
+    assert rc == ocerror.ErrorCode.OK
+
+
+@pytest.mark.order(174)
+def test_generate_digest_single_returns_ok_when_all_succeed(monkeypatch, ocdigest):
+    monkeypatch.setattr(ocdigest, "tqdm", lambda iterable, **kwargs: iterable)
+    monkeypatch.setattr(ocdigest, "__core_generate_digest", lambda *a, **k: ocerror.ErrorCode.OK)
+    rc = ocdigest.__generate_digest_single(("p1", ["l1", "l2"]), "dudez", False, "json", "x", False)
+    assert rc == ocerror.ErrorCode.OK

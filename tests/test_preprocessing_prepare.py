@@ -85,6 +85,25 @@ class _LigandInvalid(_LigandOk):
         return False
 
 
+class _LigandNoRadius:
+    inputs = []
+
+    def __init__(self, src, _name, sanitize=True):
+        _ = sanitize
+        self.__class__.inputs.append(src)
+        self.RadiusOfGyration = None
+
+    def create_box(self, centroid=None, overwrite=False):
+        _ = (centroid, overwrite)
+
+    def is_valid(self):
+        return True
+
+    def to_json(self, overwrite):
+        _ = overwrite
+        return 0
+
+
 class _LigandStub:
     def __init__(self, _src, _name, sanitize=True):
         _ = sanitize
@@ -373,3 +392,154 @@ def test_core_prepare_generates_configs_single_and_multibox(monkeypatch, tmp_pat
     assert calls["box_vina"] >= 2
     assert calls["box_plants"] >= 2
     assert calls["mkdir"] >= 8
+
+
+@pytest.mark.order(164)
+def test_core_prepare_reference_ligand_parse_exception_is_logged(monkeypatch, tmp_path, ocprepare):
+    work = tmp_path / "ptnC"
+    work.mkdir(parents=True, exist_ok=True)
+    (work / "reference_ligand.mol2").write_text("@<TRIPOS>MOLECULE\nx\n", encoding="utf-8")
+
+    errors = []
+    monkeypatch.setattr(ocprepare, "__prepare_molecule", lambda *a, **k: None)
+    monkeypatch.setattr(ocprepare.ocl, "get_centroid", lambda *_a, **_k: (_ for _ in ()).throw(ValueError("bad ref")))
+    monkeypatch.setattr(ocprepare.ocprint, "print_error", lambda msg: errors.append(msg))
+
+    rc = ocprepare.__core_prepare(str(work), False, "dudez", True, 0.33, targetCentroid=None)
+    assert rc == ocerror.ErrorCode.FILE_NOT_EXIST
+    assert errors
+
+
+@pytest.mark.order(165)
+def test_core_prepare_no_boxes_logs_warning_and_returns_ok(monkeypatch, tmp_path, ocprepare):
+    work = tmp_path / "ptnD"
+    work.mkdir(parents=True, exist_ok=True)
+    (work / "compounds" / "ligands").mkdir(parents=True, exist_ok=True)
+    process_dir = tmp_path / "proc_no_box"
+    process_dir.mkdir(parents=True, exist_ok=True)
+
+    warnings = []
+    monkeypatch.setattr(ocprepare, "__prepare_molecule", lambda *a, **k: None)
+    monkeypatch.setattr(ocprepare, "__sub_core_prepare", lambda *a, **k: [str(process_dir)])
+    monkeypatch.setattr(ocprepare.ocprint, "print_warning", lambda msg: warnings.append(msg))
+
+    rc = ocprepare.__core_prepare(str(work), False, "dudez", True, 0.33, targetCentroid=(1.0, 2.0, 3.0))
+    assert rc == ocerror.ErrorCode.OK
+    assert warnings
+
+
+@pytest.mark.order(166)
+def test_core_prepare_skips_existing_generated_configs(monkeypatch, tmp_path, ocprepare):
+    work = tmp_path / "ptnE"
+    work.mkdir(parents=True, exist_ok=True)
+    (work / "compounds" / "ligands").mkdir(parents=True, exist_ok=True)
+    process_dir = tmp_path / "proc_existing"
+    boxes = process_dir / "boxes"
+    boxes.mkdir(parents=True, exist_ok=True)
+    (boxes / "box0.pdb").write_text("box0", encoding="utf-8")
+    (process_dir / "gninaFiles").mkdir(parents=True, exist_ok=True)
+    (process_dir / "vinaFiles").mkdir(parents=True, exist_ok=True)
+    (process_dir / "plantsFiles").mkdir(parents=True, exist_ok=True)
+    (process_dir / "sminaFiles").mkdir(parents=True, exist_ok=True)
+    (process_dir / "gninaFiles" / "entry.txt").write_text("x", encoding="utf-8")
+    (process_dir / "vinaFiles" / "entry.txt").write_text("x", encoding="utf-8")
+    (process_dir / "plantsFiles" / "entry.txt").write_text("x", encoding="utf-8")
+    (process_dir / "sminaFiles" / "entry.conf").write_text("x", encoding="utf-8")
+
+    infos = []
+    calls = {"gnina": 0, "vina": 0, "plants": 0, "smina": 0}
+    monkeypatch.setattr(ocprepare, "__prepare_molecule", lambda *a, **k: None)
+    monkeypatch.setattr(ocprepare, "__sub_core_prepare", lambda *a, **k: [str(process_dir)])
+    monkeypatch.setattr(ocprepare.ocprint, "print_info", lambda msg: infos.append(msg))
+    monkeypatch.setattr(ocprepare.ocgnina, "gen_gnina_conf", lambda *a, **k: calls.__setitem__("gnina", calls["gnina"] + 1))
+    monkeypatch.setattr(ocprepare.ocvina, "generate_vina_files_database", lambda *a, **k: calls.__setitem__("vina", calls["vina"] + 1))
+    monkeypatch.setattr(ocprepare.ocplants, "generate_plants_files_database", lambda *a, **k: calls.__setitem__("plants", calls["plants"] + 1))
+    monkeypatch.setattr(ocprepare.ocsmina, "gen_smina_conf", lambda *a, **k: calls.__setitem__("smina", calls["smina"] + 1))
+
+    rc = ocprepare.__core_prepare(str(work), False, "dudez", True, 0.33, targetCentroid=(1.0, 2.0, 3.0), all_boxes=False)
+    assert rc == ocerror.ErrorCode.OK
+    assert calls == {"gnina": 0, "vina": 0, "plants": 0, "smina": 0}
+    assert len(infos) >= 4
+
+
+@pytest.mark.order(167)
+def test_prepare_molecule_ligand_tuple_alternative_and_parse_exception(monkeypatch, tmp_path, ocprepare):
+    ligand_file = tmp_path / "ligand.smi"
+    ligand_file.write_text("CCO", encoding="utf-8")
+    warnings = []
+    logs = []
+
+    monkeypatch.setattr(ocprepare.ocff, "safe_create_dir", lambda _p: ocerror.ErrorCode.OK)
+    monkeypatch.setattr(ocprepare.ocprint, "print_warning", lambda msg: warnings.append(msg))
+    monkeypatch.setattr(ocprepare, "get_config", lambda: SimpleNamespace(logdir=str(tmp_path / "logs")))
+    monkeypatch.setattr(ocprepare.ocprint, "print_error_log", lambda msg, path: logs.append((msg, path)))
+
+    _LigandNoRadius.inputs = []
+    monkeypatch.setattr(ocprepare.ocl, "Ligand", _LigandNoRadius)
+    assert ocprepare.__prepare_molecule((str(ligand_file), "ignored"), overwrite=True, moltype="ligand", dbName="dudez", sanitize=True, alternativeLigand="ALT") is None
+    assert _LigandNoRadius.inputs == [str(ligand_file), "ALT"]
+    assert any("trying to load its alternative ligand" in msg for msg in warnings)
+    assert any("even with the alternative ligand" in msg for msg in warnings)
+
+    monkeypatch.setattr(ocprepare.ocl, "Ligand", lambda *_a, **_k: (_ for _ in ()).throw(ValueError("parse failure")))
+    assert ocprepare.__prepare_molecule(str(ligand_file), overwrite=True, moltype="ligand", dbName="dudez", sanitize=True) is None
+    assert logs
+
+
+@pytest.mark.order(168)
+def test_prepare_molecule_receptor_tuple_and_string_parse_exceptions(monkeypatch, tmp_path, ocprepare):
+    receptor_pdb = tmp_path / "receptor.pdb"
+    receptor_pdb.write_text("ATOM\n", encoding="utf-8")
+    receptor_mol2 = tmp_path / "receptor.mol2"
+    receptor_mol2.write_text("@<TRIPOS>MOLECULE\n", encoding="utf-8")
+    logs = []
+    cleaned = {"calls": 0}
+
+    monkeypatch.setattr(ocprepare, "get_config", lambda: SimpleNamespace(logdir=str(tmp_path / "logs")))
+    monkeypatch.setattr(ocprepare.ocprint, "print_error_log", lambda msg, path: logs.append((msg, path)))
+    monkeypatch.setattr(ocprepare.ocmolproc, "clean_for_dssp", lambda **_k: cleaned.__setitem__("calls", cleaned["calls"] + 1))
+    monkeypatch.setattr(ocprepare.ocr, "Receptor", lambda *_a, **_k: (_ for _ in ()).throw(ValueError("bad receptor")))
+
+    assert ocprepare.__prepare_molecule((str(receptor_pdb), str(receptor_mol2)), overwrite=True, moltype="receptor", dbName="dudez", sanitize=True) is None
+    assert ocprepare.__prepare_molecule(str(receptor_pdb), overwrite=True, moltype="receptor", dbName="dudez", sanitize=True) is None
+    assert cleaned["calls"] == 1
+    assert len(logs) >= 2
+
+
+@pytest.mark.order(169)
+def test_prepare_molecule_descriptor_exists_short_circuits(monkeypatch, tmp_path, ocprepare):
+    ligand_file = tmp_path / "ligand.smi"
+    ligand_file.write_text("CCO", encoding="utf-8")
+    (tmp_path / "ligand_descriptors.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(ocprepare.ocl, "Ligand", lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("must not be called")))
+    assert ocprepare.__prepare_molecule(str(ligand_file), overwrite=False, moltype="ligand", dbName="dudez", sanitize=True) is None
+
+
+@pytest.mark.order(170)
+def test_prepare_parallel_success_path_calls_gc(monkeypatch, tmp_path, ocprepare):
+    gc_calls = {"count": 0}
+    monkeypatch.setattr(ocprepare, "get_config", lambda: SimpleNamespace(available_cores=2, logdir=str(tmp_path)))
+    monkeypatch.setattr(ocprepare, "Pool", lambda workers: _FakePool(workers, raise_on_enter=False))
+    monkeypatch.setattr(ocprepare, "tqdm", lambda iterable, **kwargs: iterable)
+    monkeypatch.setattr(ocprepare, "__thread_prepare", lambda *_a, **_k: ocerror.ErrorCode.OK)
+    monkeypatch.setattr(ocprepare.gc, "collect", lambda: gc_calls.__setitem__("count", gc_calls["count"] + 1) or 0)
+
+    assert ocprepare.__prepare_parallel(["/tmp/a", "/tmp/b"], False, "dudez", True, 0.33, "x", False) is None
+    assert gc_calls["count"] >= 2
+
+
+@pytest.mark.order(171)
+def test_sub_core_prepare_simple_filename_branch(monkeypatch, tmp_path, ocprepare):
+    root = tmp_path / "ligands_simple"
+    root.mkdir(parents=True, exist_ok=True)
+    ligand_file = root / "ligand.smi"
+    ligand_file.write_text("CCO", encoding="utf-8")
+
+    moved = []
+    monkeypatch.setattr(ocprepare.ocff, "safe_create_dir", lambda _p: ocerror.ErrorCode.OK)
+    monkeypatch.setattr(ocprepare.shutil, "move", lambda src, dst: moved.append((src, dst)))
+    monkeypatch.setattr(ocprepare, "__prepare_molecule", lambda *a, **k: None)
+
+    _ = ocprepare.__sub_core_prepare(str(root), "dudez", overwrite=False, mols=[str(ligand_file)], sanitize=True, targetCentroid=(0.0, 0.0, 0.0))
+    assert moved
+    assert moved[0][1].endswith("/ligand.smi/ligand/ligand.smi")

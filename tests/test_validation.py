@@ -151,3 +151,89 @@ def test_is_molecule_valid_smiles_none_parse(monkeypatch, tmp_path):
     path.write_text("C1=CC=CC=C1\n")
     _patch_rdkit(monkeypatch, smi=lambda *a, **k: None)
     assert not ocvalidation.is_molecule_valid(str(path))
+
+
+@pytest.mark.order(12)
+def test_is_molecule_valid_sdf_supplier_none(monkeypatch, tmp_path):
+    path = tmp_path / "supplier_none.sdf"
+    path.write_text("bad sdf\n$$$$\n", encoding="utf-8")
+    _patch_rdkit(monkeypatch, sdf=lambda *a, **k: None)
+    assert not ocvalidation.is_molecule_valid(str(path))
+
+
+@pytest.mark.order(13)
+def test_is_molecule_valid_smiles_empty_file(monkeypatch, tmp_path):
+    path = tmp_path / "empty.smi"
+    path.write_text("", encoding="utf-8")
+    _patch_rdkit(monkeypatch, smi=lambda *a, **k: object())
+    assert not ocvalidation.is_molecule_valid(str(path))
+
+
+@pytest.mark.order(14)
+def test_is_molecule_valid_pdbqt_openbabel_readfile_false(monkeypatch, tmp_path):
+    path = tmp_path / "bad.pdbqt"
+    path.write_text("REMARK PDBQT", encoding="utf-8")
+    _patch_rdkit(monkeypatch)
+
+    class _OBMol:
+        def NumAtoms(self):
+            return 10
+
+    class _OBConversion:
+        def SetInFormat(self, _fmt):
+            return True
+
+        def ReadFile(self, _mol, _path):
+            return False
+
+    fake_ob = types.ModuleType("openbabel")
+    fake_ob.openbabel = types.SimpleNamespace(OBConversion=_OBConversion, OBMol=_OBMol)
+    monkeypatch.setitem(sys.modules, "openbabel", fake_ob)
+
+    assert not ocvalidation.is_molecule_valid(str(path))
+
+
+@pytest.mark.order(15)
+def test_is_molecule_valid_pdbqt_openbabel_zero_atoms(monkeypatch, tmp_path):
+    path = tmp_path / "zero_atoms.pdbqt"
+    path.write_text("REMARK PDBQT", encoding="utf-8")
+    _patch_rdkit(monkeypatch)
+
+    class _OBMol:
+        def NumAtoms(self):
+            return 0
+
+    class _OBConversion:
+        def SetInFormat(self, _fmt):
+            return True
+
+        def ReadFile(self, _mol, _path):
+            return True
+
+    fake_ob = types.ModuleType("openbabel")
+    fake_ob.openbabel = types.SimpleNamespace(OBConversion=_OBConversion, OBMol=_OBMol)
+    monkeypatch.setitem(sys.modules, "openbabel", fake_ob)
+
+    assert not ocvalidation.is_molecule_valid(str(path))
+
+
+@pytest.mark.order(16)
+def test_is_molecule_valid_with_retry_succeeds_after_initial_empty_file(monkeypatch, tmp_path):
+    path = tmp_path / "retry.pdbqt"
+    path.write_text("CONTENT", encoding="utf-8")
+
+    sizes = [0, 32]
+    sleeps = []
+    checks = {"valid_calls": 0}
+
+    monkeypatch.setattr(ocvalidation.os.path, "getsize", lambda *_a, **_k: sizes.pop(0))
+    monkeypatch.setattr(
+        ocvalidation,
+        "is_molecule_valid",
+        lambda *_a, **_k: checks.__setitem__("valid_calls", checks["valid_calls"] + 1) or True,
+    )
+    monkeypatch.setattr(ocvalidation.time, "sleep", lambda delay: sleeps.append(delay))
+
+    assert ocvalidation.is_molecule_valid_with_retry(str(path), retries=2, delay=0.2)
+    assert checks["valid_calls"] == 1
+    assert sleeps == [0.2]
