@@ -44,6 +44,33 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Private ##
+def _safe_print_warning(message: str) -> None:
+    '''Print warning safely even when a stubbed Printing module is incomplete.'''
+
+    warn = getattr(ocprint, "print_warning", None)
+    if callable(warn):
+        warn(message)
+        return
+
+    # Fallback to print_error for test stubs that only expose error logging.
+    err = getattr(ocprint, "print_error", None)
+    if callable(err):
+        err(f"WARNING: {message}")
+        return
+
+    # Last resort to keep behavior observable without crashing.
+    print(f"WARNING: {message}")
+
+def _safe_print_error(message: str) -> None:
+    '''Print error safely even when a stubbed Printing module is incomplete.'''
+
+    err = getattr(ocprint, "print_error", None)
+    if callable(err):
+        err(message)
+        return
+
+    print(f"ERROR: {message}")
+
 
 ## Public ##
 
@@ -227,12 +254,16 @@ def validate_digest_extension(digestPath: str, digestFormat: str) -> bool:
 
     # Check if the format options is valid
     if not digestFormat.lower() in supportedExtensions:
-        ocprint.print_warning(f"The format '{digestFormat}' is not supported. Trying to determine its extension from the file '{digestPath}'.")
+        _safe_print_warning(
+            f"The format '{digestFormat}' is not supported. Trying to determine its extension from the file '{digestPath}'."
+        )
         # Get the extension from the file
         digestFormat = digestPath.split(".")[-1]
         # Check if the extension is valid
         if not digestFormat.lower() in supportedExtensions:
-            ocprint.print_error(f"The format '{digestFormat}' is not supported. The supported formats are: {supportedExtensions}")
+            _safe_print_error(
+                f"The format '{digestFormat}' is not supported. The supported formats are: {supportedExtensions}"
+            )
             return False
         return True
     return True
