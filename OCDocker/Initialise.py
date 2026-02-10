@@ -1533,6 +1533,24 @@ def is_doc_build() -> bool:
     return False
 
 
+def _is_truthy_env(var_name: str) -> bool:
+    '''Return True when environment variable is set to a truthy value.
+    
+    Parameters
+    ----------
+    var_name : str
+        The name of the environment variable to check.
+
+    Returns
+    -------
+    bool
+        True if the environment variable is set to a truthy value, False otherwise.
+    '''
+
+    value = os.getenv(var_name, "")
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
 def print_description() -> None:
     ''' Print the description of the program.'''
 
@@ -1552,9 +1570,6 @@ def set_log_level(level: ocerror.ReportLevel) -> None:
 
 
 # Note: set_argparse() function removed - functionality moved to bootstrap()
-
-
-
 
 ###############################################################################
 
@@ -1578,9 +1593,6 @@ from OCDocker.Toolbox.Constants import order
 # Parse command line arguments
 ###############################################################################
 
-
-
-
 bootstrapped = False
 
 # Sync star-import consumers
@@ -1589,20 +1601,12 @@ _SYNC_SKIP_NAMES = {
 }
 
 
-
-
 # Initialise
 ###############################################################################
 
-
-
-
-
-
-
-
-
-# Autobootstrap on first import (non‑CLI contexts), unless disabled via env
+# Auto-bootstrap on first import by default (legacy behavior).
+# - Set OCDOCKER_NO_AUTO_BOOTSTRAP=1 to disable.
+# - Set OCDOCKER_AUTO_BOOTSTRAP explicitly (truthy/falsey) to override.
 try:
     # Provide harmless defaults when building docs (or tests)
     if os.getenv("OC_BUILD_DOCS") == "1":
@@ -1611,11 +1615,25 @@ try:
         if "db_url" not in globals():
             db_url = "sqlite:///:memory:"
 
-    if not bootstrapped and not is_doc_build() and not os.getenv('OCDOCKER_NO_AUTO_BOOTSTRAP'):
+    auto_bootstrap_env = os.getenv("OCDOCKER_AUTO_BOOTSTRAP")
+    auto_bootstrap_enabled = (
+        _is_truthy_env("OCDOCKER_AUTO_BOOTSTRAP")
+        if auto_bootstrap_env is not None
+        else True
+    )
+
+    should_autobootstrap = (
+        auto_bootstrap_enabled
+        and not _is_truthy_env("OCDOCKER_NO_AUTO_BOOTSTRAP")
+        and not bootstrapped
+        and not is_doc_build()
+    )
+
+    if should_autobootstrap:
         default_ns = argparse.Namespace(
             multiprocess=True,
             update=False,
-            config_file=os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg'),
+            config_file=os.getenv("OCDOCKER_CONFIG", "OCDocker.cfg"),
             output_level=ocerror.ReportLevel.WARNING,
             overwrite=False,
         )

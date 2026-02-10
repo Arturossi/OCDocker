@@ -48,6 +48,7 @@ Welcome to the official documentation for OCDocker. This documentation provides 
    OCDockerConsole
    manual
    usage
+   error_handling
    COLLABORATORS
 
 Indices and tables

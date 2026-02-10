@@ -97,29 +97,29 @@ def test_vina_init_type_guards_and_overwrite_config(tmp_path, monkeypatch):
     monkeypatch.setattr(ocvina.ocr, "Receptor", DummyReceptor)
     monkeypatch.setattr(ocvina.ocl, "Ligand", DummyLigand)
 
-    invalid_receptor = ocvina.Vina(
-        config_path=str(tmp_path / "invalid_receptor.conf"),
-        box_file=str(tmp_path / "box.pdb"),
-        receptor=123,  # type: ignore[arg-type]
-        prepared_receptor_path=str(tmp_path / "receptor.pdbqt"),
-        ligand=DummyLigand(str(tmp_path / "ligand.mol2")),
-        prepared_ligand_path=str(tmp_path / "ligand.pdbqt"),
-        vina_log=str(tmp_path / "vina.log"),
-        output_vina=str(tmp_path / "out.pdbqt"),
-    )
-    assert not hasattr(invalid_receptor, "input_receptor")
+    with pytest.raises(TypeError, match="Expected 'ocr.Receptor'"):
+        _ = ocvina.Vina(
+            config_path=str(tmp_path / "invalid_receptor.conf"),
+            box_file=str(tmp_path / "box.pdb"),
+            receptor=123,  # type: ignore[arg-type]
+            prepared_receptor_path=str(tmp_path / "receptor.pdbqt"),
+            ligand=DummyLigand(str(tmp_path / "ligand.mol2")),
+            prepared_ligand_path=str(tmp_path / "ligand.pdbqt"),
+            vina_log=str(tmp_path / "vina.log"),
+            output_vina=str(tmp_path / "out.pdbqt"),
+        )
 
-    invalid_ligand = ocvina.Vina(
-        config_path=str(tmp_path / "invalid_ligand.conf"),
-        box_file=str(tmp_path / "box.pdb"),
-        receptor=DummyReceptor(str(tmp_path / "receptor.pdb")),
-        prepared_receptor_path=str(tmp_path / "receptor.pdbqt"),
-        ligand=123,  # type: ignore[arg-type]
-        prepared_ligand_path=str(tmp_path / "ligand.pdbqt"),
-        vina_log=str(tmp_path / "vina.log"),
-        output_vina=str(tmp_path / "out.pdbqt"),
-    )
-    assert not hasattr(invalid_ligand, "input_ligand")
+    with pytest.raises(TypeError, match="Expected 'ocl.Ligand'"):
+        _ = ocvina.Vina(
+            config_path=str(tmp_path / "invalid_ligand.conf"),
+            box_file=str(tmp_path / "box.pdb"),
+            receptor=DummyReceptor(str(tmp_path / "receptor.pdb")),
+            prepared_receptor_path=str(tmp_path / "receptor.pdbqt"),
+            ligand=123,  # type: ignore[arg-type]
+            prepared_ligand_path=str(tmp_path / "ligand.pdbqt"),
+            vina_log=str(tmp_path / "vina.log"),
+            output_vina=str(tmp_path / "out.pdbqt"),
+        )
 
     called = {"box_to_vina": 0}
 

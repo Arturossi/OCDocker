@@ -33,4 +33,3 @@ exclude_lines =
     if TYPE_CHECKING:
     @abstractmethod
     if __name__ == .__main__.:  # noqa: E501
-    except Exception:

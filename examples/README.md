@@ -41,7 +41,8 @@ Example of running Python scripts with OCDocker libraries pre-loaded:
 - Accessing pre-loaded OCDocker modules
 - Working with script arguments
 - Example workflow structure
-Run: `ocdocker script --conf OCDocker.cfg examples/13_cli_script_example.py`
+Run: `ocdocker script --conf OCDocker.cfg --allow-unsafe-exec examples/13_cli_script_example.py`
+(`--allow-unsafe-exec` is required for trusted in-process script execution).
 
 ## Python API Examples
 
@@ -134,7 +135,7 @@ chmod +x examples/*.sh
 
 ### Running Python Examples
 
-Activate the OCDocker environment and run:
+Activate your conda environment and run:
 
 ```bash
 conda activate ocdocker
