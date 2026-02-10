@@ -59,7 +59,7 @@ def _load_module(module_name: str, file_path: Path):
 
 @pytest.fixture()
 def ocga(monkeypatch):
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     pkg_root = root / "OCDocker"
 
     _ensure_package("OCDocker", pkg_root)

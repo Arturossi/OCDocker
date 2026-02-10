@@ -40,7 +40,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 
 def _get_default_expr(module_rel_path: str, function_name: str, parameter_name: str, class_name: str | None = None) -> ast.expr:
-    project_root = Path(__file__).resolve().parents[1]
+    project_root = Path(__file__).resolve().parents[2]
     module_path = project_root / module_rel_path
     tree = ast.parse(module_path.read_text(encoding="utf-8"))
 

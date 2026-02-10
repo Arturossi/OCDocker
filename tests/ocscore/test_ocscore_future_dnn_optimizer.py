@@ -106,7 +106,7 @@ def _patch_future_data_helpers(monkeypatch, mod):
 
 @pytest.fixture()
 def ocfuture(monkeypatch):
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     pkg_root = root / "OCDocker"
 
     _ensure_package("OCDocker", pkg_root)

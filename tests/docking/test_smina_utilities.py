@@ -66,7 +66,7 @@ def _setup_stubs(monkeypatch, tmp_path):
     - Modules with heavy deps: FilesFolders, Validation, Conversion, MoleculeProcessing
     - numpy: minimal stub (only nan/isnan needed)
     """
-    root = Path(__file__).resolve().parents[1] / "OCDocker"
+    root = Path(__file__).resolve().parents[2] / "OCDocker"
     
     # Minimal stubs for heavy external dependencies
     bio = types.ModuleType('Bio'); bio.__path__ = []

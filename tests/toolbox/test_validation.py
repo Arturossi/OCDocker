@@ -84,7 +84,7 @@ def test_is_molecule_valid_pdb():
     pytest.importorskip("Bio.PDB")
     from pathlib import Path
     # Get absolute path to receptor file
-    test_dir = Path(__file__).resolve().parent.parent
+    test_dir = Path(__file__).resolve().parent.parent.parent
     path = test_dir / "test_files/test_ptn1/receptor.pdb"
     assert ocvalidation.is_molecule_valid(str(path))
 

@@ -120,7 +120,7 @@ def _import_oddt_helpers(monkeypatch):
     monkeypatch.setitem(sys.modules, "OCDocker.Toolbox.Running", running_mod)
     monkeypatch.setitem(sys.modules, "OCDocker.Config", config_mod)
 
-    path = Path(__file__).resolve().parents[1] / "OCDocker" / "Rescoring" / "ODDT.py"
+    path = Path(__file__).resolve().parents[2] / "OCDocker" / "Rescoring" / "ODDT.py"
     spec = util.spec_from_file_location("ocoddt_helpers_module", path)
     assert spec and spec.loader
     module = util.module_from_spec(spec)

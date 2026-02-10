@@ -156,7 +156,7 @@ def _import_dock(monkeypatch):
     monkeypatch.setitem(sys.modules, "OCDocker.Toolbox.Validation", validation_mod)
     monkeypatch.setitem(sys.modules, "OCDocker.Config", config_mod)
 
-    path = Path(__file__).resolve().parents[1] / "OCDocker" / "Processing" / "Dock.py"
+    path = Path(__file__).resolve().parents[2] / "OCDocker" / "Processing" / "Dock.py"
     spec = util.spec_from_file_location("ocdock_helpers_module", path)
     assert spec and spec.loader
     module = util.module_from_spec(spec)

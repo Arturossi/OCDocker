@@ -58,7 +58,7 @@ class DummyURL:
 ## Private ##
 @pytest.fixture()
 def dbminimal(monkeypatch):
-    project_root = Path(__file__).resolve().parents[1]
+    project_root = Path(__file__).resolve().parents[2]
     sys.path.insert(0, str(project_root / "OCDocker"))
 
     sqlalchemy = types.ModuleType("sqlalchemy")

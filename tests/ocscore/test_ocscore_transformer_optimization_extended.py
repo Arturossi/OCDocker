@@ -73,7 +73,7 @@ def _minimal_trans_data() -> dict:
 
 @pytest.fixture()
 def octrans(monkeypatch):
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     pkg_root = root / "OCDocker"
 
     _ensure_package("OCDocker", pkg_root)

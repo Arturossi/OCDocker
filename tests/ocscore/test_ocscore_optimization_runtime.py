@@ -93,7 +93,7 @@ def _minimal_data_dict() -> dict:
 
 @pytest.fixture()
 def ocmods(monkeypatch):
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     pkg_root = root / "OCDocker"
 
     _ensure_package("OCDocker", pkg_root)

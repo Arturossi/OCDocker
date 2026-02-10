@@ -80,7 +80,7 @@ def _ensure_package(name: str, path: Path) -> None:
 
 
 def _load_xgb_optimizer_module(monkeypatch):
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     pkg_root = root / "OCDocker"
 
     _ensure_package("OCDocker", pkg_root)

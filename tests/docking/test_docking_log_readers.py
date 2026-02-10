@@ -44,7 +44,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 @pytest.fixture
 def docking_modules(monkeypatch):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     import OCDocker
     # stub packages requiring heavy deps
     numpy_stub = types.ModuleType('numpy')
@@ -81,10 +81,15 @@ def docking_modules(monkeypatch):
         'OCDocker.Toolbox.Conversion',
         'OCDocker.Toolbox.FilesFolders',
         'OCDocker.Toolbox.MoleculeProcessing',
+        'OCDocker.Toolbox.Preparation',
         'OCDocker.Toolbox.Running',
         'OCDocker.Toolbox.Validation',
     ]:
         monkeypatch.setitem(sys.modules, name, types.ModuleType(name))
+
+    prep_mod = sys.modules['OCDocker.Toolbox.Preparation']
+    prep_mod.MGLToolsPreparationStrategy = object # type: ignore[attr-defined]
+    prep_mod.OpenBabelPreparationStrategy = object # type: ignore[attr-defined]
 
     printing_mod = types.ModuleType('OCDocker.Toolbox.Printing')
     printing_mod.print_error = lambda *a, **k: None # type: ignore
@@ -101,8 +106,8 @@ def docking_modules(monkeypatch):
     io_mod.lazyread_reverse_order_mmap = lazyread_reverse_order_mmap # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.IO', io_mod)
 
-    vina_path = Path(__file__).resolve().parents[1] / 'OCDocker' / 'Docking' / 'Vina.py'
-    smina_path = Path(__file__).resolve().parents[1] / 'OCDocker' / 'Docking' / 'Smina.py'
+    vina_path = Path(__file__).resolve().parents[2] / 'OCDocker' / 'Docking' / 'Vina.py'
+    smina_path = Path(__file__).resolve().parents[2] / 'OCDocker' / 'Docking' / 'Smina.py'
     spec_vina = importlib.util.spec_from_file_location('ocvina', vina_path) # type: ignore
     ocvina = importlib.util.module_from_spec(spec_vina) # type: ignore
     sys.modules['ocvina'] = ocvina

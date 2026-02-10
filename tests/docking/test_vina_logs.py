@@ -97,7 +97,7 @@ def test_rescore_logs(vina_mod, tmp_path):
 @pytest.fixture
 def vina_mod(monkeypatch, tmp_path):
     '''Load ``OCDocker.Docking.Vina`` with heavy dependencies stubbed.'''
-    root = Path(__file__).resolve().parents[1] / "OCDocker"
+    root = Path(__file__).resolve().parents[2] / "OCDocker"
     # Fake Initialise module with basic config values
     fake_init = types.ModuleType("OCDocker.Initialise")
     fake_init.clrs = {k: "" for k in ["r", "g", "y", "b", "p", "c", "n"]} # type: ignore

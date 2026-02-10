@@ -101,7 +101,7 @@ def _import_digest(monkeypatch):
     monkeypatch.setitem(sys.modules, "OCDocker.Toolbox.Printing", printing_mod)
     monkeypatch.setitem(sys.modules, "OCDocker.Config", config_mod)
 
-    path = Path(__file__).resolve().parents[1] / "OCDocker" / "Processing" / "Postprocessing" / "Digest.py"
+    path = Path(__file__).resolve().parents[2] / "OCDocker" / "Processing" / "Postprocessing" / "Digest.py"
     spec = util.spec_from_file_location("ocdigest_coverage_module", path)
     assert spec and spec.loader
     module = util.module_from_spec(spec)

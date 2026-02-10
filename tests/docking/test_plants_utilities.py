@@ -147,6 +147,10 @@ def _load_plants(monkeypatch, tmp_path):
     conv_mod.convert_mols_from_string = lambda *a, **k: 0 # type: ignore
     monkeypatch.setitem(sys.modules, "OCDocker.Toolbox.Conversion", conv_mod)
 
+    prep_mod = types.ModuleType("OCDocker.Toolbox.Preparation")
+    prep_mod.SPORESPreparationStrategy = object # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "OCDocker.Toolbox.Preparation", prep_mod)
+
     ocplants = importlib.import_module("OCDocker.Docking.PLANTS")
     return ocplants
 
@@ -189,7 +193,7 @@ def test_generate_plants_files_database(monkeypatch, ocplants, tmp_path):
 @pytest.mark.order(3)
 def test_get_binding_site(ocplants):
     # Get absolute path to box file
-    test_dir = Path(__file__).resolve().parent.parent
+    test_dir = Path(__file__).resolve().parent.parent.parent
     box = test_dir / 'test_files/test_ptn1/compounds/ligands/ligand/boxes/box0.pdb'
     result = ocplants.get_binding_site(str(box), spacing=2.9)
     # Check if result is an error code (int)

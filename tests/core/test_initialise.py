@@ -65,10 +65,10 @@ def load_is_doc_build():
     '''
     # Construct path to Initialise.py relative to this test file
     # This is a known, trusted path within the project structure
-    path = Path(__file__).resolve().parents[1] / "OCDocker" / "Initialise.py"
+    path = Path(__file__).resolve().parents[2] / "OCDocker" / "Initialise.py"
     
     # Validate that the path is within the project directory (security check)
-    project_root = Path(__file__).resolve().parents[1]
+    project_root = Path(__file__).resolve().parents[2]
     if not str(path.resolve()).startswith(str(project_root.resolve())):
         raise RuntimeError(f"Security check failed: path {path} is outside project root")
     

@@ -96,7 +96,7 @@ def _install_workers_stubs(monkeypatch):
 
 def _import_workers(monkeypatch):
     _install_workers_stubs(monkeypatch)
-    path = Path(__file__).resolve().parents[1] / "OCDocker" / "OCScore" / "Utils" / "Workers.py"
+    path = Path(__file__).resolve().parents[2] / "OCDocker" / "OCScore" / "Utils" / "Workers.py"
     spec = util.spec_from_file_location("ocscore_workers_branch_module", path)
     assert spec and spec.loader
     module = util.module_from_spec(spec)
