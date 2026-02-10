@@ -102,7 +102,6 @@ def docking_modules(monkeypatch):
             for line in reversed(f.read().splitlines()):
                 yield line
 
-
     io_mod.lazyread_reverse_order_mmap = lazyread_reverse_order_mmap # type: ignore
     monkeypatch.setitem(sys.modules, 'OCDocker.Toolbox.IO', io_mod)
 
