@@ -223,3 +223,6 @@ plots/
 
 # Extra files
 auxiliary_files/
+
+# Secret scan output
+.secrets.scan.json

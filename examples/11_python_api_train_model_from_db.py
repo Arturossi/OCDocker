@@ -633,7 +633,7 @@ def mask_password_in_url(url: str) -> str:
     Parameters
     ----------
     url : str
-        Database URL (e.g., mysql+pymysql://user:password@host:port/db)
+        Database URL (e.g., mysql+pymysql://user:<db_password>@host:port/db)
     
     Returns
     -------
