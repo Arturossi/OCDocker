@@ -20,8 +20,6 @@ omit =
     Docking/Future/**
     **/Docking/Future/*
     **/Docking/Future/**
-    *Docking/Future*
-    *Future*
 
 [report]
 precision = 2

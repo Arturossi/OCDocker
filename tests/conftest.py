@@ -275,14 +275,14 @@ def _required_tools_by_test_file() -> dict[str, set[str]]:
     '''Return the map of test modules to external tool requirements.'''
     return {
         "test_vina_prepare.py": {"prepare_ligand4", "prepare_receptor4"},
-        "test_Smina.py": {"smina", "prepare_ligand4", "prepare_receptor4", "openbabel-py", "dssp"},
-        "test_Smina_utils.py": {"dssp"},
-        "test_PLANTS.py": {"plants", "obabel", "openbabel-py", "dssp"},
-        "test_Vina.py": {"vina", "prepare_ligand4", "prepare_receptor4", "openbabel-py", "dssp"},
+        "test_smina.py": {"smina", "prepare_ligand4", "prepare_receptor4", "openbabel-py", "dssp"},
+        "test_smina_utilities.py": {"dssp"},
+        "test_plants.py": {"plants", "obabel", "openbabel-py", "dssp"},
+        "test_vina.py": {"vina", "prepare_ligand4", "prepare_receptor4", "openbabel-py", "dssp"},
         "test_preparation_strategy.py": {"dssp"},
         "test_integration_docking_workflow.py": {"dssp"},
         "test_plants_prepare.py": {"plants", "obabel"},
-        "test_Receptor.py": {"openbabel-py", "dssp"},
+        "test_receptor.py": {"openbabel-py", "dssp"},
     }
 
 
