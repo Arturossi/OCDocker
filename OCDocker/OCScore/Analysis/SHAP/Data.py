@@ -125,7 +125,11 @@ def load_and_prepare_data(
     X_train = ocscoredata.invert_values_conditionally(data['X_train'])
     X_test = ocscoredata.invert_values_conditionally(data['X_test'])
     X_val = ocscoredata.invert_values_conditionally(data['X_val'])
-    y_val = data['y_val'].values
+    y_val_raw = data['y_val']
+    if hasattr(y_val_raw, "values"):
+        y_val = np.asarray(y_val_raw.values)
+    else:
+        y_val = np.asarray(y_val_raw)
 
     if X_train is None:
         raise ValueError("Training data (X_train) is not available after preprocessing.")

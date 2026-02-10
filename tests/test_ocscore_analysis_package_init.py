@@ -85,3 +85,59 @@ def test_analysis_package_exposes_shap_exports_when_shap_module_is_available(mon
 
     monkeypatch.delitem(sys.modules, "OCDocker.OCScore.Analysis.SHAP", raising=False)
     importlib.reload(reloaded)
+
+
+@pytest.mark.order(352)
+def test_analysis_package_sets_shap_exports_to_none_when_shap_import_fails(monkeypatch):
+    analysis_pkg = importlib.import_module("OCDocker.OCScore.Analysis")
+
+    # Missing required names causes `from .SHAP import ...` to fail.
+    fake_shap = types.ModuleType("OCDocker.OCScore.Analysis.SHAP")
+    monkeypatch.setitem(sys.modules, "OCDocker.OCScore.Analysis.SHAP", fake_shap)
+
+    reloaded = importlib.reload(analysis_pkg)
+    assert reloaded.run_shap_analysis is None
+    assert reloaded.OutputPaths is None
+    assert reloaded.StudyHandles is None
+    assert reloaded.BestSelections is None
+    assert reloaded.select_best_from_studies is None
+    assert reloaded.DataHandles is None
+    assert reloaded.load_and_prepare_data is None
+    assert reloaded.build_neural_net is None
+    assert reloaded.compute_shap_values is None
+    assert reloaded.shap_plots is None
+
+    monkeypatch.delitem(sys.modules, "OCDocker.OCScore.Analysis.SHAP", raising=False)
+    importlib.reload(reloaded)
+
+
+@pytest.mark.order(353)
+def test_analysis_package_sets_impact_exports_to_none_when_impact_import_fails(monkeypatch):
+    analysis_pkg = importlib.import_module("OCDocker.OCScore.Analysis")
+
+    # Keep SHAP import successful so we isolate the Impact fallback branch.
+    fake_shap = types.ModuleType("OCDocker.OCScore.Analysis.SHAP")
+    fake_shap.run_shap_analysis = object()
+    fake_shap.OutputPaths = type("OutputPathsMarker", (), {})
+    fake_shap.StudyHandles = type("StudyHandlesMarker", (), {})
+    fake_shap.BestSelections = type("BestSelectionsMarker", (), {})
+    fake_shap.select_best_from_studies = object()
+    fake_shap.DataHandles = type("DataHandlesMarker", (), {})
+    fake_shap.load_and_prepare_data = object()
+    fake_shap.build_neural_net = object()
+    fake_shap.compute_shap_values = object()
+    fake_shap.plots = object()
+    monkeypatch.setitem(sys.modules, "OCDocker.OCScore.Analysis.SHAP", fake_shap)
+
+    # Missing required Impact names triggers fallback to None exports.
+    fake_impact = types.ModuleType("OCDocker.OCScore.Analysis.Impact")
+    monkeypatch.setitem(sys.modules, "OCDocker.OCScore.Analysis.Impact", fake_impact)
+
+    reloaded = importlib.reload(analysis_pkg)
+    assert reloaded.build_impact_overview is None
+    assert reloaded.plot_impact_arrows_inline_labels is None
+    assert reloaded.get_neutral_features is None
+
+    monkeypatch.delitem(sys.modules, "OCDocker.OCScore.Analysis.SHAP", raising=False)
+    monkeypatch.delitem(sys.modules, "OCDocker.OCScore.Analysis.Impact", raising=False)
+    importlib.reload(reloaded)

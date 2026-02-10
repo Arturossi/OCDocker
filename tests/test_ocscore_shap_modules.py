@@ -439,3 +439,148 @@ def test_shap_explain_stratified_indices_with_group_columns(monkeypatch):
     idx = explain_mod._stratified_indices(df, n=4, by=["grp1", "grp2"], seed=9)
     assert idx.ndim == 1
     assert len(idx) <= 4
+
+
+@pytest.mark.order(414)
+def test_shap_cli_main_passes_optional_arguments_and_saves_csv_by_default(monkeypatch, capsys):
+    mods = _load_shap_modules(monkeypatch)
+    cli_mod = mods["cli"]
+
+    captured = {}
+
+    def _fake_run_shap_analysis(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(out_dir="out", shap_values_npy="out/shap_values.npy")
+
+    monkeypatch.setattr(cli_mod, "run_shap_analysis", _fake_run_shap_analysis)
+
+    rc = cli_mod.main(
+        [
+            "--storage", "sqlite://",
+            "--ao_study", "ao",
+            "--nn_study", "nn",
+            "--seed_study", "seed",
+            "--mask_study", "mask",
+            "--df_path", "df.csv.gz",
+            "--base_models", "models",
+            "--study_number", "3",
+            "--out_dir", "out",
+            "--explainer", "deep",
+            "--background_size", "15",
+            "--eval_size", "5",
+            "--stratify_by", "target", "active",
+            "--seed", "77",
+        ]
+    )
+
+    assert rc == 0
+    assert captured["background_size"] == 15
+    assert captured["eval_size"] == 5
+    assert captured["stratify_by"] == ["target", "active"]
+    assert captured["seed"] == 77
+    assert captured["save_csv"] is True
+    printed = capsys.readouterr().out
+    assert json.loads(printed)["shap_values_npy"] == "out/shap_values.npy"
+
+
+@pytest.mark.order(415)
+def test_shap_data_accepts_numpy_y_val(monkeypatch):
+    mods = _load_shap_modules(monkeypatch)
+    data_mod = mods["data"]
+
+    monkeypatch.setattr(data_mod.ocscoredata, "preprocess_df", lambda _p: (pd.DataFrame(), pd.DataFrame(), ["s1"]))
+    monkeypatch.setattr(
+        data_mod.ocscoredata,
+        "load_data",
+        lambda **_k: {
+            "X_train": pd.DataFrame({"f1": [1.0, 2.0]}),
+            "X_test": pd.DataFrame({"f1": [3.0]}),
+            "X_val": pd.DataFrame({"f1": [4.0]}),
+            "y_val": np.array([0.25, 0.75], dtype=float),
+        },
+    )
+    monkeypatch.setattr(data_mod.ocscoredata, "invert_values_conditionally", lambda x: x)
+
+    out = data_mod.load_and_prepare_data("df.csv.gz", "models", 1)
+    assert out.y_val.shape == (2,)
+    assert np.allclose(out.y_val, np.array([0.25, 0.75], dtype=float))
+
+
+@pytest.mark.order(416)
+def test_shap_runner_passes_mask_as_list_to_model_builder(monkeypatch, tmp_path):
+    mods = _load_shap_modules(monkeypatch)
+    runner_mod = mods["runner"]
+
+    best = SimpleNamespace(
+        autoencoder_params={"enc": 16},
+        nn_params={"layers": 2},
+        seed=7,
+        mask=np.array([1, 0, 1]),
+    )
+    data = SimpleNamespace(
+        X_train=pd.DataFrame({"f1": [1.0, 2.0], "f2": [0.1, 0.2]}),
+        X_test=pd.DataFrame({"f1": [1.5, 2.5], "f2": [0.15, 0.25]}),
+        feature_names=["f1", "f2"],
+    )
+    calls = {"mask": None}
+
+    monkeypatch.setattr(runner_mod, "select_best_from_studies", lambda _s: best)
+    monkeypatch.setattr(runner_mod, "load_and_prepare_data", lambda **_k: data)
+    monkeypatch.setattr(
+        runner_mod,
+        "build_neural_net",
+        lambda **kwargs: calls.__setitem__("mask", kwargs.get("mask")) or SimpleNamespace(NN=object()),
+    )
+    monkeypatch.setattr(runner_mod, "compute_shap_values", lambda **_k: np.array([[0.2, -0.2], [0.1, -0.1]]))
+    monkeypatch.setattr(runner_mod.plots, "feature_importance_barh", lambda *_a, **_k: None)
+    monkeypatch.setattr(runner_mod.plots, "beeswarm", lambda *_a, **_k: None)
+
+    studies = runner_mod.StudyHandles("ao", "nn", "seed", "mask", "sqlite://")
+    out = runner_mod.run_shap_analysis(
+        studies=studies,
+        df_path="df.csv.gz",
+        base_models_folder="models",
+        study_number=1,
+        out_dir=str(tmp_path / "mask_list"),
+        save_csv=False,
+    )
+
+    assert isinstance(calls["mask"], list)
+    assert calls["mask"] == [1, 0, 1]
+    assert out.shap_values_csv is None
+
+
+@pytest.mark.order(417)
+def test_shap_studies_accepts_string_feature_mask(monkeypatch):
+    mods = _load_shap_modules(monkeypatch)
+    studies_mod = mods["studies"]
+
+    class _Trial:
+        def __init__(self, params=None, user_attrs=None):
+            self.params = params or {}
+            self.user_attrs = user_attrs or {}
+
+    class _Study:
+        def __init__(self, df, trials):
+            self._df = df
+            self.trials = trials
+
+        def trials_dataframe(self):
+            return self._df
+
+    ao_df = pd.DataFrame({"number": [0], "state": ["COMPLETE"], "value": [0.1], "user_attrs_val_rmse": [0.2]})
+    nn_df = pd.DataFrame({"number": [0], "state": ["COMPLETE"], "value": [0.8], "user_attrs_AUC": [0.3]})
+    seed_df = pd.DataFrame({"number": [0], "state": ["COMPLETE"], "value": [0.2], "user_attrs_AUC": [0.9]})
+    mask_df = pd.DataFrame({"number": [0], "state": ["COMPLETE"], "value": [0.2], "user_attrs_AUC": [0.8]})
+
+    mapping = {
+        "ao": _Study(ao_df, [_Trial(params={"enc": 64})]),
+        "nn": _Study(nn_df, [_Trial(params={"layers": 3})]),
+        "seed": _Study(seed_df, [_Trial(user_attrs={"random_seed": 123})]),
+        "mask": _Study(mask_df, [_Trial(user_attrs={"Feature_Mask": "10110"})]),
+    }
+    monkeypatch.setattr(studies_mod.optuna, "load_study", lambda study_name, storage: mapping[study_name])
+
+    handles = studies_mod.StudyHandles("ao", "nn", "seed", "mask", "sqlite://")
+    best = studies_mod.select_best_from_studies(handles)
+    assert np.array_equal(best.mask, np.array([1, 0, 1, 1, 0]))
