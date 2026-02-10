@@ -18,6 +18,7 @@ import types
 import OCDocker.OCScore.Scoring as ocscoring
 
 from types import SimpleNamespace
+from sklearn.preprocessing import StandardScaler
 
 # License
 ###############################################################################
@@ -88,6 +89,97 @@ class _ForwardFallbackMaskModel:
         return x.sum(dim=1, keepdim=True)
 
     __call__ = forward
+
+
+class _PredictModelWithToNoDevice:
+    def eval(self):
+        return self
+
+    def to(self, _device):
+        return self
+
+    def predict(self, x):
+        x_arr = np.asarray(x, dtype=float)
+        return x_arr.sum(axis=1)
+
+
+class _MaskCarrierPredictModel:
+    def __init__(self, mask):
+        self.mask = mask
+
+    def predict(self, x):
+        x_arr = np.asarray(x, dtype=float)
+        return x_arr.sum(axis=1)
+
+
+class _RecursiveMaskCarrierModel(_MaskCarrierPredictModel):
+    def __init__(self, mask, child):
+        super().__init__(mask)
+        self.child = child
+
+    def modules(self):
+        return [self, self.child]
+
+
+class _ForwardMaskModel:
+    def __init__(self, mask, *, freeze_mask=False, return_numpy=False):
+        self._mask = mask
+        self._freeze_mask = freeze_mask
+        self._return_numpy = return_numpy
+
+    @property
+    def mask(self):
+        return self._mask
+
+    @mask.setter
+    def mask(self, value):
+        if not self._freeze_mask:
+            self._mask = value
+
+    def eval(self):
+        return self
+
+    def to(self, device):
+        self.device = device
+        return self
+
+    def forward(self, x):
+        if self._return_numpy:
+            return np.arange(x.shape[0], dtype=float)
+        return x.sum(dim=1, keepdim=True)
+
+    __call__ = forward
+
+
+class _ForwardNoMaskModel:
+    def eval(self):
+        return self
+
+    def to(self, device):
+        self.device = device
+        return self
+
+    def forward(self, x):
+        return x.sum(dim=1, keepdim=True)
+
+    __call__ = forward
+
+
+class _LenOneMask:
+    def __len__(self):
+        return 1
+
+
+class _TwoPhaseValuesDict(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._values_calls = 0
+
+    def values(self):
+        self._values_calls += 1
+        if self._values_calls < 3:
+            return [123]
+        return [np.array([1.0, 0.0])]
 
 
 # Functions
@@ -661,3 +753,575 @@ def test_get_score_enforce_reference_column_order_propagates_reorder_errors(monk
             enforce_reference_column_order=True,
             use_gpu=False,
         )
+
+
+@pytest.mark.order(411)
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"model": _PredictModel()},
+        {"network": _PredictModel()},
+        {"wrapped": _PredictModel()},
+    ],
+)
+def test_get_score_loads_model_from_dict_variants(monkeypatch, tmp_path, payload):
+    model_path = _model_file(tmp_path)
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: payload)
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+
+    out = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=True,
+    )
+
+    assert isinstance(out, pd.DataFrame)
+    assert "predicted_score" in out.columns
+
+
+@pytest.mark.order(412)
+def test_get_score_to_without_device_attribute_branch(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    model = _PredictModelWithToNoDevice()
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model)
+
+    out = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+    assert isinstance(out, pd.DataFrame)
+
+
+@pytest.mark.order(413)
+def test_get_score_fix_mask_attribute_variants(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+
+    # mask is None -> []
+    model_none = _MaskCarrierPredictModel(mask=None)
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model_none)
+    _ = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+    assert model_none.mask == []
+
+    # dict with tensor-like value found in generic values loop
+    model_tensor = _MaskCarrierPredictModel(mask={"unexpected": torch.tensor([1.0, 0.0])})
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model_tensor)
+    _ = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+    assert isinstance(model_tensor.mask, torch.Tensor)
+
+    # dict with ndarray from generic values loop
+    model_ndarray = _MaskCarrierPredictModel(mask={"unexpected": np.array([1.0, 0.0])})
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model_ndarray)
+    _ = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+    assert isinstance(model_ndarray.mask, torch.Tensor)
+
+    # dict with common key but unsupported value -> []
+    model_unknown = _MaskCarrierPredictModel(mask={"mask": object()})
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model_unknown)
+    _ = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+    assert model_unknown.mask == []
+
+    # ndarray/list direct mask conversion branch
+    model_direct = _MaskCarrierPredictModel(mask=np.array([1.0, 0.0]))
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model_direct)
+    _ = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+    assert isinstance(model_direct.mask, torch.Tensor)
+
+
+@pytest.mark.order(414)
+def test_get_score_fix_mask_attribute_recurses_nested_modules(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    child = _MaskCarrierPredictModel(mask=[1.0, 0.0])
+    model = _RecursiveMaskCarrierModel(mask=[], child=child)
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model)
+
+    _ = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+
+    assert isinstance(child.mask, torch.Tensor)
+
+
+@pytest.mark.order(415)
+def test_get_score_db_branches_for_missing_fields_and_existing_db(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    model = _CapturePredictModel()
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model)
+
+    class _Complexes:
+        allDescriptors = ["D1", "D2", "db"]
+
+    row1 = SimpleNamespace(
+        d1=None,  # hits value-is-None branch
+        db="KNOWN_DB",  # keeps db present and skips UNKNOWN assignment
+        ligand=SimpleNamespace(),  # no name
+        receptor=None,  # receptor condition false
+    )
+    row2 = SimpleNamespace(
+        d1=1.0,
+        db="KNOWN_DB",
+        receptor=SimpleNamespace(),  # receptor exists but no name
+    )
+
+    class _Session:
+        def query(self, _model):
+            class _Query:
+                @staticmethod
+                def all():
+                    return [row1, row2]
+            return _Query()
+
+    class _SessionCtx:
+        def __enter__(self):
+            return _Session()
+
+        def __exit__(self, exc_type, exc, tb):
+            _ = (exc_type, exc, tb)
+            return False
+
+    init_mod = types.ModuleType("OCDocker.Initialise")
+    init_mod.session = lambda: _SessionCtx()  # type: ignore[attr-defined]
+    db_mod = types.ModuleType("OCDocker.DB")
+    db_mod.__path__ = []  # type: ignore[attr-defined]
+    db_models_mod = types.ModuleType("OCDocker.DB.Models")
+    db_models_mod.__path__ = []  # type: ignore[attr-defined]
+    complexes_mod = types.ModuleType("OCDocker.DB.Models.Complexes")
+    complexes_mod.Complexes = _Complexes  # type: ignore[attr-defined]
+
+    monkeypatch.setitem(sys.modules, "OCDocker.Initialise", init_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.DB", db_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.DB.Models", db_models_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.DB.Models.Complexes", complexes_mod)
+    import OCDocker as ocpkg
+    monkeypatch.setattr(ocpkg, "Initialise", init_mod, raising=False)
+    monkeypatch.setattr(ocpkg, "DB", db_mod, raising=False)
+    monkeypatch.setattr(db_mod, "Models", db_models_mod, raising=False)
+    monkeypatch.setattr(db_models_mod, "Complexes", complexes_mod, raising=False)
+
+    out = ocscoring.get_score(
+        model_path=str(model_path),
+        data=None,
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+
+    assert isinstance(out, pd.DataFrame)
+    assert out["db"].tolist() == ["KNOWN_DB", "KNOWN_DB"]
+
+
+@pytest.mark.order(416)
+def test_get_score_db_import_or_attribute_error_is_wrapped(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: _PredictModel())
+
+    class _Complexes:
+        allDescriptors = []
+
+    class _BrokenSessionCtx:
+        def __enter__(self):
+            raise AttributeError("broken session")
+
+        def __exit__(self, exc_type, exc, tb):
+            _ = (exc_type, exc, tb)
+            return False
+
+    init_mod = types.ModuleType("OCDocker.Initialise")
+    init_mod.session = lambda: _BrokenSessionCtx()  # type: ignore[attr-defined]
+    db_mod = types.ModuleType("OCDocker.DB")
+    db_mod.__path__ = []  # type: ignore[attr-defined]
+    db_models_mod = types.ModuleType("OCDocker.DB.Models")
+    db_models_mod.__path__ = []  # type: ignore[attr-defined]
+    complexes_mod = types.ModuleType("OCDocker.DB.Models.Complexes")
+    complexes_mod.Complexes = _Complexes  # type: ignore[attr-defined]
+
+    monkeypatch.setitem(sys.modules, "OCDocker.Initialise", init_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.DB", db_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.DB.Models", db_models_mod)
+    monkeypatch.setitem(sys.modules, "OCDocker.DB.Models.Complexes", complexes_mod)
+    import OCDocker as ocpkg
+    monkeypatch.setattr(ocpkg, "Initialise", init_mod, raising=False)
+    monkeypatch.setattr(ocpkg, "DB", db_mod, raising=False)
+    monkeypatch.setattr(db_mod, "Models", db_models_mod, raising=False)
+    monkeypatch.setattr(db_models_mod, "Complexes", complexes_mod, raising=False)
+
+    with pytest.raises(ValueError, match="Failed to read from database"):
+        ocscoring.get_score(
+            model_path=str(model_path),
+            data=None,
+            normalize=False,
+            invert_conditionally=False,
+            enforce_reference_column_order=False,
+            use_gpu=False,
+        )
+
+
+@pytest.mark.order(417)
+def test_get_score_data_path_success_assigns_loaded_dataframe(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    data_path = tmp_path / "loaded.csv"
+    data_path.write_text("x\n1\n", encoding="utf-8")
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: _PredictModel())
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_data", lambda *_a, **_k: _base_df())
+
+    out = ocscoring.get_score(
+        model_path=str(model_path),
+        data=str(data_path),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+
+    assert isinstance(out, pd.DataFrame)
+    assert out["predicted_score"].tolist() == [4.0, 6.0]
+
+
+@pytest.mark.order(418)
+def test_get_score_score_columns_empty_and_invert_branch(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    model = _CapturePredictModel()
+    invert_calls = {"n": 0}
+
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model)
+    monkeypatch.setattr(
+        ocscoring.ocscoredata,
+        "invert_values_conditionally",
+        lambda df, **_k: invert_calls.__setitem__("n", invert_calls["n"] + 1) or df,
+    )
+
+    out = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        score_columns_list=[],
+        no_scores=True,
+        normalize=False,
+        invert_conditionally=True,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+
+    assert isinstance(out, pd.DataFrame)
+    assert invert_calls["n"] == 1
+    assert model.seen_shape == (2, 2)
+
+
+@pytest.mark.order(419)
+def test_get_score_uses_valid_loaded_scaler_object(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    scaler_path = _scaler_file(tmp_path)
+    scaler_obj = StandardScaler()
+    captured = {"scaler": None}
+
+    def _load_object(path, *_a, **_k):
+        if path == str(model_path):
+            return _PredictModel()
+        return scaler_obj
+
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", _load_object)
+    monkeypatch.setattr(
+        ocscoring.ocscoredata,
+        "norm_data",
+        lambda df, scaler=None, **_k: captured.__setitem__("scaler", scaler) or df,
+    )
+
+    out = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        scaler_path=str(scaler_path),
+        normalize=True,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+
+    assert isinstance(out, pd.DataFrame)
+    assert captured["scaler"] is scaler_obj
+
+
+@pytest.mark.order(420)
+def test_get_score_normalize_non_tuple_return_path(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: _PredictModel())
+    monkeypatch.setattr(ocscoring.ocscoredata, "norm_data", lambda df, **_k: df)
+
+    out = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=True,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+
+    assert isinstance(out, pd.DataFrame)
+    assert out["predicted_score"].tolist() == [4.0, 6.0]
+
+
+@pytest.mark.order(421)
+def test_get_score_pca_default_skip_extends_with_score_columns(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    model = _CapturePredictModel()
+    seen = {"skip": None}
+    df = pd.DataFrame(
+        {
+            "receptor": ["r1", "r2"],
+            "ligand": ["l1", "l2"],
+            "VINA_SCORE": [1.0, 2.0],
+            "feat1": [3.0, 4.0],
+        }
+    )
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model)
+    monkeypatch.setattr(
+        ocscoring.ocscoredata,
+        "apply_pca",
+        lambda frame, _pca, columns_to_skip_pca=None, **_k: seen.__setitem__("skip", list(columns_to_skip_pca or [])) or frame,
+    )
+
+    out = ocscoring.get_score(
+        model_path=str(model_path),
+        data=df,
+        pca_model=object(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+
+    assert isinstance(out, pd.DataFrame)
+    assert "VINA_SCORE" in (seen["skip"] or [])
+
+
+@pytest.mark.order(422)
+def test_get_score_pca_with_explicit_columns_to_skip(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    seen = {"skip": None}
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: _PredictModel())
+    monkeypatch.setattr(
+        ocscoring.ocscoredata,
+        "apply_pca",
+        lambda frame, _pca, columns_to_skip_pca=None, **_k: seen.__setitem__("skip", list(columns_to_skip_pca or [])) or frame,
+    )
+
+    _ = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        pca_model=object(),
+        columns_to_skip_pca=["receptor"],
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+
+    assert seen["skip"] == ["receptor"]
+
+
+@pytest.mark.order(423)
+def test_get_score_forward_paths_without_mask_and_with_mask_none(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+
+    model_no_mask = _ForwardNoMaskModel()
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model_no_mask)
+    out_no_mask = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+    assert isinstance(out_no_mask, pd.DataFrame)
+
+    model_mask_none = _ForwardMaskModel(mask=None)
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model_mask_none)
+    out_mask_none = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+    assert isinstance(out_mask_none, pd.DataFrame)
+    assert model_mask_none.mask == []
+
+
+@pytest.mark.order(424)
+@pytest.mark.parametrize(
+    "frozen_mask",
+    [
+        {"other": np.array([1.0, 0.0])},  # values loop + ndarray conversion path
+        {"other": torch.tensor([1.0, 0.0])},  # values loop + tensor conversion path
+        {"other": 5},  # first-value fallback to []
+        {"mask": object()},  # unsupported extracted value -> []
+    ],
+)
+def test_get_score_forward_dict_mask_conversion_paths(monkeypatch, tmp_path, frozen_mask):
+    model_path = _model_file(tmp_path)
+    model = _ForwardMaskModel(mask=frozen_mask, freeze_mask=True)
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model)
+
+    out = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+
+    assert isinstance(out, pd.DataFrame)
+    # Frozen setter keeps dict alive, so final dict safety branch is exercised.
+    assert isinstance(model.mask, dict)
+
+
+@pytest.mark.order(425)
+def test_get_score_forward_mask_scalar_and_numpy_prediction_paths(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    model = _ForwardMaskModel(mask=_LenOneMask(), return_numpy=True)
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model)
+
+    out = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+
+    assert isinstance(out, pd.DataFrame)
+    assert out["predicted_score"].tolist() == [0.0, 1.0]
+
+
+@pytest.mark.order(426)
+def test_get_score_returns_dataframe_without_metadata_columns(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    df = pd.DataFrame({"feat1": [1.0, 2.0], "feat2": [3.0, 4.0]})
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: _PredictModel())
+
+    out = ocscoring.get_score(
+        model_path=str(model_path),
+        data=df,
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+
+    assert isinstance(out, pd.DataFrame)
+    assert list(out.columns) == ["predicted_score"]
+
+
+@pytest.mark.order(427)
+def test_get_score_fix_mask_attribute_list_empty_branch(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    model = _MaskCarrierPredictModel(mask=[])
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model)
+
+    out = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+
+    assert isinstance(out, pd.DataFrame)
+    assert model.mask == []
+
+
+@pytest.mark.order(428)
+def test_get_score_forward_freeze_mask_none_and_list_conversion(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+
+    model_none = _ForwardMaskModel(mask=None, freeze_mask=True)
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model_none)
+    out_none = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+    assert isinstance(out_none, pd.DataFrame)
+
+    model_list = _ForwardMaskModel(mask={"mask": [1.0, 0.0]}, freeze_mask=True)
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model_list)
+    out_list = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+    assert isinstance(out_list, pd.DataFrame)
+
+
+@pytest.mark.order(429)
+def test_get_score_forward_dict_first_value_array_like_branch(monkeypatch, tmp_path):
+    model_path = _model_file(tmp_path)
+    model = _ForwardMaskModel(mask=_TwoPhaseValuesDict({"a": "b"}), freeze_mask=True)
+    monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model)
+
+    out = ocscoring.get_score(
+        model_path=str(model_path),
+        data=_base_df(),
+        normalize=False,
+        invert_conditionally=False,
+        enforce_reference_column_order=False,
+        use_gpu=False,
+    )
+
+    assert isinstance(out, pd.DataFrame)
