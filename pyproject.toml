@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["OCDocker*"]
+include = ["OCDocker*", "oddt*"]
 
 [project]
 name = "OCDocker"
@@ -34,7 +34,8 @@ dependencies = [
   "rdkit>=2024.09.1",
   "openbabel>=3.1.1",
   "biopython>=1.84",
-  "oddt @ git+https://github.com/Arturossi/oddt.git@6e5629ed05aa4931421b14cace8f2fea5bff5bb6",
+  # ODDT is vendored into release artifacts in CI before build.
+  # PyPI rejects direct VCS dependencies in Requires-Dist metadata.
   "spyrmsd>=0.8.0",
   # Data analysis and visualization
   "seaborn>=0.13.2",

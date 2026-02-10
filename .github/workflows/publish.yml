@@ -21,10 +21,16 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Vendor ODDT fork
+        env:
+          ODDT_VENDOR_REPO: https://github.com/Arturossi/oddt.git
+          ODDT_VENDOR_REF: 6e5629ed05aa4931421b14cace8f2fea5bff5bb6  # pragma: allowlist secret
+        run: |
+          ./scripts/vendor_oddt.sh
+
       - name: Build package
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install build
+          python -m pip install --upgrade pip build
           python -m build
 
       - name: Publish to PyPI
