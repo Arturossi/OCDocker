@@ -8,8 +8,9 @@ Prerequisites
 
 Make sure you have the following prerequisites installed:
 
-- Python (>=3.10)
-- pip (or conda/mamba)
+- Python (>=3.11)
+- Conda (Miniconda/Anaconda) with mamba
+- pip (inside the conda environment)
 
 Quickstart (minimal, SQLite)
 ----------------------------
@@ -17,7 +18,7 @@ Quickstart (minimal, SQLite)
 If you want the fastest path without setting up MySQL, use SQLite (local file DB) as the default backend:
 
 1. Ensure the system dependencies are installed (see :ref:`system-dependencies`).
-2. Install OCDocker (see below).
+2. Create/activate a conda env with Python 3.11 (prefer mamba) and install OCDocker with pip.
 3. Enable SQLite when running commands:
 
    .. code-block:: bash
@@ -36,7 +37,7 @@ Before installing OCDocker, you must install the following system packages on Ub
 
 .. code-block:: bash
 
-   sudo apt-get install openbabel libopenbabel-dev swig
+   sudo apt-get install openbabel libopenbabel-dev swig cmake g++
 
 These packages are required for building and using OpenBabel Python bindings, which are essential for OCDocker's molecular processing capabilities.
 
@@ -47,36 +48,50 @@ To install OCDocker, follow these steps:
 
 1. Ensure the system dependencies are installed (see :ref:`system-dependencies`).
 
-2. Clone the repository:
+2. Install mamba (if not already installed):
 
    .. code-block:: bash
 
-      git clone https://github.com/your-repository/OCDocker.git
-      cd OCDocker
+      conda install -n base -c conda-forge mamba
 
-3. Create a virtual environment:
-
-   .. code-block:: bash
-
-      python -m venv venv
-      source venv/bin/activate  # On Windows use `venv\\Scripts\\activate`
-
-4. Install OCDocker and dependencies (pip):
+3. Create and activate a conda environment:
 
    .. code-block:: bash
 
-      pip install .
+      mamba create -n ocdocker python=3.11 -y
+      conda activate ocdocker
 
-   Or install from PyPI:
+4. Install OCDocker with pip (choose one option):
+
+   Option A: install from PyPI (recommended for users):
 
    .. code-block:: bash
 
       pip install ocdocker
 
-   Or use conda (recommended for binary deps like RDKit/OpenBabel):
+   Option B: install from source (recommended for development):
 
    .. code-block:: bash
 
-      mamba install arturossi/label/prealpha::ocdocker
+      git clone https://github.com/Arturossi/OCDocker.git
+      cd OCDocker
+      pip install .
 
-   **Note:** Even when using conda, ensure the system packages are installed first for optimal compatibility (see :ref:`system-dependencies`).
+Optional: build the Sphinx documentation
+-----------------------------------------
+
+If you want to build docs locally in the same ``ocdocker`` conda environment:
+
+Option A (conda/mamba):
+
+.. code-block:: bash
+
+   mamba install -n ocdocker -c conda-forge sphinx sphinx-argparse furo sphinx-rtd-theme myst-parser
+   make -C docs html
+
+Option B (pip extras):
+
+.. code-block:: bash
+
+   pip install -e ".[docs]"
+   make -C docs html
