@@ -95,11 +95,15 @@ class Smina:
         self.box_file = str(box_file)
 
         # Receptor
-        if type(receptor) == ocr.Receptor:
+        if isinstance(receptor, ocr.Receptor):
             self.input_receptor = receptor
         else:
-            ocerror.Error.wrong_type(f"The receptor '{receptor}' has not a supported type. Expected 'ocr.Receptor' but got {type(receptor)} instead.", level = ocerror.ReportLevel.ERROR)
-            return None
+            msg = (
+                f"The receptor '{receptor}' has not a supported type. "
+                f"Expected 'ocr.Receptor' but got {type(receptor)} instead."
+            )
+            ocerror.Error.wrong_type(msg, level=ocerror.ReportLevel.ERROR)
+            raise TypeError(msg)
 
         # Check if the folder where the config_path is located exists (remove the file name from the path)
         _ = ocff.safe_create_dir(os.path.dirname(self.config))
@@ -109,11 +113,15 @@ class Smina:
         self.prepared_receptor = str(prepared_receptor_path)
 
         # Ligand
-        if type(ligand) == ocl.Ligand:
+        if isinstance(ligand, ocl.Ligand):
             self.input_ligand = ligand
         else:
-            ocerror.Error.wrong_type(f"The ligand '{ligand}' has not a supported type. Expected 'ocl.Ligand' but got {type(ligand)} instead.", level = ocerror.ReportLevel.ERROR)
-            return None
+            msg = (
+                f"The ligand '{ligand}' has not a supported type. "
+                f"Expected 'ocl.Ligand' but got {type(ligand)} instead."
+            )
+            ocerror.Error.wrong_type(msg, level=ocerror.ReportLevel.ERROR)
+            raise TypeError(msg)
 
         self.input_ligand_path = self.__parse_ligand_path(ligand)
         self.prepared_ligand = str(prepared_ligand_path)

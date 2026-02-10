@@ -96,27 +96,29 @@ def test_smina_init_and_private_parser_branches(monkeypatch, tmp_path):
     lig = _dummy_ligand(str(tmp_path / "lig.smi"))
     rec = _dummy_receptor(str(tmp_path / "rec.pdb"))
 
-    _ = ocsmina.Smina(
-        config_path=str(tmp_path / "smina.conf"),
-        box_file=str(tmp_path / "box.pdb"),
-        receptor=123,
-        prepared_receptor_path=str(tmp_path / "prep_rec.pdbqt"),
-        ligand=lig,
-        prepared_ligand_path=str(tmp_path / "prep_lig.pdbqt"),
-        smina_log=str(tmp_path / "smina.log"),
-        output_smina=str(tmp_path / "out.pdbqt"),
-    )
+    with pytest.raises(TypeError, match="Expected 'ocr.Receptor'"):
+        _ = ocsmina.Smina(
+            config_path=str(tmp_path / "smina.conf"),
+            box_file=str(tmp_path / "box.pdb"),
+            receptor=123,
+            prepared_receptor_path=str(tmp_path / "prep_rec.pdbqt"),
+            ligand=lig,
+            prepared_ligand_path=str(tmp_path / "prep_lig.pdbqt"),
+            smina_log=str(tmp_path / "smina.log"),
+            output_smina=str(tmp_path / "out.pdbqt"),
+        )
 
-    _ = ocsmina.Smina(
-        config_path=str(tmp_path / "smina2.conf"),
-        box_file=str(tmp_path / "box.pdb"),
-        receptor=rec,
-        prepared_receptor_path=str(tmp_path / "prep_rec.pdbqt"),
-        ligand=123,
-        prepared_ligand_path=str(tmp_path / "prep_lig.pdbqt"),
-        smina_log=str(tmp_path / "smina.log"),
-        output_smina=str(tmp_path / "out.pdbqt"),
-    )
+    with pytest.raises(TypeError, match="Expected 'ocl.Ligand'"):
+        _ = ocsmina.Smina(
+            config_path=str(tmp_path / "smina2.conf"),
+            box_file=str(tmp_path / "box.pdb"),
+            receptor=rec,
+            prepared_receptor_path=str(tmp_path / "prep_rec.pdbqt"),
+            ligand=123,
+            prepared_ligand_path=str(tmp_path / "prep_lig.pdbqt"),
+            smina_log=str(tmp_path / "smina.log"),
+            output_smina=str(tmp_path / "out.pdbqt"),
+        )
 
     inst = object.__new__(ocsmina.Smina)
     monkeypatch.setattr(inst, "_Smina__process_ligand", lambda _p: "processed.mol2")

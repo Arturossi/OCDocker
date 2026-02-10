@@ -54,7 +54,7 @@ jobs:
     
     - name: Run tests with coverage
       run: |
-        pytest --cov=OCDocker --cov-report=term-missing --cov-report=xml -v
+        pytest --cov=OCDocker --cov-report=term-missing --cov-report=xml --cov-fail-under=88 -v
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
