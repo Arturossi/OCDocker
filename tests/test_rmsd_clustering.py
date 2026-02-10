@@ -44,6 +44,19 @@ class _AlwaysUniqueAgglomerative:
         return np.arange(len(data))
 
 
+class _SequencedAgglomerative:
+    outputs = []
+
+    def __init__(self, n_clusters=None, distance_threshold=None):
+        _ = (n_clusters, distance_threshold)
+
+    def fit_predict(self, data):
+        if _SequencedAgglomerative.outputs:
+            nxt = _SequencedAgglomerative.outputs.pop(0)
+            return np.asarray(nxt, dtype=int)
+        return np.arange(len(data), dtype=int)
+
+
 # Functions
 ###############################################################################
 ## Private ##
@@ -54,6 +67,12 @@ def _sample_df() -> pd.DataFrame:
         index=["poseA", "poseB", "poseC"],
         columns=["poseA", "poseB", "poseC"],
     )
+
+
+def _matrix_df(size: int) -> pd.DataFrame:
+    labels = [f"pose{i}" for i in range(size)]
+    base = np.abs(np.subtract.outer(np.arange(size), np.arange(size))).astype(float)
+    return pd.DataFrame(base, index=labels, columns=labels)
 
 
 ## Public ##
@@ -122,3 +141,158 @@ def test_get_medoids_accepts_dict_input():
     }
     medoids = ocrmsdclust.get_medoids(data_dict, np.array([0, 0]), onlyBiggest=True)
     assert medoids == ["poseA"]
+
+
+@pytest.mark.order(182)
+def test_cluster_rmsd_generates_consensus_plot_and_labels_file(tmp_path):
+    output_plot = tmp_path / "consensus.png"
+    clusters = ocrmsdclust.cluster_rmsd(
+        _sample_df(),
+        max_distance_threshold=5.0,
+        min_distance_threshold=0.5,
+        threshold_step=0.5,
+        outputPlot=str(output_plot),
+        molecule_name="LigandX",
+        pose_engine_map={"poseA": "vina", "poseB": "smina", "poseC": "plants"},
+        engine_colors={"vina": "red", "smina": "blue", "plants": "green"},
+    )
+
+    labels_file = tmp_path / "consensus_labels.txt"
+    assert isinstance(clusters, np.ndarray)
+    assert clusters.shape[0] == 3
+    assert output_plot.exists()
+    assert labels_file.exists()
+    assert "Representative" in labels_file.read_text(encoding="utf-8")
+
+
+@pytest.mark.order(183)
+def test_cluster_rmsd_uses_fallback_plot_when_main_plot_generation_fails(monkeypatch, tmp_path):
+    output_plot = tmp_path / "fallback.png"
+    warnings = []
+    original_dendrogram = ocrmsdclust.sch.dendrogram
+    calls = {"count": 0}
+
+    def _flaky_dendrogram(*args, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise RuntimeError("forced plotting error")
+        return original_dendrogram(*args, **kwargs)
+
+    monkeypatch.setattr(ocrmsdclust.sch, "dendrogram", _flaky_dendrogram)
+    monkeypatch.setattr(ocrmsdclust.ocprint, "print_warning", lambda msg: warnings.append(msg))
+
+    clusters = ocrmsdclust.cluster_rmsd(
+        _sample_df(),
+        max_distance_threshold=5.0,
+        min_distance_threshold=0.5,
+        threshold_step=0.5,
+        outputPlot=str(output_plot),
+    )
+
+    assert isinstance(clusters, np.ndarray)
+    assert output_plot.exists()
+    assert calls["count"] >= 2
+    assert any("Generated fallback plot" in msg for msg in warnings)
+
+
+@pytest.mark.order(247)
+def test_cluster_rmsd_non_converged_with_output_plot_generates_plot(monkeypatch, tmp_path):
+    output_plot = tmp_path / "non_converged.png"
+    warnings = []
+
+    monkeypatch.setattr(ocrmsdclust, "AgglomerativeClustering", _AlwaysUniqueAgglomerative)
+    monkeypatch.setattr(ocrmsdclust.ocprint, "print_warning", lambda msg: warnings.append(msg))
+
+    rc = ocrmsdclust.cluster_rmsd(
+        _sample_df(),
+        max_distance_threshold=2.0,
+        min_distance_threshold=1.0,
+        threshold_step=0.5,
+        outputPlot=str(output_plot),
+        molecule_name="LigY",
+    )
+    assert rc == ocerror.ErrorCode.CLUSTER_NOT_CONVERGED
+    assert output_plot.exists()
+    assert any("Generated plot for failed clustering" in msg for msg in warnings)
+
+
+@pytest.mark.order(248)
+def test_cluster_rmsd_uses_last_result_fallback_cluster_when_loop_does_not_converge(monkeypatch):
+    warnings = []
+    _SequencedAgglomerative.outputs = [
+        np.array([0, 0, 1, 1], dtype=int),
+        np.array([0, 0, 1, 1], dtype=int),
+    ]
+
+    monkeypatch.setattr(ocrmsdclust, "AgglomerativeClustering", _SequencedAgglomerative)
+    monkeypatch.setattr(ocrmsdclust.ocprint, "print_warning", lambda msg: warnings.append(msg))
+
+    clusters = ocrmsdclust.cluster_rmsd(
+        _matrix_df(4),
+        max_distance_threshold=2.0,
+        min_distance_threshold=1.0,
+        threshold_step=0.5,
+        outputPlot="",
+    )
+    assert isinstance(clusters, np.ndarray)
+    assert clusters.tolist() == [0, 0, 1, 1]
+    assert any("did not fully converge" in msg for msg in warnings)
+
+
+@pytest.mark.order(249)
+def test_cluster_rmsd_plotting_branch_for_up_to_twelve_clusters(monkeypatch, tmp_path):
+    output_plot = tmp_path / "clusters_up_to_twelve.png"
+    _SequencedAgglomerative.outputs = [
+        np.array([0, 0, 0, 0, 0, 1, 1, 1, 1], dtype=int),
+        np.arange(9, dtype=int),
+    ]
+
+    monkeypatch.setattr(ocrmsdclust, "AgglomerativeClustering", _SequencedAgglomerative)
+    monkeypatch.setattr(ocrmsdclust, "silhouette_score", lambda *_a, **_k: 0.42)
+
+    clusters = ocrmsdclust.cluster_rmsd(
+        _matrix_df(9),
+        max_distance_threshold=2.0,
+        min_distance_threshold=1.0,
+        threshold_step=0.5,
+        outputPlot=str(output_plot),
+        molecule_name="LigZ",
+    )
+    assert isinstance(clusters, np.ndarray)
+    assert clusters.shape[0] == 9
+    assert output_plot.exists()
+
+
+@pytest.mark.order(250)
+def test_cluster_rmsd_plotting_branch_for_more_than_twelve_clusters_and_leaf_warning(monkeypatch, tmp_path):
+    output_plot = tmp_path / "clusters_over_twelve.png"
+    warnings = []
+    _SequencedAgglomerative.outputs = [
+        np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], dtype=int),
+        np.arange(13, dtype=int),
+    ]
+
+    original_dendrogram = ocrmsdclust.sch.dendrogram
+
+    def _dendrogram_missing_leaf(*args, **kwargs):
+        out = original_dendrogram(*args, **kwargs)
+        if out.get("leaves"):
+            out["leaves"] = out["leaves"][:-1]
+        return out
+
+    monkeypatch.setattr(ocrmsdclust, "AgglomerativeClustering", _SequencedAgglomerative)
+    monkeypatch.setattr(ocrmsdclust, "silhouette_score", lambda *_a, **_k: 0.51)
+    monkeypatch.setattr(ocrmsdclust.sch, "dendrogram", _dendrogram_missing_leaf)
+    monkeypatch.setattr(ocrmsdclust.ocprint, "print_warning", lambda msg: warnings.append(msg))
+
+    clusters = ocrmsdclust.cluster_rmsd(
+        _matrix_df(13),
+        max_distance_threshold=2.0,
+        min_distance_threshold=1.0,
+        threshold_step=0.5,
+        outputPlot=str(output_plot),
+    )
+    assert isinstance(clusters, np.ndarray)
+    assert clusters.shape[0] == 13
+    assert output_plot.exists()
+    assert any("Dendrogram shows" in msg for msg in warnings)

@@ -846,14 +846,14 @@ def remove_other_columns(df : pd.DataFrame, columns_to_keep : list, inplace : bo
 
     if inplace:
         # Remove columns that are not in the specified list
-        df.drop(columns = df.columns.difference(columns_to_keep), axis = 1, inplace = True)
+        df.drop(columns = df.columns.difference(columns_to_keep), inplace = True)
         return df
 
     # Create a copy of the DataFrame
     df_copy = df.copy()
 
     # Remove columns that are not in the specified list
-    df_copy.drop(columns = df_copy.columns.difference(columns_to_keep), axis = 1, inplace = True)
+    df_copy.drop(columns = df_copy.columns.difference(columns_to_keep), inplace = True)
 
     return df_copy
 

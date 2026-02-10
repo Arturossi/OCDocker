@@ -788,7 +788,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # If we processed individually, we might have multiple data dicts for the same ligand
     # Merge them by ligand_name
-        merged_datas: Dict[str, Dict[str, float]] = {}
+    merged_datas: Dict[str, Dict[str, float]] = {}
     for data in all_datas:
         lig_name = data.get("ligand_name", ligandName)
         if lig_name in merged_datas:

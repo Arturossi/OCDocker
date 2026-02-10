@@ -421,7 +421,11 @@ def test_core_prepare_no_boxes_logs_warning_and_returns_ok(monkeypatch, tmp_path
     warnings = []
     monkeypatch.setattr(ocprepare, "__prepare_molecule", lambda *a, **k: None)
     monkeypatch.setattr(ocprepare, "__sub_core_prepare", lambda *a, **k: [str(process_dir)])
-    monkeypatch.setattr(ocprepare.ocprint, "print_warning", lambda msg: warnings.append(msg))
+    monkeypatch.setattr(
+        ocprepare.ocprint,
+        "print_warning",
+        lambda *a, **k: warnings.append(k.get("message", a[0] if a else "")),
+    )
 
     rc = ocprepare.__core_prepare(str(work), False, "dudez", True, 0.33, targetCentroid=(1.0, 2.0, 3.0))
     assert rc == ocerror.ErrorCode.OK
@@ -470,7 +474,11 @@ def test_prepare_molecule_ligand_tuple_alternative_and_parse_exception(monkeypat
     logs = []
 
     monkeypatch.setattr(ocprepare.ocff, "safe_create_dir", lambda _p: ocerror.ErrorCode.OK)
-    monkeypatch.setattr(ocprepare.ocprint, "print_warning", lambda msg: warnings.append(msg))
+    monkeypatch.setattr(
+        ocprepare.ocprint,
+        "print_warning",
+        lambda *a, **k: warnings.append(k.get("message", a[0] if a else "")),
+    )
     monkeypatch.setattr(ocprepare, "get_config", lambda: SimpleNamespace(logdir=str(tmp_path / "logs")))
     monkeypatch.setattr(ocprepare.ocprint, "print_error_log", lambda msg, path: logs.append((msg, path)))
 
@@ -543,3 +551,188 @@ def test_sub_core_prepare_simple_filename_branch(monkeypatch, tmp_path, ocprepar
     _ = ocprepare.__sub_core_prepare(str(root), "dudez", overwrite=False, mols=[str(ligand_file)], sanitize=True, targetCentroid=(0.0, 0.0, 0.0))
     assert moved
     assert moved[0][1].endswith("/ligand.smi/ligand/ligand.smi")
+
+
+@pytest.mark.order(192)
+def test_core_prepare_reference_ligand_success_and_all_compound_dirs(monkeypatch, tmp_path, ocprepare):
+    work = tmp_path / "ptnF"
+    ligands_dir = work / "compounds" / "ligands"
+    decoys_dir = work / "compounds" / "decoys"
+    candidates_dir = work / "compounds" / "candidates"
+    ligands_dir.mkdir(parents=True, exist_ok=True)
+    decoys_dir.mkdir(parents=True, exist_ok=True)
+    candidates_dir.mkdir(parents=True, exist_ok=True)
+    (work / "reference_ligand.sdf").write_text("MOL", encoding="utf-8")
+
+    calls = []
+    monkeypatch.setattr(ocprepare, "__prepare_molecule", lambda *a, **k: None)
+    monkeypatch.setattr(ocprepare.ocl, "get_centroid", lambda *_a, **_k: (1.0, 2.0, 3.0))
+    monkeypatch.setattr(ocprepare, "__sub_core_prepare", lambda *a, **k: calls.append((a, k)) or [])
+
+    rc = ocprepare.__core_prepare(str(work), False, "pdbbind", True, 0.33, targetCentroid=None)
+    assert rc == ocerror.ErrorCode.OK
+    assert len(calls) == 3
+    assert calls[0][0][0] == str(ligands_dir)
+    assert calls[1][0][0] == str(decoys_dir)
+    assert calls[2][0][0] == str(candidates_dir)
+    assert calls[0][1]["targetCentroid"] == (1.0, 2.0, 3.0)
+
+
+@pytest.mark.order(193)
+def test_prepare_molecule_ligand_with_custom_name_and_no_alternative(monkeypatch, tmp_path, ocprepare):
+    class _NamedNoRadiusLigand:
+        names = []
+
+        def __init__(self, _src, name, sanitize=True):
+            _ = sanitize
+            self.__class__.names.append(name)
+            self.RadiusOfGyration = None
+
+        def create_box(self, centroid=None, overwrite=False):
+            _ = (centroid, overwrite)
+
+        def is_valid(self):
+            return True
+
+        def to_json(self, overwrite):
+            _ = overwrite
+            return 0
+
+    ligand_file = tmp_path / "ligand.smi"
+    ligand_file.write_text("CCO", encoding="utf-8")
+    warnings = []
+    monkeypatch.setattr(ocprepare.ocff, "safe_create_dir", lambda _p: ocerror.ErrorCode.OK)
+    monkeypatch.setattr(ocprepare.ocl, "Ligand", _NamedNoRadiusLigand)
+    monkeypatch.setattr(ocprepare.ocprint, "print_warning", lambda msg: warnings.append(msg))
+
+    rc = ocprepare.__prepare_molecule(
+        str(ligand_file),
+        overwrite=True,
+        moltype="ligand",
+        dbName="dudez",
+        sanitize=True,
+        molName="custom_ligand",
+    )
+    assert rc is None
+    assert _NamedNoRadiusLigand.names == ["custom_ligand"]
+    assert any("no alternative ligand was provided" in msg for msg in warnings)
+
+
+@pytest.mark.order(194)
+def test_prepare_molecule_ligand_alternative_recovers_radius(monkeypatch, tmp_path, ocprepare):
+    class _AltRecoversLigand:
+        inputs = []
+        created_boxes = 0
+
+        def __init__(self, src, _name, sanitize=True):
+            _ = sanitize
+            self.__class__.inputs.append(src)
+            self.RadiusOfGyration = 1.0 if src == "ALT" else None
+
+        def create_box(self, centroid=None, overwrite=False):
+            _ = (centroid, overwrite)
+            self.__class__.created_boxes += 1
+
+        def is_valid(self):
+            return True
+
+        def to_json(self, overwrite):
+            _ = overwrite
+            return 0
+
+    ligand_file = tmp_path / "ligand.smi"
+    ligand_file.write_text("CCO", encoding="utf-8")
+    warnings = []
+    monkeypatch.setattr(ocprepare.ocff, "safe_create_dir", lambda _p: ocerror.ErrorCode.OK)
+    monkeypatch.setattr(ocprepare.ocl, "Ligand", _AltRecoversLigand)
+    monkeypatch.setattr(ocprepare.ocprint, "print_warning", lambda msg: warnings.append(msg))
+
+    rc = ocprepare.__prepare_molecule(
+        str(ligand_file),
+        overwrite=True,
+        moltype="ligand",
+        dbName="dudez",
+        sanitize=True,
+        alternativeLigand="ALT",
+    )
+    assert rc is None
+    assert _AltRecoversLigand.inputs == [str(ligand_file), "ALT"]
+    assert _AltRecoversLigand.created_boxes == 1
+    assert any("trying to load its alternative ligand" in msg for msg in warnings)
+    assert not any("even with the alternative ligand" in msg for msg in warnings)
+
+
+@pytest.mark.order(195)
+def test_prepare_molecule_receptor_tuple_non_pdb_does_not_clean_dssp(monkeypatch, tmp_path, ocprepare):
+    receptor_a = tmp_path / "input_a.mol2"
+    receptor_b = tmp_path / "input_b.mol2"
+    receptor_a.write_text("@<TRIPOS>MOLECULE\n", encoding="utf-8")
+    receptor_b.write_text("@<TRIPOS>MOLECULE\n", encoding="utf-8")
+
+    cleaned = {"calls": 0}
+    monkeypatch.setattr(ocprepare.ocmolproc, "clean_for_dssp", lambda **_k: cleaned.__setitem__("calls", cleaned["calls"] + 1))
+    monkeypatch.setattr(ocprepare.ocr, "Receptor", _ReceptorStub)
+
+    rc = ocprepare.__prepare_molecule(
+        (str(receptor_a), str(receptor_b)),
+        overwrite=True,
+        moltype="receptor",
+        dbName="dudez",
+        sanitize=True,
+    )
+    assert rc is None
+    assert cleaned["calls"] == 0
+
+
+@pytest.mark.order(196)
+def test_core_prepare_reference_ligand_falsey_centroid_tries_next_extension(monkeypatch, tmp_path, ocprepare):
+    work = tmp_path / "ptnG"
+    work.mkdir(parents=True, exist_ok=True)
+    (work / "reference_ligand.mol2").write_text("@<TRIPOS>MOLECULE\nx\n", encoding="utf-8")
+    (work / "reference_ligand.pdb").write_text("ATOM\n", encoding="utf-8")
+
+    warnings = []
+    centroid_calls = {"count": 0}
+
+    def _fake_centroid(*_a, **_k):
+        centroid_calls["count"] += 1
+        if centroid_calls["count"] == 1:
+            return None
+        return (2.0, 3.0, 4.0)
+
+    monkeypatch.setattr(ocprepare, "__prepare_molecule", lambda *a, **k: None)
+    monkeypatch.setattr(ocprepare.ocl, "get_centroid", _fake_centroid)
+    monkeypatch.setattr(
+        ocprepare.ocprint,
+        "print_warning",
+        lambda *a, **k: warnings.append(k.get("message", a[0] if a else "")),
+    )
+    monkeypatch.setattr(ocprepare, "__sub_core_prepare", lambda *a, **k: [])
+
+    rc = ocprepare.__core_prepare(str(work), False, "dudez", True, 0.33, targetCentroid=None)
+    assert rc == ocerror.ErrorCode.OK
+    assert centroid_calls["count"] == 2
+    assert any("centroid of the reference ligand" in msg.lower() for msg in warnings)
+
+
+@pytest.mark.order(197)
+def test_core_prepare_handles_missing_ligands_dir_and_processes_decoys(monkeypatch, tmp_path, ocprepare):
+    work = tmp_path / "ptnH"
+    decoys_dir = work / "compounds" / "decoys"
+    decoys_dir.mkdir(parents=True, exist_ok=True)
+
+    calls = []
+    monkeypatch.setattr(ocprepare, "__prepare_molecule", lambda *a, **k: None)
+    monkeypatch.setattr(ocprepare, "__sub_core_prepare", lambda *a, **k: calls.append((a, k)) or [])
+
+    rc = ocprepare.__core_prepare(
+        str(work),
+        False,
+        "dudez",
+        True,
+        0.33,
+        targetCentroid=(1.0, 2.0, 3.0),
+    )
+    assert rc == ocerror.ErrorCode.OK
+    assert len(calls) == 1
+    assert calls[0][0][0] == str(decoys_dir)
