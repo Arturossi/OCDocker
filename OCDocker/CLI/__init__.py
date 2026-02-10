@@ -1857,8 +1857,15 @@ def cmd_script(args: argparse.Namespace) -> int:  # pragma: no cover - script ex
         import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
         script_namespace['ocrmsdclust'] = ocrmsdclust
 
-        import OCDocker.Rescoring.ODDT as ocoddt
-        script_namespace['ocoddt'] = ocoddt
+        try:
+            import OCDocker.Rescoring.ODDT as ocoddt
+            script_namespace['ocoddt'] = ocoddt
+        except ModuleNotFoundError as exc:
+            missing_mod = getattr(exc, 'name', '')
+            if missing_mod == 'oddt' or missing_mod.startswith('oddt.'):
+                print("Warning: optional dependency 'oddt' is not installed; 'ocoddt' is unavailable in script mode.")
+            else:
+                raise
 
         import OCDocker.Toolbox.Conversion as occonversion
         script_namespace['occonversion'] = occonversion
