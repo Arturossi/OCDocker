@@ -30,8 +30,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -271,6 +271,45 @@ def _missing_external_tools() -> Set[str]:
     return missing
 
 
+def _required_tools_by_test_file() -> dict[str, set[str]]:
+    '''Return the map of test modules to external tool requirements.'''
+    return {
+        "test_vina_prepare.py": {"prepare_ligand4", "prepare_receptor4"},
+        "test_Smina.py": {"smina", "prepare_ligand4", "prepare_receptor4", "openbabel-py", "dssp"},
+        "test_Smina_utils.py": {"dssp"},
+        "test_PLANTS.py": {"plants", "obabel", "openbabel-py", "dssp"},
+        "test_Vina.py": {"vina", "prepare_ligand4", "prepare_receptor4", "openbabel-py", "dssp"},
+        "test_preparation_strategy.py": {"dssp"},
+        "test_integration_docking_workflow.py": {"dssp"},
+        "test_plants_prepare.py": {"plants", "obabel"},
+        "test_Receptor.py": {"openbabel-py", "dssp"},
+    }
+
+
+def pytest_ignore_collect(collection_path, config):
+    '''Skip external-tool tests before import when required tools are missing.
+
+    This prevents import-time failures in environments without docking executables
+    and speeds up collection by avoiding heavy modules.
+    '''
+    _ = config
+
+    # Allow forcing external tests on (e.g., local dev with binaries installed)
+    if os.getenv("OCDOCKER_FORCE_EXTERNAL_TESTS", "").lower() in ("1", "true", "yes"):
+        return False
+
+    missing = _missing_external_tools()
+    if not missing:
+        return False
+
+    filename = Path(str(collection_path)).name
+    required = _required_tools_by_test_file().get(filename)
+    if required and (missing & required):
+        return True
+
+    return False
+
+
 def pytest_collection_modifyitems(config, items):
     # Allow forcing external tests on (e.g., local dev with binaries installed)
     if os.getenv("OCDOCKER_FORCE_EXTERNAL_TESTS", "").lower() in ("1", "true", "yes"):
@@ -283,19 +322,7 @@ def pytest_collection_modifyitems(config, items):
     skip_external = pytest.mark.skip(
         reason=f"Missing external tools/binaries: {', '.join(sorted(missing))}"
     )
-
-    # Map test modules to required tools
-    required_by_file = {
-        "test_vina_prepare.py": {"prepare_ligand4", "prepare_receptor4"},
-        "test_Smina.py": {"smina", "prepare_ligand4", "prepare_receptor4", "openbabel-py", "dssp"},
-        "test_Smina_utils.py": {"dssp"},
-        "test_PLANTS.py": {"plants", "obabel", "openbabel-py", "dssp"},
-        "test_Vina.py": {"vina", "prepare_ligand4", "prepare_receptor4", "openbabel-py", "dssp"},
-        "test_preparation_strategy.py": {"dssp"},
-        "test_integration_docking_workflow.py": {"dssp"},
-        "test_plants_prepare.py": {"plants", "obabel"},
-        "test_Receptor.py": {"openbabel-py", "dssp"},
-    }
+    required_by_file = _required_tools_by_test_file()
 
     for item in items:
         fpath = str(item.fspath)

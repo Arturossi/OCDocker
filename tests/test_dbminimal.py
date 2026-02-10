@@ -26,8 +26,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -154,3 +154,26 @@ def test_create_session_returns_scoped(dbminimal):
     engine = dbm.create_engine(url)
     session = dbm.create_session(engine)
     assert isinstance(session, dbm.scoped_session)
+
+
+@pytest.mark.order(348)
+def test_cleanup_engine_ignores_runtime_error(dbminimal):
+    dbm = dbminimal
+
+    class _BrokenEngine:
+        def dispose(self, close=True):
+            _ = close
+            raise RuntimeError("dispose failed")
+
+    dbm.cleanup_engine(_BrokenEngine())
+
+
+@pytest.mark.order(349)
+def test_cleanup_session_ignores_runtime_error(dbminimal):
+    dbm = dbminimal
+
+    class _BrokenSession:
+        def remove(self):
+            raise RuntimeError("remove failed")
+
+    dbm.cleanup_session(_BrokenSession())

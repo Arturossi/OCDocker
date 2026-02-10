@@ -4,6 +4,11 @@ parallel = True
 source =
     OCDocker
 omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */setup.py
+    */conftest.py
     # Omit heavyweight bootstrap that is not unit-test friendly
     OCDocker/Initialise.py
     */OCDocker/Initialise.py
@@ -19,9 +24,15 @@ omit =
     *Future*
 
 [report]
+precision = 2
 show_missing = True
 skip_covered = False
 exclude_lines =
     pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if TYPE_CHECKING:
+    @abstractmethod
     if __name__ == .__main__.:  # noqa: E501
     except Exception:

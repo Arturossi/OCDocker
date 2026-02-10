@@ -32,8 +32,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -44,6 +44,33 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Private ##
+def _safe_print_warning(message: str) -> None:
+    '''Print warning safely even when a stubbed Printing module is incomplete.'''
+
+    warn = getattr(ocprint, "print_warning", None)
+    if callable(warn):
+        warn(message)
+        return
+
+    # Fallback to print_error for test stubs that only expose error logging.
+    err = getattr(ocprint, "print_error", None)
+    if callable(err):
+        err(f"WARNING: {message}")
+        return
+
+    # Last resort to keep behavior observable without crashing.
+    print(f"WARNING: {message}")
+
+def _safe_print_error(message: str) -> None:
+    '''Print error safely even when a stubbed Printing module is incomplete.'''
+
+    err = getattr(ocprint, "print_error", None)
+    if callable(err):
+        err(message)
+        return
+
+    print(f"ERROR: {message}")
+
 
 ## Public ##
 
@@ -95,7 +122,7 @@ def is_molecule_valid(molecule: str) -> bool:
     # Check if file exists
     if os.path.isfile(molecule):
         # Check which is its extension to use the correct function
-        extension = os.path.splitext(molecule)[1]
+        extension = os.path.splitext(molecule)[1].lower()
         # Test if the molecule should be loaded with biopython or rdkit
         if molecule.lower().endswith((".cif", ".mmcif", ".pdb")):
             try:
@@ -123,11 +150,19 @@ def is_molecule_valid(molecule: str) -> bool:
                 from rdkit import Chem
                 # Check if the extension is within the supported ones, if yes, parse it
                 if extension == ".mol2":
-                    _ = Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True)
+                    parsed_mol = Chem.rdmolfiles.MolFromMol2File(molecule, sanitize = True)
+                    if parsed_mol is None:
+                        return False
                 elif extension == ".sdf":
-                    _ = Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True)
+                    supplier = Chem.rdmolfiles.SDMolSupplier(molecule, sanitize = True)
+                    if supplier is None:
+                        return False
+                    if not any(mol is not None for mol in supplier):
+                        return False
                 elif extension == ".mol":
-                    _ = Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True)
+                    parsed_mol = Chem.rdmolfiles.MolFromMolFile(molecule, sanitize = True)
+                    if parsed_mol is None:
+                        return False
                 elif extension == ".pdbqt":
                     # RDKit's PDB parser can misread PDBQT atom types (e.g., "A") as elements.
                     # Use OpenBabel to validate PDBQT files instead.
@@ -149,7 +184,9 @@ def is_molecule_valid(molecule: str) -> bool:
                             smi = f.read().strip().split()[0]
                     except (OSError, IOError, FileNotFoundError, IndexError):
                         return False
-                    _ = Chem.rdmolfiles.MolFromSmiles(smi, sanitize = True)
+                    parsed_mol = Chem.rdmolfiles.MolFromSmiles(smi, sanitize = True)
+                    if parsed_mol is None:
+                        return False
                 else:
                     # Not suitable extension, so... say False!!!!
                     return False
@@ -217,12 +254,16 @@ def validate_digest_extension(digestPath: str, digestFormat: str) -> bool:
 
     # Check if the format options is valid
     if not digestFormat.lower() in supportedExtensions:
-        ocprint.print_warning(f"The format '{digestFormat}' is not supported. Trying to determine its extension from the file '{digestPath}'.")
+        _safe_print_warning(
+            f"The format '{digestFormat}' is not supported. Trying to determine its extension from the file '{digestPath}'."
+        )
         # Get the extension from the file
         digestFormat = digestPath.split(".")[-1]
         # Check if the extension is valid
         if not digestFormat.lower() in supportedExtensions:
-            ocprint.print_error(f"The format '{digestFormat}' is not supported. The supported formats are: {supportedExtensions}")
+            _safe_print_error(
+                f"The format '{digestFormat}' is not supported. The supported formats are: {supportedExtensions}"
+            )
             return False
         return True
     return True

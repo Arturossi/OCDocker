@@ -40,8 +40,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -92,7 +92,7 @@ def apply_pca(df : pd.DataFrame, pca_model : Union[str, PCA], columns_to_skip_pc
             raise FileNotFoundError(f"File {pca_model} not found")
 
         # Load the pre-trained PCA model
-        pca = ocscoreio.load_object(pca_model)
+        pca = ocscoreio.load_object(pca_model, trusted=True)
     elif isinstance(pca_model, PCA):
         # Use the PCA model directly
         pca = pca_model
@@ -846,14 +846,14 @@ def remove_other_columns(df : pd.DataFrame, columns_to_keep : list, inplace : bo
 
     if inplace:
         # Remove columns that are not in the specified list
-        df.drop(columns = df.columns.difference(columns_to_keep), axis = 1, inplace = True)
+        df.drop(columns = df.columns.difference(columns_to_keep), inplace = True)
         return df
 
     # Create a copy of the DataFrame
     df_copy = df.copy()
 
     # Remove columns that are not in the specified list
-    df_copy.drop(columns = df_copy.columns.difference(columns_to_keep), axis = 1, inplace = True)
+    df_copy.drop(columns = df_copy.columns.difference(columns_to_keep), inplace = True)
 
     return df_copy
 

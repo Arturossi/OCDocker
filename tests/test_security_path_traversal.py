@@ -31,8 +31,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -202,3 +202,83 @@ def test_untar_safe_paths_allowed(tmp_path):
     # Verify files were extracted correctly
     assert (out_dir / "safe.txt").exists()
     assert (out_dir / "subdir" / "safe.txt").exists()
+
+
+@pytest.mark.order(94)
+def test_untar_rejects_symlink_member(tmp_path):
+    '''Test that untar() rejects symlink entries in archives.'''
+
+    archive = tmp_path / "symlink_attack.tar.gz"
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+
+    with tarfile.open(archive, "w:gz") as tar:
+        symlink_info = tarfile.TarInfo(name="safe_link")
+        symlink_info.type = tarfile.SYMTYPE
+        symlink_info.linkname = "/tmp/escape_target"
+        tar.addfile(symlink_info)
+
+        payload = tmp_path / "payload.txt"
+        payload.write_bytes(b"evil")
+        payload_info = tarfile.TarInfo(name="safe_link/payload.txt")
+        payload_info.size = payload.stat().st_size
+        with open(payload, "rb") as f:
+            tar.addfile(payload_info, fileobj=f)
+
+    result = ocff.untar(str(archive), str(out_dir))
+    assert result == ocerror.ErrorCode.UNTAR_FILE
+    assert not (out_dir / "safe_link").exists()
+
+
+@pytest.mark.order(95)
+def test_untar_rejects_hardlink_member(tmp_path):
+    '''Test that untar() rejects hardlink entries in archives.'''
+
+    archive = tmp_path / "hardlink_attack.tar.gz"
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+
+    with tarfile.open(archive, "w:gz") as tar:
+        regular_file = tmp_path / "base.txt"
+        regular_file.write_bytes(b"base")
+        tar.add(regular_file, arcname="base.txt")
+
+        hardlink_info = tarfile.TarInfo(name="hardlink_payload")
+        hardlink_info.type = tarfile.LNKTYPE
+        hardlink_info.linkname = "../../etc/passwd"
+        tar.addfile(hardlink_info)
+
+    result = ocff.untar(str(archive), str(out_dir))
+    assert result == ocerror.ErrorCode.UNTAR_FILE
+    # The regular file added before the malicious entry may exist.
+    assert not (out_dir / "hardlink_payload").exists()
+
+
+@pytest.mark.order(96)
+def test_untar_rejects_parent_symlink_escape(tmp_path):
+    '''Test that untar() rejects writes through existing symlinks in the output tree.'''
+
+    archive = tmp_path / "parent_symlink_escape.tar.gz"
+    out_dir = tmp_path / "out"
+    outside_dir = tmp_path / "outside"
+    out_dir.mkdir()
+    outside_dir.mkdir()
+
+    link_dir = out_dir / "linkdir"
+    try:
+        os.symlink(outside_dir, link_dir)
+    except (OSError, NotImplementedError):
+        pytest.skip("Symlink creation is not supported in this environment.")
+
+    payload = tmp_path / "payload2.txt"
+    payload.write_bytes(b"escape")
+
+    with tarfile.open(archive, "w:gz") as tar:
+        info = tarfile.TarInfo(name="linkdir/escaped.txt")
+        info.size = payload.stat().st_size
+        with open(payload, "rb") as f:
+            tar.addfile(info, fileobj=f)
+
+    result = ocff.untar(str(archive), str(out_dir))
+    assert result == ocerror.ErrorCode.UNTAR_FILE
+    assert not (outside_dir / "escaped.txt").exists()

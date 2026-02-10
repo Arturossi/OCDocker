@@ -36,8 +36,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -66,7 +66,7 @@ class XGBoostOptimizer:
     storage : str, optional
         The storage path/URL for the Optuna study. Default is "sqlite:///pre_xgboost.db".
     params : dict, optional
-        The hyperparameters for the XGBoost model. Default is an empty dictionary.
+        The hyperparameters for the XGBoost model. Default is None (treated as an empty dictionary).
     early_stopping_rounds : int, optional
         The number of early stopping rounds for the XGBoost model. Default is 20.
     use_gpu : bool, optional
@@ -85,7 +85,7 @@ class XGBoostOptimizer:
             X_validation : Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
             y_validation : Union[None, Union[np.ndarray, pd.DataFrame, pd.Series]] = None,
             storage : str = "sqlite:///pre_xgboost.db",
-            params : dict = {},
+            params : Optional[dict[str, Any]] = None,
             early_stopping_rounds : int = 20,
             use_gpu : bool = False,
             random_state : int = 42,
@@ -109,7 +109,7 @@ class XGBoostOptimizer:
         y_validation : np.ndarray | pd.DataFrame | pd.Series, optional
             The validation labels. Default is None.
         params : dict, optional
-            The hyperparameters for the XGBoost model. Default is an empty dictionary.
+            The hyperparameters for the XGBoost model. Default is None (treated as an empty dictionary).
         early_stopping_rounds : int, optional
             The number of early stopping rounds for the XGBoost model. Default is 50.
         use_gpu : bool, optional
@@ -147,7 +147,7 @@ class XGBoostOptimizer:
             self.X_validation = None
             self.y_validation = None
 
-        self.params = params
+        self.params = dict(params) if params is not None else {}
         self.early_stopping_rounds = early_stopping_rounds
         self.random_state = random_state
         self.verbose = verbose

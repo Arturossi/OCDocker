@@ -20,6 +20,7 @@ import inspect
 import multiprocessing
 import os
 import shutil
+import sys
 import tempfile
 
 import textwrap as tw
@@ -46,8 +47,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -191,37 +192,24 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
 
     # Allow duplicate keys to maintain compatibility with legacy configs that
     # may define the same option multiple times (last one wins).
-    config = configparser.ConfigParser(strict=False)
+    # Inline comments are enabled to support values like:
+    #   key = value # comment
+    # while preserving literal '#' in values when not comment-delimited
+    # (e.g., passwords such as abc#123).
+    config = configparser.ConfigParser(
+        strict=False,
+        inline_comment_prefixes=("#",),
+    )
 
     # Read config file - configparser can handle files without sections
     # by using the DEFAULT section
     try:
         # Read the file as a single section (DEFAULT)
         with open(config_file, 'r') as f:
-            raw_lines = f.readlines()
-
-        # Strip inline comments starting with '#' (Python-style), even when
-        # the '#' is not preceded by whitespace (e.g., "vina#,vinardo").
-        # Respect simple quoted strings to avoid stripping in quoted values.
-        cleaned_lines = []
-        for line in raw_lines:
-            in_single = False
-            in_double = False
-            cut_idx = None
-            for idx, ch in enumerate(line):
-                if ch == "'" and not in_double:
-                    in_single = not in_single
-                elif ch == '"' and not in_single:
-                    in_double = not in_double
-                elif ch == "#" and not in_single and not in_double:
-                    cut_idx = idx
-                    break
-            if cut_idx is not None:
-                line = line[:cut_idx]
-            cleaned_lines.append(line.rstrip())
+            raw_content = f.read()
 
         # Prepend [DEFAULT] to make it a valid INI file
-        config_content = '[DEFAULT]\n' + "\n".join(cleaned_lines)
+        config_content = '[DEFAULT]\n' + raw_content
 
         config.read_string(config_content)
     except (OSError, IOError, configparser.Error) as e:
@@ -251,6 +239,12 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
             value = config.get('DEFAULT', key, fallback=default)
 
             # Handle empty strings
+            if value is None:
+                return default
+            if not isinstance(value, str):
+                # configparser returns fallback as-is for missing keys
+                # (e.g., list/int defaults). Keep that value unchanged.
+                return value
             if not value or value.strip() == "":
                 return default
 
@@ -689,14 +683,26 @@ def cleanup_database_resources() -> None:
     of database connections when the application exits.
     '''
     global session, engine
-    try:
-        if 'session' in globals() and session is not None:
+
+    if 'session' in globals() and session is not None:
+        try:
             cleanup_session(session)
-        if 'engine' in globals() and engine is not None:
+        except Exception as exc:
+            print(
+                f"OCDocker WARNING: Failed to cleanup DB session during shutdown: "
+                f"{type(exc).__name__}: {exc}",
+                file=sys.stderr,
+            )
+
+    if 'engine' in globals() and engine is not None:
+        try:
             cleanup_engine(engine)
-    except Exception:
-        # Silently ignore errors during shutdown cleanup
-        pass
+        except Exception as exc:
+            print(
+                f"OCDocker WARNING: Failed to cleanup DB engine during shutdown: "
+                f"{type(exc).__name__}: {exc}",
+                file=sys.stderr,
+            )
 
 
 def create_ocdocker_conf() -> None:

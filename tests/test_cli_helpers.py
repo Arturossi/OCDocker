@@ -17,7 +17,7 @@ import pytest
 
 from pathlib import Path
 
-from OCDocker.CLI.__init__ import _preparse_global_args, _require_file, build_parser
+from OCDocker.CLI.__init__ import _preparse_global_args, _require_file, build_parser, cmd_script
 
 # License
 ###############################################################################
@@ -30,8 +30,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -91,3 +91,89 @@ def test_require_file_valid_and_errors(tmp_path):
     with pytest.raises(SystemExit) as ei2:
         _require_file("…/placeholder", "--file")
     assert ei2.value.code == 2
+
+
+@pytest.mark.order(67)
+def test_cmd_script_requires_security_opt_in(tmp_path, monkeypatch):
+    script = tmp_path / "script.py"
+    script.write_text("print('hello')", encoding="utf-8")
+
+    monkeypatch.delenv("OCDOCKER_ALLOW_SCRIPT_EXEC", raising=False)
+    args = argparse.Namespace(
+        script_file=str(script),
+        script_args=[],
+        allow_unsafe_exec=False,
+    )
+
+    rc = cmd_script(args)
+    assert rc == 2
+
+
+def _mk_script_args(script_path: Path) -> argparse.Namespace:
+    return argparse.Namespace(
+        script_file=str(script_path),
+        script_args=[],
+        allow_unsafe_exec=True,
+        log_file=None,
+        no_stdout_log=False,
+    )
+
+
+@pytest.mark.order(77)
+def test_cmd_script_success_path(tmp_path, monkeypatch):
+    script = tmp_path / "ok.py"
+    script.write_text("value = 123\n", encoding="utf-8")
+
+    monkeypatch.setattr("OCDocker.CLI.__init__._preparse_global_args", lambda argv: argparse.Namespace())
+    monkeypatch.setattr("OCDocker.CLI.__init__._bootstrap_ocdocker_env", lambda ns: None)
+
+    rc = cmd_script(_mk_script_args(script))
+    assert rc == 0
+
+
+@pytest.mark.order(78)
+def test_cmd_script_syntax_error(tmp_path, monkeypatch):
+    script = tmp_path / "bad.py"
+    script.write_text("if True print('x')\n", encoding="utf-8")
+
+    monkeypatch.setattr("OCDocker.CLI.__init__._preparse_global_args", lambda argv: argparse.Namespace())
+    monkeypatch.setattr("OCDocker.CLI.__init__._bootstrap_ocdocker_env", lambda ns: None)
+
+    rc = cmd_script(_mk_script_args(script))
+    assert rc == 1
+
+
+@pytest.mark.order(79)
+def test_cmd_script_propagates_system_exit(tmp_path, monkeypatch):
+    script = tmp_path / "exit.py"
+    script.write_text("import sys\nsys.exit(7)\n", encoding="utf-8")
+
+    monkeypatch.setattr("OCDocker.CLI.__init__._preparse_global_args", lambda argv: argparse.Namespace())
+    monkeypatch.setattr("OCDocker.CLI.__init__._bootstrap_ocdocker_env", lambda ns: None)
+
+    rc = cmd_script(_mk_script_args(script))
+    assert rc == 7
+
+
+@pytest.mark.order(80)
+def test_cmd_script_handles_keyboard_interrupt(tmp_path, monkeypatch):
+    script = tmp_path / "kb.py"
+    script.write_text("raise KeyboardInterrupt()\n", encoding="utf-8")
+
+    monkeypatch.setattr("OCDocker.CLI.__init__._preparse_global_args", lambda argv: argparse.Namespace())
+    monkeypatch.setattr("OCDocker.CLI.__init__._bootstrap_ocdocker_env", lambda ns: None)
+
+    rc = cmd_script(_mk_script_args(script))
+    assert rc == 130
+
+
+@pytest.mark.order(81)
+def test_cmd_script_handles_runtime_exception(tmp_path, monkeypatch):
+    script = tmp_path / "boom.py"
+    script.write_text("raise RuntimeError('boom')\n", encoding="utf-8")
+
+    monkeypatch.setattr("OCDocker.CLI.__init__._preparse_global_args", lambda argv: argparse.Namespace())
+    monkeypatch.setattr("OCDocker.CLI.__init__._bootstrap_ocdocker_env", lambda ns: None)
+
+    rc = cmd_script(_mk_script_args(script))
+    assert rc == 1

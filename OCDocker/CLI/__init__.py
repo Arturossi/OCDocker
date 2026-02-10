@@ -41,6 +41,8 @@ from glob import glob
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import OCDocker.Toolbox.Security as ocsec
+
 # License
 ###############################################################################
 '''
@@ -52,8 +54,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -714,10 +716,13 @@ def build_parser() -> argparse.ArgumentParser:
         "script",
         description=(
             "Run a Python script with OCDocker libraries pre-loaded.\n\n"
-            "Security note: This executes the script directly in-process. Only run scripts you trust.\n\n"
+            "Security note: This executes the script directly in-process. Only run scripts you trust.\n"
+            "You must pass --allow-unsafe-exec (or set OCDOCKER_ALLOW_SCRIPT_EXEC=1).\n\n"
             "This command bootstraps the OCDocker environment, loads all OCDocker modules,\n"
             "and executes your script file. All OCDocker classes and functions are available\n"
             "in the script's namespace, just like in the interactive console.\n\n"
+            "For trusted workflows that need deserialization, call\n"
+            "`allow_unsafe_runtime(deserialization=True)` inside the script.\n\n"
             "Useful for running custom workflows, batch processing, or automation scripts\n"
             "that use OCDocker functionality."
         ),
@@ -733,6 +738,15 @@ def build_parser() -> argparse.ArgumentParser:
         "script_args",
         nargs=argparse.REMAINDER,
         help="Additional arguments to pass to the script (accessible via sys.argv in the script)."
+    )
+    p_script.add_argument(
+        "--allow-unsafe-exec",
+        action="store_true",
+        default=False,
+        help=(
+            "Required opt-in for in-process script execution. "
+            "Alternatively set OCDOCKER_ALLOW_SCRIPT_EXEC=1."
+        ),
     )
     p_script.set_defaults(func=cmd_script)
 
@@ -890,7 +904,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
         # Ignore logging configuration errors (non-critical for core functionality)
         pass
 
-    report: Dict[str, Dict[str, str]] = {}
+    report: Dict[str, Any] = {}
 
     # Config source
     try:
@@ -919,9 +933,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
         v: Optional[str] = config.vina.executable
         s: Optional[str] = config.smina.executable
         p: Optional[str] = config.plants.executable
-    except Exception:
+    except (ImportError, AttributeError, RuntimeError, TypeError, ValueError, KeyError) as exc:
         # Fallback if config is not available
         v = s = p = None
+        report['binaries_error'] = f"CONFIG_UNAVAILABLE ({type(exc).__name__}: {exc})"
     report['binaries'] = {
         'vina': 'OK' if _exists_exe(v) else 'MISSING',
         'smina': 'OK' if _exists_exe(s) else 'MISSING',
@@ -1763,13 +1778,27 @@ def cmd_script(args: argparse.Namespace) -> int:  # pragma: no cover - script ex
     Parameters
     ----------
     args : argparse.Namespace
-        Command-line arguments. Must contain 'script_file' and optionally 'script_args'.
+        Command-line arguments. Must contain 'script_file' and optionally
+        'script_args'. Dynamic execution requires explicit trust via
+        '--allow-unsafe-exec' or 'OCDOCKER_ALLOW_SCRIPT_EXEC=1'.
 
     Returns
     -------
     int
-        Exit code (0 for success, 1 for failure).
+        Exit code (0 for success, 1 for failure, 2 for blocked unsafe execution).
     '''
+
+    # Dynamic in-process execution is a trust boundary.
+    try:
+        ocsec.require_trusted_input(
+            trusted=bool(getattr(args, "allow_unsafe_exec", False)),
+            operation="dynamic script execution",
+            env_var="OCDOCKER_ALLOW_SCRIPT_EXEC",
+            source=str(getattr(args, "script_file", "")),
+        )
+    except PermissionError as e:
+        print(f"Security check failed: {e}")
+        return 2
 
     # Bootstrap env to ensure Initialise is safe to import
     globals_ns = _preparse_global_args(sys.argv[1:])
@@ -1807,6 +1836,8 @@ def cmd_script(args: argparse.Namespace) -> int:  # pragma: no cover - script ex
 
         import OCDocker.Toolbox as octools
         script_namespace['octools'] = octools
+        script_namespace['ocsec'] = ocsec
+        script_namespace['allow_unsafe_runtime'] = ocsec.allow_unsafe_runtime
 
         import OCDocker.Ligand as ocl
         script_namespace['ocl'] = ocl

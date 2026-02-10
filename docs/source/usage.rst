@@ -64,10 +64,11 @@ Commands
      ocdocker init-config --conf OCDocker.cfg
 
 - script: Run a Python script with OCDocker pre-loaded
+  (requires explicit trust opt-in)
 
   .. code-block:: bash
 
-     ocdocker script --conf OCDocker.cfg script.py --arg1 value
+     ocdocker script --conf OCDocker.cfg --allow-unsafe-exec script.py --arg1 value
 
 - version: Print installed version
 
@@ -101,6 +102,15 @@ Bootstrap & environment
   - ``OCDOCKER_SQLITE_PATH``: explicit SQLite database file path
   - ``OCDOCKER_TIMEOUT``: default timeout (seconds) for external tools
   - ``OCDOCKER_SKIP_ODDT``: skip importing ODDT during bootstrap
+  - ``OCDOCKER_ALLOW_SCRIPT_EXEC``: allow trusted in-process script execution
+  - ``OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION``: allow trusted pickle/joblib/torch deserialization
+
+- For trusted scripts that need deserialization, use:
+
+  .. code-block:: python
+
+     from OCDocker.Toolbox.Security import allow_unsafe_runtime
+     allow_unsafe_runtime(deserialization=True, script_exec=False)
 
 See :doc:`OCDocker.Initialise` for details.
 

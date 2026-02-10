@@ -45,8 +45,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -840,8 +840,16 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             # Run the command
             _ = ocrun.run(cmd, logFile = logFile)
 
-            # Check if the logFile exists and it has the string "Estimated Free Energy of Binding" inside it
-            if not os.path.isfile(logFile) or not "Estimated Free Energy of Binding" in open(logFile).read():
+            # Check if the log file exists and includes the expected success marker.
+            log_has_success_marker = False
+            if os.path.isfile(logFile):
+                try:
+                    with open(logFile, "r", encoding = "utf-8", errors = "ignore") as handle:
+                        log_has_success_marker = any("Estimated Free Energy of Binding" in line for line in handle)
+                except (OSError, IOError):
+                    log_has_success_marker = False
+
+            if not log_has_success_marker:
                 # Print an error
                 ocprint.print_error(f"Problems while running vina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
 

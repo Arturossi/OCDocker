@@ -42,8 +42,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -122,7 +122,7 @@ class TransformerModel(nn.Module):
     init_type : str, optional
         The type of initialization (default is 'zeros').
     init_params : dict, optional
-        The parameters for the initialization function (default is {}).
+        The parameters for the initialization function (default is None, treated as an empty dict).
     random_seed : int, optional
         The random seed for reproducibility (default is 42).
     device : torch.device, optional
@@ -141,7 +141,7 @@ class TransformerModel(nn.Module):
                  dim_feedforward : int,
                  dropout : float = 0.1,
                  init_type: str = 'zeros',
-                 init_params: dict = {},
+                 init_params: Optional[Dict[str, Any]] = None,
                  random_seed: int = 42,
                  device : torch.device = torch.device('cuda'),
                  verbose : bool = False
@@ -167,7 +167,7 @@ class TransformerModel(nn.Module):
         init_type : str, optional
             The type of initialization (default is 'zeros').
         init_params : dict, optional
-            The parameters for the initialization function (default is {}).
+            The parameters for the initialization function (default is None, treated as an empty dict).
         random_seed : int, optional
             The random seed for reproducibility (default is 42).
         device : torch.device, optional
@@ -222,7 +222,7 @@ class TransformerModel(nn.Module):
 
         # Other parameters
         self.init_type = init_type
-        self.init_params: dict[str, Any] = init_params
+        self.init_params: dict[str, Any] = dict(init_params) if init_params is not None else {}
         self.d_model = d_model
         self.device = device
         self.random_seed = random_seed

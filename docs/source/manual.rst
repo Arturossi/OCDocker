@@ -121,6 +121,8 @@ Advanced (debugging subprocesses):
 - ``OCDOCKER_DEBUG_SUBPROCESS``: include stdout tail and env snapshot in failure reports
 - ``OCDOCKER_RAISE_SUBPROCESS``: raise exceptions instead of returning error codes
 - ``OCDOCKER_SKIP_ODDT``: skip importing ODDT during bootstrap
+- ``OCDOCKER_ALLOW_SCRIPT_EXEC``: allow trusted in-process script execution
+- ``OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION``: allow trusted pickle/joblib/torch deserialization
 
 CLI
 ---
@@ -132,6 +134,7 @@ Main commands (see ``ocdocker <command> --help``):
 - ``shap``: OCScore SHAP analysis
 - ``console``: interactive console with OCDocker pre-loaded
 - ``script``: run a Python script with OCDocker pre-loaded
+  (requires ``--allow-unsafe-exec`` or ``OCDOCKER_ALLOW_SCRIPT_EXEC=1``)
 - ``doctor``: diagnostics (binaries, deps, DB)
 - ``init-config``: create a starter config file
 - ``version``: print installed version
@@ -140,6 +143,16 @@ Global options:
 
 - ``--conf``, ``--multiprocess``, ``--no-multiprocess``, ``--update-databases``
 - ``--output-level``, ``--overwrite``, ``--log-file``, ``--no-stdout-log``
+
+Trusted runtime helper
+~~~~~~~~~~~~~~~~~~~~~~
+
+For trusted scripts that need deserialization gates enabled at runtime:
+
+.. code-block:: python
+
+   from OCDocker.Toolbox.Security import allow_unsafe_runtime
+   allow_unsafe_runtime(deserialization=True, script_exec=False)
 
 Examples
 ~~~~~~~~

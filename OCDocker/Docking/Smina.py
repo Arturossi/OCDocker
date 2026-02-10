@@ -50,8 +50,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -976,15 +976,13 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             # Run the command
             _ = ocrun.run(cmd, logFile = logFile)
 
-            # Check if the logFile exists and has valid output (Smina outputs "Affinity:" not "Estimated Free Energy of Binding")
+            # Check if the log file exists and has valid output.
+            # Smina rescoring logs include the "Affinity" marker.
             log_file_valid = False
             if os.path.isfile(logFile):
                 try:
-                    with open(logFile, 'r') as f:
-                        log_content = f.read()
-                        # Smina outputs "Affinity:" in rescoring logs
-                        if "Affinity" in log_content:
-                            log_file_valid = True
+                    with open(logFile, "r", encoding = "utf-8", errors = "ignore") as handle:
+                        log_file_valid = any("Affinity" in line for line in handle)
                 except (IOError, OSError):
                     pass
 

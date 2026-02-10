@@ -20,6 +20,7 @@ import pandas as pd
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
 from typing import Any, Literal, Optional, Union
+from io import StringIO
 
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Printing as ocprint
@@ -38,8 +39,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -182,14 +183,15 @@ def export_db_to_csv(
                 writer.writerows(result)
             return None
         else:
-            # Write to string (for return)
+            # Write to string (for return) using csv module so escaping is
+            # consistent with file output (commas/newlines/quotes are quoted).
             if result:
-                output = []
                 fieldnames = result[0].keys()  # Use keys from the first dictionary
-                output.append(','.join(fieldnames))  # header
-                for row in result:
-                    output.append(','.join(str(row[field]) for field in fieldnames))
-                return '\n'.join(output)
+                output_buffer = StringIO()
+                writer = csv.DictWriter(output_buffer, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(result)
+                return output_buffer.getvalue()
             return ''
 
     else:

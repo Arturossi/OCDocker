@@ -38,8 +38,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -147,7 +147,7 @@ def get_score(
         raise FileNotFoundError(f"Model file not found: {model_path}")
 
     # Load the model - IO module now handles format detection automatically
-    loaded_obj = ocscoreio.load_object(model_path, serialization_method="auto")
+    loaded_obj = ocscoreio.load_object(model_path, serialization_method="auto", trusted=True)
 
     # Handle different model formats
     # If loaded object is a dict, it might be a state_dict or a dict containing the model
@@ -377,7 +377,7 @@ def get_score(
                 ocerror.Error.file_not_exist(f"Scaler file not found: {scaler_path}")
                 raise FileNotFoundError(f"Scaler file not found: {scaler_path}")
             try:
-                scaler_obj = ocscoreio.load_object(scaler_path, serialization_method="auto")
+                scaler_obj = ocscoreio.load_object(scaler_path, serialization_method="auto", trusted=True)
                 # Verify it's a scaler object
                 if not isinstance(scaler_obj, (StandardScaler, MinMaxScaler)):
                     ocerror.Error.value_error(f"File {scaler_path} does not contain a valid scaler object.")

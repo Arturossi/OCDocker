@@ -24,6 +24,7 @@ import pandas as pd
 from typing import Any, Optional, Union
 
 import OCDocker.Error as ocerror
+import OCDocker.Toolbox.Security as ocsec
 
 # License
 ###############################################################################
@@ -36,8 +37,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -160,11 +161,11 @@ def load_mask(name: str, models_dir: Optional[str] = None) -> np.ndarray:
     # Load the mask - try different serialization methods
     try:
         # First try joblib (most common for masks)
-        mask = load_object(filename, serialization_method="joblib")
+        mask = load_object(filename, serialization_method="joblib", trusted=True)
     except (ValueError, EOFError, pickle.UnpicklingError) as e:
         # If joblib fails, try pickle
         try:
-            mask = load_object(filename, serialization_method="pickle")
+            mask = load_object(filename, serialization_method="pickle", trusted=True)
         except (ValueError, EOFError, pickle.UnpicklingError) as e2:
             ocerror.Error.value_error(f"Failed to load mask from {filename}: {e}. Tried both joblib and pickle.")
             raise ValueError(f"Failed to load mask from {filename}. The file may be corrupted or in an unsupported format. Error: {e}")
@@ -195,7 +196,9 @@ def load_mask(name: str, models_dir: Optional[str] = None) -> np.ndarray:
         raise ValueError("Loaded mask must contain only 0s and 1s.")
 
     return mask_array
-def load_object(file_name : str, serialization_method : str = "auto") -> Any:
+
+
+def load_object(file_name : str, serialization_method : str = "auto", trusted: bool = False) -> Any:
     ''' Load an object from a file using pickle, joblib, or torch.
 
     Security
@@ -213,6 +216,11 @@ def load_object(file_name : str, serialization_method : str = "auto") -> Any:
         - "joblib": Use joblib to load
         - "pickle": Use pickle to load
         - "torch": Use torch.load to load (for PyTorch models)
+    trusted : bool, optional
+        Explicit opt-in that the serialized input is trusted.
+        If False, loading is blocked unless
+        ``OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION=1`` is set.
+        Default is False.
 
     Returns
     -------
@@ -237,6 +245,14 @@ def load_object(file_name : str, serialization_method : str = "auto") -> Any:
 
     # Load based on method
     if serialization_method == "torch":
+        # Serialized model loading is a security boundary (pickle/joblib/torch can
+        # execute arbitrary code when loading crafted inputs).
+        ocsec.require_trusted_input(
+            trusted=trusted,
+            operation="torch deserialization",
+            env_var="OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION",
+            source=file_name,
+        )
         try:
             import torch
             # Explicitly set weights_only=False to suppress FutureWarning
@@ -246,8 +262,20 @@ def load_object(file_name : str, serialization_method : str = "auto") -> Any:
             ocerror.Error.value_error("PyTorch is not installed. Cannot load .pt/.pth files.")
             raise ValueError("PyTorch is not installed. Cannot load .pt/.pth files.")
     elif serialization_method == "joblib":
+        ocsec.require_trusted_input(
+            trusted=trusted,
+            operation="joblib deserialization",
+            env_var="OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION",
+            source=file_name,
+        )
         return joblib.load(file_name)
     elif serialization_method == "pickle":
+        ocsec.require_trusted_input(
+            trusted=trusted,
+            operation="pickle deserialization",
+            env_var="OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION",
+            source=file_name,
+        )
         with open(file_name, 'rb') as file:
             return pickle.load(file)
     else:
@@ -350,5 +378,3 @@ def save_object(obj : Any, filename : str, serialization_method : str = "auto") 
         raise ValueError(f"Invalid serialization method: '{serialization_method}'. Must be 'auto', 'joblib', 'pickle', or 'torch'.")
 
     return None
-
-

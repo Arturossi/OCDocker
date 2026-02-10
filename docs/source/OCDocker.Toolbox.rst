@@ -18,6 +18,7 @@ Submodules
    OCDocker.Toolbox.Preparation
    OCDocker.Toolbox.Printing
    OCDocker.Toolbox.Running
+   OCDocker.Toolbox.Security
    OCDocker.Toolbox.Validation
 
 Module contents

@@ -28,8 +28,8 @@ Laboratory for Molecular Modeling and Dynamics
 
 This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
 developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are restricted and subject
-to formal authorization from UFRJ. See the LICENSE file for details.
+All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
+provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
@@ -91,8 +91,20 @@ def test_pickle_round_trip(tmp_path):
     pkl = tmp_path / "obj.pkl"
     code = ocff.to_pickle(str(pkl), obj)
     assert code == ocerror.ErrorCode.OK
-    loaded = ocff.from_pickle(str(pkl))
+    loaded = ocff.from_pickle(str(pkl), trusted=True)
     assert loaded == obj
+
+
+@pytest.mark.order(66)
+def test_pickle_load_blocked_without_trust_opt_in(tmp_path, monkeypatch):
+    obj = {"x": [1, 2], "y": "test"}
+    pkl = tmp_path / "obj.pkl"
+    code = ocff.to_pickle(str(pkl), obj)
+    assert code == ocerror.ErrorCode.OK
+
+    monkeypatch.delenv("OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION", raising=False)
+    loaded = ocff.from_pickle(str(pkl))
+    assert loaded is None
 
 @pytest.mark.order(5)
 def test_safe_create_and_remove_dir(tmp_path):
