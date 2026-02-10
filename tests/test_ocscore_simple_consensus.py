@@ -131,3 +131,22 @@ def test_perform_simple_consensus_rejects_unknown_metrics(monkeypatch):
             metrics=["mean", "not_a_metric"],
             verbose=False,
         )
+
+
+@pytest.mark.order(328)
+def test_perform_simple_consensus_verbose_uses_rmse_threshold(monkeypatch):
+    messages = []
+    monkeypatch.setattr(ocsimple.ocscoredata, "preprocess_df", _mock_preprocess_df)
+    monkeypatch.setattr(ocsimple.ocprint, "printv", lambda msg: messages.append(msg))
+
+    out = ocsimple.perform_simple_consensus(
+        df_path="dummy.csv",
+        threshold=10.0,
+        metrics=["mean", "max"],
+        verbose=True,
+    )
+
+    assert not out.empty
+    assert len(messages) == 1
+    assert "threshold of 10.0" in messages[0]
+    assert "RMSE" in messages[0]

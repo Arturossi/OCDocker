@@ -1018,3 +1018,312 @@ def test_engine_run_propagates_nonzero_engine_exit_code(monkeypatch, tmp_path, o
         all_boxes=False,
     )
     assert rc == 9
+
+
+@pytest.mark.order(367)
+def test_core_run_dock_uses_smi_path_for_dudez_archive(monkeypatch, tmp_path, ocdock_helpers):
+    receptor_dir = tmp_path / "proteinA"
+    receptor_dir.mkdir()
+    ligand_dir = receptor_dir / "compounds" / "ligandA"
+    (ligand_dir / "boxes").mkdir(parents=True)
+
+    receptor_desc = receptor_dir / "receptor_descriptors.json"
+    ligand_desc = ligand_dir / "ligand_descriptors.json"
+    box0 = ligand_dir / "boxes" / "box0.pdb"
+    receptor_desc.write_text("{}", encoding="utf-8")
+    ligand_desc.write_text("{}", encoding="utf-8")
+    box0.write_text("BOX", encoding="utf-8")
+
+    captured = {}
+
+    def _fake_vina(ligand_path, *_args, **_kwargs):
+        captured["ligand_path"] = ligand_path
+        return ocerror.ErrorCode.OK
+
+    monkeypatch.setattr(ocdock_helpers, "__run_vina", _fake_vina)
+    monkeypatch.setattr(
+        ocdock_helpers,
+        "get_config",
+        lambda: SimpleNamespace(available_cores=1, multiprocess=False, logdir=str(tmp_path)),
+    )
+    monkeypatch.setattr(ocdock_helpers.ocprint, "print_error_log", lambda *_a, **_k: None)
+    monkeypatch.setattr(ocdock_helpers.ocprint, "print_warning_log", lambda *_a, **_k: None)
+    monkeypatch.setattr(ocdock_helpers.ocprint, "print_warning", lambda *_a, **_k: None)
+
+    rc = ocdock_helpers.__core_run_dock(
+        str(receptor_dir),
+        str(ligand_dir),
+        "dudez",
+        "vina",
+        ocdock_helpers._NoOpLock(),
+        overwrite=False,
+        digestFormat="json",
+        all_boxes=False,
+    )
+    assert rc == ocerror.ErrorCode.OK
+    assert captured["ligand_path"].endswith("/ligand.smi")
+
+
+@pytest.mark.order(368)
+@pytest.mark.parametrize(
+    ("runner_name", "engine_dir", "factory_attr"),
+    [
+        ("__run_gnina", "gninaFiles", ("ocgnina", "Gnina")),
+        ("__run_plants", "plantsFiles", ("ocplants", "PLANTS")),
+        ("__run_smina", "sminaFiles", ("ocsmina", "Smina")),
+        ("__run_vina", "vinaFiles", ("ocvina", "Vina")),
+    ],
+)
+def test_engine_run_returns_ligand_not_prepared_when_prepare_ligand_returns_nonzero_int(monkeypatch, tmp_path, ocdock_helpers, runner_name, engine_dir, factory_attr):
+    ligand_dir, boxes_path, receptor_path, ligand_path = _prepare_engine_run_environment(tmp_path, engine_dir)
+
+    def _factory(*args, **kwargs):
+        _ = kwargs
+        obj = _FakeEngineObject(
+            prepared_receptor=args[3],
+            prepared_ligand=args[5],
+            input_receptor_path=str(receptor_path),
+            input_ligand_path=str(ligand_path),
+            log_path=args[6],
+            output_target=args[7],
+        )
+        obj.run_prepare_ligand = lambda **_k: 1  # type: ignore[method-assign]
+        return obj
+
+    monkeypatch.setattr(
+        ocdock_helpers,
+        "get_config",
+        lambda: SimpleNamespace(available_cores=1, multiprocess=False, logdir=str(tmp_path)),
+    )
+    monkeypatch.setattr(ocdock_helpers.ocr, "Receptor", lambda *_a, **_k: object(), raising=False)
+    monkeypatch.setattr(ocdock_helpers.ocl, "Ligand", lambda *_a, **_k: object(), raising=False)
+    monkeypatch.setattr(ocdock_helpers.ocprint, "print_error_log", lambda *_a, **_k: None)
+    monkeypatch.setattr(ocdock_helpers.ocvalidation, "is_molecule_valid", lambda *_a, **_k: True)
+    monkeypatch.setattr(ocdock_helpers.ocvalidation, "is_molecule_valid_with_retry", lambda *_a, **_k: True)
+    monkeypatch.setattr(ocdock_helpers, "__needs_receptor_preparation", lambda *_a, **_k: True)
+    monkeypatch.setattr(ocdock_helpers, "__receptor_file_lock", lambda *_a, **_k: nullcontext())
+
+    factory_module = getattr(ocdock_helpers, factory_attr[0])
+    monkeypatch.setattr(factory_module, factory_attr[1], _factory, raising=False)
+
+    runner = getattr(ocdock_helpers, runner_name)
+    rc = runner(
+        str(ligand_path),
+        str(ligand_dir / "ligand_descriptors.json"),
+        str(receptor_path),
+        str(tmp_path / "receptor_descriptors.json"),
+        str(boxes_path / "box0.pdb"),
+        "ptnLigPrepFailInt",
+        "dudez",
+        ocdock_helpers._NoOpLock(),
+        overwrite=True,
+        digestFormat="json",
+        all_boxes=False,
+    )
+    assert rc == ocerror.ErrorCode.LIGAND_NOT_PREPARED
+
+
+@pytest.mark.order(369)
+@pytest.mark.parametrize(
+    ("runner_name", "engine_dir", "factory_attr", "expected_rc"),
+    [
+        ("__run_gnina", "gninaFiles", ("ocgnina", "Gnina"), ocerror.ErrorCode.RECEPTOR_NOT_PREPARED),
+        ("__run_plants", "plantsFiles", ("ocplants", "PLANTS"), ocerror.ErrorCode.LIGAND_NOT_PREPARED),
+        ("__run_smina", "sminaFiles", ("ocsmina", "Smina"), ocerror.ErrorCode.LIGAND_NOT_PREPARED),
+        ("__run_vina", "vinaFiles", ("ocvina", "Vina"), ocerror.ErrorCode.RECEPTOR_NOT_PREPARED),
+    ],
+)
+def test_engine_run_returns_expected_error_when_prepare_receptor_returns_nonzero_int(monkeypatch, tmp_path, ocdock_helpers, runner_name, engine_dir, factory_attr, expected_rc):
+    ligand_dir, boxes_path, receptor_path, ligand_path = _prepare_engine_run_environment(tmp_path, engine_dir)
+
+    def _factory(*args, **kwargs):
+        _ = kwargs
+        obj = _FakeEngineObject(
+            prepared_receptor=args[3],
+            prepared_ligand=args[5],
+            input_receptor_path=str(receptor_path),
+            input_ligand_path=str(ligand_path),
+            log_path=args[6],
+            output_target=args[7],
+        )
+        obj.run_prepare_receptor = lambda **_k: 1  # type: ignore[method-assign]
+        return obj
+
+    monkeypatch.setattr(
+        ocdock_helpers,
+        "get_config",
+        lambda: SimpleNamespace(available_cores=1, multiprocess=False, logdir=str(tmp_path)),
+    )
+    monkeypatch.setattr(ocdock_helpers.ocr, "Receptor", lambda *_a, **_k: object(), raising=False)
+    monkeypatch.setattr(ocdock_helpers.ocl, "Ligand", lambda *_a, **_k: object(), raising=False)
+    monkeypatch.setattr(ocdock_helpers.ocprint, "print_error_log", lambda *_a, **_k: None)
+    monkeypatch.setattr(ocdock_helpers.ocvalidation, "is_molecule_valid", lambda *_a, **_k: True)
+    monkeypatch.setattr(ocdock_helpers.ocvalidation, "is_molecule_valid_with_retry", lambda *_a, **_k: True)
+    monkeypatch.setattr(ocdock_helpers, "__needs_receptor_preparation", lambda *_a, **_k: True)
+    monkeypatch.setattr(ocdock_helpers, "__receptor_file_lock", lambda *_a, **_k: nullcontext())
+
+    factory_module = getattr(ocdock_helpers, factory_attr[0])
+    monkeypatch.setattr(factory_module, factory_attr[1], _factory, raising=False)
+
+    runner = getattr(ocdock_helpers, runner_name)
+    rc = runner(
+        str(ligand_path),
+        str(ligand_dir / "ligand_descriptors.json"),
+        str(receptor_path),
+        str(tmp_path / "receptor_descriptors.json"),
+        str(boxes_path / "box0.pdb"),
+        "ptnRecPrepFailInt",
+        "dudez",
+        ocdock_helpers._NoOpLock(),
+        overwrite=True,
+        digestFormat="json",
+        all_boxes=False,
+    )
+    assert rc == expected_rc
+
+
+@pytest.mark.order(370)
+@pytest.mark.parametrize(
+    ("runner_name", "engine_dir", "factory_attr"),
+    [
+        ("__run_gnina", "gninaFiles", ("ocgnina", "Gnina")),
+        ("__run_plants", "plantsFiles", ("ocplants", "PLANTS")),
+        ("__run_smina", "sminaFiles", ("ocsmina", "Smina")),
+        ("__run_vina", "vinaFiles", ("ocvina", "Vina")),
+    ],
+)
+def test_engine_run_propagates_nonzero_engine_exit_without_stderr(monkeypatch, tmp_path, ocdock_helpers, runner_name, engine_dir, factory_attr):
+    ligand_dir, boxes_path, receptor_path, ligand_path = _prepare_engine_run_environment(tmp_path, engine_dir)
+
+    def _factory(*args, **kwargs):
+        _ = kwargs
+        obj = _FakeEngineObject(
+            prepared_receptor=args[3],
+            prepared_ligand=args[5],
+            input_receptor_path=str(receptor_path),
+            input_ligand_path=str(ligand_path),
+            log_path=args[6],
+            output_target=args[7],
+        )
+        obj.run_gnina = lambda **_k: 9  # type: ignore[method-assign]
+        obj.run_plants = lambda **_k: 9  # type: ignore[method-assign]
+        obj.run_smina = lambda **_k: 9  # type: ignore[method-assign]
+        obj.run_vina = lambda **_k: 9  # type: ignore[method-assign]
+        return obj
+
+    monkeypatch.setattr(
+        ocdock_helpers,
+        "get_config",
+        lambda: SimpleNamespace(available_cores=1, multiprocess=False, logdir=str(tmp_path)),
+    )
+    monkeypatch.setattr(ocdock_helpers.ocr, "Receptor", lambda *_a, **_k: object(), raising=False)
+    monkeypatch.setattr(ocdock_helpers.ocl, "Ligand", lambda *_a, **_k: object(), raising=False)
+    monkeypatch.setattr(ocdock_helpers.ocprint, "print_error_log", lambda *_a, **_k: None)
+    monkeypatch.setattr(ocdock_helpers.ocvalidation, "is_molecule_valid", lambda *_a, **_k: True)
+    monkeypatch.setattr(ocdock_helpers.ocvalidation, "is_molecule_valid_with_retry", lambda *_a, **_k: True)
+    monkeypatch.setattr(ocdock_helpers, "__needs_receptor_preparation", lambda *_a, **_k: True)
+    monkeypatch.setattr(ocdock_helpers, "__receptor_file_lock", lambda *_a, **_k: nullcontext())
+
+    factory_module = getattr(ocdock_helpers, factory_attr[0])
+    monkeypatch.setattr(factory_module, factory_attr[1], _factory, raising=False)
+
+    runner = getattr(ocdock_helpers, runner_name)
+    rc = runner(
+        str(ligand_path),
+        str(ligand_dir / "ligand_descriptors.json"),
+        str(receptor_path),
+        str(tmp_path / "receptor_descriptors.json"),
+        str(boxes_path / "box0.pdb"),
+        "ptnRunFailNoStderr",
+        "dudez",
+        ocdock_helpers._NoOpLock(),
+        overwrite=True,
+        digestFormat="json",
+        all_boxes=False,
+    )
+    assert rc == 9
+
+
+@pytest.mark.order(393)
+def test_run_vina_mixed_box_outputs_warns_for_existing_and_runs_missing_box(monkeypatch, tmp_path, ocdock_helpers):
+    ligand_dir = tmp_path / "ligand_mixed_boxes"
+    boxes_path = ligand_dir / "boxes"
+    vina_dir = ligand_dir / "vinaFiles"
+    box0_dir = vina_dir / "box0"
+    box1_dir = vina_dir / "box1"
+    boxes_path.mkdir(parents=True, exist_ok=True)
+    box0_dir.mkdir(parents=True, exist_ok=True)
+    box1_dir.mkdir(parents=True, exist_ok=True)
+
+    receptor_path = tmp_path / "receptor.pdb"
+    ligand_path = ligand_dir / "ligand.mol2"
+    receptor_path.write_text("REC", encoding="utf-8")
+    ligand_path.write_text("LIG", encoding="utf-8")
+    (boxes_path / "box0.pdb").write_text("BOX0", encoding="utf-8")
+    (boxes_path / "box1.pdb").write_text("BOX1", encoding="utf-8")
+
+    # Pre-create only box0 outputs so box0 is skipped and box1 is executed.
+    (box0_dir / "vina_0.log").write_text("done", encoding="utf-8")
+    (box0_dir / "vina_0.pdbqt").write_text("done", encoding="utf-8")
+
+    warnings = []
+    digests = []
+
+    def _factory(*args, **kwargs):
+        _ = kwargs
+        prepared_receptor = args[3]
+        prepared_ligand = args[5]
+        Path(prepared_receptor).parent.mkdir(parents=True, exist_ok=True)
+        Path(prepared_receptor).write_text("PREP_REC", encoding="utf-8")
+        Path(prepared_ligand).parent.mkdir(parents=True, exist_ok=True)
+        Path(prepared_ligand).write_text("PREP_LIG", encoding="utf-8")
+        return _FakeEngineObject(
+            prepared_receptor=prepared_receptor,
+            prepared_ligand=prepared_ligand,
+            input_receptor_path=str(receptor_path),
+            input_ligand_path=str(ligand_path),
+            log_path=args[6],
+            output_target=args[7],
+        )
+
+    monkeypatch.setattr(
+        ocdock_helpers,
+        "get_config",
+        lambda: SimpleNamespace(available_cores=1, multiprocess=False, logdir=str(tmp_path)),
+    )
+    monkeypatch.setattr(ocdock_helpers.ocr, "Receptor", lambda *_a, **_k: object(), raising=False)
+    monkeypatch.setattr(ocdock_helpers.ocl, "Ligand", lambda *_a, **_k: object(), raising=False)
+    monkeypatch.setattr(ocdock_helpers.ocprint, "print_error_log", lambda *_a, **_k: None)
+    monkeypatch.setattr(ocdock_helpers.ocprint, "print_warning_log", lambda msg, path: warnings.append((msg, path)))
+    monkeypatch.setattr(ocdock_helpers.ocprint, "print_warning", lambda msg: warnings.append((msg, "")))
+    monkeypatch.setattr(ocdock_helpers.ocvalidation, "is_molecule_valid", lambda *_a, **_k: True)
+    monkeypatch.setattr(ocdock_helpers.ocvalidation, "is_molecule_valid_with_retry", lambda *_a, **_k: True)
+    monkeypatch.setattr(ocdock_helpers, "__needs_receptor_preparation", lambda *_a, **_k: False)
+    monkeypatch.setattr(ocdock_helpers, "__receptor_file_lock", lambda *_a, **_k: nullcontext())
+    monkeypatch.setattr(ocdock_helpers.ocvina, "Vina", _factory, raising=False)
+    monkeypatch.setattr(
+        ocdock_helpers.ocvina,
+        "generate_digest",
+        lambda *a, **k: digests.append((a, k)) or ocerror.ErrorCode.OK,
+        raising=False,
+    )
+
+    rc = ocdock_helpers.__run_vina(
+        str(ligand_path),
+        str(ligand_dir / "ligand_descriptors.json"),
+        str(receptor_path),
+        str(tmp_path / "receptor_descriptors.json"),
+        str(boxes_path / "box0.pdb"),
+        "ptnMixed",
+        "dudez",
+        ocdock_helpers._NoOpLock(),
+        overwrite=False,
+        digestFormat="json",
+        all_boxes=True,
+    )
+
+    assert rc == ocerror.ErrorCode.OK
+    assert warnings
+    assert any("already generated" in msg for msg, _path in warnings)
+    assert digests
+    assert digests[0][1]["box_id"] == "box1"

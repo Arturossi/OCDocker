@@ -259,3 +259,110 @@ def test_require_shap_raises_when_unavailable(monkeypatch):
     monkeypatch.setattr(ocfeatimp, "shap", None)
     with pytest.raises(ImportError):
         ocfeatimp._require_shap()
+
+
+@pytest.mark.order(352)
+def test_feature_importance_additional_background_and_base_value_paths(monkeypatch):
+    monkeypatch.setattr(ocfeatimp, "shap", SimpleNamespace())
+
+    X = np.arange(24, dtype=float).reshape(12, 2)
+    meta = pd.DataFrame({"target": [0] * 6 + [1] * 6, "active": [0, 1, 0, 1, 0, 1] * 2})
+    bg = ocfeatimp.build_stratified_background(X, meta, ["target"], per_stratum=2, seed=1)
+    assert bg.shape == (4, 2)
+
+    class _BaseShortExplainer:
+        expected_value = [0.33]
+
+        def shap_values(self, X, nsamples="auto"):
+            _ = nsamples
+            return np.asarray(X, dtype=float)
+
+    short_base_out = ocfeatimp.compute_shap_values(
+        _BaseShortExplainer(),
+        np.array([[1.0, 2.0], [3.0, 4.0]], dtype=float),
+        class_index=1,
+    )
+    assert np.allclose(short_base_out["base_values"], np.array([0.33, 0.33]))
+
+    class _BaseArrayExplainer:
+        expected_value = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=float)
+
+        def shap_values(self, X, nsamples="auto"):
+            _ = nsamples
+            return np.asarray(X, dtype=float)
+
+    array_base_out = ocfeatimp.compute_shap_values(
+        _BaseArrayExplainer(),
+        np.array([[5.0, 6.0], [7.0, 8.0]], dtype=float),
+        class_index=1,
+    )
+    assert np.allclose(array_base_out["base_values"], np.array([0.3, 0.4]))
+
+
+@pytest.mark.order(353)
+def test_feature_importance_make_explainer_extra_paths(monkeypatch):
+    calls = []
+
+    class _FakeShap:
+        @staticmethod
+        def TreeExplainer(model, data=None):
+            calls.append(("tree", model.__class__.__name__, np.asarray(data).shape))
+            return "tree_explicit"
+
+        @staticmethod
+        def DeepExplainer(model, bg):
+            calls.append(("deep", model.__class__.__name__, np.asarray(bg).shape))
+            return "deep_explicit"
+
+        @staticmethod
+        def KernelExplainer(fn, bg, link=None):
+            calls.append(("kernel", fn(np.array([[0.2, 0.8]], dtype=float)), np.asarray(bg).shape, link))
+            return "kernel_any"
+
+    monkeypatch.setattr(ocfeatimp, "shap", _FakeShap())
+
+    class _KernelModel:
+        def predict(self, X):
+            return np.asarray(X)[:, 0]
+
+    class _TreeModel:
+        def apply(self, X):
+            return np.asarray(X)
+
+    class _DeepModel:
+        pass
+
+    _DeepModel.__module__ = "tensorflow.keras"
+
+    bg = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=float)
+
+    # method='auto' + non-tree/non-deep model should fall back to kernel and sanitize unknown link
+    kernel_auto, kernel_idx = ocfeatimp.make_explainer(_KernelModel(), bg, method="auto", link="unsupported")
+    assert (kernel_auto, kernel_idx) == ("kernel_any", 1)
+
+    # Explicit tree/deep branches
+    tree_explicit, tree_idx = ocfeatimp.make_explainer(_TreeModel(), bg, method="tree")
+    deep_explicit, deep_idx = ocfeatimp.make_explainer(_DeepModel(), bg, method="deep")
+    assert (tree_explicit, tree_idx) == ("tree_explicit", 1)
+    assert (deep_explicit, deep_idx) == ("deep_explicit", 1)
+
+    # Explicit predict_fn branch
+    pred_calls = {"count": 0}
+
+    def _custom_predict(X):
+        pred_calls["count"] += 1
+        return np.asarray(X)[:, 1]
+
+    kernel_custom, custom_idx = ocfeatimp.make_explainer(
+        _KernelModel(),
+        bg,
+        method="kernel",
+        link="identity",
+        predict_fn=_custom_predict,
+    )
+    assert (kernel_custom, custom_idx) == ("kernel_any", 1)
+    assert pred_calls["count"] >= 1
+    assert any(call[0] == "tree" for call in calls)
+    assert any(call[0] == "deep" for call in calls)
+    assert any(call[0] == "kernel" and call[-1] is None for call in calls)
+    assert any(call[0] == "kernel" and call[-1] == "identity" for call in calls)

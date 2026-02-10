@@ -192,3 +192,25 @@ def test_parse_study_type_variants_cover_dimensional_and_ml_paths():
     assert ocstudy.parse_study_type("NN_Optimization") == "NN"
     assert ocstudy.parse_study_type("Trans_Optimization") == "Transformer"
     assert ocstudy.parse_study_type("UnknownStudy") == ""
+
+
+@pytest.mark.order(329)
+def test_analyze_studies_old_verbose_false_path_skips_print(monkeypatch):
+    monkeypatch.setattr(
+        ocstudy.optuna,
+        "load_study",
+        lambda **_k: _FakeStudy(_trials_df(with_feature_mask=False)),
+    )
+
+    calls = {"printv": 0}
+    monkeypatch.setattr(ocstudy.ocprint, "printv", lambda _msg: calls.__setitem__("printv", calls["printv"] + 1))
+
+    out = ocstudy.analyze_studies_old(
+        snames=["NN_Optimization_1"],
+        storage="sqlite://",
+        n_trials=2,
+        verbose=False,
+    )
+
+    assert len(out) == 2
+    assert calls["printv"] == 0

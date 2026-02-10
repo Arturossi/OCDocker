@@ -108,7 +108,10 @@ def perform_simple_consensus(
         
     if verbose:
         # Print the results only for the rows with error below the threshold (to avoid the plot to have outliers)
-        ocprint.printv(f"The rows with error smaller than the threshold of {threshold}:\n{final_df[final_df['Error'] < threshold]}")
+        ocprint.printv(
+            f"The rows with error smaller than the threshold of {threshold}:\n"
+            f"{final_df[final_df['RMSE'] < threshold]}"
+        )
 
     return final_df
 

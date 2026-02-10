@@ -154,3 +154,26 @@ def test_create_session_returns_scoped(dbminimal):
     engine = dbm.create_engine(url)
     session = dbm.create_session(engine)
     assert isinstance(session, dbm.scoped_session)
+
+
+@pytest.mark.order(348)
+def test_cleanup_engine_ignores_runtime_error(dbminimal):
+    dbm = dbminimal
+
+    class _BrokenEngine:
+        def dispose(self, close=True):
+            _ = close
+            raise RuntimeError("dispose failed")
+
+    dbm.cleanup_engine(_BrokenEngine())
+
+
+@pytest.mark.order(349)
+def test_cleanup_session_ignores_runtime_error(dbminimal):
+    dbm = dbminimal
+
+    class _BrokenSession:
+        def remove(self):
+            raise RuntimeError("remove failed")
+
+    dbm.cleanup_session(_BrokenSession())
