@@ -388,6 +388,25 @@ It checks:
 - Python deps: rdkit, Biopython, ODDT, SQLAlchemy
 - DB connectivity (opens/closes a connection)
 
+Reproducibility: `ocdocker manifest`
+------------------------------------
+
+Generate a JSON manifest with OCDocker/Python versions, external tool versions,
+platform metadata, git metadata (when available), and installed Python packages:
+
+```bash
+ocdocker manifest --conf OCDocker.cfg --output reproducibility_manifest.json
+```
+
+From Python code:
+
+```python
+import OCDocker.Toolbox.Reproducibility as ocrepro
+
+manifest = ocrepro.generate_reproducibility_manifest(include_python_packages=False)
+_ = ocrepro.write_reproducibility_manifest("reproducibility_manifest.json")
+```
+
 Docking: Quick Examples
 -----------------------
 

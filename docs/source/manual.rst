@@ -136,6 +136,7 @@ Main commands (see ``ocdocker <command> --help``):
 - ``script``: run a Python script with OCDocker pre-loaded
   (requires ``--allow-unsafe-exec`` or ``OCDOCKER_ALLOW_SCRIPT_EXEC=1``)
 - ``doctor``: diagnostics (binaries, deps, DB)
+- ``manifest``: generate reproducibility manifest (versions/runtime/tooling)
 - ``init-config``: create a starter config file
 - ``version``: print installed version
 
@@ -143,6 +144,14 @@ Global options:
 
 - ``--conf``, ``--multiprocess``, ``--no-multiprocess``, ``--update-databases``
 - ``--output-level``, ``--overwrite``, ``--log-file``, ``--no-stdout-log``
+
+Programmatic manifest API:
+
+.. code-block:: python
+
+   import OCDocker.Toolbox.Reproducibility as ocrepro
+   manifest = ocrepro.generate_reproducibility_manifest(include_python_packages=False)
+   _ = ocrepro.write_reproducibility_manifest("reproducibility_manifest.json")
 
 Trusted runtime helper
 ~~~~~~~~~~~~~~~~~~~~~~

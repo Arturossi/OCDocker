@@ -63,6 +63,20 @@ Commands
 
      ocdocker init-config --conf OCDocker.cfg
 
+- manifest: Generate reproducibility manifest JSON with version metadata
+
+  .. code-block:: bash
+
+     ocdocker manifest --conf OCDocker.cfg --output reproducibility_manifest.json
+
+  Programmatic API:
+
+  .. code-block:: python
+
+     import OCDocker.Toolbox.Reproducibility as ocrepro
+     manifest = ocrepro.generate_reproducibility_manifest(include_python_packages=False)
+     _ = ocrepro.write_reproducibility_manifest("reproducibility_manifest.json")
+
 - script: Run a Python script with OCDocker pre-loaded
   (requires explicit trust opt-in)
 
