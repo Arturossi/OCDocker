@@ -485,6 +485,65 @@ vina = ocvina.Vina(...)
 
 See `examples/13_cli_script_example.py` for a complete example.
 
+Container wrappers (Docker and Singularity)
+-------------------------------------------
+
+OCDocker includes helper scripts that auto-mount likely host paths:
+
+- Docker: `containers/docker/ocdocker.sh`
+- Singularity/Apptainer: `containers/singularity/ocdocker.sh`
+
+Both wrappers can:
+
+- parse explicit `--mount` flags
+- read mount lists from env vars (`OCDOCKER_DOCKER_MOUNTS` / `OCDOCKER_SINGULARITY_MOUNTS`)
+- auto-detect absolute paths passed in CLI arguments
+- parse `OCDocker.cfg` paths and add their parent directories as bind mounts
+
+Singularity helper extras:
+
+- `--cfg-source /path/to/OCDocker.cfg` to force which config is parsed for bind hints
+- `--dry-run` to print the resolved `apptainer/singularity exec` command without executing it
+
+Singularity MySQL sidecar:
+
+- `containers/singularity/mysql.sh` can start/stop/status a local MySQL instance using Apptainer/Singularity.
+- Default image is `docker://mysql:8.4` and data is persisted in `tmp/singularity-mysql`.
+
+```bash
+# Start local MySQL for Singularity workflows
+containers/singularity/mysql.sh start
+
+# Check if it is running
+containers/singularity/mysql.sh status
+
+# Stop it
+containers/singularity/mysql.sh stop
+```
+
+The default credentials match `containers/singularity/OCDocker.cfg.singularity`:
+
+- `HOST=localhost`
+- `PORT=3306`
+- `USER=ocdocker`
+- `PASSWORD=ocdocker_pass`
+- `DATABASE=ocdocker`
+
+Recommended pattern for dynamic script paths:
+
+1. Create one project/work root (for example `/data/your_project`).
+2. Keep all inputs/outputs under that root.
+3. Bind that root once, instead of many scattered folders.
+
+Singularity example:
+
+```bash
+export OCDOCKER_SINGULARITY_IMAGE=/path/to/ocdocker.sif
+containers/singularity/ocdocker.sh \
+  --workdir /data/your_project \
+  script --allow-unsafe-exec /data/your_project/run.py
+```
+
 Environment Variables (reference)
 ---------------------------------
 

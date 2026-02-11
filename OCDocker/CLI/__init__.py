@@ -480,7 +480,11 @@ def _collect_python_package_versions() -> Dict[str, str]:
 
     for dist in distributions():
         try:
-            name = dist.metadata.get("Name") or getattr(dist, "name", None)
+            name: Optional[str]
+            try:
+                name = dist.metadata["Name"]
+            except KeyError:
+                name = getattr(dist, "name", None)
             version = str(dist.version)
             if not name:
                 continue
