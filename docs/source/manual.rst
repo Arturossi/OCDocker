@@ -97,8 +97,8 @@ OCDocker reads configuration from ``OCDocker.cfg``. Use:
 
 Key sections in ``OCDocker.cfg`` (see ``OCDocker.cfg.example``):
 
-- Database: ``HOST``, ``USER``, ``PASSWORD``, ``DATABASE``, ``OPTIMIZEDB``, ``PORT``
-- SQLite: ``USE_SQLITE`` and ``SQLITE_PATH``
+- Database: ``DB_BACKEND``, ``HOST``, ``USER``, ``PASSWORD``, ``DATABASE``, ``OPTIMIZEDB``, ``PORT``
+- SQLite: ``DB_BACKEND=sqlite`` and optional ``SQLITE_PATH``
 - External tools: ``vina``, ``smina``, ``plants``, ``spores``, ``pythonsh``,
   ``prepare_ligand``, ``prepare_receptor``, ``obabel``, ``oddt``
 - Engine defaults: ``vina_*``, ``smina_*``, ``plants_*``
@@ -110,7 +110,7 @@ Environment variables
 Common:
 
 - ``OCDOCKER_CONFIG``: path to ``OCDocker.cfg``
-- ``OCDOCKER_USE_SQLITE``: use SQLite backend instead of MySQL
+- ``OCDOCKER_DB_BACKEND`` / ``DB_BACKEND``: choose backend (``postgresql``, ``mysql``, ``sqlite``)
 - ``OCDOCKER_SQLITE_PATH``: explicit SQLite file path
 - ``OCDOCKER_NO_AUTO_BOOTSTRAP``: disable import-time bootstrap
 - ``OCDOCKER_TIMEOUT``: default timeout (seconds) for external tools
@@ -136,6 +136,7 @@ Main commands (see ``ocdocker <command> --help``):
 - ``script``: run a Python script with OCDocker pre-loaded
   (requires ``--allow-unsafe-exec`` or ``OCDOCKER_ALLOW_SCRIPT_EXEC=1``)
 - ``doctor``: diagnostics (binaries, deps, DB)
+- ``manifest``: generate reproducibility manifest (versions/runtime/tooling)
 - ``init-config``: create a starter config file
 - ``version``: print installed version
 
@@ -143,6 +144,14 @@ Global options:
 
 - ``--conf``, ``--multiprocess``, ``--no-multiprocess``, ``--update-databases``
 - ``--output-level``, ``--overwrite``, ``--log-file``, ``--no-stdout-log``
+
+Programmatic manifest API:
+
+.. code-block:: python
+
+   import OCDocker.Toolbox.Reproducibility as ocrepro
+   manifest = ocrepro.generate_reproducibility_manifest(include_python_packages=False)
+   _ = ocrepro.write_reproducibility_manifest("reproducibility_manifest.json")
 
 Trusted runtime helper
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -244,7 +253,7 @@ Rescoring and OCScore
 Database and persistence
 ------------------------
 
-- Default backend is MySQL; SQLite can be enabled for local development.
+- Default backend is PostgreSQL; MySQL and SQLite are also supported.
 - Use ``--store-db`` in CLI commands to store minimal metadata in the database.
 - Database schemas are defined under :doc:`OCDocker.DB` and related model pages.
 

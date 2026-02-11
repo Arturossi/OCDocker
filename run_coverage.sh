@@ -37,7 +37,7 @@ cd "$SCRIPT_DIR"
 TMP_COV_DIR=".coverage_tmp"
 SQLITE_DIR="$TMP_COV_DIR/sqlite"
 mkdir -p "$SQLITE_DIR"
-export OCDOCKER_USE_SQLITE=1
+export OCDOCKER_DB_BACKEND=sqlite
 export OCDOCKER_SQLITE_PATH="$SQLITE_DIR/ocdocker.db"
 
 # Avoid heavy model/bootstrap work during tests

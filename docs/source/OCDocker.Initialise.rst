@@ -13,7 +13,7 @@ Environment variables
 
 - ``OCDOCKER_CONFIG``: path to ``OCDocker.cfg`` (if omitted, a local ``OCDocker.cfg`` is used when present)
 - ``OCDOCKER_NO_AUTO_BOOTSTRAP``: set to disable auto‑bootstrap on import
-- ``OCDOCKER_USE_SQLITE``: set to use a local SQLite database instead of MySQL (useful for dev/tests)
+- ``OCDOCKER_DB_BACKEND`` / ``DB_BACKEND``: select backend (``postgresql``, ``mysql``, ``sqlite``)
 - ``OCDOCKER_TIMEOUT``: default timeout (seconds) for external tools
 
 Explicit bootstrap

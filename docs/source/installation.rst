@@ -15,7 +15,7 @@ Make sure you have the following prerequisites installed:
 Quickstart (minimal, SQLite)
 ----------------------------
 
-If you want the fastest path without setting up MySQL, use SQLite (local file DB) as the default backend:
+If you want the fastest path without setting up PostgreSQL/MySQL, use SQLite (local file DB) as the backend:
 
 1. Ensure the system dependencies are installed (see :ref:`system-dependencies`).
 2. Create/activate a conda env with Python 3.11 (prefer mamba) and install OCDocker with pip.
@@ -23,10 +23,10 @@ If you want the fastest path without setting up MySQL, use SQLite (local file DB
 
    .. code-block:: bash
 
-      export OCDOCKER_USE_SQLITE=1
+      export OCDOCKER_DB_BACKEND=sqlite
       ocdocker doctor
 
-SQLite is recommended for quick experiments and development. MySQL is optional and only needed for multi-user or long-running database workflows.
+SQLite is recommended for quick experiments and development. PostgreSQL is the default backend, and MySQL is optional for alternative server-based workflows.
 
 .. _system-dependencies:
 

@@ -387,6 +387,7 @@ dependencies:
   - pydantic=2.11.4=pyh3cfb1c2_0
   - pydantic-core=2.33.2=py311hdae7d1d_0
   - pydantic-settings=2.9.1=pyh3cfb1c2_0
+  - psycopg>=3.2.0
   - pygments=2.18.0=pyhd8ed1ab_0
   - pymysql=1.1.1=pyhd8ed1ab_0
   - pynacl=1.5.0=py311h9ecbd09_4

@@ -35,7 +35,7 @@ pip install -e .
 ```
 
 Helpful environment settings:
-- `OCDOCKER_USE_SQLITE=1` to bypass MySQL in local dev/tests.
+- `OCDOCKER_DB_BACKEND=sqlite` to use local SQLite in dev/tests.
 - `OCDOCKER_CONFIG=./OCDocker.cfg` if you want a custom config. Start from
   `OCDocker.cfg.example`.
 

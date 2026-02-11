@@ -1,13 +1,13 @@
 # Database
+DB_BACKEND = postgresql
 HOST = localhost
 USER = ocdocker
 PASSWORD = ocdocker_pass
 DATABASE = ocdocker
 OPTIMIZEDB = optimization
-PORT = 3306
+PORT = 5432
 
 # SQLite options (optional)
-USE_SQLITE = no
 SQLITE_PATH =
 
 # Root directory for the OCDocker Database

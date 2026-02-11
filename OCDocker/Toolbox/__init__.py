@@ -21,6 +21,7 @@ Modules
 - MoleculeProcessing: Molecule parsing and processing utilities.
 - Preparation: Molecule preparation strategies.
 - Printing: Printing and verbosity helpers.
+- Reproducibility: Environment/version manifest helpers.
 - Running: Subprocess and command execution helpers.
 - Validation: Input validation utilities.
 '''

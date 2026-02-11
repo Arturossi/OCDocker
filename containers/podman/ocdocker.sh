@@ -4,6 +4,7 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../.." && pwd)"
 compose_file="${script_dir}/podman-compose.yml"
+compose_mysql_override="${script_dir}/podman-compose.mysql.yml"
 
 if [[ -z "${HOST_OCDOCKER_ROOT:-}" ]]; then
   export HOST_OCDOCKER_ROOT
@@ -19,6 +20,21 @@ fi
 
 declare -A seen_mounts=()
 extra_mounts=()
+
+normalize_backend() {
+  case "${1:-}" in
+    postgresql|postgres|pgsql) printf 'postgresql\n' ;;
+    mysql|mariadb) printf 'mysql\n' ;;
+    sqlite|sqlite3) printf 'sqlite\n' ;;
+    *) printf 'postgresql\n' ;;
+  esac
+}
+
+extract_backend_from_cfg() {
+  local cfg="$1"
+  [[ -f "${cfg}" ]] || return 0
+  grep -E "^\s*DB_BACKEND\s*=" "${cfg}" | tail -n1 | awk -F= '{print $2}' | xargs
+}
 
 add_mount() {
   local m="$1"
@@ -91,7 +107,21 @@ for a in "${args[@]}"; do
   fi
 done
 
-exec "${compose_cmd[@]}" -f "${compose_file}" run --rm \
+selected_backend_raw="${OCDOCKER_DB_BACKEND:-${DB_BACKEND:-}}"
+if [[ -z "${selected_backend_raw}" ]]; then
+  if [[ -n "${OCDOCKER_CONFIG:-}" && -f "${OCDOCKER_CONFIG}" ]]; then
+    selected_backend_raw="$(extract_backend_from_cfg "${OCDOCKER_CONFIG}")"
+  elif [[ -f "${repo_root}/OCDocker.cfg" ]]; then
+    selected_backend_raw="$(extract_backend_from_cfg "${repo_root}/OCDocker.cfg")"
+  fi
+fi
+selected_backend="$(normalize_backend "${selected_backend_raw:-postgresql}")"
+compose_args=(-f "${compose_file}")
+if [[ "${selected_backend}" == "mysql" ]]; then
+  compose_args+=(-f "${compose_mysql_override}")
+fi
+
+exec "${compose_cmd[@]}" "${compose_args[@]}" run --rm \
   "${extra_mounts[@]}" \
   --entrypoint ocdocker \
   ocdocker "${args[@]}"

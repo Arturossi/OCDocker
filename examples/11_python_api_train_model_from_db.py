@@ -58,6 +58,51 @@ from OCDocker.DB.Models import Complexes, Ligands, Receptors
 from OCDocker.OCScore.DNN.DNNOptimizer import DNNOptimizer
 
 
+def _normalize_db_backend(raw_backend: str) -> str:
+    '''Normalize backend aliases used by config and environment variables.'''
+    backend = str(raw_backend).strip().lower()
+    if backend in ('postgresql', 'postgres', 'pgsql'):
+        return 'postgresql'
+    if backend in ('mysql', 'mariadb'):
+        return 'mysql'
+    if backend in ('sqlite', 'sqlite3'):
+        return 'sqlite'
+    return 'postgresql'
+
+
+def _sqlite_storage_for_model(model_type: str) -> str:
+    '''Return a local SQLite storage URL for Optuna studies.'''
+    mt = str(model_type).upper()
+    if mt in ('DNN', 'NN'):
+        return "sqlite:///NN_optimization.db"
+    if mt == 'XGB':
+        return "sqlite:///XGB_optimization.db"
+    return "sqlite:///model_optimization.db"
+
+
+def _build_storage_url_from_config(config: Any, model_type: str) -> str:
+    '''Build Optuna storage URL from OCDocker config and backend settings.'''
+    backend_env = os.getenv('OCDOCKER_DB_BACKEND', '') or os.getenv('DB_BACKEND', '')
+    backend_cfg = getattr(config.database, 'backend', '')
+    backend = _normalize_db_backend(backend_env or backend_cfg or 'postgresql')
+
+    if backend == 'sqlite':
+        return _sqlite_storage_for_model(model_type)
+
+    user = config.database.user
+    password = config.database.password
+    host = config.database.host
+    port = config.database.port
+    db = config.database.optimizedb  # OPTIMIZEDB stores Optuna studies
+
+    if backend == 'mysql':
+        driver = "mysql+pymysql"
+    else:
+        driver = "postgresql+psycopg"
+
+    return f"{driver}://{user}:{quote_plus(password)}@{host}:{port}/{db}"
+
+
 def load_data_from_database(session: Session, methodology: Optional[str] = None) -> pd.DataFrame:
     ''' Load data from the database and convert to DataFrame format expected by the pipeline.
     
@@ -287,33 +332,9 @@ def main():
         # Get storage from config if not provided
         if args.storage is None:
             from OCDocker.Config import get_config
-            from urllib.parse import quote_plus
             config = get_config()
-            
-            # Check if using SQLite
-            use_sqlite = str(config.database.use_sqlite).lower() in ('1', 'true', 'yes', 'y', 'on', 'sqlite')
-            use_sqlite_env = str(os.getenv('OCDOCKER_USE_SQLITE', '')).lower() in ('1', 'true', 'yes', 'y')
-            
-            if use_sqlite or use_sqlite_env:
-                # SQLite storage
-                if args.model_type == 'DNN' or args.model_type == 'NN':
-                    args.storage = "sqlite:///NN_optimization.db"
-                elif args.model_type == 'XGB':
-                    args.storage = "sqlite:///XGB_optimization.db"
-                else:
-                    args.storage = "sqlite:///model_optimization.db"
-            else:
-                # MySQL storage - use OPTIMIZEDB from config
-                user = config.database.user
-                password = config.database.password
-                host = config.database.host
-                port = config.database.port
-                db = config.database.optimizedb  # Use OPTIMIZEDB for Optuna studies
-                
-                # Construct MySQL storage URL
-                args.storage = f"mysql+pymysql://{user}:{quote_plus(password)}@{host}:{port}/{db}"
-            
-                print(f"Using storage from config: {mask_password_in_url(args.storage)}")
+            args.storage = _build_storage_url_from_config(config, args.model_type)
+            print(f"Using storage from config: {mask_password_in_url(args.storage)}")
         
         # Handle invert_conditionally flag
         invert_conditionally = args.invert_conditionally and not args.no_invert
@@ -362,44 +383,14 @@ def main():
                     overwrite=False
                 )
                 init.bootstrap(bootstrap_ns)
-                
                 from OCDocker.Config import get_config
-                from urllib.parse import quote_plus
                 config = get_config()
-                
-                # Check if using SQLite
-                use_sqlite = str(config.database.use_sqlite).lower() in ('1', 'true', 'yes', 'y', 'on', 'sqlite')
-                use_sqlite_env = str(os.getenv('OCDOCKER_USE_SQLITE', '')).lower() in ('1', 'true', 'yes', 'y')
-                
-                if use_sqlite or use_sqlite_env:
-                    # SQLite storage
-                    if args.model_type == 'DNN' or args.model_type == 'NN':
-                        args.storage = "sqlite:///NN_optimization.db"
-                    elif args.model_type == 'XGB':
-                        args.storage = "sqlite:///XGB_optimization.db"
-                    else:
-                        args.storage = "sqlite:///model_optimization.db"
-                else:
-                    # MySQL storage - use OPTIMIZEDB from config
-                    user = config.database.user
-                    password = config.database.password
-                    host = config.database.host
-                    port = config.database.port
-                    db = config.database.optimizedb  # Use OPTIMIZEDB for Optuna studies
-                    
-                    # Construct MySQL storage URL
-                    args.storage = f"mysql+pymysql://{user}:{quote_plus(password)}@{host}:{port}/{db}"
-                
+                args.storage = _build_storage_url_from_config(config, args.model_type)
                 print(f"Using storage from config: {mask_password_in_url(args.storage)}")
             except Exception as e:
                 # Fallback to SQLite if config read fails
                 print(f"Warning: Could not read config for storage, using SQLite fallback: {e}")
-                if args.model_type == 'DNN' or args.model_type == 'NN':
-                    args.storage = "sqlite:///NN_optimization.db"
-                elif args.model_type == 'XGB':
-                    args.storage = "sqlite:///XGB_optimization.db"
-                else:
-                    args.storage = "sqlite:///model_optimization.db"
+                args.storage = _sqlite_storage_for_model(args.model_type)
                 print(f"Using fallback storage: {mask_password_in_url(args.storage)}")
         
         # Use existing load_data function for CSV
@@ -633,12 +624,12 @@ def mask_password_in_url(url: str) -> str:
     Parameters
     ----------
     url : str
-        Database URL (e.g., mysql+pymysql://user:<db_password>@host:port/db)
+        Database URL (e.g., postgresql+psycopg://user:<db_password>@host:port/db)
     
     Returns
     -------
     str
-        URL with password masked (e.g., mysql+pymysql://user:***@host:port/db)
+        URL with password masked (e.g., postgresql+psycopg://user:***@host:port/db)
     '''
     try:
         parsed = urlparse(url)

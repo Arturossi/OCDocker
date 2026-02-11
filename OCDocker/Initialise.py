@@ -275,13 +275,13 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
     # Parse all configuration values
     config_dict = {
         # Database settings
+        'DB_BACKEND': get_config('DB_BACKEND', 'postgresql'),
         'HOST': get_config('HOST', ''),
         'USER': get_config('USER', ''),
         'PASSWORD': get_config('PASSWORD', ''),
         'DATABASE': get_config('DATABASE', ''),
         'OPTIMIZEDB': get_config('OPTIMIZEDB', ''),
         'PORT': get_config('PORT', None, int),
-        'USE_SQLITE': get_config('USE_SQLITE', ''),
         'SQLITE_PATH': get_config('SQLITE_PATH', ''),
 
         # General paths
@@ -393,6 +393,31 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
             raise SystemExit(2)
 
     return config_dict
+
+
+def _normalize_db_backend(raw_backend: str) -> Optional[str]:
+    '''Normalize database backend aliases to canonical backend names.
+
+    Parameters
+    ----------
+    raw_backend : str
+        Raw backend string from config or environment.
+
+    Returns
+    -------
+    Optional[str]
+        Canonical backend name ('postgresql', 'mysql', or 'sqlite'),
+        or None when the value is not recognized.
+    '''
+
+    value = str(raw_backend).strip().lower()
+    if value in ('postgresql', 'postgres', 'pgsql'):
+        return 'postgresql'
+    if value in ('mysql', 'mariadb'):
+        return 'mysql'
+    if value in ('sqlite', 'sqlite3'):
+        return 'sqlite'
+    return None
 
 
 def _register_db_cleanup() -> None:
@@ -545,14 +570,28 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     config.multiprocess = bool(getattr(ns, 'multiprocess', True))
     config.overwrite = overwrite
 
-    # Determine DB backend (MySQL default; optional SQLite fallback)
-    use_sqlite_env = str(os.getenv('OCDOCKER_USE_SQLITE', '')).lower() in ('1', 'true', 'yes', 'y')
-    use_sqlite_cfg = str(config.database.use_sqlite).lower() in ('1', 'true', 'yes', 'y', 'on', 'sqlite') if config.database.use_sqlite else False
-    use_sqlite = use_sqlite_env or use_sqlite_cfg
+    # Determine DB backend.
+    # Priority:
+    # 1) Environment backend override (OCDOCKER_DB_BACKEND, then DB_BACKEND)
+    # 2) Config file DB_BACKEND
+    # 3) Default backend: postgresql
+    backend_env = (os.getenv('OCDOCKER_DB_BACKEND', '') or os.getenv('DB_BACKEND', '')).strip()
+    backend_cfg = str(config.database.backend or '').strip()
+    raw_backend = backend_env or backend_cfg or 'postgresql'
+    normalized_backend = _normalize_db_backend(raw_backend)
+    if normalized_backend is None:
+        print(
+            f"{clrs['r']}ERROR{clrs['n']}: Unsupported DB_BACKEND '{raw_backend}'. "
+            "Use one of: postgresql, mysql, sqlite."
+        )
+        raise SystemExit(2)
+    backend = normalized_backend
+
+    config.database.backend = backend
 
     # Build DB URLs and connections
     global db_url, optdb_url, engine, session
-    if use_sqlite:
+    if backend == 'sqlite':
         _module_dir = os.path.dirname(os.path.abspath(__file__))
         # Env var takes precedence, then config, then default path
         sqlite_path_env = os.getenv('OCDOCKER_SQLITE_PATH', '').strip()
@@ -566,18 +605,32 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
         optdb_url = db_url
         # Warn user about SQLite limitations
         try:
-            print(f"{clrs['y']}WARNING{clrs['n']}: SQLite backend enabled. This is suitable for development/tests only. For performance and concurrency, a full MySQL installation is strongly recommended.")
-            print(f"{clrs['c']}INFO{clrs['n']}: To use MySQL, unset OCDOCKER_USE_SQLITE (or set USE_SQLITE = no in your OCDocker.cfg) and configure HOST/USER/PASSWORD/DATABASE/PORT.")
+            print(f"{clrs['y']}WARNING{clrs['n']}: SQLite backend enabled. This is suitable for development/tests only. For performance and concurrency, PostgreSQL is recommended.")
+            print(
+                f"{clrs['c']}INFO{clrs['n']}: To use PostgreSQL or MySQL, "
+                "set DB_BACKEND accordingly."
+            )
         except (OSError, IOError, BrokenPipeError):
             # Ignore stdout errors (e.g., when output is redirected to a broken pipe)
             pass
     else:
-        # Ensure DB settings exist (MySQL mode)
-        if not config.database.host or not config.database.user or not config.database.password or not config.database.database or not config.database.port:
-            print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD, DATABASE and PORT must be set in the config file '{config_file}'")
+        # Ensure DB settings exist (client/server DB mode).
+        if not config.database.host or not config.database.user or not config.database.password or not config.database.database:
+            print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD and DATABASE must be set in the config file '{config_file}'")
             raise SystemExit(2)
+        if backend == 'mysql':
+            drivername = 'mysql+pymysql'
+            default_port = 3306
+        else:
+            drivername = 'postgresql+psycopg'
+            default_port = 5432
+
+        config.database.port = int(config.database.port) if config.database.port else default_port
+        if not config.database.optimizedb:
+            config.database.optimizedb = 'optimization'
+
         db_url = URL.create(
-            drivername='mysql+pymysql',
+            drivername=drivername,
             host=config.database.host,
             username=config.database.user,
             password=config.database.password,
@@ -585,7 +638,7 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
             port=config.database.port
         )
         optdb_url = URL.create(
-            drivername='mysql+pymysql',
+            drivername=drivername,
             host=config.database.host,
             username=config.database.user,
             password=config.database.password,
@@ -711,14 +764,28 @@ def create_ocdocker_conf() -> None:
     '''
 
     #region Database config
+    confDB_BACKEND = 'postgresql'
     confHOST = 'localhost'
-    confUSER = 'root'
+    confUSER = 'ocdocker'
     confPASSWORD = ''
     confDATABASE = 'ocdocker'
     confOPTIMIZEDB = 'optimization'
-    confPORT = '3306'
+    confPORT = '5432'
 
     print("\nSQL database OCDocker configuration")
+    answer = input(f"DB_BACKEND [postgresql/mysql/sqlite]. Default [{confDB_BACKEND}] (press enter to keep default): ")
+    if answer:
+        normalized = _normalize_db_backend(answer)
+        if normalized is not None:
+            confDB_BACKEND = normalized
+        else:
+            print(f"{clrs['y']}WARNING{clrs['n']}: Unsupported DB_BACKEND '{answer}'. Using default '{confDB_BACKEND}'.")
+
+    if confDB_BACKEND == 'mysql':
+        confPORT = '3306'
+    elif confDB_BACKEND == 'sqlite':
+        confPORT = ''
+
     answer = input(f"HOST. Default [{confHOST}] (press enter to keep default): ")
     confHOST = confHOST if not answer else answer
 
@@ -1137,6 +1204,7 @@ def create_ocdocker_conf() -> None:
 #######################################################
 
 #################### SQL PARAMETERS ###################
+DB_BACKEND = """ + str(confDB_BACKEND) + """
 HOST = """ + str(confHOST) + """
 USER = """ + str(confUSER) + """
 PASSWORD = """ + str(confPASSWORD) + """

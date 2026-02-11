@@ -1,11 +1,11 @@
 # Database
-DB_BACKEND = postgresql
+DB_BACKEND = mysql
 HOST = db
 USER = ocdocker
 PASSWORD = ocdocker_pass
 DATABASE = ocdocker
 OPTIMIZEDB = optimization
-PORT = 5432
+PORT = 3306
 
 # SQLite options (optional)
 SQLITE_PATH =
@@ -40,7 +40,7 @@ prepare_ligand = /data/hd4tb/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utili
 prepare_receptor = /data/hd4tb/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py
 
 # Open Babel path
-obabel = /opt/conda/envs/ocdocker/bin/obabel
+obabel = /data/hd4tb/OCDocker/miniconda3/envs/ocdocker/bin/obabel
 
 ############# DATABASE FETCH PARAMETERS #############
 DUDEz = https://dudez.docking.org
@@ -81,7 +81,7 @@ plants_scoring_functions = chemplp,plp,plp95
 plants_rescoring_mode = simplex
 
 ################## ODDT PARAMETERS ##################
-oddt = /opt/conda/envs/ocdocker/bin/oddt_cli
+oddt = /data/hd4tb/OCDocker/miniconda3/envs/ocdocker/bin/oddt_cli
 oddt_seed = 42
 oddt_chunk_size = 100
 oddt_models_dir =
