@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 
+from importlib import import_module
 from pathlib import Path
 from typing import Any, Dict
 
@@ -64,8 +65,11 @@ def generate_reproducibility_manifest(include_python_packages: bool = True) -> D
     '''
 
     # Keep CLI and Python API on the same implementation path.
-    from OCDocker.CLI import generate_reproducibility_manifest as _generate_manifest
-    return _generate_manifest(include_python_packages=include_python_packages)
+    # Importing via ``OCDocker.CLI.__init__`` ensures compatibility with
+    # monkeypatch targets used in the test suite.
+    cli_module = import_module("OCDocker.CLI.__init__")
+    generate_manifest = getattr(cli_module, "generate_reproducibility_manifest")
+    return generate_manifest(include_python_packages=include_python_packages)
 
 
 def write_reproducibility_manifest(output_path: str, include_python_packages: bool = True) -> Dict[str, Any]:
