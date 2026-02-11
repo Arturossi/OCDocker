@@ -4,9 +4,9 @@
 ###############################################################################
 # OCDocker installer (Ubuntu-like systems)
 # - Installs MGLTools, AutoDock Vina, Miniconda (in $HOME/miniconda)
-# - Installs DSSP and MySQL server via apt
+# - Installs DSSP and a SQL server (PostgreSQL by default; MySQL optional) via apt
 # - Creates the conda environment defined in environment.yml
-# - Creates MySQL user/database for OCDocker
+# - Creates SQL user/databases for OCDocker
 
 set -uo pipefail
 IFS=$'\n\t'
@@ -41,20 +41,40 @@ cd "$SCRIPT_DIR"
 export DB_USER=ocdocker
 export DB_NAME=ocdocker
 export DB_PASS=ocdocker
-export DB_NAME_OPTIMIZATION=ocdocker
+export DB_NAME_OPTIMIZATION=optimization
 
-# Decide whether to use SQLite (skip MySQL install/config)
-# Precedence: environment var OCDOCKER_USE_SQLITE, then config file USE_SQLITE (if present)
-truthy() { case "${1:-}" in 1|y|Y|yes|YES|true|TRUE|on|sqlite) return 0;; *) return 1;; esac; }
-USE_SQLITE=false
-if truthy "${OCDOCKER_USE_SQLITE:-}"; then
-  USE_SQLITE=true
-elif [[ -f "OCDocker.cfg" ]]; then
-  cfg_val=$(grep -E "^\s*USE_SQLITE\s*=\s*" OCDocker.cfg | tail -n1 | awk -F= '{print $2}' | xargs)
-  if truthy "$cfg_val"; then USE_SQLITE=true; fi
+# Decide DB mode.
+# Backend precedence: env OCDOCKER_DB_BACKEND/DB_BACKEND, then config DB_BACKEND, then postgresql.
+normalize_backend() {
+  case "${1:-}" in
+    postgresql|postgres|pgsql) echo "postgresql" ;;
+    mysql|mariadb) echo "mysql" ;;
+    sqlite|sqlite3) echo "sqlite" ;;
+    *) echo "" ;;
+  esac
+}
+cfg_get() {
+  local key="$1"
+  [[ -f "OCDocker.cfg" ]] || return 0
+  grep -E "^\s*${key}\s*=\s*" OCDocker.cfg | tail -n1 | awk -F= '{print $2}' | xargs
+}
+
+SELECTED_DB_BACKEND="postgresql"
+raw_backend="${OCDOCKER_DB_BACKEND:-${DB_BACKEND:-}}"
+if [[ -z "${raw_backend}" ]]; then
+  raw_backend="$(cfg_get DB_BACKEND)"
+fi
+norm_backend="$(normalize_backend "${raw_backend}")"
+if [[ -n "${norm_backend}" ]]; then
+  SELECTED_DB_BACKEND="${norm_backend}"
 fi
 
 info "Starting the installation process..."
+if [[ "${SELECTED_DB_BACKEND}" == "sqlite" ]]; then
+  info "Database mode: SQLite"
+else
+  info "Database backend: ${SELECTED_DB_BACKEND}"
+fi
 
 # Step 1: Download and install MGLTools
 step "Downloading and installing MGLTools..." \
@@ -84,13 +104,16 @@ step "Initializing conda..." \
   "source \"$HOME/miniconda/etc/profile.d/conda.sh\""
 
 # Step 5: Install necessary system packages
-if $USE_SQLITE; then
+if [[ "${SELECTED_DB_BACKEND}" == "sqlite" ]]; then
   step "Installing required system packages (openbabel, libopenbabel-dev, swig, dssp)..." \
     "sudo apt-get update -y && sudo apt-get install -y openbabel libopenbabel-dev swig dssp"
-  info "SQLite mode selected — skipping MySQL server installation."
-else
+  info "SQLite mode selected — skipping SQL server installation."
+elif [[ "${SELECTED_DB_BACKEND}" == "mysql" ]]; then
   step "Installing required system packages (openbabel, libopenbabel-dev, swig, dssp, mysql-server)..." \
     "sudo apt-get update -y && sudo apt-get install -y openbabel libopenbabel-dev swig dssp mysql-server"
+else
+  step "Installing required system packages (openbabel, libopenbabel-dev, swig, dssp, postgresql, postgresql-contrib)..." \
+    "sudo apt-get update -y && sudo apt-get install -y openbabel libopenbabel-dev swig dssp postgresql postgresql-contrib"
 fi
 
 # Step 6: Install mamba
@@ -105,10 +128,10 @@ else
       "mamba env create -f \"$SCRIPT_DIR/environment.yml\""
 fi
 
-# Step 8: Configure MySQL
-if $USE_SQLITE; then
-  info "SQLite mode selected — skipping MySQL user/database configuration."
-else
+# Step 8: Configure SQL backend
+if [[ "${SELECTED_DB_BACKEND}" == "sqlite" ]]; then
+  info "SQLite mode selected — skipping SQL user/database configuration."
+elif [[ "${SELECTED_DB_BACKEND}" == "mysql" ]]; then
   step "Configuring MySQL: create user and databases..." \
     "sudo mysql -u root -e \"CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';\" && \
      sudo mysql -u root -e \"CREATE DATABASE IF NOT EXISTS ${DB_NAME};\" && \
@@ -117,6 +140,12 @@ else
      sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON ${DB_NAME_OPTIMIZATION}.* TO '${DB_USER}'@'localhost';\" && \
      sudo mysql -u root -e \"FLUSH PRIVILEGES;\""
   info "MySQL configuration step finished."
+else
+  step "Configuring PostgreSQL: create role and databases..." \
+    "sudo -u postgres psql -v ON_ERROR_STOP=1 -c \"DO \\\$\\\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${DB_USER}') THEN CREATE ROLE ${DB_USER} LOGIN PASSWORD '${DB_PASS}'; END IF; END \\\$\\\$;\" && \
+     if ! sudo -u postgres psql -tAc \"SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'\" | grep -qx 1; then sudo -u postgres psql -v ON_ERROR_STOP=1 -c \"CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};\"; fi && \
+     if ! sudo -u postgres psql -tAc \"SELECT 1 FROM pg_database WHERE datname='${DB_NAME_OPTIMIZATION}'\" | grep -qx 1; then sudo -u postgres psql -v ON_ERROR_STOP=1 -c \"CREATE DATABASE ${DB_NAME_OPTIMIZATION} OWNER ${DB_USER};\"; fi"
+  info "PostgreSQL configuration step finished."
 fi
 
 # Step 9: Activate the environment

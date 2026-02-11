@@ -42,6 +42,15 @@ normalize_path() {
   fi
 }
 
+normalize_backend() {
+  case "${1:-}" in
+    postgresql|postgres|pgsql) printf 'postgresql\n' ;;
+    mysql|mariadb) printf 'mysql\n' ;;
+    sqlite|sqlite3) printf 'sqlite\n' ;;
+    *) printf 'postgresql\n' ;;
+  esac
+}
+
 add_mount() {
   local m="$1"
   [[ -z "${m}" ]] && return 0
@@ -109,6 +118,12 @@ extract_mounts_from_cfg() {
 resolve_cfg_source() {
   local candidate="$1"
   if [[ -z "${candidate}" ]]; then
+    local selected_backend
+    selected_backend="$(normalize_backend "${OCDOCKER_DB_BACKEND:-${DB_BACKEND:-postgresql}}")"
+    if [[ "${selected_backend}" == "mysql" && -f "${script_dir}/OCDocker.cfg.singularity.mysql" ]]; then
+      printf '%s\n' "${script_dir}/OCDocker.cfg.singularity.mysql"
+      return 0
+    fi
     if [[ -f "${script_dir}/OCDocker.cfg.singularity" ]]; then
       printf '%s\n' "${script_dir}/OCDocker.cfg.singularity"
     fi

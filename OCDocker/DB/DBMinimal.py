@@ -65,7 +65,7 @@ def cleanup_engine(engine: Optional[Engine]) -> None:
     - This is safe to call multiple times (idempotent)
     - Errors during cleanup are silently ignored
     - Typically called automatically on application exit
-    - Prevents connection leaks, especially important for MySQL
+    - Prevents connection leaks, especially important for pooled DB backends
     '''
     if engine is not None:
         try:
@@ -158,7 +158,7 @@ def create_engine(url: Union[str, URL], echo: bool = False, pool_size: int = 5, 
         # SQLite doesn't need connection pooling in the same way
         engine = sqlalchemy_create_engine(url, echo=echo, pool_pre_ping=True)
     else:
-        # MySQL and other databases: configure connection pooling
+        # PostgreSQL/MySQL and other client/server databases: configure connection pooling
         engine = sqlalchemy_create_engine(
             url,
             echo=echo,
@@ -218,4 +218,3 @@ def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
 
     # Return the session
     return session
-

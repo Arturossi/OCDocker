@@ -157,7 +157,7 @@ Before running examples, ensure you have:
 You can set these environment variables to customize behavior:
 
 - `OCDOCKER_CONFIG`: Path to your `OCDocker.cfg` file
-- `OCDOCKER_USE_SQLITE`: Use SQLite instead of MySQL (set to `1`)
+- `OCDOCKER_DB_BACKEND` / `DB_BACKEND`: Select backend (`postgresql`, `mysql`, `sqlite`)
 - `OCDOCKER_TIMEOUT`: Default timeout for external tools (seconds)
 - `OCDOCKER_NO_AUTO_BOOTSTRAP`: Disable auto-bootstrap on import (set to `1`)
 

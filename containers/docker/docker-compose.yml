@@ -1,19 +1,17 @@
 services:
   db:
-    image: mysql:8.4
-    command: --default-authentication-plugin=mysql_native_password
+    image: postgres:16
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
-      MYSQL_DATABASE: ocdocker
-      MYSQL_USER: ocdocker
-      MYSQL_PASSWORD: ${OCDOCKER_DB_PASS:-ocdocker_pass}
+      POSTGRES_DB: ocdocker
+      POSTGRES_USER: ocdocker
+      POSTGRES_PASSWORD: ${OCDOCKER_DB_PASS:-ocdocker_pass}
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p$${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -27,7 +25,7 @@ services:
         condition: service_healthy
     environment:
       OCDOCKER_CONFIG: /data/hd4tb/OCDocker/OCDocker/containers/docker/OCDocker.cfg.docker
-      OCDOCKER_USE_SQLITE: "0"
+      OCDOCKER_DB_BACKEND: ${OCDOCKER_DB_BACKEND:-postgresql}
       PYTHONUNBUFFERED: "1"
     volumes:
       - ${HOST_OCDOCKER_ROOT:-/data/hd4tb/OCDocker}:/data/hd4tb/OCDocker
@@ -38,5 +36,5 @@ services:
     user: root
 
 volumes:
-  mysql_data:
+  postgres_data:
   ocdocker_cache:

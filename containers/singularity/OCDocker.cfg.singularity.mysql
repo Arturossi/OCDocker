@@ -1,11 +1,11 @@
 # Database
-DB_BACKEND = postgresql
-HOST = db
+DB_BACKEND = mysql
+HOST = localhost
 USER = ocdocker
 PASSWORD = ocdocker_pass
 DATABASE = ocdocker
 OPTIMIZEDB = optimization
-PORT = 5432
+PORT = 3306
 
 # SQLite options (optional)
 SQLITE_PATH =

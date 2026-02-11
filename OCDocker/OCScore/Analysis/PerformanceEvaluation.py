@@ -484,35 +484,3 @@ def setup_dirs() -> None:
     os.makedirs('plots', exist_ok=True)
     os.makedirs('csvs', exist_ok=True)
 
-
-'''
-base_path: str = "/data/hd4tb/OCDocker/data/ocdb"
-df_path: str = f"{base_path}/OCDocker.csv.gz"
-trials_list = [100]#[1, 5, 10, 50, 100, 500]
-
-from urllib.parse import quote_plus
-
-user = "ocdocker"
-password = "@Kp3sRv9t@"
-host = "localhost"
-port = 3306
-db = "optimization"
-
-# Set the storage
-storage_str = f"mysql+pymysql://{user}:{quote_plus(password)}@{host}:{port}/{db}"
-
-palette_colour = "glasbey"
-output_dir = "plots"
-
-run_full_analysis(
-    df_path=df_path,
-    base_path=base_path,
-    storage_str=storage_str,
-    trials_list=trials_list,
-    output_dir=output_dir,
-    palette_colour=palette_colour,
-    rmse_threshold=1.5,
-    feature_analysis=True,
-    plot_summary=True
-)
-'''

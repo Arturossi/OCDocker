@@ -112,7 +112,7 @@ Bootstrap & environment
 
   - ``OCDOCKER_CONFIG``: config file path
   - ``OCDOCKER_NO_AUTO_BOOTSTRAP``: disable auto-bootstrap on import
-  - ``OCDOCKER_USE_SQLITE``: opt-in SQLite backend (local file), instead of MySQL
+  - ``OCDOCKER_DB_BACKEND`` / ``DB_BACKEND``: select backend (``postgresql``, ``mysql``, ``sqlite``)
   - ``OCDOCKER_SQLITE_PATH``: explicit SQLite database file path
   - ``OCDOCKER_TIMEOUT``: default timeout (seconds) for external tools
   - ``OCDOCKER_SKIP_ODDT``: skip importing ODDT during bootstrap

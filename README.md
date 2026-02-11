@@ -24,7 +24,7 @@ Key capabilities:
 - Pipelines: run engines, cluster poses by RMSD (medoid), rescore and export
 - Rescoring: built‑in engine rescoring and ODDT models (RFScore, NNScore, PLEC)
 - OCScore analytics: DNN/XGBoost/Transformer optimizers, ranking metrics, SHAP
-- Database integration: MySQL (default) or SQLite fallback for dev/tests
+- Database integration: PostgreSQL (default), MySQL support, or SQLite fallback for dev/tests
 - CLI and Python API: doctor diagnostics, timeouts, binary checks, reproducible configs
 - Packaging: pip (recommended inside a conda/mamba env), Dockerfiles for engines, docs and examples
 
@@ -49,18 +49,18 @@ Installation
 Quickstart (minimal, SQLite)
 ----------------------------
 
-If you want the fastest path without setting up MySQL, use SQLite (local file DB) as the default backend:
+If you want the fastest path without setting up PostgreSQL/MySQL, use SQLite (local file DB):
 
 1) Install system dependencies (see [System dependencies](#system-dependencies)).
 2) Create a conda env with Python 3.11 (prefer `mamba`) and install OCDocker with pip.
 3) Run with SQLite enabled:
 
 ```bash
-export OCDOCKER_USE_SQLITE=1
+export OCDOCKER_DB_BACKEND=sqlite
 ocdocker doctor
 ```
 
-SQLite is recommended for quick experiments and development. MySQL is optional and only needed for multi-user or long-running database workflows.
+SQLite is recommended for quick experiments and development. For multi-user or long-running workloads, use PostgreSQL (default backend) or MySQL.
 
 Recommended method (mamba + pip)
 --------------------------------
@@ -112,7 +112,7 @@ Prerequisites
 - Conda (Miniconda/Anaconda) and mamba
 - pip (inside the conda environment)
 - Ubuntu/Debian-like system with internet access
-- sudo privileges (needed for system packages, and optional MySQL/Vina installs)
+- sudo privileges (needed for system packages, and optional PostgreSQL/MySQL/Vina installs)
 - ~10-15 GB of free disk space for dependencies, tools, and caches (minimal installs use less)
 - bash shell (used in command examples and helper scripts)
 
@@ -127,57 +127,43 @@ sudo apt-get install openbabel libopenbabel-dev swig cmake g++
 
 These packages are required for building and using OpenBabel Python bindings, which are essential for OCDocker's molecular processing capabilities.
 
-MySQL setup (quick tutorial)
-----------------------------
+PostgreSQL setup (quick tutorial)
+---------------------------------
 
 This section is optional. Skip it if you are using SQLite (see [Quickstart](#quickstart-minimal-sqlite)).
 
-OCDocker stores docking and optimization results in MySQL by default. If you don't already have a MySQL server, install it and create a user/database:
+OCDocker stores docking and optimization results in PostgreSQL by default.
 
-1) Install and start MySQL (Ubuntu/Debian)
+1) Install and start PostgreSQL (Ubuntu/Debian)
 
 ```bash
-sudo apt-get update && sudo apt-get install -y mysql-server
-sudo systemctl enable --now mysql
+sudo apt-get update && sudo apt-get install -y postgresql postgresql-contrib
+sudo systemctl enable --now postgresql
 ```
 
-2) Create a database and user (local-only access)
+2) Create a role and databases
 
-Start the MySQL shell:
 ```bash
--- Enter the MySQL shell
-sudo mysql
+sudo -u postgres psql
 ```
-
-Create the user and databases:
-```sql
--- Create databases (adjust name as desired)
-CREATE DATABASE ocdocker CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE optimization CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Create user for local connections only
-CREATE USER 'ocdocker'@'localhost' IDENTIFIED BY 'strong_password_here';
-GRANT ALL PRIVILEGES ON ocdocker.* TO 'ocdocker'@'localhost';
-GRANT ALL PRIVILEGES ON optimization.* TO 'ocdocker'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
-```
-
-3) Optional: allow remote connections (use strong passwords and firewalls)
 
 ```sql
--- In the MySQL shell
-CREATE USER 'ocdocker'@'%' IDENTIFIED BY 'strong_password_here';
-GRANT ALL PRIVILEGES ON ocdocker.* TO 'ocdocker'@'%';
-GRANT ALL PRIVILEGES ON optimization.* TO 'ocdocker'@'%';
-FLUSH PRIVILEGES;
+CREATE ROLE ocdocker LOGIN PASSWORD 'strong_password_here';
+CREATE DATABASE ocdocker OWNER ocdocker;
+CREATE DATABASE optimization OWNER ocdocker;
+\q
 ```
 
-If you enable remote access, also edit `mysqld.cnf` to listen externally:
+3) Configure `OCDocker.cfg`
 
-```bash
-sudo sed -i "s/^bind-address.*/bind-address = 0.0.0.0/" /etc/mysql/mysql.conf.d/mysqld.cnf
-sudo systemctl restart mysql
+```ini
+DB_BACKEND = postgresql
+HOST = localhost
+PORT = 5432
+USER = ocdocker
+PASSWORD = strong_password_here
+DATABASE = ocdocker
+OPTIMIZEDB = optimization
 ```
 
 4) Test connectivity from Python
@@ -188,20 +174,25 @@ from urllib.parse import quote_plus
 
 user = "ocdocker"
 password = quote_plus("strong_password_here")
-host = "localhost"  # or server IP
-port = 3306
-db   = "optimization"
+host = "localhost"
+port = 5432
+db = "optimization"
 
-engine = create_engine(f"mysql+pymysql://{user}:{password}@{host}:{port}/{db}")
+engine = create_engine(f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}")
 with engine.connect() as conn:
     print(conn.execute("SELECT 1").scalar())
 ```
 
+MySQL remains supported:
+
+- Set `DB_BACKEND = mysql` (or `OCDOCKER_DB_BACKEND=mysql`).
+- Use `PORT = 3306`.
+- SQLAlchemy URL format: `mysql+pymysql://...`.
+
 Notes:
 
-- The SQLAlchemy URL uses the PyMySQL driver (`mysql+pymysql://...`). Ensure `pymysql` is installed (present in `requirements.txt`).
-- For CI/tests or local experiments, set `OCDOCKER_USE_SQLITE=1` to bypass MySQL.
- - You can also set SQLite via config (`USE_SQLITE = yes`) and choose a custom file via `SQLITE_PATH`.
+- For CI/tests or local experiments, set `OCDOCKER_DB_BACKEND=sqlite` to bypass server DBs.
+- You can also set SQLite via config (`DB_BACKEND = sqlite`) and choose a custom file via `SQLITE_PATH`.
 
 Troubleshooting
 ---------------
@@ -210,9 +201,9 @@ Troubleshooting
   - Consider reinstalling MGLTools from source or using the official archives; ensure system Python/conda paths don’t shadow MGLTools’ bundled Python.
   - Verify the `pythonsh` and `prepare_*` paths configured in `OCDocker.cfg`.
 
-- MySQL authentication errors:
-  - Ensure `mysql-server` service is running (`sudo systemctl status mysql`).
-  - Re-run the user/database creation SQL commands from the MySQL setup section.
+- Database authentication errors:
+  - PostgreSQL: ensure service is running (`sudo systemctl status postgresql`) and role/database exist.
+  - MySQL: ensure service is running (`sudo systemctl status mysql`) and user/database grants exist.
 
 - DSSP not found:
   - Install via `sudo apt-get install -y dssp`, or adjust the `dssp` path in `OCDocker.cfg` to match your system.
@@ -343,34 +334,34 @@ bootstrap(argparse.Namespace(
 SQLite Fallback (optional)
 --------------------------
 
-- For development/tests, you can bypass MySQL entirely by setting `OCDOCKER_USE_SQLITE=1` before import or running the CLI.
+- For development/tests, you can bypass PostgreSQL/MySQL entirely by setting `OCDOCKER_DB_BACKEND=sqlite` before import or running the CLI.
 - This creates/uses a local `ocdocker.db` under the module directory.
 
 Installer behavior with SQLite
 ------------------------------
 
-- To skip installing and configuring MySQL during `install.sh`, enable SQLite mode before running it:
+- To skip installing and configuring PostgreSQL/MySQL during `install.sh`, enable SQLite mode before running it:
 
 ```bash
-export OCDOCKER_USE_SQLITE=1                # select SQLite backend
+export OCDOCKER_DB_BACKEND=sqlite           # select SQLite backend
 export OCDOCKER_SQLITE_PATH=/path/ocdocker.db  # optional custom path
 bash ./install.sh
 ```
 
 - Alternatively, if you already have an `OCDocker.cfg` in the project directory, you can set in the file:
-  - `USE_SQLITE = yes`
+  - `DB_BACKEND = sqlite`
   - `SQLITE_PATH = /path/to/ocdocker.db` (optional)
 
 In both cases, the installer will:
-- Install only `dssp` (skips `mysql-server`)
-- Skip MySQL user/database creation
+- Install only `dssp` (skips SQL server packages)
+- Skip SQL user/database creation
 - Proceed with the remaining steps normally
 
 Important note about SQLite
 ---------------------------
 
 - SQLite is convenient for development and tests but has limitations for concurrent writes and larger workloads.
-- For production use, performance, and concurrency, a full MySQL installation is strongly recommended.
+- For production use, performance, and concurrency, a full PostgreSQL installation is strongly recommended (MySQL is also supported).
 
 Diagnostics: `ocdocker doctor`
 --------------------------------
@@ -485,49 +476,55 @@ vina = ocvina.Vina(...)
 
 See `examples/13_cli_script_example.py` for a complete example.
 
-Container wrappers (Docker and Singularity)
--------------------------------------------
+Container wrappers (Docker, Podman and Singularity)
+---------------------------------------------------
 
 OCDocker includes helper scripts that auto-mount likely host paths:
 
 - Docker: `containers/docker/ocdocker.sh`
+- Podman: `containers/podman/ocdocker.sh`
 - Singularity/Apptainer: `containers/singularity/ocdocker.sh`
 
-Both wrappers can:
+All wrappers can:
 
 - parse explicit `--mount` flags
 - read mount lists from env vars (`OCDOCKER_DOCKER_MOUNTS` / `OCDOCKER_SINGULARITY_MOUNTS`)
 - auto-detect absolute paths passed in CLI arguments
 - parse `OCDocker.cfg` paths and add their parent directories as bind mounts
 
+Docker/Podman backend selection:
+
+- Default is PostgreSQL.
+- Set `OCDOCKER_DB_BACKEND=mysql` (or `DB_BACKEND=mysql`) to use the MySQL compose override and MySQL container config.
+
 Singularity helper extras:
 
 - `--cfg-source /path/to/OCDocker.cfg` to force which config is parsed for bind hints
 - `--dry-run` to print the resolved `apptainer/singularity exec` command without executing it
 
-Singularity MySQL sidecar:
+Singularity SQL sidecars:
 
-- `containers/singularity/mysql.sh` can start/stop/status a local MySQL instance using Apptainer/Singularity.
-- Default image is `docker://mysql:8.4` and data is persisted in `tmp/singularity-mysql`.
+- PostgreSQL (default): `containers/singularity/postgresql.sh`
+- MySQL (optional): `containers/singularity/mysql.sh`
 
 ```bash
-# Start local MySQL for Singularity workflows
+# Start local PostgreSQL (default backend)
+containers/singularity/postgresql.sh start
+
+# Start local MySQL (optional backend)
 containers/singularity/mysql.sh start
-
-# Check if it is running
-containers/singularity/mysql.sh status
-
-# Stop it
-containers/singularity/mysql.sh stop
 ```
 
-The default credentials match `containers/singularity/OCDocker.cfg.singularity`:
+Default PostgreSQL config matches `containers/singularity/OCDocker.cfg.singularity`:
 
+- `DB_BACKEND=postgresql`
 - `HOST=localhost`
-- `PORT=3306`
+- `PORT=5432`
 - `USER=ocdocker`
 - `PASSWORD=ocdocker_pass`
 - `DATABASE=ocdocker`
+
+For MySQL, use `containers/singularity/OCDocker.cfg.singularity.mysql` (or set `DB_BACKEND=mysql` and port `3306`).
 
 Recommended pattern for dynamic script paths:
 
@@ -548,8 +545,9 @@ Environment Variables (reference)
 ---------------------------------
 
 - `OCDOCKER_CONFIG`: path to `OCDocker.cfg` (config file with external tool paths and parameters).
+- `OCDOCKER_DB_BACKEND` / `DB_BACKEND`: database backend override (`postgresql`, `mysql`, or `sqlite`).
 - `OCDOCKER_NO_AUTO_BOOTSTRAP`: if set to `1/true/yes`, disables auto‑bootstrap on import; call `bootstrap()` manually.
-- `OCDOCKER_USE_SQLITE`: if set to `1/true/yes`, uses a local SQLite DB instead of MySQL.
+- `OCDOCKER_SQLITE_PATH`: optional explicit SQLite database file path (used when backend is `sqlite`).
 - `OCDOCKER_TIMEOUT`: default timeout (seconds) for external tools when not provided via CLI.
 
 Python Support

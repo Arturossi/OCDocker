@@ -152,13 +152,13 @@ class ODDTConfig:
 @dataclass
 class DatabaseConfig:
     """Database connection configuration."""
+    backend: str = "postgresql"
     host: str = ""
     user: str = ""
     password: str = ""
     database: str = ""
     optimizedb: str = ""
-    port: Optional[int] = 3306
-    use_sqlite: str = ""
+    port: Optional[int] = None
     sqlite_path: str = ""
 
 
@@ -367,13 +367,13 @@ class OCDockerConfig:
             
             # Database
             database=DatabaseConfig(
+                backend=cfg.get('DB_BACKEND', 'postgresql'),
                 host=cfg.get('HOST', ''),
                 user=cfg.get('USER', ''),
                 password=cfg.get('PASSWORD', ''),
                 database=cfg.get('DATABASE', ''),
                 optimizedb=cfg.get('OPTIMIZEDB', ''),
-                port=cfg.get('PORT', 3306),
-                use_sqlite=cfg.get('USE_SQLITE', ''),
+                port=cfg.get('PORT', None),
                 sqlite_path=cfg.get('SQLITE_PATH', ''),
             ),
             
@@ -543,4 +543,3 @@ def set_config(config: OCDockerConfig) -> None:
     global _config_instance
     with _config_lock:
         _config_instance = config
-

@@ -1,17 +1,16 @@
 # Database
-# NOTE: To force a local SQLite backend (no MySQL), set the environment
-# variable OCDOCKER_USE_SQLITE=1 before running OCDocker/CLI.
-# When enabled, a file 'ocdocker.db' is created under the module folder and
-# the HOST/USER/PASSWORD settings below are ignored.
+# NOTE: Default backend is PostgreSQL. Set DB_BACKEND = sqlite for a local
+# SQLite backend. When enabled, a file 'ocdocker.db' is created under the
+# module folder and the HOST/USER/PASSWORD settings below are ignored.
+DB_BACKEND = postgresql
 HOST = localhost
 USER = ocdocker
 PASSWORD = your_password_here
 DATABASE = ocdocker
 OPTIMIZEDB = optimization
-PORT = 3306
+PORT = 5432
 
 # SQLite options (optional)
-USE_SQLITE = no
 SQLITE_PATH = 
 
 

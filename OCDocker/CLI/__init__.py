@@ -594,7 +594,8 @@ def generate_reproducibility_manifest(include_python_packages: bool = True) -> D
         },
         "environment": {
             "OCDOCKER_CONFIG": os.getenv("OCDOCKER_CONFIG"),
-            "OCDOCKER_USE_SQLITE": os.getenv("OCDOCKER_USE_SQLITE"),
+            "OCDOCKER_DB_BACKEND": os.getenv("OCDOCKER_DB_BACKEND"),
+            "DB_BACKEND": os.getenv("DB_BACKEND"),
             "OCDOCKER_SQLITE_PATH": os.getenv("OCDOCKER_SQLITE_PATH"),
             "OCDOCKER_TIMEOUT": os.getenv("OCDOCKER_TIMEOUT"),
         },
@@ -636,7 +637,7 @@ def build_parser() -> argparse.ArgumentParser:
         ),
         epilog=(
             "Note: SQLite backend is intended for development/tests. "
-            "For production workloads (performance/concurrency), a full MySQL installation is strongly recommended."
+            "For production workloads (performance/concurrency), use PostgreSQL (default) or MySQL."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

@@ -81,6 +81,7 @@ def test_from_config_file_uses_env_path_then_fallback_local(monkeypatch, tmp_pat
     assert seen["path"] == str((tmp_path / "OCDocker.cfg").resolve())
     assert cfg.vina.exhaustiveness == 11
     assert cfg.oddt_models_dir == "/models"
+    assert cfg.database.backend == "postgresql"
 
 
 @pytest.mark.order(111)

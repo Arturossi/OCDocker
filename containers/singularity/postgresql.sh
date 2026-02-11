@@ -29,21 +29,20 @@ ensure_runtime() {
 usage() {
   cat <<'EOF'
 Usage:
-  containers/singularity/mysql.sh <command> [options]
+  containers/singularity/postgresql.sh <command> [options]
 
 Commands:
-  start    Start MySQL instance (default image: docker://mysql:8.4)
-  stop     Stop MySQL instance
+  start    Start PostgreSQL instance (default image: docker://postgres:16)
+  stop     Stop PostgreSQL instance
   status   Show whether the instance is running
-  ping     Wait for and verify MySQL readiness
+  ping     Wait for and verify PostgreSQL readiness
 
 Options:
-  --name NAME          Instance name (default: ocdocker-mysql)
-  --image IMAGE        SIF path or OCI reference (default: docker://mysql:8.4)
-  --data-dir DIR       Host dir for MySQL data (default: ./tmp/singularity-mysql)
+  --name NAME          Instance name (default: ocdocker-postgresql)
+  --image IMAGE        SIF path or OCI reference (default: docker://postgres:16)
+  --data-dir DIR       Host dir for PostgreSQL data (default: ./tmp/singularity-postgresql)
   --init-dir DIR       Host dir mounted at /docker-entrypoint-initdb.d
-  --port PORT          MySQL port (default: 3306)
-  --root-password PWD  Root password (default: MYSQL_ROOT_PASSWORD or rootpass)
+  --port PORT          PostgreSQL port (default: 5432)
   --db NAME            Initial DB name (default: ocdocker)
   --user NAME          DB user (default: ocdocker)
   --password PWD       DB user password (default: OCDOCKER_DB_PASS or ocdocker_pass)
@@ -53,15 +52,14 @@ Options:
 EOF
 }
 
-instance_name="${OCDOCKER_MYSQL_INSTANCE_NAME:-ocdocker-mysql}"
-image="${OCDOCKER_MYSQL_SINGULARITY_IMAGE:-docker://mysql:8.4}"
-data_dir="${OCDOCKER_MYSQL_DATA_DIR:-${repo_root}/tmp/singularity-mysql}"
-init_dir="${OCDOCKER_MYSQL_INIT_DIR:-${script_dir}/mysql}"
-root_password="${MYSQL_ROOT_PASSWORD:-rootpass}"
-db_name="${OCDOCKER_MYSQL_DATABASE:-ocdocker}"
-db_user="${OCDOCKER_MYSQL_USER:-ocdocker}"
-db_password="${OCDOCKER_DB_PASS:-${OCDOCKER_MYSQL_PASSWORD:-ocdocker_pass}}"
-port="${OCDOCKER_MYSQL_PORT:-3306}"
+instance_name="${OCDOCKER_POSTGRESQL_INSTANCE_NAME:-ocdocker-postgresql}"
+image="${OCDOCKER_POSTGRESQL_SINGULARITY_IMAGE:-docker://postgres:16}"
+data_dir="${OCDOCKER_POSTGRESQL_DATA_DIR:-${repo_root}/tmp/singularity-postgresql}"
+init_dir="${OCDOCKER_POSTGRESQL_INIT_DIR:-${script_dir}/postgresql}"
+db_name="${OCDOCKER_POSTGRESQL_DATABASE:-ocdocker}"
+db_user="${OCDOCKER_POSTGRESQL_USER:-ocdocker}"
+db_password="${OCDOCKER_DB_PASS:-${OCDOCKER_POSTGRESQL_PASSWORD:-ocdocker_pass}}"
+port="${OCDOCKER_POSTGRESQL_PORT:-5432}"
 use_fakeroot=0
 dry_run=0
 
@@ -122,16 +120,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --port=*)
       port="${1#--port=}"
-      shift
-      ;;
-    --root-password)
-      shift
-      [[ $# -gt 0 ]] || { echo "error: --root-password requires a value" >&2; exit 2; }
-      root_password="$1"
-      shift
-      ;;
-    --root-password=*)
-      root_password="${1#--root-password=}"
       shift
       ;;
     --db)
@@ -200,14 +188,12 @@ data_dir="$(normalize_path "${data_dir}")"
 init_dir="$(normalize_path "${init_dir}")"
 
 runtime_env=(
-  "APPTAINERENV_MYSQL_ROOT_PASSWORD=${root_password}"
-  "APPTAINERENV_MYSQL_DATABASE=${db_name}"
-  "APPTAINERENV_MYSQL_USER=${db_user}"
-  "APPTAINERENV_MYSQL_PASSWORD=${db_password}"
-  "SINGULARITYENV_MYSQL_ROOT_PASSWORD=${root_password}"
-  "SINGULARITYENV_MYSQL_DATABASE=${db_name}"
-  "SINGULARITYENV_MYSQL_USER=${db_user}"
-  "SINGULARITYENV_MYSQL_PASSWORD=${db_password}"
+  "APPTAINERENV_POSTGRES_DB=${db_name}"
+  "APPTAINERENV_POSTGRES_USER=${db_user}"
+  "APPTAINERENV_POSTGRES_PASSWORD=${db_password}"
+  "SINGULARITYENV_POSTGRES_DB=${db_name}"
+  "SINGULARITYENV_POSTGRES_USER=${db_user}"
+  "SINGULARITYENV_POSTGRES_PASSWORD=${db_password}"
 )
 
 instance_start_cmd() {
@@ -215,7 +201,7 @@ instance_start_cmd() {
   if [[ "${use_fakeroot}" == "1" ]]; then
     cmd_arr+=("--fakeroot")
   fi
-  cmd_arr+=("--bind" "${data_dir}:/var/lib/mysql")
+  cmd_arr+=("--bind" "${data_dir}:/var/lib/postgresql/data")
   if [[ -d "${init_dir}" ]]; then
     cmd_arr+=("--bind" "${init_dir}:/docker-entrypoint-initdb.d:ro")
   fi
@@ -236,8 +222,8 @@ ping_instance() {
   local i
   for i in $(seq 1 90); do
     if "${runtime_cmd[@]}" exec "instance://${instance_name}" \
-      mysqladmin --protocol=tcp --host=127.0.0.1 --port="${port}" \
-      --user=root --password="${root_password}" ping --silent >/dev/null 2>&1; then
+      env "PGPASSWORD=${db_password}" \
+      pg_isready --host=127.0.0.1 --port="${port}" --username="${db_user}" --dbname="${db_name}" >/dev/null 2>&1; then
       return 0
     fi
     sleep 2
@@ -261,7 +247,7 @@ start_instance() {
   fi
 
   if [[ "${dry_run}" != "1" ]] && instance_running; then
-    echo "MySQL instance '${instance_name}' is already running."
+    echo "PostgreSQL instance '${instance_name}' is already running."
     return 0
   fi
 
@@ -292,12 +278,12 @@ start_instance() {
 
   env "${runtime_env[@]}" "${cmd_arr[@]}"
 
-  echo "Started MySQL instance '${instance_name}'. Waiting for readiness..."
+  echo "Started PostgreSQL instance '${instance_name}'. Waiting for readiness..."
   if ping_instance; then
-    echo "MySQL is ready on localhost:${port}"
-    echo "Use DB_BACKEND=mysql, HOST=localhost, PORT=${port}, USER=${db_user}, PASSWORD=${db_password} in OCDocker.cfg."
+    echo "PostgreSQL is ready on localhost:${port}"
+    echo "Use DB_BACKEND=postgresql, HOST=localhost, PORT=${port}, USER=${db_user}, PASSWORD=${db_password} in OCDocker.cfg."
   else
-    echo "error: MySQL instance started but did not become ready in time." >&2
+    echo "error: PostgreSQL instance started but did not become ready in time." >&2
     exit 1
   fi
 }
@@ -305,20 +291,20 @@ start_instance() {
 stop_instance() {
   ensure_runtime
   if ! instance_running; then
-    echo "MySQL instance '${instance_name}' is not running."
+    echo "PostgreSQL instance '${instance_name}' is not running."
     return 0
   fi
   "${runtime_cmd[@]}" instance stop "${instance_name}"
-  echo "Stopped MySQL instance '${instance_name}'."
+  echo "Stopped PostgreSQL instance '${instance_name}'."
 }
 
 status_instance() {
   ensure_runtime
   if instance_running; then
-    echo "MySQL instance '${instance_name}': running"
+    echo "PostgreSQL instance '${instance_name}': running"
     return 0
   fi
-  echo "MySQL instance '${instance_name}': stopped"
+  echo "PostgreSQL instance '${instance_name}': stopped"
   return 1
 }
 
@@ -334,9 +320,9 @@ case "${cmd}" in
     ;;
   ping)
     if ping_instance; then
-      echo "MySQL instance '${instance_name}' is reachable."
+      echo "PostgreSQL instance '${instance_name}' is reachable."
     else
-      echo "MySQL instance '${instance_name}' is not reachable." >&2
+      echo "PostgreSQL instance '${instance_name}' is not reachable." >&2
       exit 1
     fi
     ;;
