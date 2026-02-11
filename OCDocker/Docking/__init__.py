@@ -12,6 +12,7 @@ import OCDocker.Docking as ocdocking
 Modules
 -------
 - BaseVinaLike: Shared helpers for Vina-like logs and parsing.
+- Gnina: Gnina docking wrapper.
 - PLANTS: PLANTS docking wrapper.
 - Smina: Smina docking wrapper.
 - Vina: Vina docking wrapper.

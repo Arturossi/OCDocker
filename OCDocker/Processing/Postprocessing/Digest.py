@@ -20,7 +20,7 @@ from multiprocessing import Pool
 from tqdm import tqdm
 from typing import List, Tuple, Union
 
-import OCDocker.Docking.Future.Gnina as ocgnina
+import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina

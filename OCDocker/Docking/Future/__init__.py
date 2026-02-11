@@ -14,7 +14,6 @@ Modules
 - Dock3: Experimental Dock3 wrapper.
 - Dock6: Experimental Dock6 wrapper.
 - GEMDOCK: Experimental GEMDOCK wrapper.
-- Gnina: Experimental Gnina wrapper.
 - Ledock: Experimental Ledock wrapper.
 - RDock: Experimental RDock wrapper.
 '''

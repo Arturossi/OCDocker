@@ -20,7 +20,7 @@ database persistence and analysis utilities.
 
 Key capabilities:
 
-- Multi‑engine docking: AutoDock Vina, Smina, PLANTS (future: Gnina, others)
+- Multi‑engine docking: AutoDock Vina, Smina, Gnina, PLANTS
 - Pipelines: run engines, cluster poses by RMSD (medoid), rescore and export
 - Rescoring: built‑in engine rescoring and ODDT models (RFScore, NNScore, PLEC)
 - OCScore analytics: DNN/XGBoost/Transformer optimizers, ranking metrics, SHAP
@@ -111,6 +111,7 @@ Prerequisites
 - Python 3.11+
 - Conda (Miniconda/Anaconda) and mamba
 - pip (inside the conda environment)
+- NVIDIA driver/runtime compatible with CUDA 12.8 (required for Gnina CUDA builds)
 - Ubuntu/Debian-like system with internet access
 - sudo privileges (needed for system packages, and optional PostgreSQL/MySQL/Vina installs)
 - ~10-15 GB of free disk space for dependencies, tools, and caches (minimal installs use less)
@@ -306,6 +307,45 @@ tar -xvzf autodock_vina_1_1_2_linux_x86.tgz
 
 * Option 2 (Use this all-in-one command. It seems to be more complicated, but it’s easier than option 1 and its easy to automate-it)
 
+```bash
+mkdir -p vina \
+  && wget -O vina/vina https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 \
+  && chmod +x vina/vina \
+  && sudo install -m 0755 vina/vina /usr/bin/vina
+```
+
+Download and install Gnina (CUDA 12.8)
+---------------
+
+OCDocker uses the Gnina CUDA 12.8 build. To run it correctly, ensure:
+
+- NVIDIA driver is compatible with CUDA 12.8
+- cuDNN 9 runtime is available
+
+Step-by-step:
+
+```bash
+mkdir -p gnina
+wget -O gnina/gnina.1.3.2.cuda12.8 https://github.com/gnina/gnina/releases/download/v1.3.2/gnina.1.3.2.cuda12.8
+chmod +x gnina/gnina.1.3.2.cuda12.8
+sudo install -m 0755 gnina/gnina.1.3.2.cuda12.8 /usr/bin/gnina
+```
+
+Verify installation:
+
+```bash
+gnina --version
+```
+
+All-in-one command:
+
+```bash
+mkdir -p gnina \
+  && wget -O gnina/gnina.1.3.2.cuda12.8 https://github.com/gnina/gnina/releases/download/v1.3.2/gnina.1.3.2.cuda12.8 \
+  && chmod +x gnina/gnina.1.3.2.cuda12.8 \
+  && sudo install -m 0755 gnina/gnina.1.3.2.cuda12.8 /usr/bin/gnina
+```
+
 Usage Overview
 --------------
 
@@ -356,6 +396,7 @@ In both cases, the installer will:
 - Install only `dssp` (skips SQL server packages)
 - Skip SQL user/database creation
 - Proceed with the remaining steps normally
+- Install Gnina CUDA 12.8 (`gnina.1.3.2.cuda12.8`) and register it as `/usr/bin/gnina`
 
 Important note about SQLite
 ---------------------------

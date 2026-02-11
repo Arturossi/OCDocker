@@ -327,27 +327,71 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
 
         # Gnina
         'gnina': get_config('gnina', 'gnina'),
-        'gnina_exhaustiveness': get_config('gnina_exhaustiveness', ''),
-        'gnina_num_modes': get_config('gnina_num_modes', ''),
-        'gnina_scoring': get_config('gnina_scoring', ''),
-        'gnina_custom_scoring': get_config('gnina_custom_scoring', ''),
-        'gnina_custom_atoms': get_config('gnina_custom_atoms', ''),
-        'gnina_local_only': get_config('gnina_local_only', ''),
-        'gnina_minimize': get_config('gnina_minimize', ''),
-        'gnina_randomize_only': get_config('gnina_randomize_only', ''),
-        'gnina_num_mc_steps': get_config('gnina_num_mc_steps', ''),
-        'gnina_max_mc_steps': get_config('gnina_max_mc_steps', ''),
-        'gnina_num_mc_saved': get_config('gnina_num_mc_saved', ''),
-        'gnina_minimize_iters': get_config('gnina_minimize_iters', ''),
-        'gnina_simple_ascent': get_config('gnina_simple_ascent', ''),
-        'gnina_accurate_line': get_config('gnina_accurate_line', ''),
-        'gnina_minimize_early_term': get_config('gnina_minimize_early_term', ''),
-        'gnina_approximation': get_config('gnina_approximation', ''),
-        'gnina_factor': get_config('gnina_factor', ''),
-        'gnina_force_cap': get_config('gnina_force_cap', ''),
-        'gnina_user_grid': get_config('gnina_user_grid', ''),
-        'gnina_user_grid_lambda': get_config('gnina_user_grid_lambda', ''),
-        'gnina_no_gpu': get_config('gnina_no_gpu', ''),
+        'gnina_flex': get_config('gnina_flex', 'no'),
+        'gnina_flexres': get_config('gnina_flexres', 'no'),
+        'gnina_flexdist_ligand': get_config('gnina_flexdist_ligand', 'no'),
+        'gnina_flexdist': get_config('gnina_flexdist', 'no'),
+        'gnina_flex_limit': get_config('gnina_flex_limit', 'no'),
+        'gnina_flex_max': get_config('gnina_flex_max', 'no'),
+        'gnina_autobox_ligand': get_config('gnina_autobox_ligand', 'no'),
+        'gnina_autobox_add': get_config('gnina_autobox_add', '4'),
+        'gnina_autobox_extend': get_config('gnina_autobox_extend', '1'),
+        'gnina_no_lig': get_config('gnina_no_lig', 'no'),
+        'gnina_covalent_rec_atom': get_config('gnina_covalent_rec_atom', 'no'),
+        'gnina_covalent_lig_atom_pattern': get_config('gnina_covalent_lig_atom_pattern', 'no'),
+        'gnina_covalent_lig_atom_position': get_config('gnina_covalent_lig_atom_position', 'no'),
+        'gnina_covalent_fix_lig_atom_position': get_config('gnina_covalent_fix_lig_atom_position', 'no'),
+        'gnina_covalent_bond_order': get_config('gnina_covalent_bond_order', '1'),
+        'gnina_covalent_optimize_lig': get_config('gnina_covalent_optimize_lig', 'no'),
+        'gnina_exhaustiveness': get_config('gnina_exhaustiveness', '8'),
+        'gnina_num_modes': get_config('gnina_num_modes', '9'),
+        'gnina_scoring': get_config('gnina_scoring', 'default'),
+        'gnina_custom_scoring': get_config('gnina_custom_scoring', 'no'),
+        'gnina_custom_atoms': get_config('gnina_custom_atoms', 'no'),
+        'gnina_score_only': get_config('gnina_score_only', 'no'),
+        'gnina_local_only': get_config('gnina_local_only', 'no'),
+        'gnina_minimize': get_config('gnina_minimize', 'no'),
+        'gnina_randomize_only': get_config('gnina_randomize_only', 'no'),
+        'gnina_num_mc_steps': get_config('gnina_num_mc_steps', 'no'),
+        'gnina_max_mc_steps': get_config('gnina_max_mc_steps', 'no'),
+        'gnina_num_mc_saved': get_config('gnina_num_mc_saved', 'no'),
+        'gnina_temperature': get_config('gnina_temperature', 'no'),
+        'gnina_minimize_iters': get_config('gnina_minimize_iters', '0'),
+        'gnina_accurate_line': get_config('gnina_accurate_line', 'no'),
+        'gnina_simple_ascent': get_config('gnina_simple_ascent', 'no'),
+        'gnina_minimize_early_term': get_config('gnina_minimize_early_term', 'no'),
+        'gnina_minimize_single_full': get_config('gnina_minimize_single_full', 'no'),
+        'gnina_approximation': get_config('gnina_approximation', 'spline'),
+        'gnina_factor': get_config('gnina_factor', '32'),
+        'gnina_force_cap': get_config('gnina_force_cap', '10'),
+        'gnina_user_grid': get_config('gnina_user_grid', 'no'),
+        'gnina_user_grid_lambda': get_config('gnina_user_grid_lambda', '-1'),
+        'gnina_print_terms': get_config('gnina_print_terms', 'no'),
+        'gnina_print_atom_types': get_config('gnina_print_atom_types', 'no'),
+        'gnina_cnn_scoring': get_config('gnina_cnn_scoring', 'rescore'),
+        'gnina_cnn': get_config('gnina_cnn', 'default'),
+        'gnina_cnn_model': get_config('gnina_cnn_model', 'no'),
+        'gnina_cnn_rotation': get_config('gnina_cnn_rotation', '0'),
+        'gnina_cnn_mix_emp_force': get_config('gnina_cnn_mix_emp_force', 'no'),
+        'gnina_cnn_mix_emp_energy': get_config('gnina_cnn_mix_emp_energy', 'no'),
+        'gnina_cnn_empirical_weight': get_config('gnina_cnn_empirical_weight', '1'),
+        'gnina_cnn_center_x': get_config('gnina_cnn_center_x', 'no'),
+        'gnina_cnn_center_y': get_config('gnina_cnn_center_y', 'no'),
+        'gnina_cnn_center_z': get_config('gnina_cnn_center_z', 'no'),
+        'gnina_cnn_verbose': get_config('gnina_cnn_verbose', 'no'),
+        'gnina_out_flex': get_config('gnina_out_flex', 'no'),
+        'gnina_atom_terms': get_config('gnina_atom_terms', 'no'),
+        'gnina_atom_term_data': get_config('gnina_atom_term_data', 'no'),
+        'gnina_pose_sort_order': get_config('gnina_pose_sort_order', 'CNNscore'),
+        'gnina_full_flex_output': get_config('gnina_full_flex_output', 'no'),
+        'gnina_cpu': get_config('gnina_cpu', 'auto'),
+        'gnina_seed': get_config('gnina_seed', 'no'),
+        'gnina_min_rmsd_filter': get_config('gnina_min_rmsd_filter', '1'),
+        'gnina_quiet': get_config('gnina_quiet', 'no'),
+        'gnina_addH': get_config('gnina_addH', 'yes'),
+        'gnina_stripH': get_config('gnina_stripH', 'no'),
+        'gnina_device': get_config('gnina_device', '0'),
+        'gnina_no_gpu': get_config('gnina_no_gpu', 'no'),
 
         # PLANTS
         'plants': get_config('plants', 'plants'),
@@ -962,7 +1006,7 @@ def create_ocdocker_conf() -> None:
     #endregion
 
     #region GNINA variables
-    confGnina = "/data/hd4tb/OCDocker/software/docking/gnina/gnina"
+    confGnina = "/data/hd4tb/OCDocker/software/docking/gnina/gnina.1.3.2.cuda12.8"
     confGnina_exhaustiveness = "8"
     confGnina_num_modes = "9"
     confGnina_scoring = "default"
@@ -976,7 +1020,7 @@ def create_ocdocker_conf() -> None:
     confGnina_num_mc_saved = "no"
     confGnina_minimize_iters = "0"
     confGnina_simple_ascent = "no"
-    confGnina_accurate_line = "yes"
+    confGnina_accurate_line = "no"
     confGnina_minimize_early_term = "no"
     confGnina_approximation = "spline"
     confGnina_factor = "32"

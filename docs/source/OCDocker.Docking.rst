@@ -18,6 +18,7 @@ Submodules
    OCDocker.Docking.PLANTS
    OCDocker.Docking.Smina
    OCDocker.Docking.Vina
+   OCDocker.Docking.Gnina
    OCDocker.Docking.BaseVinaLike
 
 Module contents
