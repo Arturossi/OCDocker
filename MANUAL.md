@@ -131,6 +131,7 @@ Main commands (see `ocdocker <command> --help`):
 - `shap`: OCScore SHAP analysis
 - `console`: interactive console with OCDocker pre-loaded
 - `script`: run a Python script with OCDocker pre-loaded
+  (requires `--allow-unsafe-exec` or `OCDOCKER_ALLOW_SCRIPT_EXEC=1`)
 - `doctor`: diagnostics (binaries, deps, DB)
 - `manifest`: generate reproducibility manifest (versions/runtime/tooling)
 - `init-config`: create a starter config file

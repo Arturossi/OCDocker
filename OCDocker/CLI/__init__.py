@@ -422,6 +422,9 @@ def _collect_tool_candidates() -> Dict[str, Optional[str]]:
         "vina": "vina",
         "smina": "smina",
         "plants": "plants",
+        "gnina": "gnina",
+        "pythonsh": "pythonsh",
+        "dssp": "dssp",
         "obabel": "obabel",
         "spores": "spores",
     }
@@ -433,6 +436,9 @@ def _collect_tool_candidates() -> Dict[str, Optional[str]]:
         candidates["vina"] = getattr(cfg.vina, "executable", None) or candidates["vina"]
         candidates["smina"] = getattr(cfg.smina, "executable", None) or candidates["smina"]
         candidates["plants"] = getattr(cfg.plants, "executable", None) or candidates["plants"]
+        candidates["gnina"] = getattr(cfg.gnina, "executable", None) or candidates["gnina"]
+        candidates["pythonsh"] = getattr(cfg.tools, "pythonsh", None) or candidates["pythonsh"]
+        candidates["dssp"] = getattr(cfg.tools, "dssp", None) or candidates["dssp"]
         candidates["obabel"] = getattr(cfg.tools, "obabel", None) or candidates["obabel"]
         candidates["spores"] = getattr(cfg.tools, "spores", None) or candidates["spores"]
     except (ImportError, AttributeError, RuntimeError, TypeError, ValueError, KeyError):
@@ -1083,9 +1089,9 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Run diagnostics to check your OCDocker environment setup.\n\n"
             "This command verifies:\n"
-            "  - Availability and accessibility of docking engine binaries (Vina, Smina, PLANTS)\n"
+            "  - Availability and versions of external tools (Vina, Smina, PLANTS, Gnina, Open Babel, etc.)\n"
             "  - Python dependencies and package versions\n"
-            "  - Database connectivity and configuration\n"
+            "  - Database backend, driver/client version, server version (when reachable), and connectivity\n"
             "  - Configuration file validity\n\n"
             "Use this command to troubleshoot installation or configuration issues before\n"
             "running docking jobs. It provides detailed information about what's working\n"
@@ -1254,6 +1260,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
     _vina_bin: Optional[str]
     _smina_bin: Optional[str]
     _plants_bin: Optional[str]
+    config: Optional[Any] = None
     try:
         from OCDocker.Config import get_config
         config = get_config()
@@ -1269,6 +1276,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
         'smina': 'OK' if _exists_exe(s) else 'MISSING',
         'plants': 'OK' if _exists_exe(p) else 'MISSING',
     }
+    report['external_tools'] = _collect_external_tool_manifest()
 
     # Python dependencies
     # SECURITY NOTE: Dynamic import is used here to check for optional dependencies.
@@ -1291,16 +1299,152 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
     report['python_deps'] = pydeps
 
     # DB connectivity
+    db_report: Dict[str, Any] = {}
+    backend_cfg: Optional[str] = None
+    try:
+        if config is not None:
+            backend_cfg = str(getattr(getattr(config, 'database', None), 'backend', '') or '').strip().lower() or None
+    except Exception:
+        backend_cfg = None
+
+    try:
+        import sqlalchemy
+        db_report['sqlalchemy_version'] = str(getattr(sqlalchemy, '__version__', 'unknown'))
+    except Exception:
+        db_report['sqlalchemy_version'] = 'unknown'
+
     try:
         eng = getattr(OCI, 'engine', None)
         if eng is None:
-            report['database'] = {'status': 'MISSING ENGINE'}
+            db_report['status'] = 'MISSING ENGINE'
+            db_report['access'] = False
+            db_report['backend'] = backend_cfg or 'unknown'
+            report['database'] = db_report
         else:
-            conn = eng.connect()
-            conn.close()
-            report['database'] = {'status': 'OK'}
+            url_obj = getattr(eng, 'url', None)
+            drivername = str(getattr(url_obj, 'drivername', '') or '')
+            backend_from_driver = ''
+            if drivername.startswith('postgresql'):
+                backend_from_driver = 'postgresql'
+            elif drivername.startswith('mysql'):
+                backend_from_driver = 'mysql'
+            elif drivername.startswith('sqlite'):
+                backend_from_driver = 'sqlite'
+
+            backend = backend_cfg or backend_from_driver or 'unknown'
+            db_report['backend'] = backend
+            db_report['driver'] = drivername or 'unknown'
+
+            # Client/driver library version (best-effort)
+            client_version = 'unknown'
+            try:
+                if backend == 'postgresql':
+                    import psycopg as _psycopg  # type: ignore[import-not-found]
+                    client_version = str(getattr(_psycopg, '__version__', 'unknown'))
+                elif backend == 'mysql':
+                    import pymysql as _pymysql  # type: ignore[import-not-found]
+                    client_version = str(getattr(_pymysql, '__version__', 'unknown'))
+                elif backend == 'sqlite':
+                    import sqlite3 as _sqlite3
+                    client_version = str(getattr(_sqlite3, 'sqlite_version', 'unknown'))
+            except Exception:
+                client_version = 'unknown'
+            db_report['client_version'] = client_version
+
+            conn = None
+            try:
+                conn = eng.connect()
+                db_report['status'] = 'OK'
+                db_report['access'] = True
+                server_version: Optional[str] = None
+                if hasattr(conn, 'exec_driver_sql'):
+                    sql = None
+                    if backend == 'postgresql':
+                        sql = 'SHOW server_version'
+                    elif backend == 'mysql':
+                        sql = 'SELECT VERSION()'
+                    elif backend == 'sqlite':
+                        sql = 'SELECT sqlite_version()'
+
+                    if sql:
+                        try:
+                            value = conn.exec_driver_sql(sql).scalar()  # type: ignore[attr-defined]
+                            if value is not None:
+                                server_version = str(value)
+                        except Exception as exc:
+                            server_version = f'ERROR ({type(exc).__name__})'
+                db_report['server_version'] = server_version or 'unknown'
+
+                # Connected identity / database checks (best-effort).
+                expected_user = None
+                expected_database = None
+                try:
+                    if config is not None:
+                        expected_user = getattr(getattr(config, 'database', None), 'user', None)
+                        expected_database = getattr(getattr(config, 'database', None), 'database', None)
+                except Exception:
+                    pass
+
+                db_report['expected_user'] = expected_user
+                db_report['expected_database'] = expected_database
+
+                current_user: Optional[str] = None
+                current_database: Optional[str] = None
+                if hasattr(conn, 'exec_driver_sql'):
+                    try:
+                        if backend == 'postgresql':
+                            current_user_val = conn.exec_driver_sql('SELECT current_user').scalar()  # type: ignore[attr-defined]
+                            current_db_val = conn.exec_driver_sql('SELECT current_database()').scalar()  # type: ignore[attr-defined]
+                            current_user = str(current_user_val) if current_user_val is not None else None
+                            current_database = str(current_db_val) if current_db_val is not None else None
+                        elif backend == 'mysql':
+                            current_user_val = conn.exec_driver_sql('SELECT CURRENT_USER()').scalar()  # type: ignore[attr-defined]
+                            current_db_val = conn.exec_driver_sql('SELECT DATABASE()').scalar()  # type: ignore[attr-defined]
+                            current_user = str(current_user_val) if current_user_val is not None else None
+                            current_database = str(current_db_val) if current_db_val is not None else None
+                        elif backend == 'sqlite':
+                            current_user = 'n/a (sqlite)'
+                            db_name = getattr(url_obj, 'database', None)
+                            current_database = str(db_name) if db_name else 'sqlite'
+                    except Exception:
+                        # Keep values as None when introspection queries fail.
+                        pass
+
+                db_report['current_user'] = current_user or 'unknown'
+                db_report['current_database'] = current_database or 'unknown'
+
+                user_check = 'unknown'
+                if backend == 'sqlite':
+                    user_check = 'n/a'
+                elif expected_user:
+                    effective_user = (current_user or '').strip()
+                    # MySQL CURRENT_USER() often returns "user@host".
+                    if backend == 'mysql' and '@' in effective_user:
+                        effective_user = effective_user.split('@', 1)[0]
+                    user_check = 'ok' if effective_user == str(expected_user).strip() else 'mismatch'
+                db_report['user_check'] = user_check
+
+                database_check = 'unknown'
+                if expected_database and current_database and current_database != 'unknown':
+                    database_check = (
+                        'ok'
+                        if str(current_database).strip() == str(expected_database).strip()
+                        else 'mismatch'
+                    )
+                db_report['database_check'] = database_check
+            finally:
+                if conn is not None:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+            report['database'] = db_report
     except Exception as e:
-        report['database'] = {'status': f'ERROR ({e})'}
+        db_report['status'] = f'ERROR ({e})'
+        db_report['access'] = False
+        if 'backend' not in db_report:
+            db_report['backend'] = backend_cfg or 'unknown'
+        report['database'] = db_report
 
     # Summary printout
     print(json.dumps(report, indent=2))

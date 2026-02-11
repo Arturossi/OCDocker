@@ -180,7 +180,7 @@ db = "optimization"
 
 engine = create_engine(f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}")
 with engine.connect() as conn:
-    print(conn.execute("SELECT 1").scalar())
+    print(conn.exec_driver_sql("SELECT 1").scalar())
 ```
 
 MySQL remains supported:
@@ -376,8 +376,9 @@ It checks:
 
 - Config path in use
 - Binaries: `vina`, `smina`, `plants` (presence on PATH or configured paths)
+- External tool metadata: resolved executable and version (`vina`, `smina`, `plants`, `gnina`, `pythonsh`, `dssp`, `obabel`, `spores`)
 - Python deps: rdkit, Biopython, ODDT, SQLAlchemy
-- DB connectivity (opens/closes a connection)
+- DB backend/driver metadata, client version, server version (when queryable), connectivity, and current/expected user+database checks
 
 Reproducibility: `ocdocker manifest`
 ------------------------------------
