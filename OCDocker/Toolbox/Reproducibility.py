@@ -64,7 +64,7 @@ def generate_reproducibility_manifest(include_python_packages: bool = True) -> D
     '''
 
     # Keep CLI and Python API on the same implementation path.
-    from OCDocker.CLI.__init__ import generate_reproducibility_manifest as _generate_manifest
+    from OCDocker.CLI import generate_reproducibility_manifest as _generate_manifest
     return _generate_manifest(include_python_packages=include_python_packages)
 
 
