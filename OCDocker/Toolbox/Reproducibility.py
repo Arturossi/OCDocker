@@ -21,7 +21,7 @@ import json
 
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Callable, Dict, cast
 
 # License
 ###############################################################################
@@ -68,8 +68,11 @@ def generate_reproducibility_manifest(include_python_packages: bool = True) -> D
     # Importing via ``OCDocker.CLI.__init__`` ensures compatibility with
     # monkeypatch targets used in the test suite.
     cli_module = import_module("OCDocker.CLI.__init__")
-    generate_manifest = getattr(cli_module, "generate_reproducibility_manifest")
-    return generate_manifest(include_python_packages=include_python_packages)
+    generate_manifest = cast(
+        Callable[[bool], Dict[str, Any]],
+        getattr(cli_module, "generate_reproducibility_manifest"),
+    )
+    return generate_manifest(include_python_packages)
 
 
 def write_reproducibility_manifest(output_path: str, include_python_packages: bool = True) -> Dict[str, Any]:
