@@ -16,7 +16,7 @@ import os
 import shutil
 
 from glob import glob
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import OCDocker.Error as ocerror
 
@@ -199,7 +199,7 @@ def _normalize_string_list(values: Union[List[str], Tuple[str, ...], None], fall
     return [_as_text(item) for item in fallback if _as_text(item)]
 
 
-def _get_rescore_scoring_functions(config: object) -> List[str]:
+def _get_rescore_scoring_functions(config: Any) -> List[str]:
     default_scoring = _as_text(getattr(config.gnina, "scoring", "default")) or "default"
     scoring_functions = _normalize_string_list(
         getattr(config.gnina, "scoring_functions", None),
@@ -209,7 +209,7 @@ def _get_rescore_scoring_functions(config: object) -> List[str]:
     return scoring_functions if scoring_functions else [default_scoring]
 
 
-def _get_rescore_cnn_models(config: object) -> List[str]:
+def _get_rescore_cnn_models(config: Any) -> List[str]:
     default_cnn = _as_text(getattr(config.gnina, "cnn", "default")) or "default"
     cnn_models = _normalize_string_list(
         getattr(config.gnina, "cnn_models", None),
