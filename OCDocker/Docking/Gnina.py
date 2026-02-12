@@ -15,6 +15,7 @@ import OCDocker.Docking.Gnina as ocgnina
 import os
 import shutil
 
+from glob import glob
 from typing import Dict, List, Tuple, Union
 
 import OCDocker.Error as ocerror
@@ -176,6 +177,46 @@ def _resolve_autobox_ligand(value: Union[str, int, float, bool, None], prepared_
     if txt_low in {"yes", "y", "true", "1", "auto", "ligand", "prepared_ligand"}:
         return prepared_ligand
     return txt
+
+
+def _normalize_string_list(values: Union[List[str], Tuple[str, ...], None], fallback: List[str]) -> List[str]:
+    items: List[str] = []
+    if isinstance(values, list):
+        source_values = values
+    elif isinstance(values, tuple):
+        source_values = list(values)
+    else:
+        source_values = []
+
+    for item in source_values:
+        item_txt = _as_text(item)
+        if item_txt:
+            items.append(item_txt)
+
+    if items:
+        return items
+
+    return [_as_text(item) for item in fallback if _as_text(item)]
+
+
+def _get_rescore_scoring_functions(config: object) -> List[str]:
+    default_scoring = _as_text(getattr(config.gnina, "scoring", "default")) or "default"
+    scoring_functions = _normalize_string_list(
+        getattr(config.gnina, "scoring_functions", None),
+        [default_scoring],
+    )
+
+    return scoring_functions if scoring_functions else [default_scoring]
+
+
+def _get_rescore_cnn_models(config: object) -> List[str]:
+    default_cnn = _as_text(getattr(config.gnina, "cnn", "default")) or "default"
+    cnn_models = _normalize_string_list(
+        getattr(config.gnina, "cnn_models", None),
+        [default_cnn],
+    )
+
+    return cnn_models if cnn_models else [default_cnn]
 
 
 def _build_gnina_cmd(config_path: str, prepared_ligand: str, output_gnina: str, gnina_log: str) -> List[str]:
@@ -489,6 +530,27 @@ class Gnina:
 
         return read_log(self.gnina_log, onlyBest = onlyBest)
 
+    def read_rescore_logs(self, outPath: str, onlyBest: bool = False) -> Dict[str, float]:
+        ''' Reads the data from the rescore log files.
+
+        Parameters
+        ----------
+        outPath : str
+            Path to the output folder where the rescoring logs are located.
+        onlyBest : bool, optional
+            If True, only the best pose will be returned. By default False.
+
+        Returns
+        -------
+        Dict[str, float]
+            A dictionary with the data from the rescore log files.
+        '''
+
+        # Get the rescore log paths
+        rescoreLogPaths = get_rescore_log_paths(outPath)
+
+        return read_rescore_logs(rescoreLogPaths, onlyBest = onlyBest)
+
 
     def run_prepare_ligand(self, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run Open Babel conversion for ligand.
@@ -560,6 +622,70 @@ class Gnina:
             logFile,
             overwrite=overwrite
         )
+
+    def run_rescore(self, outPath: str, ligand: str, logFile: str = "", skipDefaultScoring: bool = False, splitLigand: bool = False, overwrite: bool = False) -> None:
+        '''Run gnina to rescore the ligand.
+
+        Parameters
+        ----------
+        outPath : str
+            Path to the output folder.
+        ligand : str
+            Path to the ligand to be rescored.
+        logFile : str, optional
+            Path to the logFile. If empty, suppress the output. By default "".
+        skipDefaultScoring : bool, optional
+            If True, skip the default scoring function. By default False.
+        splitLigand : bool, optional
+            If True, split the ligand before rescoring. By default False.
+        overwrite : bool, optional
+            If True, overwrite the logFile. By default False.
+        '''
+
+        config = get_config()
+        default_scoring = _as_text(getattr(config.gnina, "scoring", "default")) or "default"
+        scoring_functions = _get_rescore_scoring_functions(config)
+        cnn_models = _get_rescore_cnn_models(config)
+
+        for scoring_function in scoring_functions:
+            sf = _as_text(scoring_function)
+            if not sf:
+                continue
+
+            if sf == default_scoring and skipDefaultScoring:
+                continue
+
+            run_rescore(
+                self.config,
+                ligand,
+                outPath,
+                sf,
+                logFile = logFile,
+                splitLigand = splitLigand,
+                overwrite = overwrite,
+                disable_cnn = True,
+            )
+            splitLigand = False
+
+        for cnn_model in cnn_models:
+            cnn_model_txt = _as_text(cnn_model)
+            if not cnn_model_txt:
+                continue
+
+            run_rescore(
+                self.config,
+                ligand,
+                outPath,
+                default_scoring,
+                logFile = logFile,
+                splitLigand = splitLigand,
+                overwrite = overwrite,
+                cnn_model = cnn_model_txt,
+                disable_cnn = False,
+            )
+            splitLigand = False
+
+        return None
 
 
     def run_gnina(self, logFile: str = "", overwrite: bool = False) -> Union[int, Tuple[int, str]]:
@@ -738,6 +864,105 @@ def get_pose_index_from_file_path(filePath: str) -> int:
     return int(filename)
 
 
+def get_rescore_log_paths(outPath: str) -> List[str]:
+    ''' Get the paths for the rescore log files.
+
+    Parameters
+    ----------
+    outPath : str
+        Path to the output folder where the rescoring logs are located.
+
+    Returns
+    -------
+    List[str]
+        A list with the paths for the rescoring log files.
+    '''
+
+    return [f for f in glob(f"{outPath}/*_rescoring.log") if os.path.isfile(f)]
+
+
+def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = False) -> Dict[str, float]:
+    ''' Reads the data from the rescore log files.
+
+    Parameters
+    ----------
+    rescoreLogPaths : List[str] | str
+        A list with the paths for the rescoring log files.
+    onlyBest : bool, optional
+        If True, only the best pose will be returned. By default False.
+
+    Returns
+    -------
+    Dict[str, float]
+        A dictionary with the data from the rescore log files.
+    '''
+
+    # Create the dictionary
+    rescoreLogData: Dict[str, float] = {}
+
+    # If the rescoreLogPaths is not a list
+    if not isinstance(rescoreLogPaths, list):
+        # Make it a list
+        rescoreLogPaths = [rescoreLogPaths]
+
+    # For each rescore log path
+    for rescoreLogPath in rescoreLogPaths:
+        # Get the original filename without extension
+        original_filename = os.path.splitext(os.path.basename(rescoreLogPath))[0]
+
+        # Extract scoring function/CNN model from filename ending with _rescoring
+        config = get_config()
+        scoring_functions = _get_rescore_scoring_functions(config)
+        cnn_models = _get_rescore_cnn_models(config)
+        scoring_function = None
+        cnn_model = None
+        if original_filename.endswith("_rescoring"):
+            for model_name in sorted(cnn_models, key=len, reverse=True):
+                if original_filename.endswith(f"_cnn_{model_name}_rescoring"):
+                    cnn_model = model_name
+                    break
+
+            # Sort by length (longest first) to match longer names before shorter ones
+            for sf in sorted(scoring_functions, key=len, reverse=True):
+                if original_filename.endswith(f"_{sf}_rescoring"):
+                    scoring_function = sf
+                    break
+
+        # Extract pose number if present (pattern: {name}_split_{number}_{scoring_function}_rescoring)
+        pose_number = None
+        if "_split_" in original_filename:
+            after_split = original_filename.split("_split_", 1)[1]
+            parts_after_split = after_split.split("_")
+            if parts_after_split and parts_after_split[0].isdigit():
+                pose_number = parts_after_split[0]
+
+        # Handle onlyBest filter after extracting scoring function/CNN model and pose number
+        if onlyBest and pose_number:
+            if pose_number != "1":
+                continue
+
+        if cnn_model:
+            if pose_number:
+                key = f"rescoring_cnn_{cnn_model}_{pose_number}"
+            else:
+                key = f"gnina_cnn_{cnn_model}_rescoring"
+        elif scoring_function:
+            if pose_number:
+                key = f"rescoring_{scoring_function}_{pose_number}"
+            else:
+                key = f"gnina_{scoring_function}_rescoring"
+        else:
+            # If neither scoring function nor CNN model is found, skip file with a warning
+            _ = ocerror.Error.value_error(message=f"The rescoring key could not be parsed from filename '{original_filename}'. Skipping this file.", level = ocerror.ReportLevel.WARNING)
+            continue
+
+        # Get the rescore log data
+        rescoreLogData[key] = read_rescoring_log(rescoreLogPath)
+
+    # Return the dictionary
+    return rescoreLogData
+
+
 def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
     '''Run Open Babel convert ligand to pdbqt.
 
@@ -879,6 +1104,127 @@ def run_gnina(config: str, prepared_ligand: str, output_gnina: str, gnina_log: s
 
     # Run the command
     return ocrun.run(cmd, logFile = log_path)
+
+
+def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, scoring_function: str, logFile: str = "", splitLigand: bool = True, overwrite: bool = False, cnn_model: str = "", disable_cnn: bool = False) -> None:
+    '''Run gnina to rescore the ligand.
+
+    Parameters
+    ----------
+    confFile : str
+        The path to the gnina configuration file.
+    ligands : Union[List[str], str]
+        The path to a List of ligand files or the ligand file.
+    outPath : str
+        The path to the output file.
+    scoring_function : str
+        The scoring function to use.
+    logFile : str, optional
+        The path to the log file. If empty, suppress the output. By default "".
+    splitLigand : bool, optional
+        If True, split the ligand before running gnina. By default True.
+    overwrite : bool, optional
+        If True, overwrite the logFile. By default False.
+    cnn_model : str, optional
+        Built-in CNN model to evaluate (via --cnn). By default "".
+    disable_cnn : bool, optional
+        If True, force empirical-only scoring with --cnn_scoring none. By default False.
+    '''
+
+    scoring_function = _as_text(scoring_function) or "default"
+    cnn_model = _as_text(cnn_model)
+    run_label = f"cnn_{cnn_model}" if cnn_model else scoring_function
+
+    # Print verboosity
+    ocprint.printv(f"Running gnina using the '{confFile}' configurations and rescoring setup '{run_label}'.")
+
+    # Normalize outPath to ensure it's absolute and doesn't have duplicate path components
+    outPath = ocff.normalize_path(outPath)
+    os.makedirs(outPath, exist_ok=True)
+
+    # Check if the ligands is a string
+    if isinstance(ligands, str):
+        # Convert to list
+        ligands = [ligands]
+
+    # Ligand name list
+    ligandNames = []
+
+    # For each ligand
+    for ligand in ligands:
+        # Only split if splitLigand is True (overwrite doesn't trigger splitting)
+        if splitLigand:
+            ligandName = os.path.splitext(os.path.basename(ligand))[0]
+
+            # Split the ligand (only add _split_ suffix when actually splitting)
+            _ = ocmolproc.split_poses(ligand, ligandName, outPath, logFile = "", suffix = "_split_")
+            ligandNames.append(ligandName)
+
+    # If splitLigand is True, get the splited ligands (only for the provided ligand files)
+    if splitLigand:
+        ligands = []
+        for ligandName in ligandNames:
+            ligands.extend(glob(f"{outPath}/{ligandName}_split_*.pdbqt"))
+
+    # For each ligand in the ligands list (newly splited ligands)
+    for ligand in ligands:
+        ligand_name = os.path.splitext(os.path.basename(ligand))[0]
+
+        # Create the command list
+        cfg = get_config()
+        ligand = ocff.normalize_path(ligand)
+        log_file_path = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{run_label}_rescoring.log"))
+
+        cmd = [
+            cfg.gnina.executable,
+            "--scoring", scoring_function,
+            "--score_only",
+            "--config", confFile,
+            "--ligand", ligand,
+            "--log", log_file_path,
+            "--cpu", "1",
+        ]
+
+        if disable_cnn:
+            cmd.extend(["--cnn_scoring", "none"])
+        elif cnn_model:
+            cmd.extend(["--cnn", cnn_model])
+            cnn_scoring_mode = _as_text(getattr(cfg.gnina, "cnn_scoring", "rescore")) or "rescore"
+            cmd.extend(["--cnn_scoring", cnn_scoring_mode])
+
+        if _is_true(getattr(cfg.gnina, "no_gpu", "no")):
+            cmd.append("--no_gpu")
+        else:
+            device = _as_text(getattr(cfg.gnina, "device", ""))
+            if device and device.lower() != "no":
+                cmd.extend(["--device", device])
+
+        # Create the log file path
+        logFile = log_file_path
+
+        # If the logFile already exists, check also if the user wants to overwrite it
+        if not os.path.isfile(logFile) or overwrite:
+            ocprint.printv(f"Running gnina using the '{confFile}' configurations and rescoring setup '{run_label}'.")
+
+            # Run the command
+            _ = ocrun.run(cmd, logFile = logFile)
+
+            # Gnina rescoring logs include the "Affinity" marker.
+            log_file_valid = False
+            if os.path.isfile(logFile):
+                try:
+                    with open(logFile, "r", encoding = "utf-8", errors = "ignore") as handle:
+                        log_file_valid = any("Affinity" in line for line in handle)
+                except (IOError, OSError):
+                    pass
+
+            if not log_file_valid:
+                ocprint.print_error(f"Problems while running gnina for the ligand '{ligand_name}' using the rescoring setup '{run_label}'. Check the log file: {logFile}")
+                _ = ocff.safe_remove_file(logFile)
+        else:
+            ocprint.printv(f"The log file '{logFile}' already exists. Skipping the gnina run for the ligand '{ligand_name}' using the rescoring setup '{run_label}'.")
+
+    return None
 
 
 # Aliases

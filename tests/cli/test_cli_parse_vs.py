@@ -70,3 +70,18 @@ def test_cli_vs_parse_smoke():
     assert ns.skip_rescore and ns.skip_split
     assert ns.timeout == 60 and ns.store_db
     assert ns.overwrite and ns.no_stdout_log
+
+
+@pytest.mark.order(25)
+def test_cli_vs_parse_gnina_engine():
+    '''Ensure VS parser accepts gnina as docking engine.'''
+
+    parser = build_parser()
+    ns = parser.parse_args([
+        'vs',
+        '--engine', 'gnina',
+        '--receptor', 'rec.pdb',
+        '--ligand', 'ligand.mol2',
+        '--box', 'box.pdb',
+    ])
+    assert ns.engine == 'gnina'

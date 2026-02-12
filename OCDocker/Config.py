@@ -47,6 +47,87 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Configuration Dataclasses
 
 
+GNINA_DEFAULT_SCORING_FUNCTIONS = [
+    "ad4_scoring",
+    "default",
+    "dkoes_fast",
+    "dkoes_scoring",
+    "dkoes_scoring_old",
+    "vina",
+    "vinardo",
+]
+
+
+GNINA_DEFAULT_CNN_MODELS = [
+    "all_default_to_default_1_3_1",
+    "all_default_to_default_1_3_2",
+    "all_default_to_default_1_3_3",
+    "crossdock_default2018",
+    "crossdock_default2018_1",
+    "crossdock_default2018_1_3",
+    "crossdock_default2018_1_3_1",
+    "crossdock_default2018_1_3_2",
+    "crossdock_default2018_1_3_3",
+    "crossdock_default2018_1_3_4",
+    "crossdock_default2018_2",
+    "crossdock_default2018_3",
+    "crossdock_default2018_4",
+    "crossdock_default2018_KD_1",
+    "crossdock_default2018_KD_2",
+    "crossdock_default2018_KD_3",
+    "crossdock_default2018_KD_4",
+    "crossdock_default2018_KD_5",
+    "default1.0",
+    "default2017",
+    "dense",
+    "dense_1",
+    "dense_1_3",
+    "dense_1_3_1",
+    "dense_1_3_2",
+    "dense_1_3_3",
+    "dense_1_3_4",
+    "dense_1_3_PT_KD",
+    "dense_1_3_PT_KD_1",
+    "dense_1_3_PT_KD_2",
+    "dense_1_3_PT_KD_3",
+    "dense_1_3_PT_KD_4",
+    "dense_1_3_PT_KD_def2018",
+    "dense_1_3_PT_KD_def2018_1",
+    "dense_1_3_PT_KD_def2018_2",
+    "dense_1_3_PT_KD_def2018_3",
+    "dense_1_3_PT_KD_def2018_4",
+    "dense_2",
+    "dense_3",
+    "dense_4",
+    "fast",
+    "general_default2018",
+    "general_default2018_1",
+    "general_default2018_2",
+    "general_default2018_3",
+    "general_default2018_4",
+    "general_default2018_KD_1",
+    "general_default2018_KD_2",
+    "general_default2018_KD_3",
+    "general_default2018_KD_4",
+    "general_default2018_KD_5",
+    "redock_default2018",
+    "redock_default2018_1",
+    "redock_default2018_1_3",
+    "redock_default2018_1_3_1",
+    "redock_default2018_1_3_2",
+    "redock_default2018_1_3_3",
+    "redock_default2018_1_3_4",
+    "redock_default2018_2",
+    "redock_default2018_3",
+    "redock_default2018_4",
+    "redock_default2018_KD_1",
+    "redock_default2018_KD_2",
+    "redock_default2018_KD_3",
+    "redock_default2018_KD_4",
+    "redock_default2018_KD_5",
+]
+
+
 @dataclass
 class VinaConfig:
     """Configuration for Vina docking engine."""
@@ -109,6 +190,7 @@ class GninaConfig:
     exhaustiveness: str = "8"
     num_modes: str = "9"
     scoring: str = "default"
+    scoring_functions: List[str] = field(default_factory=lambda: GNINA_DEFAULT_SCORING_FUNCTIONS.copy())
     custom_scoring: str = "no"
     custom_atoms: str = "no"
     score_only: str = "no"
@@ -134,6 +216,7 @@ class GninaConfig:
     # CNN
     cnn_scoring: str = "rescore"
     cnn: str = "default"
+    cnn_models: List[str] = field(default_factory=lambda: GNINA_DEFAULT_CNN_MODELS.copy())
     cnn_model: str = "no"
     cnn_rotation: str = "0"
     cnn_mix_emp_force: str = "no"
@@ -376,6 +459,7 @@ class OCDockerConfig:
                 exhaustiveness=cfg.get('gnina_exhaustiveness', '8'),
                 num_modes=cfg.get('gnina_num_modes', '9'),
                 scoring=cfg.get('gnina_scoring', 'default'),
+                scoring_functions=cfg.get('gnina_scoring_functions', GNINA_DEFAULT_SCORING_FUNCTIONS.copy()),
                 custom_scoring=cfg.get('gnina_custom_scoring', 'no'),
                 custom_atoms=cfg.get('gnina_custom_atoms', 'no'),
                 score_only=cfg.get('gnina_score_only', 'no'),
@@ -400,6 +484,7 @@ class OCDockerConfig:
                 print_atom_types=cfg.get('gnina_print_atom_types', 'no'),
                 cnn_scoring=cfg.get('gnina_cnn_scoring', 'rescore'),
                 cnn=cfg.get('gnina_cnn', 'default'),
+                cnn_models=cfg.get('gnina_cnn_models', GNINA_DEFAULT_CNN_MODELS.copy()),
                 cnn_model=cfg.get('gnina_cnn_model', 'no'),
                 cnn_rotation=cfg.get('gnina_cnn_rotation', '0'),
                 cnn_mix_emp_force=cfg.get('gnina_cnn_mix_emp_force', 'no'),

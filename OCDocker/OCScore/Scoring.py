@@ -505,7 +505,13 @@ def get_score(
                 model.mask = []
 
             with torch.no_grad():
-                X_tensor = torch.as_tensor(X, dtype=torch.float32, device=device)
+                # Ensure writable backing memory to avoid PyTorch warnings with
+                # read-only NumPy views originating from pandas.
+                X_input = X
+                if isinstance(X_input, np.ndarray) and not X_input.flags.writeable:
+                    X_input = np.array(X_input, copy=True)
+
+                X_tensor = torch.as_tensor(X_input, dtype=torch.float32, device=device)
 
                 # Ensure mask is on the same device as the input tensor
                 if hasattr(model, 'mask') and isinstance(model.mask, torch.Tensor):

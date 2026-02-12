@@ -17,7 +17,7 @@ import pytest
 import shutil
 
 from pathlib import Path
-from typing import Optional, Set
+from typing import Optional, Set, Tuple
 
 # License
 ###############################################################################
@@ -68,6 +68,9 @@ def cleanup_test_files():
         "**/*.pdbqt",
         "**/*.mol2",
         "**/*plantsFiles*",
+        "**/vinaFiles",
+        "**/sminaFiles",
+        "**/gninaFiles",
         "**/*plants_config.txt",
         "**/*vina_config.txt",
         "**/*smina_config.txt",
@@ -75,6 +78,7 @@ def cleanup_test_files():
         "**/run/",
         "**/*_descriptors.json",
         "**/*_tmp.mol",
+        "**/receptor_clean*",
     ]
     
     # Files/directories to explicitly exclude from cleanup (test fixtures)
@@ -119,8 +123,12 @@ def cleanup_test_files():
                     return True
         return False
     
-    # Clean up files matching patterns BEFORE tests
-    if test_files_dir.exists():
+    def run_cleanup() -> None:
+        '''Remove generated files/directories in test_files while preserving fixtures.'''
+
+        if not test_files_dir.exists():
+            return
+
         for pattern in cleanup_patterns:
             for path in test_files_dir.glob(pattern):
                 # Skip if path matches exclusion patterns
@@ -134,25 +142,15 @@ def cleanup_test_files():
                 except (OSError, PermissionError, FileNotFoundError):
                     # Ignore errors during cleanup
                     pass
+
+    # Clean up files matching patterns BEFORE tests
+    run_cleanup()
     
     # Yield control to tests
     yield
     
     # Clean up files matching patterns AFTER tests
-    if test_files_dir.exists():
-        for pattern in cleanup_patterns:
-            for path in test_files_dir.glob(pattern):
-                # Skip if path matches exclusion patterns
-                if should_exclude(path):
-                    continue
-                try:
-                    if path.is_file():
-                        path.unlink()
-                    elif path.is_dir():
-                        shutil.rmtree(path, ignore_errors=True)
-                except (OSError, PermissionError, FileNotFoundError):
-                    # Ignore errors during cleanup
-                    pass
+    run_cleanup()
 
 
 @pytest.fixture(autouse=True)
@@ -283,7 +281,56 @@ def _required_tools_by_test_file() -> dict[str, set[str]]:
         "test_integration_docking_workflow.py": {"dssp"},
         "test_plants_prepare.py": {"plants", "obabel"},
         "test_receptor.py": {"openbabel-py", "dssp"},
+        "test_gnina_rescore.py": {"openbabel-py"},
     }
+
+
+def _extract_order_value(item: pytest.Item) -> Tuple[int, float]:
+    '''Extract numeric pytest-order marker value for deterministic sorting.
+
+    Returns
+    -------
+    Tuple[int, float]
+        (has_no_order_marker, numeric_order_value)
+    '''
+
+    marker = item.get_closest_marker("order")
+    if marker and marker.args:
+        raw_value = marker.args[0]
+        try:
+            return (0, float(raw_value))
+        except (TypeError, ValueError):
+            pass
+
+    # Unordered tests are placed after ordered tests within each file.
+    return (1, 0.0)
+
+
+def _collection_sort_key(item: pytest.Item) -> Tuple[str, str, int, float, int, str]:
+    '''Sort key: folder -> file -> explicit @pytest.mark.order -> declaration order.'''
+
+    file_path = Path(str(item.fspath))
+    tests_root = Path(__file__).resolve().parent
+
+    try:
+        relative_path = file_path.resolve().relative_to(tests_root)
+        folder_key = relative_path.parent.as_posix()
+        file_key = relative_path.name
+    except (ValueError, OSError):
+        folder_key = file_path.parent.as_posix()
+        file_key = file_path.name
+
+    no_order_marker, order_value = _extract_order_value(item)
+    line_number = int(item.location[1]) if hasattr(item, "location") else 0
+
+    return (
+        folder_key,
+        file_key,
+        no_order_marker,
+        order_value,
+        line_number,
+        item.nodeid,
+    )
 
 
 def pytest_ignore_collect(collection_path, config):
@@ -310,26 +357,35 @@ def pytest_ignore_collect(collection_path, config):
     return False
 
 
+@pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_collection_modifyitems(config, items):
     # Allow forcing external tests on (e.g., local dev with binaries installed)
-    if os.getenv("OCDOCKER_FORCE_EXTERNAL_TESTS", "").lower() in ("1", "true", "yes"):
-        return
+    force_external = os.getenv("OCDOCKER_FORCE_EXTERNAL_TESTS", "").lower() in ("1", "true", "yes")
 
-    missing = _missing_external_tools()
-    if not missing:
-        return
+    if not force_external:
+        missing = _missing_external_tools()
+        if missing:
+            skip_external = pytest.mark.skip(
+                reason=f"Missing external tools/binaries: {', '.join(sorted(missing))}"
+            )
+            required_by_file = _required_tools_by_test_file()
 
-    skip_external = pytest.mark.skip(
-        reason=f"Missing external tools/binaries: {', '.join(sorted(missing))}"
-    )
-    required_by_file = _required_tools_by_test_file()
+            for item in items:
+                fpath = str(item.fspath)
+                for filename, required in required_by_file.items():
+                    if fpath.endswith(filename) and (missing & required):
+                        item.add_marker(skip_external)
+                        break
 
-    for item in items:
-        fpath = str(item.fspath)
-        for filename, required in required_by_file.items():
-            if fpath.endswith(filename) and (missing & required):
-                item.add_marker(skip_external)
-                break
+    # Let external plugins (e.g., pytest-order) run first.
+    yield
+
+    # Deterministic execution order (final override):
+    # 1) Folder
+    # 2) File
+    # 3) @pytest.mark.order(N) within each file
+    # 4) declaration line / nodeid fallback
+    items.sort(key=_collection_sort_key)
 
 
 def pytest_configure(config):

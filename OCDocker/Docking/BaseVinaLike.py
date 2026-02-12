@@ -203,6 +203,7 @@ def _read_log_generic(
     error_log: str,
     onlyBest: bool = False,
     min_columns: int = 4,
+    exact_columns: bool = True,
 ) -> Dict[int, Dict[str, float]]:
     '''Read the vinalike log path, returning the data from complexes.
 
@@ -254,8 +255,15 @@ def _read_log_generic(
                     # Split the last line
                     splitLine = line.split()
 
-                    # Check if there are enough elements in the splitLine
-                    if len(splitLine) >= min_columns:
+                    # Parse rows with expected column shape.
+                    # Vina/Smina tables are fixed-width (exact 4 columns), while
+                    # Gnina tables can include additional columns.
+                    has_valid_column_count = (
+                        len(splitLine) == min_columns
+                        if exact_columns
+                        else len(splitLine) >= min_columns
+                    )
+                    if has_valid_column_count:
                         # Assign the data in the dictionary with the pose as key and the affinity as value
                         try:
                             pose_idx = int(splitLine[0])
@@ -583,7 +591,15 @@ def read_gnina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, flo
     if not scoring_key:
         scoring_key = "gnina_affinity"
     # Gnina tables can include extra columns compared to Vina/Smina.
-    return _read_log_generic(path, scoring_key, "gnina", "gnina_read_log_ERROR.log", onlyBest, min_columns=2)
+    return _read_log_generic(
+        path,
+        scoring_key,
+        "gnina",
+        "gnina_read_log_ERROR.log",
+        onlyBest,
+        min_columns = 2,
+        exact_columns = False,
+    )
 
 
 def read_vina_rescoring_log(path: str) -> float:

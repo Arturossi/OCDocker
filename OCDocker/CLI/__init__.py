@@ -769,11 +769,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_vs = sub.add_parser(
         "vs",
         description=(
-            "Run docking with a single engine (Vina, Smina, or PLANTS) and optionally rescore all poses.\n\n"
+            "Run docking with a single engine (Vina, Smina, Gnina, or PLANTS) and optionally rescore all poses.\n\n"
             "This command performs:\n"
             "  1. Receptor and ligand preparation\n"
             "  2. Docking with the selected engine\n"
-            "  3. Pose splitting (for Vina/Smina) into individual files\n"
+            "  3. Pose splitting (for Vina/Smina/Gnina) into individual files\n"
             "  4. Rescoring of all generated poses (unless --skip-rescore is used)\n\n"
             "Use this mode for quick single-engine docking runs where you want all poses rescored.\n"
             "For multi-engine consensus docking with clustering, use the 'pipeline' command instead."
@@ -784,9 +784,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_vs.add_argument(
         "--engine",
-        choices=["vina", "smina", "plants"],
+        choices=["vina", "smina", "gnina", "plants"],
         default="vina",
-        help="Docking engine to use. Options: 'vina' (AutoDock Vina), 'smina' (Vina with additional scoring functions), or 'plants' (PLANTS docking). Default: vina"
+        help="Docking engine to use. Options: 'vina' (AutoDock Vina), 'smina' (Vina with additional scoring functions), 'gnina' (CNN-enabled Vina-like docking), or 'plants' (PLANTS docking). Default: vina"
     )
     p_vs.add_argument(
         "--receptor",
@@ -825,7 +825,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_vs.add_argument(
         "--skip-split",
         action="store_true",
-        help="Skip pose splitting step (only applicable for Vina/Smina). By default, poses are split into individual files. Use this to keep all poses in a single file."
+        help="Skip pose splitting step (only applicable for Vina/Smina/Gnina). By default, poses are split into individual files. Use this to keep all poses in a single file."
     )
     p_vs.add_argument(
         "--timeout",
@@ -940,7 +940,7 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Run multi-engine docking with RMSD clustering and representative pose selection.\n\n"
             "This command performs a complete workflow:\n"
-            "  1. Runs docking with multiple engines (Vina, Smina, PLANTS, or any combination)\n"
+            "  1. Runs docking with multiple engines (Vina, Smina, Gnina, PLANTS, or any combination)\n"
             "  2. Collects all poses from all engines\n"
             "  3. Converts poses to MOL2 format\n"
             "  4. Clusters poses by RMSD similarity\n"
@@ -979,14 +979,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_pipe.add_argument(
         "--engines",
         default="vina,smina,plants",
-        help="Comma-separated list of docking engines to use. Options: 'vina', 'smina', 'plants', or any combination (e.g., 'vina,smina' or 'vina,plants'). Default: vina,smina,plants (all engines)"
+        help="Comma-separated list of docking engines to use. Options: 'vina', 'smina', 'gnina', 'plants', or any combination (e.g., 'vina,smina' or 'vina,gnina,plants'). Default: vina,smina,plants"
     )
     p_pipe.add_argument(
         "--rescoring-engines",
         "--rescore-engines",  # Alias for convenience
         dest="rescoring_engines",
         default=None,
-        help="Comma-separated list of engines to use for rescoring. Options: 'vina', 'smina', 'plants', 'oddt', or any combination. If not specified, uses the same engines as --engines. Can be different from docking engines (e.g., dock with 'vina,plants' but rescore with 'vina,smina,oddt')."
+        help="Comma-separated list of engines to use for rescoring. Options: 'vina', 'smina', 'gnina', 'plants', 'oddt', or any combination. If not specified, uses the same engines as --engines. Can be different from docking engines (e.g., dock with 'vina,plants' but rescore with 'vina,smina,gnina,oddt')."
     )
     p_pipe.add_argument(
         "--name",
@@ -1338,11 +1338,12 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
             # Client/driver library version (best-effort)
             client_version = 'unknown'
             try:
+                import importlib
                 if backend == 'postgresql':
-                    import psycopg as _psycopg  # type: ignore[import-not-found]
+                    _psycopg = importlib.import_module('psycopg')
                     client_version = str(getattr(_psycopg, '__version__', 'unknown'))
                 elif backend == 'mysql':
-                    import pymysql as _pymysql  # type: ignore[import-not-found]
+                    _pymysql = importlib.import_module('pymysql')
                     client_version = str(getattr(_pymysql, '__version__', 'unknown'))
                 elif backend == 'sqlite':
                     import sqlite3 as _sqlite3
@@ -1368,7 +1369,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
 
                     if sql:
                         try:
-                            value = conn.exec_driver_sql(sql).scalar()  # type: ignore[attr-defined]
+                            value = conn.exec_driver_sql(sql).scalar()
                             if value is not None:
                                 server_version = str(value)
                         except Exception as exc:
@@ -1393,13 +1394,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
                 if hasattr(conn, 'exec_driver_sql'):
                     try:
                         if backend == 'postgresql':
-                            current_user_val = conn.exec_driver_sql('SELECT current_user').scalar()  # type: ignore[attr-defined]
-                            current_db_val = conn.exec_driver_sql('SELECT current_database()').scalar()  # type: ignore[attr-defined]
+                            current_user_val = conn.exec_driver_sql('SELECT current_user').scalar()
+                            current_db_val = conn.exec_driver_sql('SELECT current_database()').scalar()
                             current_user = str(current_user_val) if current_user_val is not None else None
                             current_database = str(current_db_val) if current_db_val is not None else None
                         elif backend == 'mysql':
-                            current_user_val = conn.exec_driver_sql('SELECT CURRENT_USER()').scalar()  # type: ignore[attr-defined]
-                            current_db_val = conn.exec_driver_sql('SELECT DATABASE()').scalar()  # type: ignore[attr-defined]
+                            current_user_val = conn.exec_driver_sql('SELECT CURRENT_USER()').scalar()
+                            current_db_val = conn.exec_driver_sql('SELECT DATABASE()').scalar()
                             current_user = str(current_user_val) if current_user_val is not None else None
                             current_database = str(current_db_val) if current_db_val is not None else None
                         elif backend == 'sqlite':
@@ -1535,6 +1536,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
     import OCDocker.Receptor as ocr
     import OCDocker.Docking.Vina as ocvina
     import OCDocker.Docking.Smina as ocsmina
+    import OCDocker.Docking.Gnina as ocgnina
     import OCDocker.Docking.PLANTS as ocplants
     import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
     import OCDocker.Toolbox.Printing as ocprint
@@ -1557,9 +1559,9 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
     ligand = ocl.Ligand(str(ligand_path), name=ligand_name)
 
     engines = [e.strip().lower() for e in args.engines.split(',') if e.strip()]
-    engines = [e for e in engines if e in ("vina", "smina", "plants")]
+    engines = [e for e in engines if e in ("vina", "smina", "gnina", "plants")]
     if not engines:
-        print("No valid engine provided. Use --engines vina,smina,plants")
+        print("No valid engine provided. Use --engines vina,smina,gnina,plants")
         return 1
 
     # Get rescoring engines (default to same as docking engines if not specified)
@@ -1567,26 +1569,28 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
     if args.rescoring_engines:
         rescoring_engines = [e.strip().lower() for e in args.rescoring_engines.split(",") if e.strip()]
         # Validate rescoring engines
-        valid_rescoring = {"vina", "smina", "plants", "oddt"}
+        valid_rescoring = {"vina", "smina", "gnina", "plants", "oddt"}
         invalid_rescoring = [e for e in rescoring_engines if e not in valid_rescoring]
         if invalid_rescoring:
-            print(f"Error: invalid rescoring engines: {', '.join(invalid_rescoring)}. Valid options: vina, smina, plants, oddt")
+            print(f"Error: invalid rescoring engines: {', '.join(invalid_rescoring)}. Valid options: vina, smina, gnina, plants, oddt")
             return 2
         # Filter to only valid engines
         rescoring_engines = [e for e in rescoring_engines if e in valid_rescoring]
         if not rescoring_engines:
-            print("Error: no valid rescoring engines specified. Valid options: vina, smina, plants, oddt")
+            print("Error: no valid rescoring engines specified. Valid options: vina, smina, gnina, plants, oddt")
             return 2
 
     # Validate required binaries are available
     _vina_bin: Optional[str] = None
     _smina_bin: Optional[str] = None
+    _gnina_bin: Optional[str] = None
     _plants_bin: Optional[str] = None
     try:
         from OCDocker.Config import get_config
         config = get_config()
         _vina_bin = config.vina.executable
         _smina_bin = config.smina.executable
+        _gnina_bin = config.gnina.executable
         _plants_bin = config.plants.executable
     except (ImportError, AttributeError):
         # Fallback if binaries are not configured
@@ -1605,6 +1609,8 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
             missing.append("vina")
         elif e == "smina" and not _exists_exe(_smina_bin):
             missing.append("smina")
+        elif e == "gnina" and not _exists_exe(_gnina_bin):
+            missing.append("gnina")
         elif e == "plants" and not _exists_exe(_plants_bin):
             missing.append("plants")
     if missing:
@@ -1673,6 +1679,35 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                     if rc != 0:
                         engine_errors[eng] = f"Docking failed with code {rc}"
                         ocprint.print_warning(f"Smina docking failed. Continuing with other engines...")
+                        continue
+                    _ = r.split_poses(str(e_dir))
+                    poses = r.get_docked_poses()
+                    all_poses.extend(poses)
+                    # Track which engine each pose came from
+                    for pose in poses:
+                        pose_engine_map[pose] = eng
+                    ctx[eng] = {"conf": str(conf), "dir": str(e_dir)}
+                elif eng == "gnina":
+                    conf = e_dir / "conf_gnina.conf"; prep_r = outdir / "prepared_receptor.pdbqt"; prep_l = outdir / "prepared_ligand.pdbqt"
+                    log = e_dir / f"{name}.log"; outp = e_dir / f"{name}.pdbqt"
+                    r = ocgnina.Gnina(str(conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"GNINA {name}", overwrite_config=True)
+                    # Only prepare receptor/ligand if they don't exist
+                    if not (_os.path.isfile(str(prep_r)) and _os.path.getsize(str(prep_r)) > 0):
+                        rc = r.run_prepare_receptor(); rc = rc[0] if isinstance(rc, tuple) else rc
+                        if rc != 0:
+                            engine_errors[eng] = f"Receptor preparation failed with code {rc}"
+                            ocprint.print_warning(f"Gnina receptor preparation failed. Continuing with other engines...")
+                            continue
+                    if not (_os.path.isfile(str(prep_l)) and _os.path.getsize(str(prep_l)) > 0):
+                        rc = r.run_prepare_ligand(); rc = rc[0] if isinstance(rc, tuple) else rc
+                        if rc != 0:
+                            engine_errors[eng] = f"Ligand preparation failed with code {rc}"
+                            ocprint.print_warning(f"Gnina ligand preparation failed. Continuing with other engines...")
+                            continue
+                    rc = r.run_docking(); rc = rc[0] if isinstance(rc, tuple) else rc
+                    if rc != 0:
+                        engine_errors[eng] = f"Docking failed with code {rc}"
+                        ocprint.print_warning(f"Gnina docking failed. Continuing with other engines...")
                         continue
                     _ = r.split_poses(str(e_dir))
                     poses = r.get_docked_poses()
@@ -2035,6 +2070,136 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                                 ocprint.print_warning(f"Smina rescoring data found but no valid values extracted. Data structure: {data}")
                     except Exception as e:
                         ocprint.print_warning(f"Failed to read Smina rescoring results: {e}")
+        # GNINA
+        if "gnina" in rescoring_engines:
+            from OCDocker.Docking.Gnina import run_rescore as g_rescore, get_rescore_log_paths as g_logs, read_rescore_logs as g_read
+            if rep_pdbqt and Path(rep_pdbqt).exists():
+                # If gnina wasn't docked, we can still use the shared prepared artifacts
+                if "gnina" not in ctx:
+                    gnina_dir = outdir / "gninaFiles"
+                    gnina_dir.mkdir(parents=True, exist_ok=True)
+                    gnina_conf = gnina_dir / "conf_gnina.conf"
+                    prep_r = outdir / "prepared_receptor.pdbqt"
+                    prep_l = outdir / "prepared_ligand.pdbqt"
+                    gnina_obj = ocgnina.Gnina(
+                        str(gnina_conf),
+                        str(box_path),
+                        receptor,
+                        str(prep_r),
+                        ligand,
+                        str(prep_l),
+                        str(gnina_dir / f"{name}.log"),
+                        str(gnina_dir / f"{name}.pdbqt"),
+                        name=f"GNINA {name}",
+                        overwrite_config=True,
+                    )
+                    _ = gnina_obj
+                    ctx["gnina"] = {"conf": str(gnina_conf), "dir": str(gnina_dir)}
+
+                gnina_default_scoring = str(getattr(config.gnina, "scoring", "default") or "default").strip() or "default"
+                gnina_scoring_functions = getattr(config.gnina, "scoring_functions", None)
+                if not isinstance(gnina_scoring_functions, list) or not gnina_scoring_functions:
+                    gnina_scoring_functions = [gnina_default_scoring]
+                gnina_scoring_functions = [str(sf).strip() for sf in gnina_scoring_functions if str(sf).strip()]
+
+                gnina_cnn_models = getattr(config.gnina, "cnn_models", None)
+                if not isinstance(gnina_cnn_models, list) or not gnina_cnn_models:
+                    gnina_cnn_models = [str(getattr(config.gnina, "cnn", "default") or "default")]
+                gnina_cnn_models = [str(model).strip() for model in gnina_cnn_models if str(model).strip()]
+
+                for sf_txt in gnina_scoring_functions:
+                    if not sf_txt:
+                        continue
+                    try:
+                        g_rescore(
+                            ctx["gnina"]["conf"],
+                            str(rep_pdbqt),
+                            ctx["gnina"]["dir"],
+                            sf_txt,
+                            splitLigand = False,
+                            overwrite = True,
+                            disable_cnn = True,
+                        )
+                    except Exception as e:
+                        ocprint.print_warning(f"Gnina rescoring with empirical scoring function '{sf_txt}' failed: {e}. Continuing with other rescoring functions...")
+
+                for cnn_model in gnina_cnn_models:
+                    try:
+                        g_rescore(
+                            ctx["gnina"]["conf"],
+                            str(rep_pdbqt),
+                            ctx["gnina"]["dir"],
+                            gnina_default_scoring,
+                            splitLigand = False,
+                            overwrite = True,
+                            cnn_model = cnn_model,
+                            disable_cnn = False,
+                        )
+                    except Exception as e:
+                        ocprint.print_warning(f"Gnina rescoring with CNN model '{cnn_model}' failed: {e}. Continuing with other CNN models...")
+
+                try:
+                    import time
+                    time.sleep(0.5)
+                    log_paths = g_logs(ctx["gnina"]["dir"])
+                    if not log_paths:
+                        ocprint.print_warning(f"No Gnina rescoring log files found in {ctx['gnina']['dir']}")
+                        if Path(ctx["gnina"]["dir"]).exists():
+                            files = list(Path(ctx["gnina"]["dir"]).glob("*"))
+                            ocprint.print_warning(f"Files in Gnina directory: {[f.name for f in files]}")
+                    else:
+                        ocprint.printv(f"Found Gnina rescoring log files: {log_paths}")
+                        data = g_read(log_paths, onlyBest=True)
+                        gnina_vals: Dict[str, float] = {}
+                        for k, v in data.items():
+                            try:
+                                if isinstance(v, (int, float)):
+                                    gnina_sf_name: Optional[str] = None
+                                    gnina_cnn_name: Optional[str] = None
+                                    if k.startswith("gnina_cnn_") and k.endswith("_rescoring"):
+                                        gnina_cnn_name = k.replace("gnina_cnn_", "").replace("_rescoring", "")
+                                        clean_key = f"gnina_cnn_{gnina_cnn_name}"
+                                    elif k.startswith("gnina_") and k.endswith("_rescoring"):
+                                        gnina_sf_name = k.replace("gnina_", "").replace("_rescoring", "")
+                                        clean_key = f"gnina_{gnina_sf_name}"
+                                    elif k.startswith("rescoring_cnn_"):
+                                        cnn_suffix = k.replace("rescoring_cnn_", "", 1)
+                                        for known_cnn in sorted(gnina_cnn_models, key=len, reverse=True):
+                                            known_prefix = f"{known_cnn}_"
+                                            if cnn_suffix.startswith(known_prefix):
+                                                gnina_cnn_name = known_cnn
+                                                break
+                                        if not gnina_cnn_name and "_" in cnn_suffix:
+                                            gnina_cnn_name = cnn_suffix.rsplit("_", 1)[0]
+                                        clean_key = f"gnina_cnn_{gnina_cnn_name}" if gnina_cnn_name else k
+                                    elif k.startswith("rescoring_"):
+                                        parts = k.replace("rescoring_", "").split("_")
+                                        if len(parts) >= 1:
+                                            gnina_sf_name = None
+                                            for known_sf in gnina_scoring_functions:
+                                                if "_".join(parts[:len(str(known_sf).split("_"))]) == str(known_sf):
+                                                    gnina_sf_name = str(known_sf)
+                                                    break
+                                            if not gnina_sf_name and parts:
+                                                gnina_sf_name = parts[0]
+                                            clean_key = f"gnina_{gnina_sf_name}" if gnina_sf_name else k
+                                        else:
+                                            clean_key = k
+                                    else:
+                                        clean_key = k
+                                    gnina_vals[clean_key] = float(v)
+                                elif isinstance(v, list) and len(v) > 0:
+                                    gnina_vals[k] = float(v[0] if not isinstance(v[0], (list, tuple)) else v[0][0])
+                            except (ValueError, TypeError, KeyError) as e:
+                                ocprint.print_warning(f"Failed to parse Gnina rescoring value for {k}: {e}")
+
+                        if gnina_vals:
+                            rescoring["gnina"] = gnina_vals
+                        else:
+                            ocprint.print_warning(f"Gnina rescoring data found but no valid values extracted. Data structure: {data}")
+                except Exception as e:
+                    ocprint.print_warning(f"Failed to read Gnina rescoring results: {e}")
+
         # PLANTS
         if "plants" in ctx and "plants" in rescoring_engines:
             from OCDocker.Docking.PLANTS import write_rescoring_config_file, run_rescore as p_rescore, get_binding_site
@@ -2547,6 +2712,9 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
     elif args.engine == "smina":
         engine_mod = importlib.import_module("OCDocker.Docking.Smina")
         eng = "smina"
+    elif args.engine == "gnina":
+        engine_mod = importlib.import_module("OCDocker.Docking.Gnina")
+        eng = "gnina"
     else:
         engine_mod = importlib.import_module("OCDocker.Docking.PLANTS")
         eng = "plants"
@@ -2554,12 +2722,14 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
     # Validate engine binary availability based on configuration
     _vina_bin: Optional[str] = None
     _smina_bin: Optional[str] = None
+    _gnina_bin: Optional[str] = None
     _plants_bin: Optional[str] = None
     try:
         from OCDocker.Config import get_config
         config = get_config()
         _vina_bin = config.vina.executable
         _smina_bin = config.smina.executable
+        _gnina_bin = config.gnina.executable
         _plants_bin = config.plants.executable
     except (ImportError, AttributeError):
         # Fallback if binaries are not configured
@@ -2577,6 +2747,9 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
         return 2
     if eng == "smina" and not _exists_exe(_smina_bin):
         print("Error: Smina binary not found. Check 'smina' in OCDocker.cfg or PATH.")
+        return 2
+    if eng == "gnina" and not _exists_exe(_gnina_bin):
+        print("Error: Gnina binary not found. Check 'gnina' in OCDocker.cfg or PATH.")
         return 2
     if eng == "plants" and not _exists_exe(_plants_bin):
         print("Error: PLANTS binary not found. Check 'plants' in OCDocker.cfg or PATH.")
@@ -2610,6 +2783,13 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
     elif eng == "smina":
         base_files_dir = ligand_dir / "sminaFiles"
         conf_name = "conf_smina.txt"
+        prep_rec = receptor_dir / "prepared_receptor.pdbqt"
+        prep_lig = ligand_dir / "prepared_ligand.pdbqt"
+        log_name = f"{name}.log"
+        out_name = f"{name}.pdbqt"
+    elif eng == "gnina":
+        base_files_dir = ligand_dir / "gninaFiles"
+        conf_name = "conf_gnina.conf"
         prep_rec = receptor_dir / "prepared_receptor.pdbqt"
         prep_lig = ligand_dir / "prepared_ligand.pdbqt"
         log_name = f"{name}.log"
@@ -2672,6 +2852,12 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
                 str(conf_path), str(box), receptor, str(prep_rec), ligand,
                 str(prep_lig), str(log_path), str(out_pose), name=f"SMINA {name}", overwrite_config=True,
             )
+        elif eng == "gnina":
+            dock = engine_mod.Gnina
+            runner = dock(
+                str(conf_path), str(box), receptor, str(prep_rec), ligand,
+                str(prep_lig), str(log_path), str(out_pose), name=f"GNINA {name}", overwrite_config=True,
+            )
         else:
             dock = engine_mod.PLANTS
             runner = dock(
@@ -2682,7 +2868,10 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
         if not prep_done:
             # Receptor preparation
             if not (_os.path.isfile(prep_rec_path) and _os.path.getsize(prep_rec_path) > 0):
-                rc = runner.run_prepare_receptor(logFile=str(prep_rec_log))
+                if eng in ("vina", "smina", "plants"):
+                    rc = runner.run_prepare_receptor(logFile=str(prep_rec_log))
+                else:
+                    rc = runner.run_prepare_receptor(overwrite=args.overwrite)
                 if isinstance(rc, tuple):
                     rc = rc[0]
                 if rc != 0 and eng in ("vina", "smina"):
@@ -2699,7 +2888,10 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
 
             # Ligand preparation
             if not (_os.path.isfile(prep_lig_path) and _os.path.getsize(prep_lig_path) > 0):
-                rc = runner.run_prepare_ligand(logFile=str(prep_lig_log))
+                if eng in ("vina", "smina", "plants"):
+                    rc = runner.run_prepare_ligand(logFile=str(prep_lig_log))
+                else:
+                    rc = runner.run_prepare_ligand(overwrite=args.overwrite)
                 if isinstance(rc, tuple):
                     rc = rc[0]
                 if rc != 0 and eng in ("vina", "smina"):
@@ -2723,11 +2915,11 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
             print(f"Warning: docking failed for box '{box_id}'.")
             continue
 
-        if not args.skip_split and eng in ("vina", "smina"):
+        if not args.skip_split and eng in ("vina", "smina", "gnina"):
             _ = runner.split_poses(str(box_files_dir))
 
         if not args.skip_rescore:
-            if eng in ("vina", "smina"):
+            if eng in ("vina", "smina", "gnina"):
                 runner.run_rescore(str(box_files_dir), prep_lig_path, skipDefaultScoring=True)
             else:
                 pose_list = runner.write_pose_list(overwrite=True)

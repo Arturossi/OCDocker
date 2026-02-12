@@ -308,7 +308,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
 
                 # Define colors for clusters using colorblind-friendly palette
                 # Use Set2 (colorblind-friendly, no blue or yellow shades) for small clusters
-                import matplotlib.cm as cm
+                from matplotlib import colormaps
                 cluster_colors = []
 
                 def is_light_grey(color):
@@ -323,7 +323,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
 
                 # Set2 is colorblind-friendly and doesn't use blue or yellow shades
                 if n_clusters <= 8:
-                    cmap = cm.get_cmap('Set2')
+                    cmap = colormaps.get_cmap('Set2')
                     all_colors = [cmap(i / max(n_clusters - 1, 1)) for i in range(n_clusters)]
                     # Filter out light grey
                     cluster_colors = [c for c in all_colors if not is_light_grey(c)]
@@ -341,7 +341,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                     cluster_colors = cluster_colors[:n_clusters]
                 elif n_clusters <= 12:
                     # Use Set1 but filter out yellow, blue, and light grey
-                    cmap = cm.get_cmap('Set1')
+                    cmap = colormaps.get_cmap('Set1')
                     all_colors = [cmap(i / 8.0) for i in range(9)]
                     # Filter out yellow (high red+green, low blue), blue (high blue component), and light grey
                     filtered_colors = []
@@ -357,9 +357,9 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 else:
                     # For many clusters, use a custom palette avoiding blue, yellow, and light grey
                     # Use colors from Set1, Set2, and Pastel1, filtering out yellow, blue, and light grey
-                    colors1 = [cm.get_cmap('Set1')(i / 8.0) for i in range(9)]
-                    colors2 = [cm.get_cmap('Set2')(i / 7.0) for i in range(8)]
-                    colors3 = [cm.get_cmap('Pastel1')(i / 8.0) for i in range(9)]
+                    colors1 = [colormaps.get_cmap('Set1')(i / 8.0) for i in range(9)]
+                    colors2 = [colormaps.get_cmap('Set2')(i / 7.0) for i in range(8)]
+                    colors3 = [colormaps.get_cmap('Pastel1')(i / 8.0) for i in range(9)]
                     # Combine and filter out blue, yellow, and light grey shades
                     all_colors = colors1 + colors2 + colors3
                     filtered_colors = []

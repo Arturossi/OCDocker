@@ -10,21 +10,21 @@ Welcome to OCDocker's documentation!
 ====================================
 
 ::
-
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- ┏━┓┏━╸╺┳━┓┏━┓┏━╸╻┏ ┏━╸┏━┓ -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- ┃ ┃┃   ┃ ┃┃ ┃┃  ┣┻┓┣╸ ┣┳┛ -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- ┗━┛┗━╸╺┻━┛┗━┛┗━╸╹ ╹┗━╸╹┗╸ -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-                               Copyright (C) 2022  Rossi, A.D; Torres, P.H.M.
+              Copyright (C) 2026  Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 
-                                  [The Federal University of Rio de Janeiro]
+                          [Universidade Federal do Rio de Janeiro - UFRJ]
 
-                               This program comes with ABSOLUTELY NO WARRANTY
+                  This program comes with ABSOLUTELY NO WARRANTY
 
-                            Please cite:
-                                                    -
+             Please cite:
+                 -
+
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 Welcome to the official documentation for OCDocker. This documentation provides a detailed description of all modules, classes, and functions included in the project.

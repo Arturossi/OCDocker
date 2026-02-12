@@ -58,24 +58,25 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 from OCDocker._version import __version__ as ocVersion
 
 _description = tw.dedent("""\033[1;93m
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    +-+-+-+-+-+-+-+-+-+- \033[1;96m┏━┓┏━╸╺┳━┓┏━┓┏━╸╻┏ ┏━╸┏━┓ \033[1;93m-+-+-+-+-+-+-+-+-+-+
-    +-+-+-+-+-+-+-+-+-+- \033[1;96m┃ ┃┃   ┃ ┃┃ ┃┃  ┣┻┓┣╸ ┣┳┛ \033[1;93m-+-+-+-+-+-+-+-+-+-+
-    +-+-+-+-+-+-+-+-+-+- \033[1;96m┗━┛┗━╸╺┻━┛┗━┛┗━╸╹ ╹┗━╸╹┗╸ \033[1;93m-+-+-+-+-+-+-+-+-+-+
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- \033[1;96m┏━┓┏━╸╺┳━┓┏━┓┏━╸╻┏ ┏━╸┏━┓ \033[1;93m-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- \033[1;96m┃ ┃┃   ┃ ┃┃ ┃┃  ┣┻┓┣╸ ┣┳┛ \033[1;93m-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- \033[1;96m┗━┛┗━╸╺┻━┛┗━┛┗━╸╹ ╹┗━╸╹┗╸ \033[1;93m-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
 \033[1;0m
-      Copyright (C) 2026  Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+              Copyright (C) 2026  Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 \033[1;95m
-                  [Universidade Federal do Rio de Janeiro - UFRJ]
+                          [Universidade Federal do Rio de Janeiro - UFRJ]
 \033[1;0m
-          This program comes with ABSOLUTELY NO WARRANTY
+                  This program comes with ABSOLUTELY NO WARRANTY
 
-      OCDocker version: """ + ocVersion + """
+              OCDocker version: """ + ocVersion + """
 
-     Please cite:
-         -
+             Please cite:
+                 -
 \033[1;93m
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 \033[1;0m""")
 
 # Runtime globals (populated by bootstrap)
@@ -92,6 +93,85 @@ session: Any = None
 # NOTE: Configuration values are now managed via OCDocker.Config module.
 # Use `from OCDocker.Config import get_config` to access configuration.
 # Runtime objects (db_url, engine, session, etc.) are still available as module-level globals.
+
+GNINA_DEFAULT_SCORING_FUNCTIONS = [
+    "ad4_scoring",
+    "default",
+    "dkoes_fast",
+    "dkoes_scoring",
+    "dkoes_scoring_old",
+    "vina",
+    "vinardo",
+]
+
+GNINA_DEFAULT_CNN_MODELS = [
+    "all_default_to_default_1_3_1",
+    "all_default_to_default_1_3_2",
+    "all_default_to_default_1_3_3",
+    "crossdock_default2018",
+    "crossdock_default2018_1",
+    "crossdock_default2018_1_3",
+    "crossdock_default2018_1_3_1",
+    "crossdock_default2018_1_3_2",
+    "crossdock_default2018_1_3_3",
+    "crossdock_default2018_1_3_4",
+    "crossdock_default2018_2",
+    "crossdock_default2018_3",
+    "crossdock_default2018_4",
+    "crossdock_default2018_KD_1",
+    "crossdock_default2018_KD_2",
+    "crossdock_default2018_KD_3",
+    "crossdock_default2018_KD_4",
+    "crossdock_default2018_KD_5",
+    "default1.0",
+    "default2017",
+    "dense",
+    "dense_1",
+    "dense_1_3",
+    "dense_1_3_1",
+    "dense_1_3_2",
+    "dense_1_3_3",
+    "dense_1_3_4",
+    "dense_1_3_PT_KD",
+    "dense_1_3_PT_KD_1",
+    "dense_1_3_PT_KD_2",
+    "dense_1_3_PT_KD_3",
+    "dense_1_3_PT_KD_4",
+    "dense_1_3_PT_KD_def2018",
+    "dense_1_3_PT_KD_def2018_1",
+    "dense_1_3_PT_KD_def2018_2",
+    "dense_1_3_PT_KD_def2018_3",
+    "dense_1_3_PT_KD_def2018_4",
+    "dense_2",
+    "dense_3",
+    "dense_4",
+    "fast",
+    "general_default2018",
+    "general_default2018_1",
+    "general_default2018_2",
+    "general_default2018_3",
+    "general_default2018_4",
+    "general_default2018_KD_1",
+    "general_default2018_KD_2",
+    "general_default2018_KD_3",
+    "general_default2018_KD_4",
+    "general_default2018_KD_5",
+    "redock_default2018",
+    "redock_default2018_1",
+    "redock_default2018_1_3",
+    "redock_default2018_1_3_1",
+    "redock_default2018_1_3_2",
+    "redock_default2018_1_3_3",
+    "redock_default2018_1_3_4",
+    "redock_default2018_2",
+    "redock_default2018_3",
+    "redock_default2018_4",
+    "redock_default2018_KD_1",
+    "redock_default2018_KD_2",
+    "redock_default2018_KD_3",
+    "redock_default2018_KD_4",
+    "redock_default2018_KD_5",
+]
 
 # Classes
 ###############################################################################
@@ -346,6 +426,7 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         'gnina_exhaustiveness': get_config('gnina_exhaustiveness', '8'),
         'gnina_num_modes': get_config('gnina_num_modes', '9'),
         'gnina_scoring': get_config('gnina_scoring', 'default'),
+        'gnina_scoring_functions': get_config('gnina_scoring_functions', GNINA_DEFAULT_SCORING_FUNCTIONS.copy(), list),
         'gnina_custom_scoring': get_config('gnina_custom_scoring', 'no'),
         'gnina_custom_atoms': get_config('gnina_custom_atoms', 'no'),
         'gnina_score_only': get_config('gnina_score_only', 'no'),
@@ -370,6 +451,7 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         'gnina_print_atom_types': get_config('gnina_print_atom_types', 'no'),
         'gnina_cnn_scoring': get_config('gnina_cnn_scoring', 'rescore'),
         'gnina_cnn': get_config('gnina_cnn', 'default'),
+        'gnina_cnn_models': get_config('gnina_cnn_models', GNINA_DEFAULT_CNN_MODELS.copy(), list),
         'gnina_cnn_model': get_config('gnina_cnn_model', 'no'),
         'gnina_cnn_rotation': get_config('gnina_cnn_rotation', '0'),
         'gnina_cnn_mix_emp_force': get_config('gnina_cnn_mix_emp_force', 'no'),
@@ -1010,6 +1092,8 @@ def create_ocdocker_conf() -> None:
     confGnina_exhaustiveness = "8"
     confGnina_num_modes = "9"
     confGnina_scoring = "default"
+    confGnina_scoring_functions = ",".join(GNINA_DEFAULT_SCORING_FUNCTIONS)
+    confGnina_cnn_models = ",".join(GNINA_DEFAULT_CNN_MODELS)
     confGnina_custom_scoring_file = "no"
     confGnina_custom_atoms = "no"
     confGnina_local_only = "no"
@@ -1041,6 +1125,12 @@ def create_ocdocker_conf() -> None:
 
     answer = input(f"Gnina scoring function parameter. Default [{confGnina_scoring}] (press enter to keep default): ")
     confGnina_scoring = confGnina_scoring if not answer else answer
+
+    answer = input(f"Gnina available scoring functions (separated by ','). Default [{confGnina_scoring_functions}] (press enter to keep default): ")
+    confGnina_scoring_functions = confGnina_scoring_functions if not answer else answer
+
+    answer = input(f"Gnina available CNN models for rescoring (separated by ','). Default [{confGnina_cnn_models}] (press enter to keep default): ")
+    confGnina_cnn_models = confGnina_cnn_models if not answer else answer
 
     answer = input(f"Gnina custom scoring file parameter ('no' to ignore this parameter, otherwise provide the path). Default [{confGnina_custom_scoring_file}] (press enter to keep default): ")
     confGnina_custom_scoring_file = confGnina_custom_scoring_file if not answer else answer
@@ -1399,8 +1489,14 @@ gnina_exhaustiveness = """ + str(confGnina_exhaustiveness) + """
 # Maximum number of binding modes to generate
 gnina_num_modes = """ + str(confGnina_num_modes) + """
 
-# Alternativa scoring function
+# Alternative scoring function
 gnina_scoring = """ + str(confGnina_scoring) + """
+
+# Available scoring functions
+gnina_scoring_functions = """ + str(confGnina_scoring_functions) + """
+
+# Available CNN models for rescoring
+gnina_cnn_models = """ + str(confGnina_cnn_models) + """
 
 # Custom scoring file
 gnina_custom_scoring = """ + str(confGnina_custom_scoring_file) + """
