@@ -30,6 +30,20 @@ extract_backend_from_cfg() {
   grep -E "^\s*DB_BACKEND\s*=" "${cfg}" | tail -n1 | awk -F= '{print $2}' | xargs
 }
 
+extract_cfg_value() {
+  local cfg="$1"
+  local key="$2"
+  [[ -f "${cfg}" ]] || return 0
+  awk -v k="${key}" '
+    $0 ~ "^[[:space:]]*" k "[[:space:]]*=" {
+      v = substr($0, index($0, "=") + 1)
+      sub(/[[:space:]]+#.*$/, "", v)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", v)
+      print v
+    }
+  ' "${cfg}" | tail -n1
+}
+
 add_mount() {
   local m="$1"
   [[ -z "${m}" ]] && return 0
@@ -118,6 +132,31 @@ selected_backend="$(normalize_backend "${selected_backend_raw:-postgresql}")"
 compose_args=(-f "${compose_file}")
 if [[ "${selected_backend}" == "mysql" ]]; then
   compose_args+=(-f "${compose_mysql_override}")
+fi
+
+selected_cfg="${OCDOCKER_CONFIG:-}"
+if [[ -z "${selected_cfg}" ]]; then
+  if [[ "${selected_backend}" == "mysql" ]]; then
+    selected_cfg="${script_dir}/OCDocker.cfg.docker.mysql"
+  else
+    selected_cfg="${script_dir}/OCDocker.cfg.docker"
+  fi
+fi
+if [[ ! -f "${selected_cfg}" && -f "${repo_root}/OCDocker.cfg" ]]; then
+  selected_cfg="${repo_root}/OCDocker.cfg"
+fi
+
+if [[ -f "${selected_cfg}" ]]; then
+  cfg_user="$(extract_cfg_value "${selected_cfg}" "USER")"
+  cfg_password="$(extract_cfg_value "${selected_cfg}" "PASSWORD")"
+  cfg_database="$(extract_cfg_value "${selected_cfg}" "DATABASE")"
+  cfg_optimizedb="$(extract_cfg_value "${selected_cfg}" "OPTIMIZEDB")"
+
+  export OCDOCKER_CONFIG="${selected_cfg}"
+  [[ -n "${cfg_user}" && -z "${OCDOCKER_DB_USER:-}" ]] && export OCDOCKER_DB_USER="${cfg_user}"
+  [[ -n "${cfg_password}" && -z "${OCDOCKER_DB_PASS:-}" ]] && export OCDOCKER_DB_PASS="${cfg_password}"
+  [[ -n "${cfg_database}" && -z "${OCDOCKER_DATABASE:-}" ]] && export OCDOCKER_DATABASE="${cfg_database}"
+  [[ -n "${cfg_optimizedb}" && -z "${OCDOCKER_OPTIMIZEDB:-}" ]] && export OCDOCKER_OPTIMIZEDB="${cfg_optimizedb}"
 fi
 
 exec docker compose "${compose_args[@]}" run --rm \

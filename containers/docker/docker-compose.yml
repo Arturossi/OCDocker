@@ -2,14 +2,15 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_DB: ocdocker
-      POSTGRES_USER: ocdocker
+      POSTGRES_DB: ${OCDOCKER_DATABASE:-ocdocker}
+      POSTGRES_USER: ${OCDOCKER_DB_USER:-ocdocker}
       POSTGRES_PASSWORD: ${OCDOCKER_DB_PASS:-ocdocker_pass}
+      OCDOCKER_OPTIMIZEDB: ${OCDOCKER_OPTIMIZEDB:-optimization}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./postgresql/init.sh:/docker-entrypoint-initdb.d/20-init-optimization-db.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -24,7 +25,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      OCDOCKER_CONFIG: /data/hd4tb/OCDocker/OCDocker/containers/docker/OCDocker.cfg.docker
+      OCDOCKER_CONFIG: ${OCDOCKER_CONFIG:-/data/hd4tb/OCDocker/OCDocker/containers/docker/OCDocker.cfg.docker}
       OCDOCKER_DB_BACKEND: ${OCDOCKER_DB_BACKEND:-postgresql}
       PYTHONUNBUFFERED: "1"
     volumes:
