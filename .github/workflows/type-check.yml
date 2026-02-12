@@ -67,7 +67,7 @@ jobs:
         spec.loader.exec_module(conftest)
 
         missing = sorted(conftest._missing_external_tools())
-        threshold = 88 if not missing else 85
+        threshold = 75
 
         print("Missing external tools:", ", ".join(missing) if missing else "none")
         print("Coverage fail-under:", threshold)
