@@ -145,7 +145,7 @@ def _import_prepare(monkeypatch):
     rdkit_mod.Geometry = types.SimpleNamespace(rdGeometry=types.SimpleNamespace(Point3D=object))
     rdkit_mod.Chem = types.SimpleNamespace(rdchem=types.SimpleNamespace(Mol=object))
 
-    gnina = types.ModuleType("OCDocker.Docking.Future.Gnina")
+    gnina = types.ModuleType("OCDocker.Docking.Gnina")
     gnina.gen_gnina_conf = lambda *a, **k: None  # type: ignore[attr-defined]
 
     plants = types.ModuleType("OCDocker.Docking.PLANTS")
@@ -187,7 +187,7 @@ def _import_prepare(monkeypatch):
     config_mod = types.ModuleType("OCDocker.Config")
     config_mod.get_config = lambda: SimpleNamespace(multiprocess=False, available_cores=1, logdir="/tmp")  # type: ignore[attr-defined]
 
-    monkeypatch.setitem(sys.modules, "OCDocker.Docking.Future.Gnina", gnina)
+    monkeypatch.setitem(sys.modules, "OCDocker.Docking.Gnina", gnina)
     monkeypatch.setitem(sys.modules, "OCDocker.Docking.PLANTS", plants)
     monkeypatch.setitem(sys.modules, "OCDocker.Docking.Smina", smina)
     monkeypatch.setitem(sys.modules, "OCDocker.Docking.Vina", vina)

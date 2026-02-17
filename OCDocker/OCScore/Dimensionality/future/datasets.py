@@ -132,7 +132,7 @@ class AutoencoderDataset(Dataset):
             Number of samples.
         '''
 
-        return self.features.shape[0]
+        return int(self.features.shape[0])
 
 
 # Functions

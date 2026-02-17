@@ -118,7 +118,7 @@ def _import_dock(monkeypatch):
     importlib.import_module("OCDocker.Docking.Future")
     importlib.import_module("OCDocker.Toolbox")
 
-    gnina = types.ModuleType("OCDocker.Docking.Future.Gnina")
+    gnina = types.ModuleType("OCDocker.Docking.Gnina")
     plants = types.ModuleType("OCDocker.Docking.PLANTS")
     smina = types.ModuleType("OCDocker.Docking.Smina")
     vina = types.ModuleType("OCDocker.Docking.Vina")
@@ -144,7 +144,7 @@ def _import_dock(monkeypatch):
     config_mod = types.ModuleType("OCDocker.Config")
     config_mod.get_config = lambda: SimpleNamespace(available_cores=1, logdir="/tmp", multiprocess=False)  # type: ignore[attr-defined]
 
-    monkeypatch.setitem(sys.modules, "OCDocker.Docking.Future.Gnina", gnina)
+    monkeypatch.setitem(sys.modules, "OCDocker.Docking.Gnina", gnina)
     monkeypatch.setitem(sys.modules, "OCDocker.Docking.PLANTS", plants)
     monkeypatch.setitem(sys.modules, "OCDocker.Docking.Smina", smina)
     monkeypatch.setitem(sys.modules, "OCDocker.Docking.Vina", vina)

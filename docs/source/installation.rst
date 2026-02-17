@@ -11,6 +11,7 @@ Make sure you have the following prerequisites installed:
 - Python (>=3.11)
 - Conda (Miniconda/Anaconda) with mamba
 - pip (inside the conda environment)
+- NVIDIA driver/runtime compatible with CUDA 12.8 (required to run Gnina CUDA builds)
 
 Quickstart (minimal, SQLite)
 ----------------------------
@@ -41,6 +42,32 @@ Before installing OCDocker, you must install the following system packages on Ub
 
 These packages are required for building and using OpenBabel Python bindings, which are essential for OCDocker's molecular processing capabilities.
 
+Gnina (CUDA 12.8)
+-----------------
+
+OCDocker expects the Gnina CUDA 12.8 build. To run this binary reliably, ensure:
+
+- NVIDIA driver is compatible with CUDA 12.8
+- cuDNN 9 runtime is available on the system
+
+Step-by-step installation:
+
+.. code-block:: bash
+
+   mkdir -p gnina
+   wget -O gnina/gnina.1.3.2.cuda12.8 \
+     https://github.com/gnina/gnina/releases/download/v1.3.2/gnina.1.3.2.cuda12.8
+   chmod +x gnina/gnina.1.3.2.cuda12.8
+   sudo install -m 0755 gnina/gnina.1.3.2.cuda12.8 /usr/bin/gnina
+
+Verify:
+
+.. code-block:: bash
+
+   gnina --version
+
+Note: ``install.sh`` already installs this Gnina CUDA 12.8 binary automatically.
+
 Installing OCDocker
 -------------------
 
@@ -69,13 +96,35 @@ To install OCDocker, follow these steps:
 
       pip install ocdocker
 
+   ``pip install ocdocker`` installs the core package only. To install every optional runtime stack, use ``pip install "ocdocker[all]"``.
+
+   Optional feature extras:
+
+   .. code-block:: bash
+
+      # Docking workflows (RDKit/OpenBabel/BioPython)
+      pip install "ocdocker[docking]"
+
+      # Docking + database support (SQLAlchemy + drivers)
+      pip install "ocdocker[docking,db]"
+
+      # ML workflows (PyTorch/XGBoost/Optuna)
+      pip install "ocdocker[ml]"
+
+      # Install all optional runtime features
+      pip install "ocdocker[all]"
+
    Option B: install from source (recommended for development):
 
    .. code-block:: bash
 
       git clone https://github.com/Arturossi/OCDocker.git
       cd OCDocker
+      # Base package only
       pip install .
+
+      # Example: source install with docking + DB extras
+      pip install -e ".[docking,db]"
 
 Optional: build the Sphinx documentation
 -----------------------------------------

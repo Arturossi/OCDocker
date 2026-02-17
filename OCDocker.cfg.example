@@ -40,7 +40,7 @@ vina = /data/hd4tb/OCDocker/software/docking/vina/bin/vina
 vina_split = /data/hd4tb/OCDocker/software/docking/vina/bin/vina_split
 
 # Gnina path
-gnina = /data/hd4tb/OCDocker/software/docking/gnina/gnina
+gnina = /data/hd4tb/OCDocker/software/docking/gnina/gnina.1.3.2.cuda12.8
 
 # MGLTools's pythonsh path
 pythonsh = /data/hd4tb/OCDocker/mgltools/bin/pythonsh
@@ -131,6 +131,210 @@ smina_user_grid = no
 
 # Scales user_grid and functional scoring
 smina_user_grid_lambda = -1
+
+################# GNINA PARAMETERS ###################
+
+# Flexible receptor input (optional)
+gnina_flex = no
+
+# Flexible receptor residues as comma-separated list, e.g. A:ARG45,A:TYR49 (optional)
+gnina_flexres = no
+
+# Flexible receptor distance reference ligand path (optional)
+gnina_flexdist_ligand = no
+
+# Flexible receptor distance in Angstrom (optional)
+gnina_flexdist = no
+
+# Max number of flexible sidechains (optional)
+gnina_flex_limit = no
+
+# Max number of flexible residues (optional)
+gnina_flex_max = no
+
+# Autobox around ligand file (optional). Set to 'no' to disable.
+# Use "auto" to autobox around the current prepared ligand (smina-like behavior).
+gnina_autobox_ligand = no
+
+# Additional padding in Angstrom for autobox (used only when autobox is enabled)
+gnina_autobox_add = 4
+
+# Extend autobox in each dimension by this amount (used only when autobox is enabled)
+gnina_autobox_extend = 1
+
+# Ignore ligand and only score receptor terms
+gnina_no_lig = no
+
+# Covalent docking receptor atom index (optional)
+gnina_covalent_rec_atom = no
+
+# Covalent docking SMARTS pattern in ligand (optional)
+gnina_covalent_lig_atom_pattern = no
+
+# Covalent docking ligand atom position index (optional)
+gnina_covalent_lig_atom_position = no
+
+# Keep covalent ligand atom position fixed
+gnina_covalent_fix_lig_atom_position = no
+
+# Covalent bond order
+gnina_covalent_bond_order = 1
+
+# Optimize ligand around covalent bond
+gnina_covalent_optimize_lig = no
+
+# Exhaustiveness of the global search
+gnina_exhaustiveness = 8
+
+# Maximum number of binding modes to generate
+gnina_num_modes = 9
+
+# Alternative scoring function
+gnina_scoring = default
+
+# Available scoring functions
+gnina_scoring_functions = ad4_scoring,default,dkoes_fast,dkoes_scoring,dkoes_scoring_old,vina,vinardo
+
+# Custom scoring file
+gnina_custom_scoring = no
+
+# Custom atoms
+gnina_custom_atoms = no
+
+# Score only, no docking
+gnina_score_only = no
+
+# Local search only using autobox (you probably want to use --minimize)
+gnina_local_only = no
+
+# Energy minimization
+gnina_minimize = no
+
+# Generate random poses, attempting to avoid clashes
+gnina_randomize_only = no
+
+# Number of monte carlo steps to take in each chain
+gnina_num_mc_steps = no
+
+# Cap on number of monte carlo steps to take in each chain
+gnina_max_mc_steps = no
+
+# Number of top poses saved in each monte carlo chain
+gnina_num_mc_saved = no
+
+# Monte Carlo temperature (optional)
+gnina_temperature = no
+
+# Number iterations of steepest descent; default scales with rotors and usually isn't sufficient for convergence
+gnina_minimize_iters = 0
+
+# Use simple gradient ascent
+gnina_simple_ascent = no
+
+# Use accurate line search
+gnina_accurate_line = no
+
+# Stop minimization before convergence conditions are fully met
+gnina_minimize_early_term = no
+
+# Minimize a single full pose
+gnina_minimize_single_full = no
+
+# Approximation (linear, spline, or exact) to use
+gnina_approximation = spline
+
+# Approximation factor: higher results in a finer-grained approximation
+gnina_factor = 32
+
+# Max allowed force; lower values more gently minimize clashing structures
+gnina_force_cap = 10
+
+# Autodock map file for user grid data based calculations
+gnina_user_grid = no
+
+# Scales user_grid and functional scoring
+gnina_user_grid_lambda = -1
+
+# Print scoring terms
+gnina_print_terms = no
+
+# Print atom types
+gnina_print_atom_types = no
+
+# CNN scoring mode: none,rescore,refinement,metrorescore,metrorefine,all
+gnina_cnn_scoring = rescore
+
+# Weight of CNN score when ranking poses
+gnina_cnn = default
+
+# Available CNN models for rescoring
+gnina_cnn_models = all_default_to_default_1_3_1,all_default_to_default_1_3_2,all_default_to_default_1_3_3,crossdock_default2018,crossdock_default2018_1,crossdock_default2018_1_3,crossdock_default2018_1_3_1,crossdock_default2018_1_3_2,crossdock_default2018_1_3_3,crossdock_default2018_1_3_4,crossdock_default2018_2,crossdock_default2018_3,crossdock_default2018_4,crossdock_default2018_KD_1,crossdock_default2018_KD_2,crossdock_default2018_KD_3,crossdock_default2018_KD_4,crossdock_default2018_KD_5,default1.0,default2017,dense,dense_1,dense_1_3,dense_1_3_1,dense_1_3_2,dense_1_3_3,dense_1_3_4,dense_1_3_PT_KD,dense_1_3_PT_KD_1,dense_1_3_PT_KD_2,dense_1_3_PT_KD_3,dense_1_3_PT_KD_4,dense_1_3_PT_KD_def2018,dense_1_3_PT_KD_def2018_1,dense_1_3_PT_KD_def2018_2,dense_1_3_PT_KD_def2018_3,dense_1_3_PT_KD_def2018_4,dense_2,dense_3,dense_4,fast,general_default2018,general_default2018_1,general_default2018_2,general_default2018_3,general_default2018_4,general_default2018_KD_1,general_default2018_KD_2,general_default2018_KD_3,general_default2018_KD_4,general_default2018_KD_5,redock_default2018,redock_default2018_1,redock_default2018_1_3,redock_default2018_1_3_1,redock_default2018_1_3_2,redock_default2018_1_3_3,redock_default2018_1_3_4,redock_default2018_2,redock_default2018_3,redock_default2018_4,redock_default2018_KD_1,redock_default2018_KD_2,redock_default2018_KD_3,redock_default2018_KD_4,redock_default2018_KD_5
+
+# CNN model file (optional)
+gnina_cnn_model = no
+
+# Number of rotations for CNN evaluation
+gnina_cnn_rotation = 0
+
+# Mix empirical force with CNN
+gnina_cnn_mix_emp_force = no
+
+# Mix empirical energy with CNN
+gnina_cnn_mix_emp_energy = no
+
+# CNN empirical weight
+gnina_cnn_empirical_weight = 1
+
+# CNN center X (optional)
+gnina_cnn_center_x = no
+
+# CNN center Y (optional)
+gnina_cnn_center_y = no
+
+# CNN center Z (optional)
+gnina_cnn_center_z = no
+
+# Verbose CNN logging
+gnina_cnn_verbose = no
+
+# Output flexible receptor poses to file (optional)
+gnina_out_flex = no
+
+# Per-atom term output file (optional)
+gnina_atom_terms = no
+
+# Include atom-level term data in output
+gnina_atom_term_data = no
+
+# Pose sort order: CNNscore, CNNaffinity, Energy
+gnina_pose_sort_order = CNNscore
+
+# Write full flexible receptor output
+gnina_full_flex_output = no
+
+# Number of CPU threads (auto keeps gnina default behavior)
+gnina_cpu = auto
+
+# RNG seed (optional)
+gnina_seed = no
+
+# Minimum RMSD between reported poses
+gnina_min_rmsd_filter = 1
+
+# Suppress gnina console output
+gnina_quiet = no
+
+# Add hydrogens before docking
+gnina_addH = yes
+
+# Strip hydrogens before docking
+gnina_stripH = no
+
+# GPU device index
+gnina_device = 0
+
+# Whether to use CPU only
+gnina_no_gpu = no
 
 ################# PLANTS PARAMETERS ##################
 

@@ -117,7 +117,7 @@ class EnergyDataset(Dataset):
             Number of samples.
         '''
 
-        return self.features.shape[0]
+        return int(self.features.shape[0])
 
 
 class TargetRankingDataset(Dataset):
@@ -210,7 +210,7 @@ class TargetRankingDataset(Dataset):
             Number of samples.
         '''
 
-        return self.features.shape[0]
+        return int(self.features.shape[0])
 
 
 class TargetBatchSampler(Sampler[List[int]]):

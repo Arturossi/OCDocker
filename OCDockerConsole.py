@@ -20,7 +20,7 @@ from glob import glob
 from pprint import pprint
 from typing import Any
 
-import OCDocker.Docking.Future.Gnina as ocgnina
+import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina

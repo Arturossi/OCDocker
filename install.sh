@@ -3,7 +3,7 @@
 # Description
 ###############################################################################
 # OCDocker installer (Ubuntu-like systems)
-# - Installs MGLTools, AutoDock Vina, Miniconda (in $HOME/miniconda)
+# - Installs MGLTools, AutoDock Vina, Gnina CUDA 12.8, Miniconda (in $HOME/miniconda)
 # - Installs DSSP and a SQL server (PostgreSQL by default; MySQL optional) via apt
 # - Creates the conda environment defined in environment.yml
 # - Creates SQL user/databases for OCDocker
@@ -42,6 +42,12 @@ export DB_USER=ocdocker
 export DB_NAME=ocdocker
 export DB_PASS=ocdocker
 export DB_NAME_OPTIMIZATION=optimization
+
+# Gnina release settings (CUDA build used by OCDocker)
+GNINA_VERSION="1.3.2"
+GNINA_CUDA_BUILD="cuda12.8"
+GNINA_FILENAME="gnina.${GNINA_VERSION}.${GNINA_CUDA_BUILD}"
+GNINA_URL="https://github.com/gnina/gnina/releases/download/v${GNINA_VERSION}/${GNINA_FILENAME}"
 
 # Decide DB mode.
 # Backend precedence: env OCDOCKER_DB_BACKEND/DB_BACKEND, then config DB_BACKEND, then postgresql.
@@ -92,18 +98,27 @@ step "Downloading and setting up AutoDock Vina..." \
    sudo install -m 0755 vina/vina /usr/bin/vina"
 info "AutoDock Vina setup step finished."
 
-# Step 3: Download and install Miniconda
+# Step 3: Download and install Gnina (CUDA 12.8 build)
+step "Downloading and setting up Gnina (${GNINA_CUDA_BUILD})..." \
+  "mkdir -p gnina && \
+   wget -O gnina/${GNINA_FILENAME} ${GNINA_URL} && \
+   chmod +x gnina/${GNINA_FILENAME} && \
+   sudo install -m 0755 gnina/${GNINA_FILENAME} /usr/bin/gnina && \
+   sudo install -m 0755 gnina/${GNINA_FILENAME} /usr/bin/${GNINA_FILENAME}"
+info "Gnina setup step finished. Ensure CUDA 12.8-compatible runtime (including cuDNN 9) is available."
+
+# Step 4: Download and install Miniconda
 step "Downloading and installing Miniconda..." \
   "wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O Miniconda3.sh && \
    [[ -s Miniconda3.sh ]] && chmod +x Miniconda3.sh && \
    ./Miniconda3.sh -b -p \"$HOME/miniconda\""
 info "Miniconda installation step finished."
 
-# Step 4: Initialize conda
+# Step 5: Initialize conda
 step "Initializing conda..." \
   "source \"$HOME/miniconda/etc/profile.d/conda.sh\""
 
-# Step 5: Install necessary system packages
+# Step 6: Install necessary system packages
 if [[ "${SELECTED_DB_BACKEND}" == "sqlite" ]]; then
   step "Installing required system packages (openbabel, libopenbabel-dev, swig, dssp)..." \
     "sudo apt-get update -y && sudo apt-get install -y openbabel libopenbabel-dev swig dssp"
@@ -116,11 +131,11 @@ else
     "sudo apt-get update -y && sudo apt-get install -y openbabel libopenbabel-dev swig dssp postgresql postgresql-contrib"
 fi
 
-# Step 6: Install mamba
+# Step 7: Install mamba
 step "Installing mamba..." \
   "conda install -y -n base -c conda-forge mamba"
 
-# Step 7: Create the environment from the YAML file
+# Step 8: Create the environment from the YAML file
 if conda env list | grep -q "^ocdocker\s"; then
     info "Conda env 'ocdocker' already exists; skipping creation."
 else
@@ -128,7 +143,7 @@ else
       "mamba env create -f \"$SCRIPT_DIR/environment.yml\""
 fi
 
-# Step 8: Configure SQL backend
+# Step 9: Configure SQL backend
 if [[ "${SELECTED_DB_BACKEND}" == "sqlite" ]]; then
   info "SQLite mode selected — skipping SQL user/database configuration."
 elif [[ "${SELECTED_DB_BACKEND}" == "mysql" ]]; then
@@ -148,7 +163,7 @@ else
   info "PostgreSQL configuration step finished."
 fi
 
-# Step 9: Activate the environment
+# Step 10: Activate the environment
 step "Activating the conda environment..." \
   "conda activate ocdocker"
 info "Conda environment activation step finished."

@@ -20,7 +20,7 @@ database persistence and analysis utilities.
 
 Key capabilities:
 
-- Multi‑engine docking: AutoDock Vina, Smina, PLANTS (future: Gnina, others)
+- Multi‑engine docking: AutoDock Vina, Smina, Gnina, PLANTS
 - Pipelines: run engines, cluster poses by RMSD (medoid), rescore and export
 - Rescoring: built‑in engine rescoring and ODDT models (RFScore, NNScore, PLEC)
 - OCScore analytics: DNN/XGBoost/Transformer optimizers, ranking metrics, SHAP
@@ -81,6 +81,24 @@ conda activate ocdocker
 pip install ocdocker
 ```
 
+`pip install ocdocker` installs the core package only. To include every optional runtime stack, use `pip install "ocdocker[all]"`.
+
+Install optional feature stacks as needed:
+
+```bash
+# Docking workflows
+pip install "ocdocker[docking]"
+
+# Docking + DB support
+pip install "ocdocker[docking,db]"
+
+# ML workflows (PyTorch/XGBoost/Optuna)
+pip install "ocdocker[ml]"
+
+# All optional runtime features
+pip install "ocdocker[all]"
+```
+
 **Installing from source with pip:**
 
 For development, install from source with pip inside the same conda environment. Ensure the system dependencies are installed first (see [System dependencies](#system-dependencies)).
@@ -94,11 +112,11 @@ cd OCDocker
 mamba create -n ocdocker python=3.11 -y
 conda activate ocdocker
 
-# Install dependencies
-pip install -r requirements.txt
-
 # Install the package in development mode
 pip install -e .
+
+# Optional: install feature extras in editable mode
+pip install -e ".[docking,db,ml]"
 ```
 
 **Note on chemistry packages (`rdkit`, `openbabel`):**
@@ -111,6 +129,7 @@ Prerequisites
 - Python 3.11+
 - Conda (Miniconda/Anaconda) and mamba
 - pip (inside the conda environment)
+- NVIDIA driver/runtime compatible with CUDA 12.8 (required for Gnina CUDA builds)
 - Ubuntu/Debian-like system with internet access
 - sudo privileges (needed for system packages, and optional PostgreSQL/MySQL/Vina installs)
 - ~10-15 GB of free disk space for dependencies, tools, and caches (minimal installs use less)
@@ -180,7 +199,7 @@ db = "optimization"
 
 engine = create_engine(f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}")
 with engine.connect() as conn:
-    print(conn.execute("SELECT 1").scalar())
+    print(conn.exec_driver_sql("SELECT 1").scalar())
 ```
 
 MySQL remains supported:
@@ -306,6 +325,45 @@ tar -xvzf autodock_vina_1_1_2_linux_x86.tgz
 
 * Option 2 (Use this all-in-one command. It seems to be more complicated, but it’s easier than option 1 and its easy to automate-it)
 
+```bash
+mkdir -p vina \
+  && wget -O vina/vina https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.3/vina_1.2.3_linux_x86_64 \
+  && chmod +x vina/vina \
+  && sudo install -m 0755 vina/vina /usr/bin/vina
+```
+
+Download and install Gnina (CUDA 12.8)
+---------------
+
+OCDocker uses the Gnina CUDA 12.8 build. To run it correctly, ensure:
+
+- NVIDIA driver is compatible with CUDA 12.8
+- cuDNN 9 runtime is available
+
+Step-by-step:
+
+```bash
+mkdir -p gnina
+wget -O gnina/gnina.1.3.2.cuda12.8 https://github.com/gnina/gnina/releases/download/v1.3.2/gnina.1.3.2.cuda12.8
+chmod +x gnina/gnina.1.3.2.cuda12.8
+sudo install -m 0755 gnina/gnina.1.3.2.cuda12.8 /usr/bin/gnina
+```
+
+Verify installation:
+
+```bash
+gnina --version
+```
+
+All-in-one command:
+
+```bash
+mkdir -p gnina \
+  && wget -O gnina/gnina.1.3.2.cuda12.8 https://github.com/gnina/gnina/releases/download/v1.3.2/gnina.1.3.2.cuda12.8 \
+  && chmod +x gnina/gnina.1.3.2.cuda12.8 \
+  && sudo install -m 0755 gnina/gnina.1.3.2.cuda12.8 /usr/bin/gnina
+```
+
 Usage Overview
 --------------
 
@@ -356,6 +414,7 @@ In both cases, the installer will:
 - Install only `dssp` (skips SQL server packages)
 - Skip SQL user/database creation
 - Proceed with the remaining steps normally
+- Install Gnina CUDA 12.8 (`gnina.1.3.2.cuda12.8`) and register it as `/usr/bin/gnina`
 
 Important note about SQLite
 ---------------------------
@@ -376,8 +435,9 @@ It checks:
 
 - Config path in use
 - Binaries: `vina`, `smina`, `plants` (presence on PATH or configured paths)
+- External tool metadata: resolved executable and version (`vina`, `smina`, `plants`, `gnina`, `pythonsh`, `dssp`, `obabel`, `spores`)
 - Python deps: rdkit, Biopython, ODDT, SQLAlchemy
-- DB connectivity (opens/closes a connection)
+- DB backend/driver metadata, client version, server version (when queryable), connectivity, and current/expected user+database checks
 
 Reproducibility: `ocdocker manifest`
 ------------------------------------
@@ -401,6 +461,12 @@ _ = ocrepro.write_reproducibility_manifest("reproducibility_manifest.json")
 Docking: Quick Examples
 -----------------------
 
+Install docking dependencies first if needed:
+
+```bash
+pip install "ocdocker[docking]"
+```
+
 Single engine (Vina) with timeout, storing to DB:
 
 ```bash
@@ -411,6 +477,12 @@ ocdocker vs \
   --box path/to/box.pdb \
   --timeout 600 \
   --store-db
+```
+
+For ``--store-db``, install DB dependencies too:
+
+```bash
+pip install "ocdocker[db]"
 ```
 
 Pipeline across engines with clustering and rescoring:
@@ -427,7 +499,7 @@ ocdocker pipeline \
 Notes:
 
 - `--timeout` limits external tool runtime (also via `OCDOCKER_TIMEOUT`).
-- `--store-db` auto‑creates tables and stores minimal metadata (name) in the DB.
+- `--store-db` auto-creates tables and stores receptor/ligand descriptors plus supported rescoring columns in the DB.
 
 Timeouts & External Tools
 -------------------------

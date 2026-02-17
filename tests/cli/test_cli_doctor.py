@@ -45,13 +45,39 @@ class _Conn:
     def __init__(self, tracker):
         self._tracker = tracker
 
+    class _ScalarResult:
+        def __init__(self, value):
+            self._value = value
+
+        def scalar(self):
+            return self._value
+
+    def exec_driver_sql(self, sql):
+        self._tracker["sql"] = self._tracker.get("sql", []) + [sql]
+        if "SHOW server_version" in sql:
+            return _Conn._ScalarResult("16.4")
+        if "SELECT VERSION()" in sql:
+            return _Conn._ScalarResult("8.4.0")
+        if "SELECT sqlite_version()" in sql:
+            return _Conn._ScalarResult("3.45.1")
+        if "SELECT current_user" in sql:
+            return _Conn._ScalarResult("ocdocker")
+        if "SELECT current_database()" in sql:
+            return _Conn._ScalarResult("optimization")
+        if "SELECT CURRENT_USER()" in sql:
+            return _Conn._ScalarResult("ocdocker@localhost")
+        if "SELECT DATABASE()" in sql:
+            return _Conn._ScalarResult("optimization")
+        return _Conn._ScalarResult(None)
+
     def close(self):
         self._tracker["closed"] = self._tracker["closed"] + 1
 
 
 class _EngineOK:
-    def __init__(self, tracker):
+    def __init__(self, tracker, drivername="postgresql+psycopg"):
         self._tracker = tracker
+        self.url = SimpleNamespace(drivername=drivername)
 
     def connect(self):
         self._tracker["connected"] = self._tracker["connected"] + 1
@@ -100,6 +126,7 @@ def test_cmd_doctor_reports_config_unavailable_and_missing_engine(monkeypatch, c
     monkeypatch.setattr(cli, "_preparse_global_args", lambda _argv: SimpleNamespace())
     monkeypatch.setattr(cli, "_bootstrap_ocdocker_env", lambda _ns: None)
     monkeypatch.setattr(cli.shutil, "which", lambda _cmd: None)
+    monkeypatch.setattr(cli, "_probe_executable_version", lambda _exe: "unknown")
 
     args = SimpleNamespace(log_file="", no_stdout_log=True)
     rc = cli.cmd_doctor(args)
@@ -110,8 +137,13 @@ def test_cmd_doctor_reports_config_unavailable_and_missing_engine(monkeypatch, c
     assert report["binaries"]["vina"] == "MISSING"
     assert report["binaries"]["smina"] == "MISSING"
     assert report["binaries"]["plants"] == "MISSING"
+    assert report["external_tools"]["vina"]["version"] == "unknown"
+    assert report["external_tools"]["gnina"]["available"] is False
     assert report["binaries_error"].startswith("CONFIG_UNAVAILABLE")
     assert report["database"]["status"] == "MISSING ENGINE"
+    assert report["database"]["access"] is False
+    assert report["database"]["backend"] == "unknown"
+    assert "sqlalchemy_version" in report["database"]
 
 
 @pytest.mark.order(176)
@@ -129,6 +161,7 @@ def test_cmd_doctor_reports_binary_and_database_ok(monkeypatch, tmp_path, capsys
         vina=SimpleNamespace(executable=str(vina_exe)),
         smina=SimpleNamespace(executable="smina_cmd"),
         plants=SimpleNamespace(executable=str(tmp_path / "missing_plants")),
+        database=SimpleNamespace(backend="postgresql", user="ocdocker", database="optimization"),
     )
     config_mod = types.ModuleType("OCDocker.Config")
     config_mod.get_config = lambda: cfg_obj  # type: ignore[attr-defined]
@@ -137,6 +170,11 @@ def test_cmd_doctor_reports_binary_and_database_ok(monkeypatch, tmp_path, capsys
     monkeypatch.setattr(cli, "_preparse_global_args", lambda _argv: SimpleNamespace())
     monkeypatch.setattr(cli, "_bootstrap_ocdocker_env", lambda _ns: None)
     monkeypatch.setattr(cli.shutil, "which", lambda cmd: "/usr/bin/smina_cmd" if cmd == "smina_cmd" else None)
+    monkeypatch.setattr(
+        cli,
+        "_probe_executable_version",
+        lambda exe: f"v@{os.path.basename(exe)}" if exe else "unknown",
+    )
 
     args = SimpleNamespace(log_file="", no_stdout_log=False)
     rc = cli.cmd_doctor(args)
@@ -146,7 +184,27 @@ def test_cmd_doctor_reports_binary_and_database_ok(monkeypatch, tmp_path, capsys
     assert report["binaries"]["vina"] == "OK"
     assert report["binaries"]["smina"] == "OK"
     assert report["binaries"]["plants"] == "MISSING"
+    assert report["external_tools"]["vina"]["version"] == f"v@{os.path.basename(str(vina_exe))}"
+    assert report["external_tools"]["smina"]["version"] == "v@smina_cmd"
+    assert report["external_tools"]["plants"]["version"] == "unknown"
     assert report["database"]["status"] == "OK"
+    assert report["database"]["access"] is True
+    assert report["database"]["backend"] == "postgresql"
+    assert report["database"]["driver"] == "postgresql+psycopg"
+    assert report["database"]["server_version"] == "16.4"
+    assert report["database"]["current_user"] == "ocdocker"
+    assert report["database"]["current_database"] == "optimization"
+    assert report["database"]["expected_user"] == "ocdocker"
+    assert report["database"]["expected_database"] == "optimization"
+    assert report["database"]["user_check"] == "ok"
+    assert report["database"]["database_check"] == "ok"
+    assert "client_version" in report["database"]
+    assert "sqlalchemy_version" in report["database"]
+    assert tracker["sql"] == [
+        "SHOW server_version",
+        "SELECT current_user",
+        "SELECT current_database()",
+    ]
     assert tracker["connected"] == 1
     assert tracker["closed"] == 1
 

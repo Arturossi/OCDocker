@@ -10,7 +10,6 @@ Submodules
    OCDocker.Docking.Future.Dock3
    OCDocker.Docking.Future.Dock6
    OCDocker.Docking.Future.GEMDOCK
-   OCDocker.Docking.Future.Gnina
    OCDocker.Docking.Future.Ledock
    OCDocker.Docking.Future.RDock
 

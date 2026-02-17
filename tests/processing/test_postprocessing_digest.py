@@ -73,7 +73,7 @@ def _import_digest(monkeypatch):
     importlib.import_module("OCDocker.Toolbox")
 
     # Lightweight stubs for dependencies used by Digest.py
-    gnina = types.ModuleType("OCDocker.Docking.Future.Gnina")
+    gnina = types.ModuleType("OCDocker.Docking.Gnina")
     gnina.generate_digest = lambda *a, **k: 0  # type: ignore[attr-defined]
     plants = types.ModuleType("OCDocker.Docking.PLANTS")
     plants.generate_digest = lambda *a, **k: 0  # type: ignore[attr-defined]
@@ -92,7 +92,7 @@ def _import_digest(monkeypatch):
     config_mod = types.ModuleType("OCDocker.Config")
     config_mod.get_config = lambda: SimpleNamespace(multiprocess=False, available_cores=1, logdir="/tmp")  # type: ignore[attr-defined]
 
-    monkeypatch.setitem(sys.modules, "OCDocker.Docking.Future.Gnina", gnina)
+    monkeypatch.setitem(sys.modules, "OCDocker.Docking.Gnina", gnina)
     monkeypatch.setitem(sys.modules, "OCDocker.Docking.PLANTS", plants)
     monkeypatch.setitem(sys.modules, "OCDocker.Docking.Smina", smina)
     monkeypatch.setitem(sys.modules, "OCDocker.Docking.Vina", vina)

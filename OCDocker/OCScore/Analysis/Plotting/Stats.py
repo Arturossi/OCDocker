@@ -13,6 +13,8 @@ import OCDocker.OCScore.Analysis.Plotting.Stats as ocstatplot
 
 # Imports
 ###############################################################################
+import warnings
+
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import numpy as np
@@ -202,15 +204,23 @@ def plot_boxplots(df: pd.DataFrame, n_trials: int, colour_mapping: dict[str, tup
 
     for i, metric in enumerate(['RMSE', 'AUC']):
         plt.subplot(2, 1, i + 1)
-        ax = sns.boxplot(
-            data = plot_df,
-            x = 'Methodology',
-            y = metric,
-            hue = 'Methodology',
-            palette = colour_mapping,
-            showfliers = False,
-            legend = False
-        )
+        with warnings.catch_warnings():
+            # Seaborn currently forwards a deprecated Matplotlib `vert` kwarg
+            # internally in some versions; silence this third-party warning.
+            warnings.filterwarnings(
+                "ignore",
+                message = "vert: bool will be deprecated in a future version.*",
+                category = PendingDeprecationWarning,
+            )
+            ax = sns.boxplot(
+                data = plot_df,
+                x = 'Methodology',
+                y = metric,
+                hue = 'Methodology',
+                palette = colour_mapping,
+                showfliers = False,
+                legend = False
+            )
 
         # Distinct line color for each metric
         mean_val = plot_df[metric].mean()
@@ -577,28 +587,33 @@ def plot_scatterplot(
             plt.subplot(1, 3, i)
 
         # Scatter for AUC ≥ 0.5
-        sns.scatterplot(
-            data = df[df['AUC_category'] == '>= 0.5'],
-            x = 'RMSE',
-            y = 'AUC',
-            hue = 'Methodology',
-            palette = colour_mapping,
-            alpha = alpha,
-            s = 30,
-            legend = False,
-        )
+        df_auc_ge = df[df['AUC_category'] == '>= 0.5']
+        if not df_auc_ge.empty:
+            sns.scatterplot(
+                data = df_auc_ge,
+                x = 'RMSE',
+                y = 'AUC',
+                hue = 'Methodology',
+                palette = colour_mapping,
+                alpha = alpha,
+                s = 30,
+                legend = False,
+            )
 
         # Scatter for AUC < 0.5
-        sns.scatterplot(
-            data = df[df['AUC_category'] == '< 0.5'],
-            x ='RMSE',
-            y ='AUC',
-            hue = 'Methodology',
-            palette = colour_mapping,
-            alpha = alpha,
-            s = 50,
-            legend = False,
-        )
+        df_auc_lt = df[df['AUC_category'] == '< 0.5']
+        if not df_auc_lt.empty:
+            sns.scatterplot(
+                data = df_auc_lt,
+                x ='RMSE',
+                y ='AUC',
+                hue = 'Methodology',
+                palette = colour_mapping,
+                alpha = alpha,
+                s = 50,
+                marker = '*',
+                legend = False,
+            )
 
         plt.title(title)
         plt.grid(True, linestyle=':', linewidth=0.5)

@@ -131,6 +131,7 @@ Main commands (see `ocdocker <command> --help`):
 - `shap`: OCScore SHAP analysis
 - `console`: interactive console with OCDocker pre-loaded
 - `script`: run a Python script with OCDocker pre-loaded
+  (requires `--allow-unsafe-exec` or `OCDOCKER_ALLOW_SCRIPT_EXEC=1`)
 - `doctor`: diagnostics (binaries, deps, DB)
 - `manifest`: generate reproducibility manifest (versions/runtime/tooling)
 - `init-config`: create a starter config file
@@ -240,7 +241,7 @@ Database and persistence
 ------------------------
 
 - Default backend is PostgreSQL; MySQL and SQLite are also supported.
-- Use `--store-db` in CLI commands to store minimal metadata in the database.
+- Use `--store-db` in CLI commands to store receptor/ligand descriptors plus supported rescoring columns in the database.
 - Database schemas are defined under `OCDocker.DB` and related model pages.
 
 Diagnostics and troubleshooting

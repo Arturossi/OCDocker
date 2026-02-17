@@ -195,7 +195,19 @@ class TransformerModel(nn.Module):
         ).to(device)
 
         # Transformer encoder
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_encoder_layers).to(device)
+        enable_nested_tensor = (nhead % 2 == 0)
+        try:
+            self.transformer_encoder = nn.TransformerEncoder(
+                encoder_layer,
+                num_layers = num_encoder_layers,
+                enable_nested_tensor = enable_nested_tensor,
+            ).to(device)
+        except TypeError:
+            # Backward compatibility with torch versions without enable_nested_tensor.
+            self.transformer_encoder = nn.TransformerEncoder(
+                encoder_layer,
+                num_layers = num_encoder_layers,
+            ).to(device)
 
         # Output layer
         self.fc_out = nn.Linear(d_model, output_dim).to(device)
@@ -897,7 +909,7 @@ class TransOptimizer:
                  study_name : str = "NN_Optimization",
                  load_if_exists : bool = True,
                  sampler : optuna.samplers.BaseSampler = TPESampler(),
-                 n_jobs : int = 1) -> dict:
+                 n_jobs : int = 1) -> Dict[str, Any]:
         ''' Optimize the model using Optuna.
 
         Parameters

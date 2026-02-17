@@ -47,6 +47,87 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Configuration Dataclasses
 
 
+GNINA_DEFAULT_SCORING_FUNCTIONS = [
+    "ad4_scoring",
+    "default",
+    "dkoes_fast",
+    "dkoes_scoring",
+    "dkoes_scoring_old",
+    "vina",
+    "vinardo",
+]
+
+
+GNINA_DEFAULT_CNN_MODELS = [
+    "all_default_to_default_1_3_1",
+    "all_default_to_default_1_3_2",
+    "all_default_to_default_1_3_3",
+    "crossdock_default2018",
+    "crossdock_default2018_1",
+    "crossdock_default2018_1_3",
+    "crossdock_default2018_1_3_1",
+    "crossdock_default2018_1_3_2",
+    "crossdock_default2018_1_3_3",
+    "crossdock_default2018_1_3_4",
+    "crossdock_default2018_2",
+    "crossdock_default2018_3",
+    "crossdock_default2018_4",
+    "crossdock_default2018_KD_1",
+    "crossdock_default2018_KD_2",
+    "crossdock_default2018_KD_3",
+    "crossdock_default2018_KD_4",
+    "crossdock_default2018_KD_5",
+    "default1.0",
+    "default2017",
+    "dense",
+    "dense_1",
+    "dense_1_3",
+    "dense_1_3_1",
+    "dense_1_3_2",
+    "dense_1_3_3",
+    "dense_1_3_4",
+    "dense_1_3_PT_KD",
+    "dense_1_3_PT_KD_1",
+    "dense_1_3_PT_KD_2",
+    "dense_1_3_PT_KD_3",
+    "dense_1_3_PT_KD_4",
+    "dense_1_3_PT_KD_def2018",
+    "dense_1_3_PT_KD_def2018_1",
+    "dense_1_3_PT_KD_def2018_2",
+    "dense_1_3_PT_KD_def2018_3",
+    "dense_1_3_PT_KD_def2018_4",
+    "dense_2",
+    "dense_3",
+    "dense_4",
+    "fast",
+    "general_default2018",
+    "general_default2018_1",
+    "general_default2018_2",
+    "general_default2018_3",
+    "general_default2018_4",
+    "general_default2018_KD_1",
+    "general_default2018_KD_2",
+    "general_default2018_KD_3",
+    "general_default2018_KD_4",
+    "general_default2018_KD_5",
+    "redock_default2018",
+    "redock_default2018_1",
+    "redock_default2018_1_3",
+    "redock_default2018_1_3_1",
+    "redock_default2018_1_3_2",
+    "redock_default2018_1_3_3",
+    "redock_default2018_1_3_4",
+    "redock_default2018_2",
+    "redock_default2018_3",
+    "redock_default2018_4",
+    "redock_default2018_KD_1",
+    "redock_default2018_KD_2",
+    "redock_default2018_KD_3",
+    "redock_default2018_KD_4",
+    "redock_default2018_KD_5",
+]
+
+
 @dataclass
 class VinaConfig:
     """Configuration for Vina docking engine."""
@@ -87,27 +168,79 @@ class SminaConfig:
 class GninaConfig:
     """Configuration for Gnina docking engine."""
     executable: str = "gnina"
-    exhaustiveness: str = ""
-    num_modes: str = ""
-    scoring: str = ""
-    custom_scoring: str = ""
-    custom_atoms: str = ""
-    local_only: str = ""
-    minimize: str = ""
-    randomize_only: str = ""
-    num_mc_steps: str = ""
-    max_mc_steps: str = ""
-    num_mc_saved: str = ""
-    minimize_iters: str = ""
-    simple_ascent: str = ""
-    accurate_line: str = ""
-    minimize_early_term: str = ""
-    approximation: str = ""
-    factor: str = ""
-    force_cap: str = ""
-    user_grid: str = ""
-    user_grid_lambda: str = ""
-    no_gpu: str = ""
+    # Input/flexible receptor
+    flex: str = "no"
+    flexres: str = "no"
+    flexdist_ligand: str = "no"
+    flexdist: str = "no"
+    flex_limit: str = "no"
+    flex_max: str = "no"
+    # Search space/covalent
+    autobox_ligand: str = "no"
+    autobox_add: str = "4"
+    autobox_extend: str = "1"
+    no_lig: str = "no"
+    covalent_rec_atom: str = "no"
+    covalent_lig_atom_pattern: str = "no"
+    covalent_lig_atom_position: str = "no"
+    covalent_fix_lig_atom_position: str = "no"
+    covalent_bond_order: str = "1"
+    covalent_optimize_lig: str = "no"
+    # Scoring/minimization
+    exhaustiveness: str = "8"
+    num_modes: str = "9"
+    scoring: str = "default"
+    scoring_functions: List[str] = field(default_factory=lambda: GNINA_DEFAULT_SCORING_FUNCTIONS.copy())
+    custom_scoring: str = "no"
+    custom_atoms: str = "no"
+    score_only: str = "no"
+    local_only: str = "no"
+    minimize: str = "no"
+    randomize_only: str = "no"
+    num_mc_steps: str = "no"
+    max_mc_steps: str = "no"
+    num_mc_saved: str = "no"
+    temperature: str = "no"
+    minimize_iters: str = "0"
+    accurate_line: str = "no"
+    simple_ascent: str = "no"
+    minimize_early_term: str = "no"
+    minimize_single_full: str = "no"
+    approximation: str = "spline"
+    factor: str = "32"
+    force_cap: str = "10"
+    user_grid: str = "no"
+    user_grid_lambda: str = "-1"
+    print_terms: str = "no"
+    print_atom_types: str = "no"
+    # CNN
+    cnn_scoring: str = "rescore"
+    cnn: str = "default"
+    cnn_models: List[str] = field(default_factory=lambda: GNINA_DEFAULT_CNN_MODELS.copy())
+    cnn_model: str = "no"
+    cnn_rotation: str = "0"
+    cnn_mix_emp_force: str = "no"
+    cnn_mix_emp_energy: str = "no"
+    cnn_empirical_weight: str = "1"
+    cnn_center_x: str = "no"
+    cnn_center_y: str = "no"
+    cnn_center_z: str = "no"
+    cnn_verbose: str = "no"
+    # Output extras
+    out_flex: str = "no"
+    atom_terms: str = "no"
+    atom_term_data: str = "no"
+    pose_sort_order: str = "CNNscore"
+    full_flex_output: str = "no"
+    # Misc
+    cpu: str = "auto"
+    seed: str = "no"
+    min_rmsd_filter: str = "1"
+    quiet: str = "no"
+    addH: str = "yes"
+    stripH: str = "no"
+    device: str = "0"
+    no_gpu: str = "no"
 
 
 @dataclass
@@ -307,27 +440,73 @@ class OCDockerConfig:
             # Gnina
             gnina=GninaConfig(
                 executable=cfg.get('gnina', 'gnina'),
-                exhaustiveness=cfg.get('gnina_exhaustiveness', ''),
-                num_modes=cfg.get('gnina_num_modes', ''),
-                scoring=cfg.get('gnina_scoring', ''),
-                custom_scoring=cfg.get('gnina_custom_scoring', ''),
-                custom_atoms=cfg.get('gnina_custom_atoms', ''),
-                local_only=cfg.get('gnina_local_only', ''),
-                minimize=cfg.get('gnina_minimize', ''),
-                randomize_only=cfg.get('gnina_randomize_only', ''),
-                num_mc_steps=cfg.get('gnina_num_mc_steps', ''),
-                max_mc_steps=cfg.get('gnina_max_mc_steps', ''),
-                num_mc_saved=cfg.get('gnina_num_mc_saved', ''),
-                minimize_iters=cfg.get('gnina_minimize_iters', ''),
-                simple_ascent=cfg.get('gnina_simple_ascent', ''),
-                accurate_line=cfg.get('gnina_accurate_line', ''),
-                minimize_early_term=cfg.get('gnina_minimize_early_term', ''),
-                approximation=cfg.get('gnina_approximation', ''),
-                factor=cfg.get('gnina_factor', ''),
-                force_cap=cfg.get('gnina_force_cap', ''),
-                user_grid=cfg.get('gnina_user_grid', ''),
-                user_grid_lambda=cfg.get('gnina_user_grid_lambda', ''),
-                no_gpu=cfg.get('gnina_no_gpu', ''),
+                flex=cfg.get('gnina_flex', 'no'),
+                flexres=cfg.get('gnina_flexres', 'no'),
+                flexdist_ligand=cfg.get('gnina_flexdist_ligand', 'no'),
+                flexdist=cfg.get('gnina_flexdist', 'no'),
+                flex_limit=cfg.get('gnina_flex_limit', 'no'),
+                flex_max=cfg.get('gnina_flex_max', 'no'),
+                autobox_ligand=cfg.get('gnina_autobox_ligand', 'no'),
+                autobox_add=cfg.get('gnina_autobox_add', '4'),
+                autobox_extend=cfg.get('gnina_autobox_extend', '1'),
+                no_lig=cfg.get('gnina_no_lig', 'no'),
+                covalent_rec_atom=cfg.get('gnina_covalent_rec_atom', 'no'),
+                covalent_lig_atom_pattern=cfg.get('gnina_covalent_lig_atom_pattern', 'no'),
+                covalent_lig_atom_position=cfg.get('gnina_covalent_lig_atom_position', 'no'),
+                covalent_fix_lig_atom_position=cfg.get('gnina_covalent_fix_lig_atom_position', 'no'),
+                covalent_bond_order=cfg.get('gnina_covalent_bond_order', '1'),
+                covalent_optimize_lig=cfg.get('gnina_covalent_optimize_lig', 'no'),
+                exhaustiveness=cfg.get('gnina_exhaustiveness', '8'),
+                num_modes=cfg.get('gnina_num_modes', '9'),
+                scoring=cfg.get('gnina_scoring', 'default'),
+                scoring_functions=cfg.get('gnina_scoring_functions', GNINA_DEFAULT_SCORING_FUNCTIONS.copy()),
+                custom_scoring=cfg.get('gnina_custom_scoring', 'no'),
+                custom_atoms=cfg.get('gnina_custom_atoms', 'no'),
+                score_only=cfg.get('gnina_score_only', 'no'),
+                local_only=cfg.get('gnina_local_only', 'no'),
+                minimize=cfg.get('gnina_minimize', 'no'),
+                randomize_only=cfg.get('gnina_randomize_only', 'no'),
+                num_mc_steps=cfg.get('gnina_num_mc_steps', 'no'),
+                max_mc_steps=cfg.get('gnina_max_mc_steps', 'no'),
+                num_mc_saved=cfg.get('gnina_num_mc_saved', 'no'),
+                temperature=cfg.get('gnina_temperature', 'no'),
+                minimize_iters=cfg.get('gnina_minimize_iters', '0'),
+                accurate_line=cfg.get('gnina_accurate_line', 'no'),
+                simple_ascent=cfg.get('gnina_simple_ascent', 'no'),
+                minimize_early_term=cfg.get('gnina_minimize_early_term', 'no'),
+                minimize_single_full=cfg.get('gnina_minimize_single_full', 'no'),
+                approximation=cfg.get('gnina_approximation', 'spline'),
+                factor=cfg.get('gnina_factor', '32'),
+                force_cap=cfg.get('gnina_force_cap', '10'),
+                user_grid=cfg.get('gnina_user_grid', 'no'),
+                user_grid_lambda=cfg.get('gnina_user_grid_lambda', '-1'),
+                print_terms=cfg.get('gnina_print_terms', 'no'),
+                print_atom_types=cfg.get('gnina_print_atom_types', 'no'),
+                cnn_scoring=cfg.get('gnina_cnn_scoring', 'rescore'),
+                cnn=cfg.get('gnina_cnn', 'default'),
+                cnn_models=cfg.get('gnina_cnn_models', GNINA_DEFAULT_CNN_MODELS.copy()),
+                cnn_model=cfg.get('gnina_cnn_model', 'no'),
+                cnn_rotation=cfg.get('gnina_cnn_rotation', '0'),
+                cnn_mix_emp_force=cfg.get('gnina_cnn_mix_emp_force', 'no'),
+                cnn_mix_emp_energy=cfg.get('gnina_cnn_mix_emp_energy', 'no'),
+                cnn_empirical_weight=cfg.get('gnina_cnn_empirical_weight', '1'),
+                cnn_center_x=cfg.get('gnina_cnn_center_x', 'no'),
+                cnn_center_y=cfg.get('gnina_cnn_center_y', 'no'),
+                cnn_center_z=cfg.get('gnina_cnn_center_z', 'no'),
+                cnn_verbose=cfg.get('gnina_cnn_verbose', 'no'),
+                out_flex=cfg.get('gnina_out_flex', 'no'),
+                atom_terms=cfg.get('gnina_atom_terms', 'no'),
+                atom_term_data=cfg.get('gnina_atom_term_data', 'no'),
+                pose_sort_order=cfg.get('gnina_pose_sort_order', 'CNNscore'),
+                full_flex_output=cfg.get('gnina_full_flex_output', 'no'),
+                cpu=cfg.get('gnina_cpu', 'auto'),
+                seed=cfg.get('gnina_seed', 'no'),
+                min_rmsd_filter=cfg.get('gnina_min_rmsd_filter', '1'),
+                quiet=cfg.get('gnina_quiet', 'no'),
+                addH=cfg.get('gnina_addH', 'yes'),
+                stripH=cfg.get('gnina_stripH', 'no'),
+                device=cfg.get('gnina_device', '0'),
+                no_gpu=cfg.get('gnina_no_gpu', 'no'),
             ),
             
             # PLANTS

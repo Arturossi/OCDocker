@@ -4,14 +4,15 @@ services:
     command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
-      MYSQL_DATABASE: ocdocker
-      MYSQL_USER: ocdocker
+      MYSQL_DATABASE: ${OCDOCKER_DATABASE:-ocdocker}
+      MYSQL_USER: ${OCDOCKER_DB_USER:-ocdocker}
       MYSQL_PASSWORD: ${OCDOCKER_DB_PASS:-ocdocker_pass}
+      OCDOCKER_OPTIMIZEDB: ${OCDOCKER_OPTIMIZEDB:-optimization}
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./mysql/init.sh:/docker-entrypoint-initdb.d/20-init-optimization-db.sh:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p$${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
@@ -20,8 +21,8 @@ services:
 
   ocdocker:
     environment:
-      OCDOCKER_CONFIG: /data/hd4tb/OCDocker/OCDocker/containers/docker/OCDocker.cfg.docker.mysql
-      OCDOCKER_DB_BACKEND: mysql
+      OCDOCKER_CONFIG: ${OCDOCKER_CONFIG:-/data/hd4tb/OCDocker/OCDocker/containers/docker/OCDocker.cfg.docker.mysql}
+      OCDOCKER_DB_BACKEND: ${OCDOCKER_DB_BACKEND:-mysql}
 
 volumes:
   mysql_data:

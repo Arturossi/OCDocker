@@ -196,7 +196,15 @@ def _get_docked_poses_generic(posesPath: str, error_method: Callable) -> List[st
     return []
 
 
-def _read_log_generic(path: str, scoring_key: str, engine: str, error_log: str, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
+def _read_log_generic(
+    path: str,
+    scoring_key: str,
+    engine: str,
+    error_log: str,
+    onlyBest: bool = False,
+    min_columns: int = 4,
+    exact_columns: bool = True,
+) -> Dict[int, Dict[str, float]]:
     '''Read the vinalike log path, returning the data from complexes.
 
     Parameters
@@ -247,17 +255,27 @@ def _read_log_generic(path: str, scoring_key: str, engine: str, error_log: str, 
                     # Split the last line
                     splitLine = line.split()
 
-                    # Check if there are 4 elements in the splitLine
-                    if len(splitLine) == 4:
+                    # Parse rows with expected column shape.
+                    # Vina/Smina tables are fixed-width (exact 4 columns), while
+                    # Gnina tables can include additional columns.
+                    has_valid_column_count = (
+                        len(splitLine) == min_columns
+                        if exact_columns
+                        else len(splitLine) >= min_columns
+                    )
+                    if has_valid_column_count:
                         # Assign the data in the dictionary with the pose as key and the affinity as value
                         try:
+                            pose_idx = int(splitLine[0])
                             score_val = float(splitLine[1])
-                        except (ValueError, TypeError):
+                        except (ValueError, TypeError, IndexError):
                             continue
-                        data[int(splitLine[0])] = {scoring_key: score_val}
+                        data[pose_idx] = {scoring_key: score_val}
 
                 # If onlyBest is True
                 if onlyBest:
+                    if not data:
+                        return data
                     # Return only the best pose (-1 since the data is reversed)
                     return {list(data.keys())[-1]: list(data.values())[-1]}
 
@@ -414,6 +432,30 @@ def generate_vina_digest(digestPath: str, logPath: str, overwrite: bool = False,
     return _generate_digest_generic(digestPath, logPath, read_vina_log, overwrite, digestFormat, box_id)
 
 
+def generate_gnina_digest(digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json", box_id: Optional[str] = None) -> int:
+    '''Wrapper for generating the Gnina digest.
+
+    Parameters
+    ----------
+    digestPath : str
+        Where to store the digest file.
+    logPath : str
+        The path to the Gnina log file.
+    overwrite : bool, optional
+        If True, overwrites the output files if they already exist. (default is False)
+    digestFormat : str, optional
+        The format of the digest file. The options are: [ json (default), hdf5 (not implemented) ]
+
+    Returns
+    -------
+    int
+        The exit code of the command (based on the Error.py code table).
+    '''
+
+    # Call the generic generate digest function with the Gnina read log function
+    return _generate_digest_generic(digestPath, logPath, read_gnina_log, overwrite, digestFormat, box_id)
+
+
 def get_smina_docked_poses(posesPath: str) -> List[str]:
     '''Wrapper for getting the Smina docked poses.
 
@@ -437,6 +479,23 @@ def get_smina_docked_poses(posesPath: str) -> List[str]:
 
 def get_vina_docked_poses(posesPath: str) -> List[str]:
     '''Get the paths for the docked poses from Vina output directory.
+
+    Parameters
+    ----------
+    posesPath : str
+        The path to the directory containing the docked poses.
+
+    Returns
+    -------
+    List[str]
+        A list with the paths for the docked poses. Returns an empty list if the directory does not exist.
+    '''
+
+    return _get_docked_poses_generic(posesPath, ocerror.Error.dir_not_exist)
+
+
+def get_gnina_docked_poses(posesPath: str) -> List[str]:
+    '''Get the paths for the docked poses from Gnina output directory.
 
     Parameters
     ----------
@@ -511,6 +570,38 @@ def read_vina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, floa
     return _read_log_generic(path, config.vina.scoring, "vina", "vina_read_log_ERROR.log", onlyBest)
 
 
+def read_gnina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
+    '''Wrapper for reading the Gnina log file.
+
+    Parameters
+    ----------
+    path : str
+        The path to the Gnina log file.
+    onlyBest : bool, optional
+        If True, only the best pose will be returned. By default False.
+
+    Returns
+    -------
+    Dict[int, Dict[str, float]]
+        A dictionary with the data from the Gnina log file.
+    '''
+
+    config = get_config()
+    scoring_key = str(getattr(config.gnina, "scoring", "")).strip()
+    if not scoring_key:
+        scoring_key = "gnina_affinity"
+    # Gnina tables can include extra columns compared to Vina/Smina.
+    return _read_log_generic(
+        path,
+        scoring_key,
+        "gnina",
+        "gnina_read_log_ERROR.log",
+        onlyBest,
+        min_columns = 2,
+        exact_columns = False,
+    )
+
+
 def read_vina_rescoring_log(path: str) -> float:
     '''Wrapper for reading the Vina rescoring log file.
 
@@ -526,3 +617,20 @@ def read_vina_rescoring_log(path: str) -> float:
     '''
 
     return _read_rescoring_log_generic(path, "Estimated Free Energy of Binding", "vina", "vina_read_log_ERROR.log")
+
+
+def read_gnina_rescoring_log(path: str) -> float:
+    '''Wrapper for reading the Gnina rescoring log file.
+
+    Parameters
+    ----------
+    path : str
+        The path to the Gnina rescoring log file.
+
+    Returns
+    -------
+    float
+        The affinity of the ligand from the Gnina rescoring log file.
+    '''
+
+    return _read_rescoring_log_generic(path, "Affinity", "gnina", "gnina_read_log_ERROR.log")

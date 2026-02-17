@@ -27,14 +27,41 @@ import textwrap as tw
 
 from glob import glob
 from pathlib import Path
-from sqlalchemy.engine.url import URL
-from typing import Any, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 from unittest.mock import MagicMock
 
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Constants as occ
 
-from OCDocker.DB.DBMinimal import cleanup_engine, cleanup_session, create_database_if_not_exists, create_engine, create_session
+# Optional DB dependencies.
+# These imports are intentionally guarded so that non-DB workflows can run
+# without requiring `ocdocker[db]`.
+DB_IMPORT_ERROR: Optional[Exception] = None
+URL: Any = None
+cleanup_engine: Optional[Callable[[Any], None]] = None
+cleanup_session: Optional[Callable[[Any], None]] = None
+create_database_if_not_exists: Optional[Callable[[Any], None]] = None
+create_engine: Optional[Callable[..., Any]] = None
+create_session: Optional[Callable[[Any], Any]] = None
+try:
+    from sqlalchemy.engine.url import URL as _SQLAlchemyURL
+
+    from OCDocker.DB.DBMinimal import (
+        cleanup_engine as _cleanup_engine,
+        cleanup_session as _cleanup_session,
+        create_database_if_not_exists as _create_database_if_not_exists,
+        create_engine as _create_engine,
+        create_session as _create_session,
+    )
+
+    URL = _SQLAlchemyURL
+    cleanup_engine = _cleanup_engine
+    cleanup_session = _cleanup_session
+    create_database_if_not_exists = _create_database_if_not_exists
+    create_engine = _create_engine
+    create_session = _create_session
+except Exception as exc:
+    DB_IMPORT_ERROR = exc
 
 # License
 ###############################################################################
@@ -58,24 +85,25 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 from OCDocker._version import __version__ as ocVersion
 
 _description = tw.dedent("""\033[1;93m
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    +-+-+-+-+-+-+-+-+-+- \033[1;96m┏━┓┏━╸╺┳━┓┏━┓┏━╸╻┏ ┏━╸┏━┓ \033[1;93m-+-+-+-+-+-+-+-+-+-+
-    +-+-+-+-+-+-+-+-+-+- \033[1;96m┃ ┃┃   ┃ ┃┃ ┃┃  ┣┻┓┣╸ ┣┳┛ \033[1;93m-+-+-+-+-+-+-+-+-+-+
-    +-+-+-+-+-+-+-+-+-+- \033[1;96m┗━┛┗━╸╺┻━┛┗━┛┗━╸╹ ╹┗━╸╹┗╸ \033[1;93m-+-+-+-+-+-+-+-+-+-+
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- \033[1;96m┏━┓┏━╸╺┳━┓┏━┓┏━╸╻┏ ┏━╸┏━┓ \033[1;93m-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- \033[1;96m┃ ┃┃   ┃ ┃┃ ┃┃  ┣┻┓┣╸ ┣┳┛ \033[1;93m-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- \033[1;96m┗━┛┗━╸╺┻━┛┗━┛┗━╸╹ ╹┗━╸╹┗╸ \033[1;93m-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
 \033[1;0m
-      Copyright (C) 2026  Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
+              Copyright (C) 2026  Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 \033[1;95m
-                  [Universidade Federal do Rio de Janeiro - UFRJ]
+                          [Universidade Federal do Rio de Janeiro - UFRJ]
 \033[1;0m
-          This program comes with ABSOLUTELY NO WARRANTY
+                  This program comes with ABSOLUTELY NO WARRANTY
 
-      OCDocker version: """ + ocVersion + """
+              OCDocker version: """ + ocVersion + """
 
-     Please cite:
-         -
+             Please cite:
+                 -
 \033[1;93m
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 \033[1;0m""")
 
 # Runtime globals (populated by bootstrap)
@@ -84,14 +112,93 @@ args: Optional[argparse.Namespace] = None
 update: bool = False
 config_file: str = "OCDocker.cfg"
 overwrite: bool = False
-db_url: Optional[Union[URL, str]] = None
-optdb_url: Optional[Union[URL, str]] = None
+db_url: Optional[Any] = None
+optdb_url: Optional[Any] = None
 engine: Any = None
 session: Any = None
 
 # NOTE: Configuration values are now managed via OCDocker.Config module.
 # Use `from OCDocker.Config import get_config` to access configuration.
 # Runtime objects (db_url, engine, session, etc.) are still available as module-level globals.
+
+GNINA_DEFAULT_SCORING_FUNCTIONS = [
+    "ad4_scoring",
+    "default",
+    "dkoes_fast",
+    "dkoes_scoring",
+    "dkoes_scoring_old",
+    "vina",
+    "vinardo",
+]
+
+GNINA_DEFAULT_CNN_MODELS = [
+    "all_default_to_default_1_3_1",
+    "all_default_to_default_1_3_2",
+    "all_default_to_default_1_3_3",
+    "crossdock_default2018",
+    "crossdock_default2018_1",
+    "crossdock_default2018_1_3",
+    "crossdock_default2018_1_3_1",
+    "crossdock_default2018_1_3_2",
+    "crossdock_default2018_1_3_3",
+    "crossdock_default2018_1_3_4",
+    "crossdock_default2018_2",
+    "crossdock_default2018_3",
+    "crossdock_default2018_4",
+    "crossdock_default2018_KD_1",
+    "crossdock_default2018_KD_2",
+    "crossdock_default2018_KD_3",
+    "crossdock_default2018_KD_4",
+    "crossdock_default2018_KD_5",
+    "default1.0",
+    "default2017",
+    "dense",
+    "dense_1",
+    "dense_1_3",
+    "dense_1_3_1",
+    "dense_1_3_2",
+    "dense_1_3_3",
+    "dense_1_3_4",
+    "dense_1_3_PT_KD",
+    "dense_1_3_PT_KD_1",
+    "dense_1_3_PT_KD_2",
+    "dense_1_3_PT_KD_3",
+    "dense_1_3_PT_KD_4",
+    "dense_1_3_PT_KD_def2018",
+    "dense_1_3_PT_KD_def2018_1",
+    "dense_1_3_PT_KD_def2018_2",
+    "dense_1_3_PT_KD_def2018_3",
+    "dense_1_3_PT_KD_def2018_4",
+    "dense_2",
+    "dense_3",
+    "dense_4",
+    "fast",
+    "general_default2018",
+    "general_default2018_1",
+    "general_default2018_2",
+    "general_default2018_3",
+    "general_default2018_4",
+    "general_default2018_KD_1",
+    "general_default2018_KD_2",
+    "general_default2018_KD_3",
+    "general_default2018_KD_4",
+    "general_default2018_KD_5",
+    "redock_default2018",
+    "redock_default2018_1",
+    "redock_default2018_1_3",
+    "redock_default2018_1_3_1",
+    "redock_default2018_1_3_2",
+    "redock_default2018_1_3_3",
+    "redock_default2018_1_3_4",
+    "redock_default2018_2",
+    "redock_default2018_3",
+    "redock_default2018_4",
+    "redock_default2018_KD_1",
+    "redock_default2018_KD_2",
+    "redock_default2018_KD_3",
+    "redock_default2018_KD_4",
+    "redock_default2018_KD_5",
+]
 
 # Classes
 ###############################################################################
@@ -327,27 +434,73 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
 
         # Gnina
         'gnina': get_config('gnina', 'gnina'),
-        'gnina_exhaustiveness': get_config('gnina_exhaustiveness', ''),
-        'gnina_num_modes': get_config('gnina_num_modes', ''),
-        'gnina_scoring': get_config('gnina_scoring', ''),
-        'gnina_custom_scoring': get_config('gnina_custom_scoring', ''),
-        'gnina_custom_atoms': get_config('gnina_custom_atoms', ''),
-        'gnina_local_only': get_config('gnina_local_only', ''),
-        'gnina_minimize': get_config('gnina_minimize', ''),
-        'gnina_randomize_only': get_config('gnina_randomize_only', ''),
-        'gnina_num_mc_steps': get_config('gnina_num_mc_steps', ''),
-        'gnina_max_mc_steps': get_config('gnina_max_mc_steps', ''),
-        'gnina_num_mc_saved': get_config('gnina_num_mc_saved', ''),
-        'gnina_minimize_iters': get_config('gnina_minimize_iters', ''),
-        'gnina_simple_ascent': get_config('gnina_simple_ascent', ''),
-        'gnina_accurate_line': get_config('gnina_accurate_line', ''),
-        'gnina_minimize_early_term': get_config('gnina_minimize_early_term', ''),
-        'gnina_approximation': get_config('gnina_approximation', ''),
-        'gnina_factor': get_config('gnina_factor', ''),
-        'gnina_force_cap': get_config('gnina_force_cap', ''),
-        'gnina_user_grid': get_config('gnina_user_grid', ''),
-        'gnina_user_grid_lambda': get_config('gnina_user_grid_lambda', ''),
-        'gnina_no_gpu': get_config('gnina_no_gpu', ''),
+        'gnina_flex': get_config('gnina_flex', 'no'),
+        'gnina_flexres': get_config('gnina_flexres', 'no'),
+        'gnina_flexdist_ligand': get_config('gnina_flexdist_ligand', 'no'),
+        'gnina_flexdist': get_config('gnina_flexdist', 'no'),
+        'gnina_flex_limit': get_config('gnina_flex_limit', 'no'),
+        'gnina_flex_max': get_config('gnina_flex_max', 'no'),
+        'gnina_autobox_ligand': get_config('gnina_autobox_ligand', 'no'),
+        'gnina_autobox_add': get_config('gnina_autobox_add', '4'),
+        'gnina_autobox_extend': get_config('gnina_autobox_extend', '1'),
+        'gnina_no_lig': get_config('gnina_no_lig', 'no'),
+        'gnina_covalent_rec_atom': get_config('gnina_covalent_rec_atom', 'no'),
+        'gnina_covalent_lig_atom_pattern': get_config('gnina_covalent_lig_atom_pattern', 'no'),
+        'gnina_covalent_lig_atom_position': get_config('gnina_covalent_lig_atom_position', 'no'),
+        'gnina_covalent_fix_lig_atom_position': get_config('gnina_covalent_fix_lig_atom_position', 'no'),
+        'gnina_covalent_bond_order': get_config('gnina_covalent_bond_order', '1'),
+        'gnina_covalent_optimize_lig': get_config('gnina_covalent_optimize_lig', 'no'),
+        'gnina_exhaustiveness': get_config('gnina_exhaustiveness', '8'),
+        'gnina_num_modes': get_config('gnina_num_modes', '9'),
+        'gnina_scoring': get_config('gnina_scoring', 'default'),
+        'gnina_scoring_functions': get_config('gnina_scoring_functions', GNINA_DEFAULT_SCORING_FUNCTIONS.copy(), list),
+        'gnina_custom_scoring': get_config('gnina_custom_scoring', 'no'),
+        'gnina_custom_atoms': get_config('gnina_custom_atoms', 'no'),
+        'gnina_score_only': get_config('gnina_score_only', 'no'),
+        'gnina_local_only': get_config('gnina_local_only', 'no'),
+        'gnina_minimize': get_config('gnina_minimize', 'no'),
+        'gnina_randomize_only': get_config('gnina_randomize_only', 'no'),
+        'gnina_num_mc_steps': get_config('gnina_num_mc_steps', 'no'),
+        'gnina_max_mc_steps': get_config('gnina_max_mc_steps', 'no'),
+        'gnina_num_mc_saved': get_config('gnina_num_mc_saved', 'no'),
+        'gnina_temperature': get_config('gnina_temperature', 'no'),
+        'gnina_minimize_iters': get_config('gnina_minimize_iters', '0'),
+        'gnina_accurate_line': get_config('gnina_accurate_line', 'no'),
+        'gnina_simple_ascent': get_config('gnina_simple_ascent', 'no'),
+        'gnina_minimize_early_term': get_config('gnina_minimize_early_term', 'no'),
+        'gnina_minimize_single_full': get_config('gnina_minimize_single_full', 'no'),
+        'gnina_approximation': get_config('gnina_approximation', 'spline'),
+        'gnina_factor': get_config('gnina_factor', '32'),
+        'gnina_force_cap': get_config('gnina_force_cap', '10'),
+        'gnina_user_grid': get_config('gnina_user_grid', 'no'),
+        'gnina_user_grid_lambda': get_config('gnina_user_grid_lambda', '-1'),
+        'gnina_print_terms': get_config('gnina_print_terms', 'no'),
+        'gnina_print_atom_types': get_config('gnina_print_atom_types', 'no'),
+        'gnina_cnn_scoring': get_config('gnina_cnn_scoring', 'rescore'),
+        'gnina_cnn': get_config('gnina_cnn', 'default'),
+        'gnina_cnn_models': get_config('gnina_cnn_models', GNINA_DEFAULT_CNN_MODELS.copy(), list),
+        'gnina_cnn_model': get_config('gnina_cnn_model', 'no'),
+        'gnina_cnn_rotation': get_config('gnina_cnn_rotation', '0'),
+        'gnina_cnn_mix_emp_force': get_config('gnina_cnn_mix_emp_force', 'no'),
+        'gnina_cnn_mix_emp_energy': get_config('gnina_cnn_mix_emp_energy', 'no'),
+        'gnina_cnn_empirical_weight': get_config('gnina_cnn_empirical_weight', '1'),
+        'gnina_cnn_center_x': get_config('gnina_cnn_center_x', 'no'),
+        'gnina_cnn_center_y': get_config('gnina_cnn_center_y', 'no'),
+        'gnina_cnn_center_z': get_config('gnina_cnn_center_z', 'no'),
+        'gnina_cnn_verbose': get_config('gnina_cnn_verbose', 'no'),
+        'gnina_out_flex': get_config('gnina_out_flex', 'no'),
+        'gnina_atom_terms': get_config('gnina_atom_terms', 'no'),
+        'gnina_atom_term_data': get_config('gnina_atom_term_data', 'no'),
+        'gnina_pose_sort_order': get_config('gnina_pose_sort_order', 'CNNscore'),
+        'gnina_full_flex_output': get_config('gnina_full_flex_output', 'no'),
+        'gnina_cpu': get_config('gnina_cpu', 'auto'),
+        'gnina_seed': get_config('gnina_seed', 'no'),
+        'gnina_min_rmsd_filter': get_config('gnina_min_rmsd_filter', '1'),
+        'gnina_quiet': get_config('gnina_quiet', 'no'),
+        'gnina_addH': get_config('gnina_addH', 'yes'),
+        'gnina_stripH': get_config('gnina_stripH', 'no'),
+        'gnina_device': get_config('gnina_device', '0'),
+        'gnina_no_gpu': get_config('gnina_no_gpu', 'no'),
 
         # PLANTS
         'plants': get_config('plants', 'plants'),
@@ -430,48 +583,6 @@ def _register_db_cleanup() -> None:
     atexit.register(cleanup_database_resources)
 
 
-def _sync_import_consumers() -> None:
-    '''Push updated globals to caller modules that pulled names via star-import.'''
-
-    # Inspect the current frame to find the caller
-    frame = inspect.currentframe()
-
-    # If frame is None, return
-    if not frame:
-        return
-    try:
-        # Get the parent frame
-        parent = frame.f_back
-
-        # If parent frame is None, return
-        if not parent:
-            return
-
-        # Get the module name of the parent frame
-        module_name = parent.f_globals.get("__name__")
-
-        # If module name is invalid, return
-        if not isinstance(module_name, str) or module_name in ("builtins", __name__):
-            return
-
-        # Push public items to the parent frame's globals
-        public_items = {
-            name: value
-            for name, value in globals().items()
-            if not name.startswith("_") and name not in _SYNC_SKIP_NAMES
-        }
-
-        # Find shared names
-        shared = set(parent.f_globals.keys()).intersection(public_items.keys())
-
-        # Update parent frame globals
-        for name in shared:
-            parent.f_globals[name] = public_items[name]
-    finally:
-        # Cleanup to avoid reference cycles
-        del frame
-
-
 ## Public ##
 
 def argument_parsing() -> argparse.Namespace:
@@ -487,7 +598,7 @@ def argument_parsing() -> argparse.Namespace:
     return get_argument_parsing().parse_args()
 
 
-def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
+def bootstrap(ns: Optional[argparse.Namespace] = None, init_db: bool = True) -> None:
     '''Explicitly bootstrap OCDocker environment (config, DB, paths).
 
     Must be called before using modules that depend on Initialise globals.
@@ -496,6 +607,9 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     ----------
     ns : argparse.Namespace, optional
         Parsed command line arguments (if already available), by default None
+    init_db : bool, optional
+        If True, initialize SQLAlchemy engine/session and database URLs.
+        Set to False for lightweight workflows that do not need database access.
     '''
 
     global bootstrapped
@@ -589,67 +703,95 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
 
     config.database.backend = backend
 
-    # Build DB URLs and connections
+    # Build DB URLs and connections (optional)
     global db_url, optdb_url, engine, session
-    if backend == 'sqlite':
-        _module_dir = os.path.dirname(os.path.abspath(__file__))
-        # Env var takes precedence, then config, then default path
-        sqlite_path_env = os.getenv('OCDOCKER_SQLITE_PATH', '').strip()
-        if sqlite_path_env:
-            sqlite_path = sqlite_path_env
-        elif config.database.sqlite_path:
-            sqlite_path = config.database.sqlite_path
+    db_url = None
+    optdb_url = None
+    engine = None
+    session = None
+
+    db_requested = bool(init_db)
+    db_helpers_available = (
+        URL is not None
+        and create_engine is not None
+        and create_database_if_not_exists is not None
+        and create_session is not None
+    )
+    if db_requested and not db_helpers_available:
+        missing_detail = ""
+        if DB_IMPORT_ERROR is not None:
+            missing_detail = f" ({type(DB_IMPORT_ERROR).__name__}: {DB_IMPORT_ERROR})"
+        print(
+            f"{clrs['y']}WARNING{clrs['n']}: Database dependencies are not available{missing_detail}. "
+            "Database initialization is disabled for this run."
+        )
+        print(
+            f"{clrs['c']}INFO{clrs['n']}: Install optional DB dependencies with "
+            "\"pip install 'ocdocker[db]'\"."
+        )
+        db_requested = False
+
+    if db_requested and URL is not None:
+        if backend == 'sqlite':
+            _module_dir = os.path.dirname(os.path.abspath(__file__))
+            # Env var takes precedence, then config, then default path
+            sqlite_path_env = os.getenv('OCDOCKER_SQLITE_PATH', '').strip()
+            if sqlite_path_env:
+                sqlite_path = sqlite_path_env
+            elif config.database.sqlite_path:
+                sqlite_path = config.database.sqlite_path
+            else:
+                sqlite_path = os.path.join(_module_dir, 'ocdocker.db')
+            db_url = URL.create(drivername='sqlite', database=sqlite_path)
+            optdb_url = db_url
+            # Warn user about SQLite limitations
+            try:
+                print(f"{clrs['y']}WARNING{clrs['n']}: SQLite backend enabled. This is suitable for development/tests only. For performance and concurrency, PostgreSQL is recommended.")
+                print(
+                    f"{clrs['c']}INFO{clrs['n']}: To use PostgreSQL or MySQL, "
+                    "set DB_BACKEND accordingly."
+                )
+            except (OSError, IOError, BrokenPipeError):
+                # Ignore stdout errors (e.g., when output is redirected to a broken pipe)
+                pass
         else:
-            sqlite_path = os.path.join(_module_dir, 'ocdocker.db')
-        db_url = URL.create(drivername='sqlite', database=sqlite_path)
-        optdb_url = db_url
-        # Warn user about SQLite limitations
-        try:
-            print(f"{clrs['y']}WARNING{clrs['n']}: SQLite backend enabled. This is suitable for development/tests only. For performance and concurrency, PostgreSQL is recommended.")
-            print(
-                f"{clrs['c']}INFO{clrs['n']}: To use PostgreSQL or MySQL, "
-                "set DB_BACKEND accordingly."
+            # Ensure DB settings exist (client/server DB mode).
+            if not config.database.host or not config.database.user or not config.database.password or not config.database.database:
+                print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD and DATABASE must be set in the config file '{config_file}'")
+                raise SystemExit(2)
+            if backend == 'mysql':
+                drivername = 'mysql+pymysql'
+                default_port = 3306
+            else:
+                drivername = 'postgresql+psycopg'
+                default_port = 5432
+
+            config.database.port = int(config.database.port) if config.database.port else default_port
+            if not config.database.optimizedb:
+                config.database.optimizedb = 'optimization'
+
+            db_url = URL.create(
+                drivername=drivername,
+                host=config.database.host,
+                username=config.database.user,
+                password=config.database.password,
+                database=config.database.database,
+                port=config.database.port
             )
-        except (OSError, IOError, BrokenPipeError):
-            # Ignore stdout errors (e.g., when output is redirected to a broken pipe)
-            pass
-    else:
-        # Ensure DB settings exist (client/server DB mode).
-        if not config.database.host or not config.database.user or not config.database.password or not config.database.database:
-            print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD and DATABASE must be set in the config file '{config_file}'")
-            raise SystemExit(2)
-        if backend == 'mysql':
-            drivername = 'mysql+pymysql'
-            default_port = 3306
-        else:
-            drivername = 'postgresql+psycopg'
-            default_port = 5432
+            optdb_url = URL.create(
+                drivername=drivername,
+                host=config.database.host,
+                username=config.database.user,
+                password=config.database.password,
+                database=config.database.optimizedb,
+                port=config.database.port
+            )
 
-        config.database.port = int(config.database.port) if config.database.port else default_port
-        if not config.database.optimizedb:
-            config.database.optimizedb = 'optimization'
-
-        db_url = URL.create(
-            drivername=drivername,
-            host=config.database.host,
-            username=config.database.user,
-            password=config.database.password,
-            database=config.database.database,
-            port=config.database.port
-        )
-        optdb_url = URL.create(
-            drivername=drivername,
-            host=config.database.host,
-            username=config.database.user,
-            password=config.database.password,
-            database=config.database.optimizedb,
-            port=config.database.port
-        )
-
-    engine = create_engine(db_url)
-    create_database_if_not_exists(engine.url)
-    create_database_if_not_exists(optdb_url)
-    session = create_session(engine)
+        if create_engine is not None and create_database_if_not_exists is not None and create_session is not None:
+            engine = create_engine(db_url)
+            create_database_if_not_exists(engine.url)
+            create_database_if_not_exists(optdb_url)
+            session = create_session(engine)
 
     # Paths and dirs (runtime values - stored in config only, no globals)
     ocdocker_path = os.path.dirname(os.path.abspath(__file__))
@@ -717,11 +859,18 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
 
     # Ensure ODDT models folder contents (allow skipping for slim environments)
     if not str(os.getenv('OCDOCKER_SKIP_ODDT', '')).lower() in ('1','true','yes','y'):
-        initialise_oddt_models(config.oddt_models_dir, config.oddt.scoring_functions)
-
-    # Note: _sync_import_consumers() exists but is not called - no longer needed since we've eliminated star imports
-    # If any legacy code still uses star imports, uncomment the line below:
-    # _sync_import_consumers()
+        try:
+            initialise_oddt_models(config.oddt_models_dir, config.oddt.scoring_functions)
+        except ModuleNotFoundError as exc:
+            missing_name = getattr(exc, "name", "") or "unknown"
+            print(
+                f"{clrs['y']}WARNING{clrs['n']}: Optional ODDT dependency '{missing_name}' is not available. "
+                "Skipping ODDT model initialization."
+            )
+            print(
+                f"{clrs['c']}INFO{clrs['n']}: If you need ODDT/ML workflows, install "
+                "\"pip install 'ocdocker[ml]'\" and the ODDT package."
+            )
 
     # Register cleanup handlers for database connections
     _register_db_cleanup()
@@ -737,7 +886,7 @@ def cleanup_database_resources() -> None:
     '''
     global session, engine
 
-    if 'session' in globals() and session is not None:
+    if 'session' in globals() and session is not None and cleanup_session is not None:
         try:
             cleanup_session(session)
         except Exception as exc:
@@ -747,7 +896,7 @@ def cleanup_database_resources() -> None:
                 file=sys.stderr,
             )
 
-    if 'engine' in globals() and engine is not None:
+    if 'engine' in globals() and engine is not None and cleanup_engine is not None:
         try:
             cleanup_engine(engine)
         except Exception as exc:
@@ -962,10 +1111,12 @@ def create_ocdocker_conf() -> None:
     #endregion
 
     #region GNINA variables
-    confGnina = "/data/hd4tb/OCDocker/software/docking/gnina/gnina"
+    confGnina = "/data/hd4tb/OCDocker/software/docking/gnina/gnina.1.3.2.cuda12.8"
     confGnina_exhaustiveness = "8"
     confGnina_num_modes = "9"
     confGnina_scoring = "default"
+    confGnina_scoring_functions = ",".join(GNINA_DEFAULT_SCORING_FUNCTIONS)
+    confGnina_cnn_models = ",".join(GNINA_DEFAULT_CNN_MODELS)
     confGnina_custom_scoring_file = "no"
     confGnina_custom_atoms = "no"
     confGnina_local_only = "no"
@@ -976,7 +1127,7 @@ def create_ocdocker_conf() -> None:
     confGnina_num_mc_saved = "no"
     confGnina_minimize_iters = "0"
     confGnina_simple_ascent = "no"
-    confGnina_accurate_line = "yes"
+    confGnina_accurate_line = "no"
     confGnina_minimize_early_term = "no"
     confGnina_approximation = "spline"
     confGnina_factor = "32"
@@ -997,6 +1148,12 @@ def create_ocdocker_conf() -> None:
 
     answer = input(f"Gnina scoring function parameter. Default [{confGnina_scoring}] (press enter to keep default): ")
     confGnina_scoring = confGnina_scoring if not answer else answer
+
+    answer = input(f"Gnina available scoring functions (separated by ','). Default [{confGnina_scoring_functions}] (press enter to keep default): ")
+    confGnina_scoring_functions = confGnina_scoring_functions if not answer else answer
+
+    answer = input(f"Gnina available CNN models for rescoring (separated by ','). Default [{confGnina_cnn_models}] (press enter to keep default): ")
+    confGnina_cnn_models = confGnina_cnn_models if not answer else answer
 
     answer = input(f"Gnina custom scoring file parameter ('no' to ignore this parameter, otherwise provide the path). Default [{confGnina_custom_scoring_file}] (press enter to keep default): ")
     confGnina_custom_scoring_file = confGnina_custom_scoring_file if not answer else answer
@@ -1355,8 +1512,14 @@ gnina_exhaustiveness = """ + str(confGnina_exhaustiveness) + """
 # Maximum number of binding modes to generate
 gnina_num_modes = """ + str(confGnina_num_modes) + """
 
-# Alternativa scoring function
+# Alternative scoring function
 gnina_scoring = """ + str(confGnina_scoring) + """
+
+# Available scoring functions
+gnina_scoring_functions = """ + str(confGnina_scoring_functions) + """
+
+# Available CNN models for rescoring
+gnina_cnn_models = """ + str(confGnina_cnn_models) + """
 
 # Custom scoring file
 gnina_custom_scoring = """ + str(confGnina_custom_scoring_file) + """
