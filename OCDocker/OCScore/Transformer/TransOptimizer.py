@@ -909,7 +909,7 @@ class TransOptimizer:
                  study_name : str = "NN_Optimization",
                  load_if_exists : bool = True,
                  sampler : optuna.samplers.BaseSampler = TPESampler(),
-                 n_jobs : int = 1) -> dict:
+                 n_jobs : int = 1) -> Dict[str, Any]:
         ''' Optimize the model using Optuna.
 
         Parameters
@@ -957,7 +957,7 @@ class TransOptimizer:
         study.optimize(self.objective, n_trials = n_trials, n_jobs = n_jobs)
 
         # Get the best hyperparameters
-        best_params = study.best_params
+        best_params = cast(Dict[str, Any], study.best_params)
 
         # If verbose, print the best hyperparameters
         if self.verbose:
