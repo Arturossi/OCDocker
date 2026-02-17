@@ -1060,18 +1060,18 @@ def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = T
         If the molecule cannot be loaded from the provided path.
     '''
 
-    # Check if the molecule is a string (means that it is a path)
-    mol: Union[str, rdkit.Chem.rdchem.Mol, None] = molecule
-    if isinstance(mol, str):
-        molecule_path = mol
-        _, loaded = load_mol(mol, sanitize = sanitize)
+    # Normalize to a concrete RDKit Mol before geometry operations.
+    if isinstance(molecule, str):
+        molecule_path = molecule
+        _, loaded = load_mol(molecule, sanitize = sanitize)
         if loaded is None:
             ocerror.Error.parse_molecule(f"Could not load molecule from path: {molecule_path}")
             raise ValueError(f"Could not load molecule from path: {molecule_path}")
         mol = loaded
-
-    if not isinstance(mol, rdkit.Chem.rdchem.Mol):
-        ocerror.Error.wrong_type(f"Expected RDKit Mol, got {type(mol)}.")
+    elif isinstance(molecule, rdkit.Chem.rdchem.Mol):
+        mol = molecule
+    else:
+        ocerror.Error.wrong_type(f"Expected RDKit Mol, got {type(molecule)}.")
         raise ValueError("Molecule is not an RDKit Mol.")
 
     mol = cast(rdkit.Chem.rdchem.Mol, Chem.Mol(mol))
