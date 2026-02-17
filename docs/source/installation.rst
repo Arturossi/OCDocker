@@ -96,13 +96,35 @@ To install OCDocker, follow these steps:
 
       pip install ocdocker
 
+   ``pip install ocdocker`` installs the core package only. To install every optional runtime stack, use ``pip install "ocdocker[all]"``.
+
+   Optional feature extras:
+
+   .. code-block:: bash
+
+      # Docking workflows (RDKit/OpenBabel/BioPython)
+      pip install "ocdocker[docking]"
+
+      # Docking + database support (SQLAlchemy + drivers)
+      pip install "ocdocker[docking,db]"
+
+      # ML workflows (PyTorch/XGBoost/Optuna)
+      pip install "ocdocker[ml]"
+
+      # Install all optional runtime features
+      pip install "ocdocker[all]"
+
    Option B: install from source (recommended for development):
 
    .. code-block:: bash
 
       git clone https://github.com/Arturossi/OCDocker.git
       cd OCDocker
+      # Base package only
       pip install .
+
+      # Example: source install with docking + DB extras
+      pip install -e ".[docking,db]"
 
 Optional: build the Sphinx documentation
 -----------------------------------------

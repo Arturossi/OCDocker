@@ -14,6 +14,14 @@ CLI overview
 Commands
 --------
 
+- Optional feature installs:
+
+  .. code-block:: bash
+
+     pip install "ocdocker[docking]"      # required for docking commands
+     pip install "ocdocker[db]"           # required for --store-db
+     pip install "ocdocker[ml]"           # required for ML workflows (PyTorch/XGBoost/Optuna)
+
 - vs: Dock a single receptor/ligand/box with one engine (vina/smina/plants)
 
   .. code-block:: bash

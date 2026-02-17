@@ -24,28 +24,13 @@ dependencies = [
   "scipy>=1.14.1",
   "scikit-learn>=1.5.2",
   "scikit-image>=0.24.0",
-  # Machine learning and AI
-  "torch>=2.4.1",
-  "torchaudio>=2.4.1",
-  "torchvision>=0.19.1",
-  "xgboost>=2.1.1",
-  "optuna>=3.6.1",
-  # Chemistry and molecular modeling
-  "rdkit>=2024.09.1",
-  "openbabel>=3.1.1",
-  "biopython>=1.84",
-  # ODDT is vendored into release artifacts in CI before build.
-  # PyPI rejects direct VCS dependencies in Requires-Dist metadata.
-  "spyrmsd>=0.8.0",
+  # NOTE: ML deps are optional and available in the `ml` extra.
+  # Chemistry and molecular modeling deps are optional in the `docking` extra.
   # Data analysis and visualization
   "seaborn>=0.13.2",
   "matplotlib>=3.9.2",
   "pingouin>=0.5.5",
   "statsmodels>=0.14.3",
-  # Deep learning utilities
-  "torchsummary",
-  "torchviz",
-  "visualtorch>=0.2.3",
   # Data processing and utilities
   "pyyaml>=6.0.2",
   "joblib>=1.4.2",
@@ -57,11 +42,7 @@ dependencies = [
   # Network and graph analysis
   "networkx>=3.3",
   "rustworkx>=0.15.1",
-  # Database
-  "sqlalchemy>=2.0.35",
-  "sqlalchemy-utils>=0.41.2",
-  "psycopg>=3.2.0",
-  "pymysql>=1.1.1",
+  # NOTE: database dependencies are optional and available in the `db` extra.
   # Configuration
   "configargparse>=1.7",
   "python-dotenv>=1.1.0",
@@ -125,6 +106,39 @@ Issues = "https://github.com/Arturossi/OCDocker/issues"
 ocdocker = "OCDocker.CLI:main"
 
 [project.optional-dependencies]
+docking = [
+  # Chemistry and molecular modeling
+  "rdkit>=2024.09.1",
+  "openbabel>=3.1.1",
+  "biopython>=1.84",
+  # ODDT is vendored into release artifacts in CI before build.
+  # PyPI rejects direct VCS dependencies in Requires-Dist metadata.
+  "spyrmsd>=0.8.0",
+]
+db = [
+  "sqlalchemy>=2.0.35",
+  "sqlalchemy-utils>=0.41.2",
+  "psycopg>=3.2.0",
+  "pymysql>=1.1.1",
+]
+ml = [
+  # Machine learning and AI
+  "torch>=2.4.1",
+  "torchaudio>=2.4.1",
+  "torchvision>=0.19.1",
+  "xgboost>=2.1.1",
+  # Deep learning utilities
+  "torchsummary",
+  "torchviz",
+  "visualtorch>=0.2.3",
+  # Hyperparameter optimization
+  "optuna>=3.6.1",
+  "optuna-dashboard>=0.16.2",
+  "optuna-integration>=4.0.0",
+]
+gpu = [
+  "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
+]
 dev = [
   "pytest>=8.3.3",
   "pytest-cov>=6.1.1",
@@ -154,4 +168,34 @@ build = [
   "wheel>=0.44.0",
   "build>=1.2.2.post1",
   "twine>=6.1.0",
+]
+all = [
+  # docking
+  "rdkit>=2024.09.1",
+  "openbabel>=3.1.1",
+  "biopython>=1.84",
+  "spyrmsd>=0.8.0",
+  # db
+  "sqlalchemy>=2.0.35",
+  "sqlalchemy-utils>=0.41.2",
+  "psycopg>=3.2.0",
+  "pymysql>=1.1.1",
+  # ml
+  "torch>=2.4.1",
+  "torchaudio>=2.4.1",
+  "torchvision>=0.19.1",
+  "xgboost>=2.1.1",
+  "torchsummary",
+  "torchviz",
+  "visualtorch>=0.2.3",
+  "optuna>=3.6.1",
+  "optuna-dashboard>=0.16.2",
+  "optuna-integration>=4.0.0",
+  # gpu
+  "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
+  # existing optional stacks
+  "boto3>=1.35.31",
+  "google-cloud-storage>=2.18.2",
+  "dropbox>=12.0.2",
+  "snakemake>=7.32.4",
 ]

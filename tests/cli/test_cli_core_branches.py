@@ -283,3 +283,67 @@ def test_cmd_init_config_uses_package_example_when_cwd_missing(monkeypatch, tmp_
     rc = cli.cmd_init_config(SimpleNamespace(config_file=str(target)))
     assert rc == 0
     assert target.read_text(encoding="utf-8") == "from_package=true\n"
+
+
+@pytest.mark.order(464)
+def test_bootstrap_passes_init_db_flag_when_supported(monkeypatch):
+    seen = {"ns": None, "init_db": None}
+
+    def _bootstrap(ns, init_db=True):
+        seen["ns"] = ns
+        seen["init_db"] = init_db
+
+    fake_mod = types.SimpleNamespace(bootstrap=_bootstrap)
+    monkeypatch.setattr(cli.importlib, "import_module", lambda _name: fake_mod)
+
+    ns = argparse.Namespace(config_file=None, _ocdocker_init_db=False)
+    cli._bootstrap_ocdocker_env(ns)
+
+    assert seen["ns"] is ns
+    assert seen["init_db"] is False
+
+
+@pytest.mark.order(465)
+def test_suggest_extra_for_missing_module_uses_ml_for_optuna():
+    assert cli._suggest_extra_for_missing_module("optuna") == "ml"
+    assert cli._suggest_extra_for_missing_module("optuna.samplers") == "ml"
+    assert cli._suggest_extra_for_missing_module("torch") == "ml"
+    assert cli._suggest_extra_for_missing_module("torch.nn") == "ml"
+    assert cli._suggest_extra_for_missing_module("torchaudio") == "ml"
+    assert cli._suggest_extra_for_missing_module("torchvision.transforms") == "ml"
+    assert cli._suggest_extra_for_missing_module("xgboost") == "ml"
+    assert cli._suggest_extra_for_missing_module("torchsummary") == "ml"
+    assert cli._suggest_extra_for_missing_module("torchviz") == "ml"
+    assert cli._suggest_extra_for_missing_module("visualtorch") == "ml"
+    assert cli._suggest_extra_for_missing_module("sqlalchemy") == "db"
+    assert cli._suggest_extra_for_missing_module("rdkit") == "docking"
+
+
+@pytest.mark.order(466)
+def test_print_optional_dependency_hint_reports_extra(capsys):
+    try:
+        __import__("definitely_missing_module_for_cli_hint_test")
+    except ModuleNotFoundError as exc:
+        rc = cli._print_optional_dependency_hint(feature="ML workflow", extra="ml", exc=exc)
+    else:  # pragma: no cover
+        raise AssertionError("expected import to fail")
+
+    out = capsys.readouterr().out
+    assert rc == 2
+    assert "Error: missing optional dependency" in out
+    assert 'Install with: pip install "ocdocker[ml]"' in out
+
+
+@pytest.mark.order(467)
+def test_db_dependencies_available_handles_missing_modules(monkeypatch):
+    def _import_module(name):
+        if name == "sqlalchemy":
+            raise ModuleNotFoundError("No module named 'sqlalchemy'")
+        return object()
+
+    monkeypatch.setattr(cli.importlib, "import_module", _import_module)
+
+    ok, exc = cli._db_dependencies_available()
+    assert ok is False
+    assert isinstance(exc, ModuleNotFoundError)
+    assert "sqlalchemy" in str(exc)

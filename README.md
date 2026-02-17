@@ -81,6 +81,24 @@ conda activate ocdocker
 pip install ocdocker
 ```
 
+`pip install ocdocker` installs the core package only. To include every optional runtime stack, use `pip install "ocdocker[all]"`.
+
+Install optional feature stacks as needed:
+
+```bash
+# Docking workflows
+pip install "ocdocker[docking]"
+
+# Docking + DB support
+pip install "ocdocker[docking,db]"
+
+# ML workflows (PyTorch/XGBoost/Optuna)
+pip install "ocdocker[ml]"
+
+# All optional runtime features
+pip install "ocdocker[all]"
+```
+
 **Installing from source with pip:**
 
 For development, install from source with pip inside the same conda environment. Ensure the system dependencies are installed first (see [System dependencies](#system-dependencies)).
@@ -94,11 +112,11 @@ cd OCDocker
 mamba create -n ocdocker python=3.11 -y
 conda activate ocdocker
 
-# Install dependencies
-pip install -r requirements.txt
-
 # Install the package in development mode
 pip install -e .
+
+# Optional: install feature extras in editable mode
+pip install -e ".[docking,db,ml]"
 ```
 
 **Note on chemistry packages (`rdkit`, `openbabel`):**
@@ -443,6 +461,12 @@ _ = ocrepro.write_reproducibility_manifest("reproducibility_manifest.json")
 Docking: Quick Examples
 -----------------------
 
+Install docking dependencies first if needed:
+
+```bash
+pip install "ocdocker[docking]"
+```
+
 Single engine (Vina) with timeout, storing to DB:
 
 ```bash
@@ -453,6 +477,12 @@ ocdocker vs \
   --box path/to/box.pdb \
   --timeout 600 \
   --store-db
+```
+
+For ``--store-db``, install DB dependencies too:
+
+```bash
+pip install "ocdocker[db]"
 ```
 
 Pipeline across engines with clustering and rescoring:
@@ -469,7 +499,7 @@ ocdocker pipeline \
 Notes:
 
 - `--timeout` limits external tool runtime (also via `OCDOCKER_TIMEOUT`).
-- `--store-db` auto‑creates tables and stores minimal metadata (name) in the DB.
+- `--store-db` auto-creates tables and stores receptor/ligand descriptors plus supported rescoring columns in the DB.
 
 Timeouts & External Tools
 -------------------------

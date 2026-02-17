@@ -241,7 +241,7 @@ Database and persistence
 ------------------------
 
 - Default backend is PostgreSQL; MySQL and SQLite are also supported.
-- Use `--store-db` in CLI commands to store minimal metadata in the database.
+- Use `--store-db` in CLI commands to store receptor/ligand descriptors plus supported rescoring columns in the database.
 - Database schemas are defined under `OCDocker.DB` and related model pages.
 
 Diagnostics and troubleshooting

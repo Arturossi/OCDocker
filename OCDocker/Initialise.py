@@ -27,14 +27,41 @@ import textwrap as tw
 
 from glob import glob
 from pathlib import Path
-from sqlalchemy.engine.url import URL
-from typing import Any, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 from unittest.mock import MagicMock
 
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Constants as occ
 
-from OCDocker.DB.DBMinimal import cleanup_engine, cleanup_session, create_database_if_not_exists, create_engine, create_session
+# Optional DB dependencies.
+# These imports are intentionally guarded so that non-DB workflows can run
+# without requiring `ocdocker[db]`.
+DB_IMPORT_ERROR: Optional[Exception] = None
+URL: Any = None
+cleanup_engine: Optional[Callable[[Any], None]] = None
+cleanup_session: Optional[Callable[[Any], None]] = None
+create_database_if_not_exists: Optional[Callable[[Any], None]] = None
+create_engine: Optional[Callable[..., Any]] = None
+create_session: Optional[Callable[[Any], Any]] = None
+try:
+    from sqlalchemy.engine.url import URL as _SQLAlchemyURL
+
+    from OCDocker.DB.DBMinimal import (
+        cleanup_engine as _cleanup_engine,
+        cleanup_session as _cleanup_session,
+        create_database_if_not_exists as _create_database_if_not_exists,
+        create_engine as _create_engine,
+        create_session as _create_session,
+    )
+
+    URL = _SQLAlchemyURL
+    cleanup_engine = _cleanup_engine
+    cleanup_session = _cleanup_session
+    create_database_if_not_exists = _create_database_if_not_exists
+    create_engine = _create_engine
+    create_session = _create_session
+except Exception as exc:
+    DB_IMPORT_ERROR = exc
 
 # License
 ###############################################################################
@@ -85,8 +112,8 @@ args: Optional[argparse.Namespace] = None
 update: bool = False
 config_file: str = "OCDocker.cfg"
 overwrite: bool = False
-db_url: Optional[Union[URL, str]] = None
-optdb_url: Optional[Union[URL, str]] = None
+db_url: Optional[Any] = None
+optdb_url: Optional[Any] = None
 engine: Any = None
 session: Any = None
 
@@ -571,7 +598,7 @@ def argument_parsing() -> argparse.Namespace:
     return get_argument_parsing().parse_args()
 
 
-def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
+def bootstrap(ns: Optional[argparse.Namespace] = None, init_db: bool = True) -> None:
     '''Explicitly bootstrap OCDocker environment (config, DB, paths).
 
     Must be called before using modules that depend on Initialise globals.
@@ -580,6 +607,9 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
     ----------
     ns : argparse.Namespace, optional
         Parsed command line arguments (if already available), by default None
+    init_db : bool, optional
+        If True, initialize SQLAlchemy engine/session and database URLs.
+        Set to False for lightweight workflows that do not need database access.
     '''
 
     global bootstrapped
@@ -673,67 +703,95 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
 
     config.database.backend = backend
 
-    # Build DB URLs and connections
+    # Build DB URLs and connections (optional)
     global db_url, optdb_url, engine, session
-    if backend == 'sqlite':
-        _module_dir = os.path.dirname(os.path.abspath(__file__))
-        # Env var takes precedence, then config, then default path
-        sqlite_path_env = os.getenv('OCDOCKER_SQLITE_PATH', '').strip()
-        if sqlite_path_env:
-            sqlite_path = sqlite_path_env
-        elif config.database.sqlite_path:
-            sqlite_path = config.database.sqlite_path
+    db_url = None
+    optdb_url = None
+    engine = None
+    session = None
+
+    db_requested = bool(init_db)
+    db_helpers_available = (
+        URL is not None
+        and create_engine is not None
+        and create_database_if_not_exists is not None
+        and create_session is not None
+    )
+    if db_requested and not db_helpers_available:
+        missing_detail = ""
+        if DB_IMPORT_ERROR is not None:
+            missing_detail = f" ({type(DB_IMPORT_ERROR).__name__}: {DB_IMPORT_ERROR})"
+        print(
+            f"{clrs['y']}WARNING{clrs['n']}: Database dependencies are not available{missing_detail}. "
+            "Database initialization is disabled for this run."
+        )
+        print(
+            f"{clrs['c']}INFO{clrs['n']}: Install optional DB dependencies with "
+            "\"pip install 'ocdocker[db]'\"."
+        )
+        db_requested = False
+
+    if db_requested and URL is not None:
+        if backend == 'sqlite':
+            _module_dir = os.path.dirname(os.path.abspath(__file__))
+            # Env var takes precedence, then config, then default path
+            sqlite_path_env = os.getenv('OCDOCKER_SQLITE_PATH', '').strip()
+            if sqlite_path_env:
+                sqlite_path = sqlite_path_env
+            elif config.database.sqlite_path:
+                sqlite_path = config.database.sqlite_path
+            else:
+                sqlite_path = os.path.join(_module_dir, 'ocdocker.db')
+            db_url = URL.create(drivername='sqlite', database=sqlite_path)
+            optdb_url = db_url
+            # Warn user about SQLite limitations
+            try:
+                print(f"{clrs['y']}WARNING{clrs['n']}: SQLite backend enabled. This is suitable for development/tests only. For performance and concurrency, PostgreSQL is recommended.")
+                print(
+                    f"{clrs['c']}INFO{clrs['n']}: To use PostgreSQL or MySQL, "
+                    "set DB_BACKEND accordingly."
+                )
+            except (OSError, IOError, BrokenPipeError):
+                # Ignore stdout errors (e.g., when output is redirected to a broken pipe)
+                pass
         else:
-            sqlite_path = os.path.join(_module_dir, 'ocdocker.db')
-        db_url = URL.create(drivername='sqlite', database=sqlite_path)
-        optdb_url = db_url
-        # Warn user about SQLite limitations
-        try:
-            print(f"{clrs['y']}WARNING{clrs['n']}: SQLite backend enabled. This is suitable for development/tests only. For performance and concurrency, PostgreSQL is recommended.")
-            print(
-                f"{clrs['c']}INFO{clrs['n']}: To use PostgreSQL or MySQL, "
-                "set DB_BACKEND accordingly."
+            # Ensure DB settings exist (client/server DB mode).
+            if not config.database.host or not config.database.user or not config.database.password or not config.database.database:
+                print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD and DATABASE must be set in the config file '{config_file}'")
+                raise SystemExit(2)
+            if backend == 'mysql':
+                drivername = 'mysql+pymysql'
+                default_port = 3306
+            else:
+                drivername = 'postgresql+psycopg'
+                default_port = 5432
+
+            config.database.port = int(config.database.port) if config.database.port else default_port
+            if not config.database.optimizedb:
+                config.database.optimizedb = 'optimization'
+
+            db_url = URL.create(
+                drivername=drivername,
+                host=config.database.host,
+                username=config.database.user,
+                password=config.database.password,
+                database=config.database.database,
+                port=config.database.port
             )
-        except (OSError, IOError, BrokenPipeError):
-            # Ignore stdout errors (e.g., when output is redirected to a broken pipe)
-            pass
-    else:
-        # Ensure DB settings exist (client/server DB mode).
-        if not config.database.host or not config.database.user or not config.database.password or not config.database.database:
-            print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD and DATABASE must be set in the config file '{config_file}'")
-            raise SystemExit(2)
-        if backend == 'mysql':
-            drivername = 'mysql+pymysql'
-            default_port = 3306
-        else:
-            drivername = 'postgresql+psycopg'
-            default_port = 5432
+            optdb_url = URL.create(
+                drivername=drivername,
+                host=config.database.host,
+                username=config.database.user,
+                password=config.database.password,
+                database=config.database.optimizedb,
+                port=config.database.port
+            )
 
-        config.database.port = int(config.database.port) if config.database.port else default_port
-        if not config.database.optimizedb:
-            config.database.optimizedb = 'optimization'
-
-        db_url = URL.create(
-            drivername=drivername,
-            host=config.database.host,
-            username=config.database.user,
-            password=config.database.password,
-            database=config.database.database,
-            port=config.database.port
-        )
-        optdb_url = URL.create(
-            drivername=drivername,
-            host=config.database.host,
-            username=config.database.user,
-            password=config.database.password,
-            database=config.database.optimizedb,
-            port=config.database.port
-        )
-
-    engine = create_engine(db_url)
-    create_database_if_not_exists(engine.url)
-    create_database_if_not_exists(optdb_url)
-    session = create_session(engine)
+        if create_engine is not None and create_database_if_not_exists is not None and create_session is not None:
+            engine = create_engine(db_url)
+            create_database_if_not_exists(engine.url)
+            create_database_if_not_exists(optdb_url)
+            session = create_session(engine)
 
     # Paths and dirs (runtime values - stored in config only, no globals)
     ocdocker_path = os.path.dirname(os.path.abspath(__file__))
@@ -801,7 +859,18 @@ def bootstrap(ns: Optional[argparse.Namespace] = None) -> None:
 
     # Ensure ODDT models folder contents (allow skipping for slim environments)
     if not str(os.getenv('OCDOCKER_SKIP_ODDT', '')).lower() in ('1','true','yes','y'):
-        initialise_oddt_models(config.oddt_models_dir, config.oddt.scoring_functions)
+        try:
+            initialise_oddt_models(config.oddt_models_dir, config.oddt.scoring_functions)
+        except ModuleNotFoundError as exc:
+            missing_name = getattr(exc, "name", "") or "unknown"
+            print(
+                f"{clrs['y']}WARNING{clrs['n']}: Optional ODDT dependency '{missing_name}' is not available. "
+                "Skipping ODDT model initialization."
+            )
+            print(
+                f"{clrs['c']}INFO{clrs['n']}: If you need ODDT/ML workflows, install "
+                "\"pip install 'ocdocker[ml]'\" and the ODDT package."
+            )
 
     # Register cleanup handlers for database connections
     _register_db_cleanup()
@@ -817,7 +886,7 @@ def cleanup_database_resources() -> None:
     '''
     global session, engine
 
-    if 'session' in globals() and session is not None:
+    if 'session' in globals() and session is not None and cleanup_session is not None:
         try:
             cleanup_session(session)
         except Exception as exc:
@@ -827,7 +896,7 @@ def cleanup_database_resources() -> None:
                 file=sys.stderr,
             )
 
-    if 'engine' in globals() and engine is not None:
+    if 'engine' in globals() and engine is not None and cleanup_engine is not None:
         try:
             cleanup_engine(engine)
         except Exception as exc:
