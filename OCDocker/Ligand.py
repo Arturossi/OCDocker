@@ -1074,7 +1074,7 @@ def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = T
         ocerror.Error.wrong_type(f"Expected RDKit Mol, got {type(molecule)}.")
         raise ValueError("Molecule is not an RDKit Mol.")
 
-    mol = cast(rdkit.Chem.rdchem.Mol, Chem.Mol(mol))
+    mol = Chem.Mol(mol)
     needs_3d = mol.GetNumConformers() == 0
     if not needs_3d:
         try:
@@ -1113,7 +1113,7 @@ def get_smiles(molecule: rdkit.Chem.rdchem.Mol) -> Union[str, int]:
 
     if molecule:
         if isinstance(molecule, rdkit.Chem.rdchem.Mol):
-            return cast(str, Chem.MolToSmiles(molecule))
+            return Chem.MolToSmiles(molecule)
         return ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
 
     return ocerror.Error.not_set(f"The variable is not set.")

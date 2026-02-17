@@ -957,7 +957,7 @@ class TransOptimizer:
         study.optimize(self.objective, n_trials = n_trials, n_jobs = n_jobs)
 
         # Get the best hyperparameters
-        best_params = cast(Dict[str, Any], study.best_params)
+        best_params = study.best_params
 
         # If verbose, print the best hyperparameters
         if self.verbose:
