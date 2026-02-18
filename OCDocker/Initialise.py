@@ -363,7 +363,7 @@ def _load_yml_config_values(config_file: str) -> Dict[str, Any]:
     '''Load YAML config values from a top-level mapping.'''
 
     try:
-        import yaml
+        import yaml  # type: ignore[import-untyped]
     except ImportError as e:
         print(f"{clrs['r']}ERROR{clrs['n']}: YAML support requires PyYAML: {e}")
         raise SystemExit(2)
