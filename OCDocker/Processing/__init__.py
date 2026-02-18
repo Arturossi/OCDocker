@@ -17,6 +17,7 @@ Subpackages
 Modules
 -------
 - Dock: Docking execution helpers.
+- GarbageCollection: Shared GC scheduling helpers for processing routines.
 '''
 
 # Imports

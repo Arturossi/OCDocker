@@ -36,6 +36,11 @@ import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 import OCDocker.Toolbox.Printing as ocprint
 
 from OCDocker.Config import get_config
+from OCDocker.Processing.GarbageCollection import (
+    collect_periodically as __collect_periodically,
+    gc_collect_interval as __gc_collect_interval,
+    pool_chunksize as __pool_chunksize,
+)
 
 # License
 ###############################################################################
@@ -185,30 +190,35 @@ def __core_prepare(
 
     # For each dir to be processed
     for processDir in processDirs:
+        box_files = sorted(glob(f"{processDir}/boxes/box*.pdb"))
         # Check if there is a box for the ligand
-        boxCount = len(glob(f"{processDir}/boxes/box*.pdb"))
+        boxCount = len(box_files)
         if boxCount == 0:
             ocprint.print_warning(f"No box files found for '{processDir}'. Skipping this molecule.")
             continue
 
-        box_files = sorted(glob(f"{processDir}/boxes/box*.pdb"))
         if not all_boxes or len(box_files) <= 1:
+            gnina_entries = glob(f"{processDir}/gninaFiles/*")
+            vina_entries = glob(f"{processDir}/vinaFiles/*")
+            plants_entries = glob(f"{processDir}/plantsFiles/*")
+            smina_conf_entries = glob(f"{processDir}/sminaFiles/*.conf")
+
             # If overwrite mode is on or there is not the same amount of box files as folders in gninaFiles folder
-            if len(glob(f"{processDir}/gninaFiles/*")) != boxCount or len(glob(f"{processDir}/gninaFiles/*")) == 0 or overwrite:
+            if overwrite or len(gnina_entries) != boxCount:
                 # Create the gnina inputs from the boxes
                 ocgnina.gen_gnina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/gninaFiles/conf_gnina.conf", preparedReceptorPdbqt)
             else:
                 ocprint.print_info(f"The protein '{processDir}' already has its gnina file generated, skipping its execution.")
 
             # If overwrite mode is on or there is not the same amount of box files as folders in vinaFiles folder
-            if len(glob(f"{processDir}/vinaFiles/*")) != boxCount or len(glob(f"{processDir}/vinaFiles/*")) == 0 or overwrite:
+            if overwrite or len(vina_entries) != boxCount:
                 # Create the vina inputs from the boxes
                 ocvina.generate_vina_files_database(processDir, preparedReceptorPdbqt, boxPath = f"{processDir}/boxes")
             else:
                 ocprint.print_info(f"The protein '{processDir}' already has its vina file generated, skipping its execution.")
 
             # If overwrite mode is on or there is not the same amount of box files as folders in plantsFiles folder
-            if len(glob(f"{processDir}/plantsFiles/*")) != boxCount or len(glob(f"{processDir}/plantsFiles/*")) == 0 or overwrite:
+            if overwrite or len(plants_entries) != boxCount:
                 # Set the fligand variable to the dir + ligandName + .mol2
                 fligand = f"{processDir}/ligand.mol2"
                 # Create the PLANTS inputs from the boxes
@@ -217,7 +227,7 @@ def __core_prepare(
                 ocprint.print_info(f"The protein '{processDir}' already has its PLANTS file generated, skipping its execution.")
 
             # If overwrite mode is on or there not any conf file in the sminaFiles folder
-            if len(glob(f"{processDir}/sminaFiles/*.conf")) == 0 or overwrite:
+            if overwrite or len(smina_conf_entries) == 0:
                 # Create the smina inputs
                 ocsmina.gen_smina_conf(f"{processDir}/boxes/box0.pdb", f"{processDir}/sminaFiles/conf_smina.conf", preparedReceptorPdbqt)
             else:
@@ -419,11 +429,14 @@ def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanit
 
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
-        for path in tqdm(iterable=paths, total=len(paths), desc=desc):
+        collect_every = __gc_collect_interval(len(paths))
+        for i, path in enumerate(tqdm(iterable=paths, total=len(paths), desc=desc), start=1):
             # Call the core prepare function
             __core_prepare(path, overwrite, archive, sanitize, spacing, all_boxes = all_boxes)
-            # Clear the memory
-            gc.collect()
+            # Large batches benefit from less frequent explicit GC.
+            __collect_periodically(i, collect_every, gc.collect)
+
+    gc.collect()
 
     return None
 
@@ -464,15 +477,19 @@ def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize
         # Create a Thread pool with the maximum available_cores
         config = get_config()
         with Pool(config.available_cores) as p:
+            collect_every = __gc_collect_interval(len(arguments))
+            chunksize = __pool_chunksize(len(arguments), config.available_cores)
             # Perform the multi process
-            for _ in tqdm(p.imap_unordered(__thread_prepare, arguments), total = len(arguments), desc = desc):
-                # Clear the memory
-                gc.collect()
+            for i, _ in enumerate(tqdm(p.imap_unordered(__thread_prepare, arguments, chunksize=chunksize), total = len(arguments), desc = desc), start=1):
+                # Large batches benefit from less frequent explicit GC.
+                __collect_periodically(i, collect_every, gc.collect)
     except IOError as e:
         errMsg = f"Problem while preparing {archive}. Exception: {e}"
         config = get_config()
         ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_prepare_report.log")
         ocprint.print_error(errMsg)
+
+    gc.collect()
 
     return None
 

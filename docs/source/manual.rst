@@ -126,6 +126,14 @@ Advanced (debugging subprocesses):
 - ``OCDOCKER_ALLOW_SCRIPT_EXEC``: allow trusted in-process script execution
 - ``OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION``: allow trusted pickle/joblib/torch deserialization
 
+Memory collection strategy
+--------------------------
+
+- Processing pipelines use shared helpers in ``OCDocker.Processing.GarbageCollection``.
+- For small workloads (``<= 8`` items), explicit GC is eager (``gc.collect()`` every item).
+- For larger workloads, GC runs periodically (every ``32`` processed items) to reduce overhead.
+- Both preprocessing and postprocessing still run a final ``gc.collect()`` at routine end.
+
 CLI
 ---
 

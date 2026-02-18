@@ -123,6 +123,14 @@ Advanced (debugging subprocesses):
 - `OCDOCKER_RAISE_SUBPROCESS`: raise exceptions instead of returning error codes
 - `OCDOCKER_SKIP_ODDT`: skip importing ODDT during bootstrap
 
+Memory collection strategy
+--------------------------
+
+- Processing pipelines use shared helpers in `OCDocker.Processing.GarbageCollection`.
+- For small workloads (`<= 8` items), explicit GC is eager (`gc.collect()` every item).
+- For larger workloads, GC runs periodically (every `32` processed items) to reduce overhead.
+- Both preprocessing and postprocessing still run a final `gc.collect()` at routine end.
+
 CLI
 ---
 

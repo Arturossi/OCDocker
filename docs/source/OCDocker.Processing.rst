@@ -17,6 +17,7 @@ Submodules
    :maxdepth: 4
 
    OCDocker.Processing.Dock
+   OCDocker.Processing.GarbageCollection
 
 Module contents
 ---------------

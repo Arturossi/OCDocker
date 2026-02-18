@@ -45,6 +45,7 @@ import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Validation as ocvalidation
 
 from OCDocker.Config import get_config
+from OCDocker.Processing.GarbageCollection import pool_chunksize as __pool_chunksize
 
 # License
 ###############################################################################
@@ -322,16 +323,6 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
         The exit code of the command (based on the Error.py code table).
     '''
 
-    # Arguments to pass to each Thread in the Thread Pool
-    raw_arguments: List[Tuple[str, str, str, str, bool, str, bool]] = []
-
-    # For each file in complexList
-    for cl in complexList:
-        # Now loop over the ligands of this protein
-        for ligandDir in cl[1]:
-            # Add the arguments to the list (creating one execution for each pair receptor-ligand)
-            raw_arguments.append((cl[0], ligandDir, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes))
-
     # Track error codes from all docking operations
     error_codes: List[int] = []
 
@@ -339,15 +330,16 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
         # Use a no-op lock to avoid serializing workers globally
         config = get_config()
         shared_lock = _NoOpLock()
-        # Inject lock into arguments
-        arguments: List[DockArgs] = [
-            (arg[0], arg[1], arg[2], arg[3], shared_lock, arg[4], arg[5], arg[6])
-            for arg in raw_arguments
-        ]
+        # Build final arguments directly in one pass.
+        arguments: List[DockArgs] = []
+        for cl in complexList:
+            for ligandDir in cl[1]:
+                arguments.append((cl[0], ligandDir, archive, dockingAlgorithm, shared_lock, overwrite, digestFormat, all_boxes))
+        chunksize = __pool_chunksize(len(arguments), config.available_cores)
         # Create a Thread pool with the maximum available_cores
         with Pool(config.available_cores) as p:
             # Perform the multi process and collect return codes
-            for return_code in tqdm(p.imap_unordered(__thread_run_dock_parallel, arguments), total = len(arguments), desc = desc):
+            for return_code in tqdm(p.imap_unordered(__thread_run_dock_parallel, arguments, chunksize=chunksize), total = len(arguments), desc = desc):
                 # Track non-zero error codes
                 if return_code != ocerror.ErrorCode.OK:
                     error_codes.append(return_code)

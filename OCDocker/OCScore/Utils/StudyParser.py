@@ -46,11 +46,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Public ##
 
 def analyze_studies(
-    snames: list[str],
-    storage: str,
-    n_trials: int = 5,
-    verbose: bool = False
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        snames: list[str],
+        storage: str,
+        n_trials: int = 5,
+        verbose: bool = False
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     '''
     For each study, load trials, filter COMPLETE + dedupe,
     compute combined_metric = RMSE - AUC, then pull out
@@ -63,6 +63,54 @@ def analyze_studies(
     rmse_results = []
     auc_results = []
     combined_results = []
+
+    def _extend_results(
+        top_df: pd.DataFrame,
+        out_results: list[dict],
+        *,
+        include_combined_metric: bool = False,
+    ) -> None:
+        '''Convert top trials DataFrame to records and append to result list.
+        
+        Parameters
+        ----------
+        top_df : pd.DataFrame
+            The DataFrame containing the top trials to be converted and appended.
+        out_results : list[dict]
+            The list to which the converted trial records will be appended.
+        include_combined_metric : bool, optional
+            Whether to include the combined_metric in the output records. Default is False.
+        '''
+
+        if top_df.empty:
+            return
+
+        trials = top_df["number"].astype(int).tolist()
+        rmses = top_df["value"].tolist()
+        aucs = top_df["user_attrs_AUC"].tolist()
+        combined_metrics = top_df["combined_metric"].tolist() if include_combined_metric else None
+        feature_masks = (
+            top_df["user_attrs_Feature_Mask"].tolist()
+            if is_ablation and "user_attrs_Feature_Mask" in top_df.columns
+            else None
+        )
+
+        records: list[dict] = []
+        for idx, (trial, rmse, auc) in enumerate(zip(trials, rmses, aucs)):
+            entry = {
+                "study_name": sname,
+                "study_type": study_type,
+                "trial": trial,
+                "rmse": rmse,
+                "auc": auc,
+            }
+            if combined_metrics is not None:
+                entry["combined_metric"] = combined_metrics[idx]
+            if feature_masks is not None:
+                entry["features"] = feature_masks[idx]
+            records.append(entry)
+
+        out_results.extend(records)
 
     for sname in snames:
         if verbose:
@@ -79,7 +127,23 @@ def analyze_studies(
             print(f"Could not load {sname}: {e}")
             continue
 
-        df = study.trials_dataframe()
+        try:
+            # Ask Optuna for only the fields used in this routine to reduce
+            # dataframe size and processing overhead on large studies.
+            df = study.trials_dataframe(
+                attrs=("number", "value", "state", "user_attrs"),
+                multi_index=False,
+            )
+        except TypeError:
+            # Backward-compatibility for mocked/older Study objects.
+            df = study.trials_dataframe()
+
+        selected_cols = [
+            col for col in ("number", "state", "value", "user_attrs_AUC", "user_attrs_Feature_Mask")
+            if col in df.columns
+        ]
+        if selected_cols:
+            df = df[selected_cols]
         df = df[df.state == "COMPLETE"].drop_duplicates(subset=["value", "user_attrs_AUC"])
         df["combined_metric"] = df.value - df.user_attrs_AUC
         df["number"] = df.number.astype(int)
@@ -93,42 +157,9 @@ def analyze_studies(
         study_type = parse_study_type(sname, False, False, False)
         is_ablation = "Ablation" in sname
 
-        for _, row in top_rmse.iterrows():
-            entry = {
-                "study_name": sname,
-                "study_type": study_type,
-                "trial": row.number,
-                "rmse": row.value,
-                "auc": row.user_attrs_AUC
-            }
-            if is_ablation:
-                entry["features"] = row.user_attrs_Feature_Mask
-            rmse_results.append(entry)
-
-        for _, row in top_auc.iterrows():
-            entry = {
-                "study_name": sname,
-                "study_type": study_type,
-                "trial": row.number,
-                "rmse": row.value,
-                "auc": row.user_attrs_AUC
-            }
-            if is_ablation:
-                entry["features"] = row.user_attrs_Feature_Mask
-            auc_results.append(entry)
-
-        for _, row in top_combined.iterrows():
-            entry = {
-                "study_name": sname,
-                "study_type": study_type,
-                "trial": row.number,
-                "combined_metric": row.combined_metric,
-                "rmse": row.value,
-                "auc": row.user_attrs_AUC
-            }
-            if is_ablation:
-                entry["features"] = row.user_attrs_Feature_Mask
-            combined_results.append(entry)
+        _extend_results(top_rmse, rmse_results)
+        _extend_results(top_auc, auc_results)
+        _extend_results(top_combined, combined_results, include_combined_metric=True)
 
     df_rmse     = pd.DataFrame(rmse_results)
     df_auc      = pd.DataFrame(auc_results)
@@ -272,6 +303,7 @@ def analyze_studies_old(
 
     # Return the DataFrame
     return results_df
+
 
 def parse_study_type(
         name : str,
