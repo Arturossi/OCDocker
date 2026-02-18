@@ -914,7 +914,7 @@ def bootstrap(ns: Optional[argparse.Namespace] = None, init_db: bool = True) -> 
     parsed_archive = os.path.join(config.paths.ocdb_path, "Parsed")
     logdir = f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/logs"
     oddt_models_dir = config.oddt_models_dir if config.oddt_models_dir else f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/ODDT_models"
-    for d in (logdir, oddt_models_dir, config.paths.pca_path):
+    for d in (logdir, oddt_models_dir):
         if d and not os.path.isdir(d):
             try:
                 os.makedirs(d, exist_ok=True)

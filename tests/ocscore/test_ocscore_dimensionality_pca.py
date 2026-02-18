@@ -129,3 +129,50 @@ def test_run_pca_verbose_branch_prints_dataset_diagnostics(monkeypatch, tmp_path
     assert any("Dataset sizes" in msg for msg in prints)
     assert any("Before PCA" in msg for msg in prints)
     assert any("After PCA" in msg for msg in prints)
+
+
+@pytest.mark.order(390)
+def test_run_pca_creates_missing_output_directory(monkeypatch, tmp_path):
+    output_dir = tmp_path / "new_pca_dir" / "nested"
+    saved = {}
+
+    monkeypatch.setattr(ocpca.ocscoredata, "preprocess_df", lambda *_a, **_k: _build_datasets())
+    monkeypatch.setattr(
+        ocpca.ocscoreio,
+        "save_object",
+        lambda model, path: saved.update({"model": model, "path": path}),
+    )
+
+    out_path = ocpca.run_pca(
+        df_path="input.csv",
+        variance=0.95,
+        pca_path=str(output_dir),
+        verbose=False,
+    )
+
+    assert output_dir.is_dir()
+    assert out_path == str(output_dir / "pca95.pkl")
+    assert saved["path"] == out_path
+
+
+@pytest.mark.order(391)
+def test_run_pca_defaults_to_cwd_when_path_is_empty(monkeypatch, tmp_path):
+    saved = {}
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(ocpca.ocscoredata, "preprocess_df", lambda *_a, **_k: _build_datasets())
+    monkeypatch.setattr(
+        ocpca.ocscoreio,
+        "save_object",
+        lambda model, path: saved.update({"model": model, "path": path}),
+    )
+
+    out_path = ocpca.run_pca(
+        df_path="input.csv",
+        variance=0.9,
+        pca_path="",
+        verbose=False,
+    )
+
+    assert out_path == str(tmp_path / "pca90.pkl")
+    assert saved["path"] == out_path
