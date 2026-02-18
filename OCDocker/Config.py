@@ -374,26 +374,36 @@ class OCDockerConfig:
         # Import here to avoid circular dependency
         import os
         from OCDocker.Initialise import _parse_config_file
+        try:
+            from OCDocker.Initialise import _resolve_config_file_path
+        except ImportError:
+            _resolve_config_file_path = None
         
         # Resolve config file path if not provided or doesn't exist
         # Bootstrap already resolves the path, so if provided and exists, use it as-is
         if config_file and os.path.isfile(config_file):
-            # File exists, use it directly (bootstrap already resolved it)
-            pass
+            # File exists, use it directly (bootstrap already resolved it).
+            config_file = os.path.abspath(config_file)
         else:
-            # File doesn't exist or not provided, try to find it
-            if not config_file:
-                config_file = os.getenv('OCDOCKER_CONFIG', 'OCDocker.cfg')
-            
-            # Try to find the file
-            if not os.path.isfile(config_file):
-                if os.path.isfile("OCDocker.cfg"):
-                    config_file = os.path.abspath("OCDocker.cfg")
-                else:
-                    raise FileNotFoundError(f"Configuration file not found: {config_file}")
+            requested = str(config_file or os.getenv('OCDOCKER_CONFIG', '')).strip()
+            if _resolve_config_file_path is not None:
+                try:
+                    config_file = _resolve_config_file_path(requested, include_package_locations=False)
+                except FileNotFoundError as exc:
+                    raise FileNotFoundError(str(exc)) from exc
             else:
-                # Convert to absolute path for consistency
-                config_file = os.path.abspath(config_file)
+                if requested and os.path.isfile(requested):
+                    config_file = os.path.abspath(requested)
+                elif os.path.isfile("OCDocker.cfg"):
+                    config_file = os.path.abspath("OCDocker.cfg")
+                elif os.path.isfile("OCDocker.yml"):
+                    config_file = os.path.abspath("OCDocker.yml")
+                else:
+                    requested_hint = requested or '<not provided>'
+                    raise FileNotFoundError(
+                        f"No configuration file found. Requested: {requested_hint}. "
+                        "Searched: OCDocker.cfg, OCDocker.yml"
+                    )
         
         cfg = _parse_config_file(config_file)
         

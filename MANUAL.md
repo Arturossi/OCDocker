@@ -88,13 +88,15 @@ Some files appear only when the corresponding step is enabled.
 Configuration
 -------------
 
-OCDocker reads configuration from `OCDocker.cfg`. Use:
+OCDocker reads configuration from `OCDocker.cfg` or `OCDocker.yml`. Use:
 
 ```bash
 ocdocker init-config --conf OCDocker.cfg
+# or:
+ocdocker init-config --conf OCDocker.yml
 ```
 
-Key sections in `OCDocker.cfg` (see `OCDocker.cfg.example`):
+Key sections in config files (see `OCDocker.cfg.example` / `OCDocker.yml.example`):
 
 - Database: `DB_BACKEND`, `HOST`, `USER`, `PASSWORD`, `DATABASE`, `OPTIMIZEDB`, `PORT`
 - SQLite: set `DB_BACKEND=sqlite` and optionally `SQLITE_PATH`

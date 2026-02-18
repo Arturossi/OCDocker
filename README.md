@@ -167,20 +167,21 @@ sudo -u postgres psql
 ```
 
 ```sql
-CREATE ROLE ocdocker LOGIN PASSWORD 'strong_password_here';
+CREATE ROLE ocdocker LOGIN;
+-- set the role credential interactively from psql before exit
 CREATE DATABASE ocdocker OWNER ocdocker;
 CREATE DATABASE optimization OWNER ocdocker;
 \q
 ```
 
-3) Configure `OCDocker.cfg`
+3) Configure `OCDocker.cfg` (or `OCDocker.yml`)
 
 ```ini
 DB_BACKEND = postgresql
 HOST = localhost
 PORT = 5432
 USER = ocdocker
-PASSWORD = strong_password_here
+PASSWORD = <db_password>
 DATABASE = ocdocker
 OPTIMIZEDB = optimization
 ```
@@ -192,7 +193,7 @@ from sqlalchemy import create_engine
 from urllib.parse import quote_plus
 
 user = "ocdocker"
-password = quote_plus("strong_password_here")
+password = quote_plus("<db_password>")
 host = "localhost"
 port = 5432
 db = "optimization"
@@ -374,7 +375,7 @@ Bootstrap & Configuration
 -------------------------
 
 - Auto‑bootstrap on import: when you import OCDocker modules, the environment initializes once (config, DB, dirs). This is skipped during docs/tests.
-- Configuration file: set `OCDOCKER_CONFIG` to point to your `OCDocker.cfg` or place `OCDocker.cfg` in the working directory.
+- Configuration file: set `OCDOCKER_CONFIG` to point to your `OCDocker.cfg`/`OCDocker.yml`, or place one of those files in the working directory.
 - Disable auto‑bootstrap: set `OCDOCKER_NO_AUTO_BOOTSTRAP=1` and call `bootstrap()` explicitly:
 
 ```python
