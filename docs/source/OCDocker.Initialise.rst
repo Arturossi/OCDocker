@@ -11,7 +11,7 @@ available. By default, OCDocker auto‑bootstraps on first import outside of doc
 Environment variables
 ---------------------
 
-- ``OCDOCKER_CONFIG``: path to ``OCDocker.cfg`` (if omitted, a local ``OCDocker.cfg`` is used when present)
+- ``OCDOCKER_CONFIG``: path to ``OCDocker.cfg`` or ``OCDocker.yml`` (if omitted, a local config file is auto-detected)
 - ``OCDOCKER_NO_AUTO_BOOTSTRAP``: set to disable auto‑bootstrap on import
 - ``OCDOCKER_DB_BACKEND`` / ``DB_BACKEND``: select backend (``postgresql``, ``mysql``, ``sqlite``)
 - ``OCDOCKER_SQLITE_PATH``: explicit SQLite database file path (used when backend is ``sqlite``)

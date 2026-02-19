@@ -124,6 +124,35 @@ def test_analyze_studies_uses_all_trials_when_n_trials_minus_one(monkeypatch):
     assert len(df_combined) == 2
 
 
+@pytest.mark.order(334)
+def test_analyze_studies_requests_minimal_optuna_dataframe_payload(monkeypatch):
+    class _AttrsAwareStudy:
+        def __init__(self, df: pd.DataFrame):
+            self._df = df
+            self.calls = []
+
+        def trials_dataframe(self, **kwargs) -> pd.DataFrame:
+            self.calls.append(kwargs)
+            return self._df.copy()
+
+    study = _AttrsAwareStudy(_trials_df(with_feature_mask=True))
+    monkeypatch.setattr(ocstudy.optuna, "load_study", lambda **_k: study)
+
+    df_rmse, df_auc, df_combined = ocstudy.analyze_studies(
+        snames=["XGB_PCA95_Ablation_1"],
+        storage="sqlite://",
+        n_trials=1,
+        verbose=False,
+    )
+
+    assert study.calls
+    assert study.calls[0]["attrs"] == ("number", "value", "state", "user_attrs")
+    assert study.calls[0]["multi_index"] is False
+    assert len(df_rmse) == 1
+    assert len(df_auc) == 1
+    assert len(df_combined) == 1
+
+
 @pytest.mark.order(326)
 def test_analyze_studies_old_tracks_flags_and_ablation_columns(monkeypatch):
     studies = {

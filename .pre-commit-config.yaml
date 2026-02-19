@@ -3,4 +3,9 @@ repos:
     rev: v1.5.0
     hooks:
       - id: detect-secrets
-        args: ["--baseline", ".secrets.baseline"]
+        exclude: "^(containers/(docker|podman|singularity)/OCDocker\\.cfg\\..*|OCDocker\\.(cfg|yml)\\.example)$"
+        args:
+          - "--baseline"
+          - ".secrets.baseline"
+          - "--exclude-files"
+          - "^(containers/(docker|podman|singularity)/OCDocker\\.cfg\\..*|OCDocker\\.(cfg|yml)\\.example)$"

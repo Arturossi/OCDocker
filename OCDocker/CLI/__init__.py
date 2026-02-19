@@ -12,7 +12,7 @@ import OCDocker.CLI as occli
 Main commands
 - version: prints library version.
 - manifest: emits a reproducibility manifest with runtime/tool/package versions.
-- init-config: creates a quick `OCDocker.cfg` from the example file.
+- init-config: creates a quick `OCDocker.cfg` or `OCDocker.yml` from the example file.
 - vs: runs docking and optional rescoring for one receptor/ligand/box using Vina, Smina, or PLANTS.
 - shap: delegates to existing OCScore SHAP CLI.
 - pipeline: full multi-engine flow — run docking across engines, cluster poses by RMSD,
@@ -912,7 +912,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--conf",
         dest="config_file",
         type=str,
-        help="Path to OCDocker.cfg configuration file. If not specified, uses default locations or OCDOCKER_CONFIG environment variable."
+        help="Path to OCDocker configuration file (.cfg or .yml). If not specified, uses default locations or OCDOCKER_CONFIG environment variable."
     )
     parser.add_argument(
         "--output-level",
@@ -948,7 +948,7 @@ def build_parser() -> argparse.ArgumentParser:
     parent.add_argument("--multiprocess", dest="multiprocess", action="store_true", default=True, help="Enable multiprocessing for supported tasks")
     parent.add_argument("--no-multiprocess", dest="multiprocess", action="store_false", help="Disable multiprocessing for supported tasks")
     parent.add_argument("-u", "--update-databases", dest="update", action="store_true", default=False, help="Update databases on startup")
-    parent.add_argument("--conf", dest="config_file", type=str, help="Path to OCDocker.cfg configuration file")
+    parent.add_argument("--conf", dest="config_file", type=str, help="Path to OCDocker configuration file (.cfg or .yml)")
     parent.add_argument("--output-level", dest="output_level", type=int, default=1, help="Logging verbosity level (0-5)")
     parent.add_argument("--overwrite", dest="overwrite", action="store_true", default=False, help="Allow overwriting existing output files")
     parent.add_argument("--log-file", dest="log_file", type=str, default=None, help="Write log messages to this file")
@@ -960,11 +960,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_init = sub.add_parser(
         "init-config",
         description=(
-            "Create a starter OCDocker.cfg configuration file from the example template.\n"
-            "This command copies OCDocker.cfg.example to OCDocker.cfg in the current directory,\n"
+            "Create a starter OCDocker.cfg or OCDocker.yml configuration file from the example template.\n"
+            "This command copies the matching example template into the target config file,\n"
             "allowing you to customize paths to docking binaries, databases, and other settings."
         ),
-        help="Create a starter OCDocker.cfg configuration file",
+        help="Create a starter OCDocker config file (.cfg or .yml)",
         parents=[parent]
     )
     p_init.set_defaults(func=cmd_init_config)
@@ -1708,7 +1708,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
 
 
 def cmd_init_config(args: argparse.Namespace) -> int:
-    '''Create a base OCDocker.cfg from the example file.
+    '''Create a base OCDocker config file from an example template.
 
     This avoids importing Initialise (which expects a ready config).
 
@@ -1723,23 +1723,38 @@ def cmd_init_config(args: argparse.Namespace) -> int:
         Exit code (0 for success, 1 for failure).
     '''
 
-    # Look for example file in current directory or parent directories
-    example = Path("OCDocker.cfg.example")
-    if not example.exists():
-        # Try looking in the OCDocker package directory
+    target = Path(args.config_file or "OCDocker.cfg")
+    suffix = target.suffix.lower()
+    if suffix == ".yml":
+        example_names = ("OCDocker.yml.example", "OCDocker.cfg.example")
+    else:
+        # Default to legacy cfg template when extension is absent/unknown.
+        example_names = ("OCDocker.cfg.example", "OCDocker.yml.example")
+
+    def _find_example(base_dir: Path) -> Optional[Path]:
+        for name in example_names:
+            candidate = base_dir / name
+            if candidate.exists():
+                return candidate
+        return None
+
+    # Look for the example file in current directory first.
+    example = _find_example(Path("."))
+    if example is None:
+        # Fallback to package directory.
         import OCDocker
         pkg_dir = Path(OCDocker.__file__).parent.parent
-        example = pkg_dir / "OCDocker.cfg.example"
-        if not example.exists():
-            print("OCDocker.cfg.example not found in current directory or package directory.")
+        example = _find_example(pkg_dir)
+        if example is None:
+            expected = " or ".join(example_names)
+            print(f"{expected} not found in current directory or package directory.")
             return 1
 
-    target = Path(args.config_file or "OCDocker.cfg")
     if target.exists():
         print(f"Config already exists: {target}")
         return 0
 
-    target.write_text(example.read_text())
+    target.write_text(example.read_text(encoding="utf-8"), encoding="utf-8")
     print(f"Config created at: {target}. Please review and adjust paths.")
     return 0
 

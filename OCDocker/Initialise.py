@@ -27,7 +27,7 @@ import textwrap as tw
 
 from glob import glob
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 from unittest.mock import MagicMock
 
 import OCDocker.Error as ocerror
@@ -116,6 +116,9 @@ db_url: Optional[Any] = None
 optdb_url: Optional[Any] = None
 engine: Any = None
 session: Any = None
+
+DEFAULT_CONFIG_FILENAMES: Tuple[str, ...] = ('OCDocker.cfg', 'OCDocker.yml')
+SUPPORTED_YAML_SUFFIXES: Tuple[str, ...] = ('.yml', '.yaml')
 
 # NOTE: Configuration values are now managed via OCDocker.Config module.
 # Use `from OCDocker.Config import get_config` to access configuration.
@@ -271,11 +274,128 @@ def __inner_initialise_models(oddt_sf: str) -> None:
     return None
 
 
-def _parse_config_file(config_file: str) -> Dict[str, Any]:
-    '''Parse OCDocker configuration file using configparser.
+def _resolve_config_file_path(requested_config: Optional[str], *, include_package_locations: bool = True) -> str:
+    '''Resolve a configuration file path with cfg/yml fallback.
 
-    This function replaces the manual string parsing with a more robust
-    approach using Python's configparser module. It handles:
+    Parameters
+    ----------
+    requested_config : Optional[str]
+        Explicit path from CLI/env. May be empty.
+    include_package_locations : bool, optional
+        Whether to search package root fallback locations, by default True.
+
+    Returns
+    -------
+    str
+        Absolute path to an existing configuration file.
+
+    Raises
+    ------
+    FileNotFoundError
+        If no config file could be resolved.
+    '''
+
+    requested = str(requested_config or '').strip()
+
+    # 1) Explicit path wins when present and existing.
+    if requested and os.path.isfile(requested):
+        return os.path.abspath(requested)
+
+    # 2) Backward-compatible local fallback: prefer default filenames.
+    for filename in DEFAULT_CONFIG_FILENAMES:
+        if os.path.isfile(filename):
+            return os.path.abspath(filename)
+
+    searched_paths = [requested] if requested else []
+
+    # 3) Optional package-root fallback used by bootstrap.
+    if include_package_locations:
+        _module_dir = os.path.dirname(os.path.abspath(__file__))
+        _package_root = os.path.dirname(os.path.dirname(_module_dir))
+        _alt_root = os.path.abspath(os.path.join(_module_dir, '..', '..'))
+        search_roots = []
+        for root in (_package_root, _alt_root):
+            abs_root = os.path.abspath(root)
+            if abs_root not in search_roots:
+                search_roots.append(abs_root)
+
+        for root in search_roots:
+            for filename in DEFAULT_CONFIG_FILENAMES:
+                candidate = os.path.abspath(os.path.join(root, filename))
+                searched_paths.append(candidate)
+                if os.path.isfile(candidate):
+                    return candidate
+
+    requested_hint = requested if requested else '<not provided>'
+    searched_hint = ', '.join(searched_paths) if searched_paths else ', '.join(DEFAULT_CONFIG_FILENAMES)
+    raise FileNotFoundError(
+        f"No configuration file found. Requested: {requested_hint}. Searched: {searched_hint}"
+    )
+
+
+def _load_cfg_config_values(config_file: str) -> Dict[str, Any]:
+    '''Load legacy key=value config values using configparser.'''
+
+    # Allow duplicate keys to maintain compatibility with legacy configs that
+    # may define the same option multiple times (last one wins).
+    # Inline comments are enabled to support values like:
+    #   key = value # comment
+    # while preserving literal '#' in values when not comment-delimited
+    # (e.g., passwords such as abc#123).
+    parser = configparser.ConfigParser(
+        strict=False,
+        inline_comment_prefixes=("#",),
+    )
+
+    try:
+        with open(config_file, 'r', encoding='utf-8') as f:
+            raw_content = f.read()
+        config_content = '[DEFAULT]\n' + raw_content
+        parser.read_string(config_content)
+    except (OSError, IOError, configparser.Error) as e:
+        print(f"{clrs['r']}ERROR{clrs['n']}: Failed to read configuration file '{config_file}': {e}")
+        raise SystemExit(2)
+
+    return dict(parser.defaults())
+
+
+def _load_yml_config_values(config_file: str) -> Dict[str, Any]:
+    '''Load YAML config values from a top-level mapping.'''
+
+    try:
+        import yaml  # type: ignore[import-untyped]
+    except ImportError as e:
+        print(f"{clrs['r']}ERROR{clrs['n']}: YAML support requires PyYAML: {e}")
+        raise SystemExit(2)
+
+    try:
+        with open(config_file, 'r', encoding='utf-8') as f:
+            loaded = yaml.safe_load(f)
+    except (OSError, IOError, yaml.YAMLError) as e:
+        print(f"{clrs['r']}ERROR{clrs['n']}: Failed to read configuration file '{config_file}': {e}")
+        raise SystemExit(2)
+
+    if loaded is None:
+        return {}
+
+    if not isinstance(loaded, dict):
+        print(
+            f"{clrs['r']}ERROR{clrs['n']}: YAML config '{config_file}' must contain a top-level mapping "
+            "(key/value object)."
+        )
+        raise SystemExit(2)
+
+    return loaded
+
+
+def _parse_config_file(config_file: str) -> Dict[str, Any]:
+    '''Parse OCDocker configuration file (.cfg or .yml).
+
+    This parser supports:
+    - Legacy key=value configs (typically .cfg)
+    - YAML configs (typically .yml)
+
+    It handles:
     - Type conversion (int, bool, list)
     - Default values
     - Error handling
@@ -297,31 +417,18 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         If the configuration file cannot be read or parsed
     '''
 
-    # Allow duplicate keys to maintain compatibility with legacy configs that
-    # may define the same option multiple times (last one wins).
-    # Inline comments are enabled to support values like:
-    #   key = value # comment
-    # while preserving literal '#' in values when not comment-delimited
-    # (e.g., passwords such as abc#123).
-    config = configparser.ConfigParser(
-        strict=False,
-        inline_comment_prefixes=("#",),
-    )
+    config_suffix = Path(config_file).suffix.lower()
+    if config_suffix in SUPPORTED_YAML_SUFFIXES:
+        raw_values = _load_yml_config_values(config_file)
+    else:
+        raw_values = _load_cfg_config_values(config_file)
 
-    # Read config file - configparser can handle files without sections
-    # by using the DEFAULT section
-    try:
-        # Read the file as a single section (DEFAULT)
-        with open(config_file, 'r') as f:
-            raw_content = f.read()
-
-        # Prepend [DEFAULT] to make it a valid INI file
-        config_content = '[DEFAULT]\n' + raw_content
-
-        config.read_string(config_content)
-    except (OSError, IOError, configparser.Error) as e:
-        print(f"{clrs['r']}ERROR{clrs['n']}: Failed to read configuration file '{config_file}': {e}")
-        raise SystemExit(2)
+    # Case-insensitive key lookup for parity with configparser behavior.
+    normalized_values = {}
+    for raw_key, raw_value in raw_values.items():
+        key = str(raw_key).strip().lower()
+        if key:
+            normalized_values[key] = raw_value
 
     # Helper function to get config values with type conversion
     def get_config(key: str, default: Any = "", value_type: type = str) -> Any:
@@ -343,32 +450,57 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         '''
 
         try:
-            value = config.get('DEFAULT', key, fallback=default)
+            value = normalized_values.get(key.lower(), default)
 
             # Handle empty strings
             if value is None:
                 return default
-            if not isinstance(value, str):
-                # configparser returns fallback as-is for missing keys
-                # (e.g., list/int defaults). Keep that value unchanged.
-                return value
-            if not value or value.strip() == "":
-                return default
 
             # Type conversion
             if value_type == int:
-                return int(value.strip())
+                if isinstance(value, bool):
+                    raise ValueError("boolean is not valid for int conversion")
+                if isinstance(value, int):
+                    return value
+                return int(str(value).strip())
             elif value_type == float:
-                return float(value.strip())
+                if isinstance(value, bool):
+                    raise ValueError("boolean is not valid for float conversion")
+                if isinstance(value, (int, float)):
+                    return float(value)
+                return float(str(value).strip())
             elif value_type == bool:
-                val_lower = value.strip().lower()
+                if isinstance(value, bool):
+                    return value
+                val_lower = str(value).strip().lower()
                 return val_lower in ('1', 'true', 'yes', 'y', 'on')
             elif value_type == list:
-                # Split by comma and strip whitespace
-                return [item.strip() for item in value.split(',') if item.strip()]
+                if isinstance(value, (list, tuple, set)):
+                    parsed_list = []
+                    for item in value:
+                        if item is None:
+                            continue
+                        if isinstance(item, str):
+                            item = item.strip()
+                            if item:
+                                parsed_list.append(item)
+                        else:
+                            parsed_list.append(str(item))
+                    return parsed_list if parsed_list else default
+                if isinstance(value, str):
+                    if not value or value.strip() == "":
+                        return default
+                    # Split by comma and strip whitespace
+                    return [item.strip() for item in value.split(',') if item.strip()]
+                return [str(value)]
             else:
-                return value.strip()
-        except (ValueError, configparser.NoOptionError) as e:
+                if isinstance(value, str):
+                    return value.strip() if value.strip() else default
+                if isinstance(value, bool):
+                    # Keep legacy yes/no semantics for string-valued toggles.
+                    return 'yes' if value else 'no'
+                return str(value).strip()
+        except (ValueError, TypeError, configparser.NoOptionError):
             # If conversion fails, return default
             # Use a try-except to handle cases where output_level might not be set yet
             try:
@@ -628,7 +760,7 @@ def bootstrap(ns: Optional[argparse.Namespace] = None, init_db: bool = True) -> 
     global args, update, config_file, output_level, overwrite
     args = ns
     update = bool(getattr(ns, 'update', False))
-    config_file = str(getattr(ns, 'config_file', None) or os.getenv('OCDOCKER_CONFIG') or 'OCDocker.cfg')
+    requested_config_file = str(getattr(ns, 'config_file', None) or os.getenv('OCDOCKER_CONFIG') or '').strip()
 
     # Ensure output_level is ALWAYS a ReportLevel enum
     raw_level = getattr(ns, 'output_level', ocerror.ReportLevel.WARNING)
@@ -641,36 +773,14 @@ def bootstrap(ns: Optional[argparse.Namespace] = None, init_db: bool = True) -> 
     overwrite = bool(getattr(ns, 'overwrite', False))
     ocerror.Error.set_output_level(output_level)
 
-    # Locate configuration file and convert to absolute path
-    # Try multiple locations if file not found
-    if config_file and os.path.isfile(config_file):
-        # File exists at specified path, convert to absolute
-        config_file = os.path.abspath(config_file)
-    elif os.path.isfile("OCDocker.cfg"):
-        # Found in current directory
-        config_file = os.path.abspath("OCDocker.cfg")
-    else:
-        # Try to find in common locations
-        _module_dir = os.path.dirname(os.path.abspath(__file__))
-        _package_root = os.path.dirname(os.path.dirname(_module_dir))  # Go up from OCDocker/Initialise.py to project root
-        possible_paths = [
-            os.path.join(_package_root, "OCDocker.cfg"),  # Project root
-            os.path.join(_module_dir, "..", "..", "OCDocker.cfg"),  # Alternative path
-        ]
-
-        found = False
-        for path in possible_paths:
-            abs_path = os.path.abspath(path)
-            if os.path.isfile(abs_path):
-                config_file = abs_path
-                found = True
-                break
-
-        if not found:
-            print(f"{clrs['r']}ERROR{clrs['n']}: OCDocker configuration file not found.")
-            print(f"  Searched in: current directory, {_package_root}")
-            print(f"  Set OCDOCKER_CONFIG environment variable to specify the config file path.")
-            raise SystemExit(2)
+    # Locate configuration file and convert to absolute path.
+    try:
+        config_file = _resolve_config_file_path(requested_config_file, include_package_locations=True)
+    except FileNotFoundError as exc:
+        print(f"{clrs['r']}ERROR{clrs['n']}: OCDocker configuration file not found.")
+        print(f"  {exc}")
+        print("  Set OCDOCKER_CONFIG environment variable (or --conf) to specify the config file path.")
+        raise SystemExit(2)
 
     # Splash
     print_description()
@@ -804,7 +914,7 @@ def bootstrap(ns: Optional[argparse.Namespace] = None, init_db: bool = True) -> 
     parsed_archive = os.path.join(config.paths.ocdb_path, "Parsed")
     logdir = f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/logs"
     oddt_models_dir = config.oddt_models_dir if config.oddt_models_dir else f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/ODDT_models"
-    for d in (logdir, oddt_models_dir, config.paths.pca_path):
+    for d in (logdir, oddt_models_dir):
         if d and not os.path.isdir(d):
             try:
                 os.makedirs(d, exist_ok=True)
@@ -1679,7 +1789,7 @@ def get_argument_parsing() -> argparse.ArgumentParser:
                         dest="config_file",
                         type=str,
                         metavar="",
-                        help="Configuration file containing external executable paths")
+                        help="Configuration file (.cfg or .yml) containing external executable paths")
 
     parser.add_argument("--output-level",
                         dest="output_level",

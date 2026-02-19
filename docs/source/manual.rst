@@ -89,13 +89,15 @@ Some files appear only when the corresponding step is enabled.
 Configuration
 -------------
 
-OCDocker reads configuration from ``OCDocker.cfg``. Use:
+OCDocker reads configuration from ``OCDocker.cfg`` or ``OCDocker.yml``. Use:
 
 .. code-block:: bash
 
    ocdocker init-config --conf OCDocker.cfg
+   # or:
+   ocdocker init-config --conf OCDocker.yml
 
-Key sections in ``OCDocker.cfg`` (see ``OCDocker.cfg.example``):
+Key sections in config files (see ``OCDocker.cfg.example`` / ``OCDocker.yml.example``):
 
 - Database: ``DB_BACKEND``, ``HOST``, ``USER``, ``PASSWORD``, ``DATABASE``, ``OPTIMIZEDB``, ``PORT``
 - SQLite: ``DB_BACKEND=sqlite`` and optional ``SQLITE_PATH``
@@ -123,6 +125,14 @@ Advanced (debugging subprocesses):
 - ``OCDOCKER_SKIP_ODDT``: skip importing ODDT during bootstrap
 - ``OCDOCKER_ALLOW_SCRIPT_EXEC``: allow trusted in-process script execution
 - ``OCDOCKER_ALLOW_UNSAFE_DESERIALIZATION``: allow trusted pickle/joblib/torch deserialization
+
+Memory collection strategy
+--------------------------
+
+- Processing pipelines use shared helpers in ``OCDocker.Processing.GarbageCollection``.
+- For small workloads (``<= 8`` items), explicit GC is eager (``gc.collect()`` every item).
+- For larger workloads, GC runs periodically (every ``32`` processed items) to reduce overhead.
+- Both preprocessing and postprocessing still run a final ``gc.collect()`` at routine end.
 
 CLI
 ---

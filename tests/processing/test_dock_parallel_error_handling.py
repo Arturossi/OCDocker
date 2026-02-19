@@ -56,7 +56,8 @@ def test_run_dock_parallel_normalizes_non_io_worker_exceptions(monkeypatch):
         def __exit__(self, exc_type, exc, tb):
             return False
 
-        def imap_unordered(self, _fn, _args):
+        def imap_unordered(self, _fn, _args, chunksize=1):
+            _ = chunksize
             raise RuntimeError("simulated worker crash")
 
     logged = {}

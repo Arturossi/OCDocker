@@ -40,9 +40,11 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 ## Private ##
 
-def _install_fake_initialise(monkeypatch, parse_fn):
+def _install_fake_initialise(monkeypatch, parse_fn, resolve_fn=None):
     fake_init = types.ModuleType("OCDocker.Initialise")
     fake_init._parse_config_file = parse_fn
+    if resolve_fn is not None:
+        fake_init._resolve_config_file_path = resolve_fn
     monkeypatch.setitem(sys.modules, "OCDocker.Initialise", fake_init)
 
 
@@ -101,6 +103,24 @@ def test_from_config_file_uses_absolute_path_from_env(monkeypatch, tmp_path):
     assert seen["path"] == str((tmp_path / "env.cfg").resolve())
 
 
+@pytest.mark.order(111)
+def test_from_config_file_falls_back_to_local_yml_when_cfg_missing(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "OCDocker.yml").write_text("dummy: true\n", encoding="utf-8")
+    monkeypatch.setenv("OCDOCKER_CONFIG", "missing-from-env.cfg")
+
+    seen = {}
+
+    def _parse(path):
+        seen["path"] = path
+        return {"vina_exhaustiveness": "13"}
+
+    _install_fake_initialise(monkeypatch, _parse)
+    occfg.OCDockerConfig.from_config_file("")
+
+    assert seen["path"] == str((tmp_path / "OCDocker.yml").resolve())
+
+
 @pytest.mark.order(112)
 def test_from_config_file_missing_raises(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
@@ -108,6 +128,45 @@ def test_from_config_file_missing_raises(monkeypatch, tmp_path):
     _install_fake_initialise(monkeypatch, lambda _path: {"x": 1})
 
     with pytest.raises(FileNotFoundError):
+        occfg.OCDockerConfig.from_config_file("")
+
+
+@pytest.mark.order(112)
+def test_from_config_file_uses_resolver_helper_when_available(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("OCDOCKER_CONFIG", raising=False)
+
+    seen = {}
+    resolved = str((tmp_path / "resolved-by-helper.cfg").resolve())
+
+    def _parse(path):
+        seen["parse_path"] = path
+        return {"vina_exhaustiveness": "6"}
+
+    def _resolve(requested, include_package_locations=True):
+        seen["requested"] = requested
+        seen["include_package_locations"] = include_package_locations
+        return resolved
+
+    _install_fake_initialise(monkeypatch, _parse, _resolve)
+    cfg = occfg.OCDockerConfig.from_config_file("")
+
+    assert seen["requested"] == ""
+    assert seen["include_package_locations"] is False
+    assert seen["parse_path"] == resolved
+    assert cfg.vina.exhaustiveness == 6
+
+
+@pytest.mark.order(112)
+def test_from_config_file_bubbles_resolver_not_found(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+
+    def _resolve(_requested, include_package_locations=True):
+        raise FileNotFoundError("resolver-miss")
+
+    _install_fake_initialise(monkeypatch, lambda _path: {"x": 1}, _resolve)
+
+    with pytest.raises(FileNotFoundError, match="resolver-miss"):
         occfg.OCDockerConfig.from_config_file("")
 
 

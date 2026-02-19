@@ -12,6 +12,7 @@ import OCDocker.OCScore.Optimization.PCA as ocpca
 
 # Imports
 ###############################################################################
+import os
 import pandas as pd
 
 from sklearn.decomposition import PCA
@@ -63,7 +64,8 @@ def run_pca(
     variance : float
         The percentage of variance to be explained. (0.0 - 1.0)
     pca_path : str
-        The path to save the PCA object.
+        The path to save the PCA object. If empty, the current working
+        directory is used.
     verbose : bool
         Whether to print the results.
 
@@ -87,8 +89,21 @@ def run_pca(
     # Convert the variance to string
     variance_str = str(variance * 100).replace('.0', '')
 
+    # Resolve and lazily create output directory only when PCA is requested.
+    requested_pca_path = str(pca_path or "").strip()
+    output_dir = (
+        os.path.abspath(os.path.expanduser(requested_pca_path))
+        if requested_pca_path
+        else os.getcwd()
+    )
+    try:
+        os.makedirs(output_dir, exist_ok = True)
+    except OSError as exc:
+        ocerror.Error.create_dir(f"Could not create PCA output directory '{output_dir}': {exc}")
+        raise
+
     # Define the path to save the PCA object
-    pca_file_path = f'{pca_path}/pca{variance_str}.pkl'
+    pca_file_path = os.path.join(output_dir, f"pca{variance_str}.pkl")
 
     # Parse the data from the CSV files
     dudez_data, pdbbind_data, score_columns = ocscoredata.preprocess_df(df_path)

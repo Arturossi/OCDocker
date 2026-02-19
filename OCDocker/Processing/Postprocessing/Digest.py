@@ -30,6 +30,11 @@ import OCDocker.Toolbox.Logging as oclogging
 import OCDocker.Toolbox.Printing as ocprint
 
 from OCDocker.Config import get_config
+from OCDocker.Processing.GarbageCollection import (
+    collect_periodically as __collect_periodically,
+    gc_collect_interval as __gc_collect_interval,
+    pool_chunksize as __pool_chunksize,
+)
 
 # License
 ###############################################################################
@@ -152,8 +157,9 @@ def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], arch
 
     # Redirect all prints to tqdm.write
     with ocbasetools.redirect_to_tqdm():
+        collect_every = __gc_collect_interval(len(complexList))
         # For each file in dirs
-        for cl in tqdm(iterable = complexList, total = len(complexList), desc=desc):
+        for i, cl in enumerate(tqdm(iterable = complexList, total = len(complexList), desc=desc), start=1):
             for ligandDir in cl[1]:
                 # Call the core dock function (shared between parallel and not parallel)
                 return_code = __core_generate_digest(cl[0], ligandDir, archive, overwrite, digestFormat, all_boxes)
@@ -161,10 +167,10 @@ def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], arch
                 if return_code != ocerror.ErrorCode.OK:
                     error_codes.append(return_code)
 
-            # Clear the memory
-            gc.collect()
-        # Clear the memory
-        gc.collect()
+            # Large batches benefit from less frequent explicit GC.
+            __collect_periodically(i, collect_every, gc.collect)
+
+    gc.collect()
 
     # Return the most severe error code, or OK if all succeeded
     if error_codes:
@@ -211,18 +217,22 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
         # Create a Thread pool with the maximum available_cores
         config = get_config()
         with Pool(config.available_cores) as p:
+            collect_every = __gc_collect_interval(len(arguments))
+            chunksize = __pool_chunksize(len(arguments), config.available_cores)
             # Perform the multi process and collect return codes
-            for return_code in tqdm(p.imap_unordered(__thread_generate_digest, arguments), total = len(arguments), desc = desc):
+            for i, return_code in enumerate(tqdm(p.imap_unordered(__thread_generate_digest, arguments, chunksize=chunksize), total = len(arguments), desc = desc), start=1):
                 # Track non-zero error codes
                 if return_code != ocerror.ErrorCode.OK:
                     error_codes.append(return_code)
-                # Clear the memory
-                gc.collect()
+                # Large batches benefit from less frequent explicit GC.
+                __collect_periodically(i, collect_every, gc.collect)
     except IOError as e:
         errMsg = f"Problem while generating docking digest in parallel. Exception: {e}"
         config = get_config()
         ocprint.print_error_log(errMsg, f"{config.logdir}/{archive}_docking_report.log")
         return ocerror.Error.docking_failed(errMsg, level = ocerror.ReportLevel.ERROR)
+
+    gc.collect()
 
     # Return the most severe error code, or OK if all succeeded
     if error_codes:

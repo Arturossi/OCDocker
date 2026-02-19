@@ -65,11 +65,13 @@ Commands
 
      ocdocker doctor --conf OCDocker.cfg
 
-- init-config: Create a starter ``OCDocker.cfg`` from the example
+- init-config: Create a starter ``OCDocker.cfg`` or ``OCDocker.yml`` from the example
 
   .. code-block:: bash
 
      ocdocker init-config --conf OCDocker.cfg
+     # or:
+     ocdocker init-config --conf OCDocker.yml
 
 - manifest: Generate reproducibility manifest JSON with version metadata
 
@@ -103,7 +105,7 @@ Global options
 
 All commands accept the following global options:
 
-- ``--conf``: path to ``OCDocker.cfg``
+- ``--conf``: path to ``OCDocker.cfg`` or ``OCDocker.yml``
 - ``--multiprocess``: enable multiprocessing for compatible tasks
 - ``--no-multiprocess``: disable multiprocessing for compatible tasks
 - ``--update-databases``: run DB updates at startup

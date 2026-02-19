@@ -187,7 +187,7 @@ def test_cmd_init_config_example_not_found_anywhere(monkeypatch, tmp_path, capsy
 
     rc = cli.cmd_init_config(SimpleNamespace(config_file=str(tmp_path / "new.cfg")))
     assert rc == 1
-    assert "OCDocker.cfg.example not found" in capsys.readouterr().out
+    assert "not found in current directory or package directory." in capsys.readouterr().out
 
 
 @pytest.mark.order(457)
@@ -201,6 +201,44 @@ def test_cmd_init_config_target_already_exists(monkeypatch, tmp_path, capsys):
     assert rc == 0
     assert existing.read_text(encoding="utf-8") == "keep-me\n"
     assert "Config already exists" in capsys.readouterr().out
+
+
+@pytest.mark.order(458)
+def test_cmd_init_config_uses_yml_example_for_yml_target(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "OCDocker.cfg.example").write_text("from_cfg=true\n", encoding="utf-8")
+    (tmp_path / "OCDocker.yml.example").write_text("from_yml: true\n", encoding="utf-8")
+
+    target = tmp_path / "OCDocker.yml"
+    rc = cli.cmd_init_config(SimpleNamespace(config_file=str(target)))
+
+    assert rc == 0
+    assert target.read_text(encoding="utf-8") == "from_yml: true\n"
+
+
+@pytest.mark.order(458)
+def test_cmd_init_config_yml_target_falls_back_to_cfg_example(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "OCDocker.cfg.example").write_text("from_cfg=true\n", encoding="utf-8")
+
+    target = tmp_path / "fallback.yml"
+    rc = cli.cmd_init_config(SimpleNamespace(config_file=str(target)))
+
+    assert rc == 0
+    assert target.read_text(encoding="utf-8") == "from_cfg=true\n"
+
+
+@pytest.mark.order(458)
+def test_cmd_init_config_unknown_extension_prefers_cfg_example(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "OCDocker.cfg.example").write_text("cfg=true\n", encoding="utf-8")
+    (tmp_path / "OCDocker.yml.example").write_text("yml: true\n", encoding="utf-8")
+
+    target = tmp_path / "custom.conf"
+    rc = cli.cmd_init_config(SimpleNamespace(config_file=str(target)))
+
+    assert rc == 0
+    assert target.read_text(encoding="utf-8") == "cfg=true\n"
 
 
 @pytest.mark.order(458)

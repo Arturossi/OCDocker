@@ -57,9 +57,10 @@ class _FakePool:
         _ = (exc_type, exc, tb)
         return False
 
-    def imap_unordered(self, fn, arguments):
+    def imap_unordered(self, fn, arguments, chunksize=1):
         _ = fn
         _ = arguments
+        _ = chunksize
         return iter(self._codes)
 
 
