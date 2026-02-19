@@ -13,6 +13,7 @@ import OCDocker.OCScore.Utils.StudyParser as ocstudy
 # Imports
 ###############################################################################
 
+from typing import Any
 import optuna
 
 import pandas as pd
@@ -60,13 +61,13 @@ def analyze_studies(
     Returns three DataFrames: df_rmse, df_auc, df_combined.
     '''
 
-    rmse_results = []
-    auc_results = []
-    combined_results = []
+    rmse_results: list[dict[str, Any]] = []
+    auc_results: list[dict[str, Any]] = []
+    combined_results: list[dict[str, Any]] = []
 
     def _extend_results(
         top_df: pd.DataFrame,
-        out_results: list[dict],
+        out_results: list[dict[str, Any]],
         *,
         include_combined_metric: bool = False,
     ) -> None:
@@ -76,7 +77,7 @@ def analyze_studies(
         ----------
         top_df : pd.DataFrame
             The DataFrame containing the top trials to be converted and appended.
-        out_results : list[dict]
+        out_results : list[dict[str, Any]]
             The list to which the converted trial records will be appended.
         include_combined_metric : bool, optional
             Whether to include the combined_metric in the output records. Default is False.
@@ -95,7 +96,7 @@ def analyze_studies(
             else None
         )
 
-        records: list[dict] = []
+        records: list[dict[str, Any]] = []
         for idx, (trial, rmse, auc) in enumerate(zip(trials, rmses, aucs)):
             entry = {
                 "study_name": sname,
