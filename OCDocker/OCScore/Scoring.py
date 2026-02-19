@@ -332,7 +332,7 @@ def get_score(
                 df = ocscoredata.reorder_columns_to_match_data_order(
                     df,
                     data_source=None,
-                    keep_extra_columns=True,
+                    keep_extra_columns=False,
                     fill_missing_columns=False
                 )
             else:

@@ -114,6 +114,16 @@ Example of training the future Autoencoder to generate embeddings and using them
 to train the future DNN optimizer.
 Run: `python examples/14_python_api_future_ae_dnn.py`
 
+### 15. CSV Inference (`15_python_api_inference_from_csv.py`)
+Example of OCScore inference loading features directly from a `.csv` file:
+- Resolving model artifacts from `OCScore_models` (or custom directory)
+- Loading OCDocker config to enforce `reference_column_order`
+- Optional mask loading
+- Optional scaler loading for consistent preprocessing
+- Running `ocscoring.get_score(...)` with `data=<csv_path>`
+- Writing an output CSV with the original rows/columns plus an `OCSCORE` column
+Run: `python examples/15_python_api_inference_from_csv.py --csv-path /path/to/features.csv --model-name OCScore --config-path /path/to/OCDocker.cfg --output-csv /path/to/scored.csv`
+
 ## Getting Started
 
 ### Prerequisites
