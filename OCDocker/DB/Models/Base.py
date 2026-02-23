@@ -255,7 +255,7 @@ class Base(DeclarativeBase):
                     query = s.query(cls).filter(func.lower(cls.name) == func.lower(idorname))
 
                 # Stream results to avoid materializing large result sets in memory
-                for row in query.execution_options(stream_results = True).yield_per(normalized_batch_size):
+                for row in query.execution_options(stream_results = True):
                     yield cast(DeclarativeMeta, row)
 
         return _iter_rows()
@@ -307,7 +307,7 @@ class Base(DeclarativeBase):
             # Open the session
             with session() as s:
                 query = s.query(cls)
-                for row in query.execution_options(stream_results = True).yield_per(normalized_batch_size):
+                for row in query.execution_options(stream_results = True):
                     yield cast(DeclarativeMeta, row)
 
         return _iter_rows()
@@ -416,7 +416,7 @@ class Base(DeclarativeBase):
             # Open the session
             with session() as s:
                 query = s.query(cls).filter(OPMAP[operator](col, value))
-                for row in query.execution_options(stream_results = True).yield_per(normalized_batch_size):
+                for row in query.execution_options(stream_results = True):
                     yield cast(DeclarativeMeta, row)
 
         return _iter_rows()
