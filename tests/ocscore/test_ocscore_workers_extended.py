@@ -293,3 +293,49 @@ def test_xgb_worker_verbose_prints_and_returns_study(monkeypatch, ocworkers):
 
     assert study == "xgb-study"
     assert calls["printv"] == 2
+
+
+@pytest.mark.order(348)
+def test_ae_worker_retries_transient_optuna_storage_errors(monkeypatch, ocworkers):
+    calls = {"optimize": 0, "sleep": 0}
+
+    class _AE:
+        def __init__(self, *_a, **_k):
+            pass
+
+        def optimize(self, **_k):
+            calls["optimize"] = calls["optimize"] + 1
+            if calls["optimize"] == 1:
+                raise RuntimeError(
+                    "sqlite3.OperationalError: table alembic_version already exists"
+                )
+            return "ae-study"
+
+    monkeypatch.setattr(ocworkers, "AutoencoderOptimizer", _AE)
+    monkeypatch.setattr(ocworkers.time, "sleep", lambda *_a, **_k: calls.__setitem__("sleep", calls["sleep"] + 1))
+    monkeypatch.setattr(ocworkers.ocprint, "print_warning", lambda *_a, **_k: None, raising=False)
+
+    X = np.zeros((3, 2))
+    study = ocworkers.AEworker(1, 2, X, X, X, (2,), "sqlite:///ae.db", "/tmp/models", verbose=True, n_trials=1)
+    assert study == "ae-study"
+    assert calls["optimize"] == 2
+    assert calls["sleep"] == 1
+
+
+@pytest.mark.order(349)
+def test_transient_storage_error_detector_covers_mysql_and_postgres(ocworkers):
+    transient_messages = [
+        'psycopg2.errors.DeadlockDetected: deadlock detected',
+        'psycopg2.errors.SerializationFailure: could not serialize access due to concurrent update',
+        'psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "alembic_version_pkc"',
+        'psycopg2.errors.DuplicateTable: relation "study_system_attributes" already exists',
+        "(pymysql.err.OperationalError) (1213, 'Deadlock found when trying to get lock; try restarting transaction')",
+        "(pymysql.err.OperationalError) (1205, 'Lock wait timeout exceeded; try restarting transaction')",
+        "(pymysql.err.InternalError) (1050, \"Table 'study_directions' already exists\")",
+        "(pymysql.err.IntegrityError) (1062, \"Duplicate entry 'v3.2.0.a' for key 'alembic_version.PRIMARY'\")",
+    ]
+
+    for msg in transient_messages:
+        assert ocworkers._is_transient_optuna_storage_error(RuntimeError(msg))
+
+    assert not ocworkers._is_transient_optuna_storage_error(RuntimeError("model architecture mismatch"))

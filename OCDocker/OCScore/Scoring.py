@@ -21,7 +21,7 @@ import pandas as pd
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from typing import Any, Optional, Union, cast
+from typing import Any, Dict, Iterator, Optional, Union, cast
 
 import OCDocker.Error as ocerror
 import OCDocker.OCScore.Utils.Data as ocscoredata
@@ -50,6 +50,108 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Private ##
+
+def _iter_query_rows(query: Any, batch_size: int = 1000) -> Iterator[Any]:
+    '''Iterate query rows using streaming when available.
+
+    Parameters
+    ----------
+    query : Any
+        SQLAlchemy query-like object.
+    batch_size : int, optional
+        Preferred streaming batch size for query backends that support it.
+
+    Returns
+    -------
+    Iterator[Any]
+        Iterator over query rows.
+    '''
+
+    streamed = query
+    if hasattr(streamed, "yield_per"):
+        try:
+            streamed = streamed.yield_per(batch_size)
+        except Exception:
+            streamed = query
+
+    yielded_any = False
+    try:
+        for row in streamed:
+            yielded_any = True
+            yield row
+        return
+    except Exception:
+        if yielded_any:
+            raise
+
+    if streamed is not query:
+        try:
+            for row in query:
+                yield row
+            return
+        except Exception:
+            pass
+
+    all_method = getattr(query, "all", None)
+    if callable(all_method):
+        for row in all_method():
+            yield row
+
+
+def _build_dataframe_from_complexes_query(
+    query: Any,
+    descriptors: list[str],
+    batch_size: int = 1000,
+) -> pd.DataFrame:
+    '''Build a DataFrame from a complexes query using chunked row collection.
+
+    Parameters
+    ----------
+    query : Any
+        Query object returning Complexes ORM rows.
+    descriptors : list[str]
+        Descriptor names to collect from each complex row.
+    batch_size : int, optional
+        Number of rows to collect before creating each DataFrame chunk.
+
+    Returns
+    -------
+    pd.DataFrame
+        Aggregated DataFrame created from chunked query iteration.
+    '''
+
+    chunks: list[pd.DataFrame] = []
+    rows: list[Dict[str, Any]] = []
+
+    for complex_obj in _iter_query_rows(query, batch_size=batch_size):
+        row: Dict[str, Any] = {}
+        for desc in descriptors:
+            desc_attr = desc.lower()
+            if hasattr(complex_obj, desc_attr):
+                value = getattr(complex_obj, desc_attr)
+                if value is not None:
+                    row[desc] = value
+
+        if hasattr(complex_obj, 'ligand') and complex_obj.ligand and hasattr(complex_obj.ligand, 'name'):
+            row['ligand'] = complex_obj.ligand.name
+        if hasattr(complex_obj, 'receptor') and complex_obj.receptor and hasattr(complex_obj.receptor, 'name'):
+            row['receptor'] = complex_obj.receptor.name
+        if 'db' not in row:
+            row['db'] = 'UNKNOWN'
+
+        rows.append(row)
+        if len(rows) >= batch_size:
+            chunks.append(pd.DataFrame(rows))
+            rows = []
+
+    if rows:
+        chunks.append(pd.DataFrame(rows))
+
+    if not chunks:
+        return pd.DataFrame()
+    if len(chunks) == 1:
+        return chunks[0]
+    return pd.concat(chunks, ignore_index=True, sort=False)
 
 ## Public ##
 
@@ -267,34 +369,12 @@ def get_score(
 
             # Read from database
             with init.session() as s:
-                # Query all complexes
-                complexes = s.query(Complexes).all()
-
-                # Convert to DataFrame
-                data_list = []
-                for complex_obj in complexes:
-                    row = {}
-                    # Get all descriptor columns
-                    for desc in Complexes.allDescriptors:
-                        desc_attr = desc.lower()
-                        if hasattr(complex_obj, desc_attr):
-                            value = getattr(complex_obj, desc_attr)
-                            # Only add non-None values
-                            if value is not None:
-                                row[desc] = value
-                    # Add metadata if available
-                    if hasattr(complex_obj, 'ligand') and complex_obj.ligand:
-                        if hasattr(complex_obj.ligand, 'name'):
-                            row['ligand'] = complex_obj.ligand.name
-                    if hasattr(complex_obj, 'receptor') and complex_obj.receptor:
-                        if hasattr(complex_obj.receptor, 'name'):
-                            row['receptor'] = complex_obj.receptor.name
-                    # Add db column if not present (for compatibility with preprocessing)
-                    if 'db' not in row:
-                        row['db'] = 'UNKNOWN'
-                    data_list.append(row)
-
-                df_db = pd.DataFrame(data_list)
+                query = s.query(Complexes)
+                df_db = _build_dataframe_from_complexes_query(
+                    query,
+                    list(getattr(Complexes, "allDescriptors", [])),
+                    batch_size=1000,
+                )
 
                 if df_db.empty:
                     ocerror.Error.data_not_found("No data found in database.")

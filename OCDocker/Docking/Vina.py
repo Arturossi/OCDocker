@@ -672,21 +672,22 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
         # Make it a list
         rescoreLogPaths = [rescoreLogPaths]
 
+    # Resolve and pre-sort scoring functions once for this batch.
+    config = get_config()
+    scoring_functions = getattr(config.vina, 'scoring_functions', [])
+    sorted_scoring_functions = sorted(scoring_functions, key=len, reverse=True) if scoring_functions else []
+
     # For each rescore log path
     for rescoreLogPath in rescoreLogPaths:
         # Get the original filename without extension
         original_filename = os.path.splitext(os.path.basename(rescoreLogPath))[0]
 
         # Extract scoring function from filename ending with _rescoring
-        # Get scoring functions from config and match against filename
-        config = get_config()
-        scoring_functions = getattr(config.vina, 'scoring_functions', [])
-
         scoring_function = None
         if original_filename.endswith("_rescoring") and scoring_functions:
             # Check if any scoring function from config appears in the filename
             # Sort by length (longest first) to match longer names before shorter ones (e.g., "dkoes_scoring" before "scoring")
-            for sf in sorted(scoring_functions, key=len, reverse=True):
+            for sf in sorted_scoring_functions:
                 # Check if filename ends with _{scoring_function}_rescoring
                 if original_filename.endswith(f"_{sf}_rescoring"):
                     scoring_function = sf

@@ -1032,18 +1032,43 @@ def read_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, Union[flo
                 else:
                     # Create the dict
                     data: Dict[int, Dict[str, Union[float, List[float]]]] = {}
-                    # For each row
-                    for _, row in df.iterrows():
-                        # Add the data to the dict
-                        data[get_pose_index_from_file_path(str(row['LIGAND_ENTRY']))] = {
-                            "PLANTS_TOTAL_SCORE": float(row['TOTAL_SCORE']),
-                            "PLANTS_SCORE_RB_PEN": float(row['SCORE_RB_PEN']),
-                            "PLANTS_SCORE_NORM_HEVATOMS": float(row['SCORE_NORM_HEVATOMS']),
-                            "PLANTS_SCORE_NORM_CRT_HEVATOMS": float(row['SCORE_NORM_CRT_HEVATOMS']),
-                            "PLANTS_SCORE_NORM_WEIGHT": float(row['SCORE_NORM_WEIGHT']),
-                            "PLANTS_SCORE_NORM_CRT_WEIGHT": float(row['SCORE_NORM_CRT_WEIGHT']),
-                            "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": float(row['SCORE_RB_PEN_NORM_CRT_HEVATOMS']),
-                        }
+                    columns = [
+                        "LIGAND_ENTRY",
+                        "TOTAL_SCORE",
+                        "SCORE_RB_PEN",
+                        "SCORE_NORM_HEVATOMS",
+                        "SCORE_NORM_CRT_HEVATOMS",
+                        "SCORE_NORM_WEIGHT",
+                        "SCORE_NORM_CRT_WEIGHT",
+                        "SCORE_RB_PEN_NORM_CRT_HEVATOMS",
+                    ]
+                    # Prefer tuple-based row iteration for better performance on large CSVs.
+                    has_itertuples = callable(getattr(type(df), "itertuples", None))
+                    has_getitem = callable(getattr(type(df), "__getitem__", None))
+                    if has_itertuples and has_getitem:
+                        row_iter = df[columns].itertuples(index = False, name = None)
+                        for row in row_iter:
+                            ligand_entry, total_score, score_rb_pen, score_norm_hevatoms, score_norm_crt_hevatoms, score_norm_weight, score_norm_crt_weight, score_rb_pen_norm_crt_hevatoms = row
+                            data[get_pose_index_from_file_path(str(ligand_entry))] = {
+                                "PLANTS_TOTAL_SCORE": float(total_score),
+                                "PLANTS_SCORE_RB_PEN": float(score_rb_pen),
+                                "PLANTS_SCORE_NORM_HEVATOMS": float(score_norm_hevatoms),
+                                "PLANTS_SCORE_NORM_CRT_HEVATOMS": float(score_norm_crt_hevatoms),
+                                "PLANTS_SCORE_NORM_WEIGHT": float(score_norm_weight),
+                                "PLANTS_SCORE_NORM_CRT_WEIGHT": float(score_norm_crt_weight),
+                                "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": float(score_rb_pen_norm_crt_hevatoms),
+                            }
+                    else:
+                        for _, row in df.iterrows():
+                            data[get_pose_index_from_file_path(str(row['LIGAND_ENTRY']))] = {
+                                "PLANTS_TOTAL_SCORE": float(row['TOTAL_SCORE']),
+                                "PLANTS_SCORE_RB_PEN": float(row['SCORE_RB_PEN']),
+                                "PLANTS_SCORE_NORM_HEVATOMS": float(row['SCORE_NORM_HEVATOMS']),
+                                "PLANTS_SCORE_NORM_CRT_HEVATOMS": float(row['SCORE_NORM_CRT_HEVATOMS']),
+                                "PLANTS_SCORE_NORM_WEIGHT": float(row['SCORE_NORM_WEIGHT']),
+                                "PLANTS_SCORE_NORM_CRT_WEIGHT": float(row['SCORE_NORM_CRT_WEIGHT']),
+                                "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": float(row['SCORE_RB_PEN_NORM_CRT_HEVATOMS']),
+                            }
                     # Return the dict
                     return data
         except Exception as e:

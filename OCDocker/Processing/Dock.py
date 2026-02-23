@@ -330,16 +330,17 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
         # Use a no-op lock to avoid serializing workers globally
         config = get_config()
         shared_lock = _NoOpLock()
-        # Build final arguments directly in one pass.
-        arguments: List[DockArgs] = []
-        for cl in complexList:
-            for ligandDir in cl[1]:
-                arguments.append((cl[0], ligandDir, archive, dockingAlgorithm, shared_lock, overwrite, digestFormat, all_boxes))
-        chunksize = __pool_chunksize(len(arguments), config.available_cores)
+        total_jobs = sum(len(cl[1]) for cl in complexList)
+        arguments = (
+            (cl[0], ligandDir, archive, dockingAlgorithm, shared_lock, overwrite, digestFormat, all_boxes)
+            for cl in complexList
+            for ligandDir in cl[1]
+        )
+        chunksize = __pool_chunksize(total_jobs, config.available_cores)
         # Create a Thread pool with the maximum available_cores
         with Pool(config.available_cores) as p:
             # Perform the multi process and collect return codes
-            for return_code in tqdm(p.imap_unordered(__thread_run_dock_parallel, arguments, chunksize=chunksize), total = len(arguments), desc = desc):
+            for return_code in tqdm(p.imap_unordered(__thread_run_dock_parallel, arguments, chunksize=chunksize), total = total_jobs, desc = desc):
                 # Track non-zero error codes
                 if return_code != ocerror.ErrorCode.OK:
                     error_codes.append(return_code)

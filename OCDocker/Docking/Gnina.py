@@ -905,25 +905,29 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
         # Make it a list
         rescoreLogPaths = [rescoreLogPaths]
 
+    # Resolve and pre-sort scoring/CNN lists once for this batch.
+    config = get_config()
+    scoring_functions = _get_rescore_scoring_functions(config)
+    cnn_models = _get_rescore_cnn_models(config)
+    sorted_scoring_functions = sorted(scoring_functions, key=len, reverse=True)
+    sorted_cnn_models = sorted(cnn_models, key=len, reverse=True)
+
     # For each rescore log path
     for rescoreLogPath in rescoreLogPaths:
         # Get the original filename without extension
         original_filename = os.path.splitext(os.path.basename(rescoreLogPath))[0]
 
         # Extract scoring function/CNN model from filename ending with _rescoring
-        config = get_config()
-        scoring_functions = _get_rescore_scoring_functions(config)
-        cnn_models = _get_rescore_cnn_models(config)
         scoring_function = None
         cnn_model = None
         if original_filename.endswith("_rescoring"):
-            for model_name in sorted(cnn_models, key=len, reverse=True):
+            for model_name in sorted_cnn_models:
                 if original_filename.endswith(f"_cnn_{model_name}_rescoring"):
                     cnn_model = model_name
                     break
 
             # Sort by length (longest first) to match longer names before shorter ones
-            for sf in sorted(scoring_functions, key=len, reverse=True):
+            for sf in sorted_scoring_functions:
                 if original_filename.endswith(f"_{sf}_rescoring"):
                     scoring_function = sf
                     break
@@ -1173,7 +1177,7 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
         # Create the command list
         cfg = get_config()
         ligand = ocff.normalize_path(ligand)
-        log_file_path = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{run_label}_rescoring.log"))
+        rescore_log_file = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{run_label}_rescoring.log"))
 
         cmd = [
             cfg.gnina.executable,
@@ -1181,7 +1185,7 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             "--score_only",
             "--config", confFile,
             "--ligand", ligand,
-            "--log", log_file_path,
+            "--log", rescore_log_file,
             "--cpu", "1",
         ]
 
@@ -1199,30 +1203,27 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             if device and device.lower() != "no":
                 cmd.extend(["--device", device])
 
-        # Create the log file path
-        logFile = log_file_path
-
         # If the logFile already exists, check also if the user wants to overwrite it
-        if not os.path.isfile(logFile) or overwrite:
+        if not os.path.isfile(rescore_log_file) or overwrite:
             ocprint.printv(f"Running gnina using the '{confFile}' configurations and rescoring setup '{run_label}'.")
 
-            # Run the command
-            _ = ocrun.run(cmd, logFile = logFile)
+            # Keep engine log and command stdout/stderr separated to avoid concurrent writes.
+            _ = ocrun.run(cmd, logFile = "")
 
             # Gnina rescoring logs include the "Affinity" marker.
             log_file_valid = False
-            if os.path.isfile(logFile):
+            if os.path.isfile(rescore_log_file):
                 try:
-                    with open(logFile, "r", encoding = "utf-8", errors = "ignore") as handle:
+                    with open(rescore_log_file, "r", encoding = "utf-8", errors = "ignore") as handle:
                         log_file_valid = any("Affinity" in line for line in handle)
                 except (IOError, OSError):
                     pass
 
             if not log_file_valid:
-                ocprint.print_error(f"Problems while running gnina for the ligand '{ligand_name}' using the rescoring setup '{run_label}'. Check the log file: {logFile}")
-                _ = ocff.safe_remove_file(logFile)
+                ocprint.print_error(f"Problems while running gnina for the ligand '{ligand_name}' using the rescoring setup '{run_label}'. Check the log file: {rescore_log_file}")
+                _ = ocff.safe_remove_file(rescore_log_file)
         else:
-            ocprint.printv(f"The log file '{logFile}' already exists. Skipping the gnina run for the ligand '{ligand_name}' using the rescoring setup '{run_label}'.")
+            ocprint.printv(f"The log file '{rescore_log_file}' already exists. Skipping the gnina run for the ligand '{ligand_name}' using the rescoring setup '{run_label}'.")
 
     return None
 

@@ -13,12 +13,13 @@ import OCDocker.Processing.Postprocessing.Digest as ocdigest
 # Imports
 ###############################################################################
 import gc
+import json
 import os
 from glob import glob
 
 from multiprocessing import Pool
 from tqdm import tqdm
-from typing import List, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
@@ -26,8 +27,10 @@ import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina
 import OCDocker.Error as ocerror
 import OCDocker.Toolbox.Basetools as ocbasetools
+import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Toolbox.Logging as oclogging
 import OCDocker.Toolbox.Printing as ocprint
+import OCDocker.Toolbox.Validation as ocvalidation
 
 from OCDocker.Config import get_config
 from OCDocker.Processing.GarbageCollection import (
@@ -59,6 +62,171 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Private ##
+
+def __load_digest_data(digest_path: str, digest_format: str) -> Union[Dict[str, Any], int]:
+    '''Load an existing digest file or initialize an empty digest payload.
+
+    Parameters
+    ----------
+    digest_path : str
+        Path to the digest file.
+    digest_format : str
+        Digest format identifier (currently ``json``).
+
+    Returns
+    -------
+    Dict[str, Any] | int
+        The loaded/initialized digest mapping, or an error code.
+    '''
+
+    if not ocvalidation.validate_digest_extension(digest_path, digest_format):
+        return ocerror.Error.unsupported_extension(
+            f"The provided extension '{digest_format}' is not supported.",
+            level = ocerror.ReportLevel.ERROR,
+        )
+
+    if os.path.isfile(digest_path):
+        if digest_format == "json":
+            try:
+                with open(digest_path, "r", encoding = "utf-8") as handle:
+                    digest_data = json.load(handle)
+            except (OSError, IOError, FileNotFoundError, json.JSONDecodeError):
+                return ocerror.Error.file_not_exist(
+                    f"Could not read the digest file '{digest_path}'.",
+                    level = ocerror.ReportLevel.ERROR,
+                )
+            if not isinstance(digest_data, dict):
+                return ocerror.Error.wrong_type(
+                    f"The digest file '{digest_path}' is not valid.",
+                    level = ocerror.ReportLevel.ERROR,
+                )
+            return digest_data
+
+    digest_data = ocff.empty_docking_digest(digest_path, overwrite = True, digestFormat = "")
+    if isinstance(digest_data, dict):
+        return digest_data
+    return ocerror.Error.wrong_type(
+        f"The docking digest file '{digest_path}' is not valid.",
+        level = ocerror.ReportLevel.ERROR,
+    )
+
+
+def __write_digest_data(digest_path: str, digest_data: Dict[str, Any], digest_format: str) -> int:
+    '''Persist digest payload to disk.
+
+    Parameters
+    ----------
+    digest_path : str
+        Path to the digest file.
+    digest_data : Dict[str, Any]
+        In-memory digest payload to serialize.
+    digest_format : str
+        Digest format identifier (currently ``json``).
+
+    Returns
+    -------
+    int
+        The exit code of the operation (based on the Error.py code table).
+    '''
+
+    if digest_format == "json":
+        try:
+            with open(digest_path, "w", encoding = "utf-8") as handle:
+                json.dump(digest_data, handle)
+        except (OSError, IOError, PermissionError):
+            return ocerror.Error.write_file(
+                f"Could not write the digest file '{digest_path}'.",
+                level = ocerror.ReportLevel.ERROR,
+            )
+    return ocerror.Error.ok()
+
+
+def __get_digest_target(digest_data: Dict[str, Any], box_id: Optional[str] = None) -> Dict[str, Any]:
+    '''Return the target digest section for score updates.
+
+    Parameters
+    ----------
+    digest_data : Dict[str, Any]
+        Root digest payload.
+    box_id : str, optional
+        Box identifier. If provided, updates are applied inside this box entry.
+
+    Returns
+    -------
+    Dict[str, Any]
+        Mutable target mapping where parsed scores should be merged.
+    '''
+
+    if not box_id:
+        return digest_data
+
+    box_key = str(box_id)
+    box_data = digest_data.get(box_key)
+    if not isinstance(box_data, dict):
+        box_data = {}
+        digest_data[box_key] = box_data
+    return box_data
+
+
+def __merge_pose_entries(target: Dict[str, Any], incoming: Dict[Any, Any]) -> None:
+    '''Merge parsed engine scores by pose into a target digest mapping.
+
+    Parameters
+    ----------
+    target : Dict[str, Any]
+        Target digest section to be updated in-place.
+    incoming : Dict[Any, Any]
+        Parsed engine payload keyed by pose identifier.
+
+    Returns
+    -------
+    None
+        This function updates ``target`` in-place.
+    '''
+
+    if not isinstance(incoming, dict):
+        return
+
+    for pose_key, pose_values in incoming.items():
+        if not isinstance(pose_values, dict):
+            continue
+        normalized_key = str(pose_key)
+        existing_values = target.get(normalized_key)
+        if not isinstance(existing_values, dict):
+            existing_values = {}
+        existing_values.update(pose_values)
+        target[normalized_key] = existing_values
+
+
+def __merge_engine_log(
+    target: Dict[str, Any],
+    reader: Callable[[str], Dict[Any, Any]],
+    log_path: str,
+) -> None:
+    '''Read one engine log and merge parsed scores into a target section.
+
+    Parameters
+    ----------
+    target : Dict[str, Any]
+        Target digest section to be updated in-place.
+    reader : Callable[[str], Dict[Any, Any]]
+        Engine log parser function.
+    log_path : str
+        Log file path to parse.
+
+    Returns
+    -------
+    None
+        This function updates ``target`` in-place.
+    '''
+
+    try:
+        parsed = reader(log_path)
+    except Exception:
+        parsed = {}
+    if isinstance(parsed, dict):
+        __merge_pose_entries(target, parsed)
+
 
 def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: bool, digestFormat: str = "json", all_boxes: bool = False) -> int:
     '''Generate the digest file for a given protein and ligand.
@@ -93,35 +261,47 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
 
     # If the complex has descriptor files for ligand
     if os.path.isfile(ligandDescriptorPath):
+        digest_path = f"{ligandDir}/dockingDigest.json"
+        digest_data_or_error = __load_digest_data(digest_path, digestFormat)
+        if not isinstance(digest_data_or_error, dict):
+            return int(digest_data_or_error)
+        digest_data: Dict[str, Any] = digest_data_or_error
+
         if all_boxes:
             boxes = sorted(glob(f"{ligandDir}/boxes/box*.pdb"))
             for box_file in boxes:
                 box_id = os.path.splitext(os.path.basename(box_file))[0]
+                target = __get_digest_target(digest_data, box_id)
                 # Run for gnina
                 logPath = f"{ligandDir}/gninaFiles/{box_id}/gnina_0.log"
-                _ = ocgnina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id)
+                __merge_engine_log(target, ocgnina.read_log, logPath)
                 # Run for vina
                 logPath = f"{ligandDir}/vinaFiles/{box_id}/vina_0.log"
-                _ = ocvina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id)
+                __merge_engine_log(target, ocvina.read_log, logPath)
                 # Run for smina
                 logPath = _resolve_smina_log(f"{ligandDir}/sminaFiles/{box_id}")
-                _ = ocsmina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id)
+                __merge_engine_log(target, ocsmina.read_log, logPath)
                 # Run for PLANTS
                 logPath = f"{ligandDir}/plantsFiles/{box_id}/run/bestranking.csv"
-                _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id)
+                __merge_engine_log(target, ocplants.read_log, logPath)
         else:
+            target = __get_digest_target(digest_data)
             # Run for gnina
             logPath = f"{ligandDir}/gninaFiles/gnina_0.log" # TODO: add support to multiple boxes/runs
-            _ = ocgnina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
+            __merge_engine_log(target, ocgnina.read_log, logPath)
             # Run for vina
             logPath = f"{ligandDir}/vinaFiles/vina_0.log" # TODO: add support to multiple boxes/runs
-            _ = ocvina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
+            __merge_engine_log(target, ocvina.read_log, logPath)
             # Run for smina
             logPath = _resolve_smina_log(f"{ligandDir}/sminaFiles") # TODO: add support to multiple boxes/runs
-            _ = ocsmina.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
+            __merge_engine_log(target, ocsmina.read_log, logPath)
             # Run for PLANTS
             logPath = f"{ligandDir}/plantsFiles/run/bestranking.csv" # TODO: add support to multiple boxes/runs
-            _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", logPath, overwrite = overwrite, digestFormat = digestFormat)
+            __merge_engine_log(target, ocplants.read_log, logPath)
+
+        write_code = __write_digest_data(digest_path, digest_data, digestFormat)
+        if write_code != ocerror.ErrorCode.OK:
+            return int(write_code)
     else:
         errMsg = f"There is no ligand descriptor json file for the protein in the path '{ligandDescriptorPath}'."
         config = get_config()
@@ -200,15 +380,12 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
         The exit code of the command (based on the Error.py code table).
     '''
 
-    # Arguments to pass to each Thread in the Thread Pool
-    arguments: List[Tuple[str, str, str, bool, str, bool]] = []
-
-    # For each file in complexList
-    for cl in complexList:
-        # Now loop over the ligands of this protein
-        for ligandDir in cl[1]:
-            # Add the arguments to the list (creating one execution for each pair receptor-ligand)
-            arguments.append((cl[0], ligandDir, archive, overwrite, digestFormat, all_boxes))
+    total_jobs = sum(len(cl[1]) for cl in complexList)
+    arguments = (
+        (cl[0], ligandDir, archive, overwrite, digestFormat, all_boxes)
+        for cl in complexList
+        for ligandDir in cl[1]
+    )
 
     # Track error codes from all digest operations
     error_codes: List[int] = []
@@ -217,10 +394,10 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
         # Create a Thread pool with the maximum available_cores
         config = get_config()
         with Pool(config.available_cores) as p:
-            collect_every = __gc_collect_interval(len(arguments))
-            chunksize = __pool_chunksize(len(arguments), config.available_cores)
+            collect_every = __gc_collect_interval(total_jobs)
+            chunksize = __pool_chunksize(total_jobs, config.available_cores)
             # Perform the multi process and collect return codes
-            for i, return_code in enumerate(tqdm(p.imap_unordered(__thread_generate_digest, arguments, chunksize=chunksize), total = len(arguments), desc = desc), start=1):
+            for i, return_code in enumerate(tqdm(p.imap_unordered(__thread_generate_digest, arguments, chunksize=chunksize), total = total_jobs, desc = desc), start=1):
                 # Track non-zero error codes
                 if return_code != ocerror.ErrorCode.OK:
                     error_codes.append(return_code)
