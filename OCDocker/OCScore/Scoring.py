@@ -98,6 +98,49 @@ def _iter_query_rows(query: Any, batch_size: int = 1000) -> Iterator[Any]:
             yield row
 
 
+def _apply_eager_relationship_loading(query: Any, model: Any) -> Any:
+    '''Apply eager relationship loading to reduce N+1 queries when supported.
+
+    Parameters
+    ----------
+    query : Any
+        SQLAlchemy query-like object.
+    model : Any
+        ORM model class that may expose ``ligand`` and ``receptor`` relationships.
+
+    Returns
+    -------
+    Any
+        Query with eager loading options when possible, or the original query.
+    '''
+
+    if not hasattr(query, "options"):
+        return query
+
+    try:
+        from sqlalchemy.orm import joinedload
+    except Exception:
+        return query
+
+    eager_options = []
+    for rel_name in ("ligand", "receptor"):
+        rel_attr = getattr(model, rel_name, None)
+        if rel_attr is None:
+            continue
+        try:
+            eager_options.append(joinedload(rel_attr))
+        except Exception:
+            continue
+
+    if not eager_options:
+        return query
+
+    try:
+        return query.options(*eager_options)
+    except Exception:
+        return query
+
+
 def _build_dataframe_from_complexes_query(
     query: Any,
     descriptors: list[str],
@@ -370,6 +413,7 @@ def get_score(
             # Read from database
             with init.session() as s:
                 query = s.query(Complexes)
+                query = _apply_eager_relationship_loading(query, Complexes)
                 df_db = _build_dataframe_from_complexes_query(
                     query,
                     list(getattr(Complexes, "allDescriptors", [])),

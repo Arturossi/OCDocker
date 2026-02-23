@@ -327,6 +327,36 @@ def _rescoring_data_has_numeric_scores(data: Dict[str, Any]) -> bool:
     return False
 
 
+def _collect_log_file_signatures(paths: List[str]) -> Tuple[Dict[str, Tuple[int, int]], bool]:
+    '''Collect file signatures for rescoring logs.
+
+    Parameters
+    ----------
+    paths : List[str]
+        Candidate rescoring log paths.
+
+    Returns
+    -------
+    Tuple[Dict[str, Tuple[int, int]], bool]
+        Mapping ``path -> (size_bytes, mtime_ns)`` for files that could be
+        stat-ed, plus a flag that indicates at least one unstable/missing path.
+    '''
+
+    signatures: Dict[str, Tuple[int, int]] = {}
+    has_unstable_paths = False
+
+    for raw_path in sorted(set(paths)):
+        path = str(raw_path)
+        try:
+            stat_result = os.stat(path)
+            mtime_ns = int(getattr(stat_result, "st_mtime_ns", int(stat_result.st_mtime * 1_000_000_000)))
+            signatures[path] = (int(stat_result.st_size), mtime_ns)
+        except (FileNotFoundError, PermissionError, OSError):
+            has_unstable_paths = True
+
+    return signatures, has_unstable_paths
+
+
 def _wait_for_rescore_logs_ready(
     get_log_paths: Callable[[str], List[str]],
     read_log_data: Callable[..., Dict[str, Any]],
@@ -362,32 +392,52 @@ def _wait_for_rescore_logs_ready(
     '''
 
     deadline = time.monotonic() + max(0.0, float(timeout_seconds))
-    poll_interval = max(0.0, float(poll_interval_seconds))
+    base_poll_interval = max(0.0, float(poll_interval_seconds))
+    max_poll_interval = max(base_poll_interval, 0.5)
     last_paths: List[str] = []
     last_data: Dict[str, Any] = {}
+    last_signatures: Dict[str, Tuple[int, int]] = {}
+    stable_poll_count = 0
 
     while True:
         try:
-            current_paths = get_log_paths(out_dir) or []
+            current_paths = sorted(str(path) for path in (get_log_paths(out_dir) or []))
         except Exception:
             current_paths = []
 
         if current_paths:
-            last_paths = list(current_paths)
-            try:
-                current_data = read_log_data(current_paths, onlyBest=True) or {}
-            except Exception:
-                current_data = {}
+            current_signatures, has_unstable_paths = _collect_log_file_signatures(current_paths)
+            paths_changed = current_paths != last_paths
+            signatures_changed = current_signatures != last_signatures
+            should_reparse = paths_changed or signatures_changed or has_unstable_paths or not last_data
 
-            if current_data:
-                last_data = current_data
-                if _rescoring_data_has_numeric_scores(current_data):
-                    return last_paths, last_data, True
+            last_paths = list(current_paths)
+            last_signatures = current_signatures
+
+            if should_reparse:
+                try:
+                    current_data = read_log_data(current_paths, onlyBest=True) or {}
+                except Exception:
+                    current_data = {}
+
+                if current_data:
+                    last_data = current_data
+                    if _rescoring_data_has_numeric_scores(current_data):
+                        return last_paths, last_data, True
+                stable_poll_count = 0
+            else:
+                stable_poll_count += 1
+        else:
+            stable_poll_count = 0
+            last_signatures = {}
 
         if time.monotonic() >= deadline:
             return last_paths, last_data, False
 
-        time.sleep(poll_interval)
+        sleep_interval = base_poll_interval
+        if base_poll_interval > 0.0 and stable_poll_count > 0:
+            sleep_interval = min(max_poll_interval, base_poll_interval * (2 ** min(stable_poll_count, 4)))
+        time.sleep(sleep_interval)
 
 
 def _collect_numeric_descriptors(obj: Any, descriptor_names: List[str]) -> Dict[str, Union[int, float]]:

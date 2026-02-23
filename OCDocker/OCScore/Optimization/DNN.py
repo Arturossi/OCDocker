@@ -23,7 +23,7 @@ import pandas as pd
 from joblib import Parallel, delayed
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
-from typing import Any, Optional, Union
+from typing import Any, Optional, Tuple, Union
 
 import OCDocker.Error as ocerror
 import OCDocker.OCScore.Utils.Data as ocscoredata
@@ -53,6 +53,156 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Private ##
+
+_ae_mp_shared_args: Optional[Tuple[Any, ...]] = None
+_nn_mp_shared_args: Optional[Tuple[Any, ...]] = None
+_ablation_mp_shared_args: Optional[Tuple[Any, ...]] = None
+_seed_ablation_mp_shared_args: Optional[Tuple[Any, ...]] = None
+
+
+def _pool_initializer_not_supported(exc: TypeError) -> bool:
+    '''Check whether a Pool TypeError comes from unsupported initializer kwargs.'''
+
+    msg = str(exc).lower()
+    return "initializer" in msg or "initargs" in msg or "unexpected keyword argument" in msg
+
+
+def _init_ae_mp_shared_args(shared_args: Tuple[Any, ...]) -> None:
+    '''Initialize shared arguments for AE worker wrappers.'''
+
+    global _ae_mp_shared_args
+    _ae_mp_shared_args = shared_args
+
+
+def _run_ae_worker_with_shared_args(pid: int) -> Any:
+    '''Execute ``AEworker`` using shared process-local arguments.'''
+
+    if _ae_mp_shared_args is None:
+        raise RuntimeError("Autoencoder multiprocessing shared arguments are not initialized.")
+    return ocscoreworkers.AEworker(pid, *_ae_mp_shared_args)
+
+
+def _init_nn_mp_shared_args(shared_args: Tuple[Any, ...]) -> None:
+    '''Initialize shared arguments for NN worker wrappers.'''
+
+    global _nn_mp_shared_args
+    _nn_mp_shared_args = shared_args
+
+
+def _run_nn_worker_with_shared_args(pid: int) -> Any:
+    '''Execute ``NNworker`` using shared process-local arguments.'''
+
+    if _nn_mp_shared_args is None:
+        raise RuntimeError("Neural-network multiprocessing shared arguments are not initialized.")
+    return ocscoreworkers.NNworker(pid, *_nn_mp_shared_args)
+
+
+def _init_ablation_mp_shared_args(shared_args: Tuple[Any, ...]) -> None:
+    '''Initialize shared arguments for NN ablation worker wrappers.'''
+
+    global _ablation_mp_shared_args
+    _ablation_mp_shared_args = shared_args
+
+
+def _run_ablation_worker_with_shared_args(pid: int, mask: Any) -> Any:
+    '''Execute ``NNAblationworker`` using shared process-local arguments.'''
+
+    if _ablation_mp_shared_args is None:
+        raise RuntimeError("NN ablation multiprocessing shared arguments are not initialized.")
+    (
+        id,
+        X_train,
+        y_train,
+        X_test,
+        y_test,
+        X_val,
+        y_val,
+        storage,
+        network_params,
+        encoder_params,
+        output_size,
+        random_seed,
+        use_gpu,
+        verbose,
+        load_if_exists,
+        n_jobs,
+        study_name,
+    ) = _ablation_mp_shared_args
+    return ocscoreworkers.NNAblationworker(
+        pid,
+        id,
+        X_train,
+        y_train,
+        X_test,
+        y_test,
+        X_val,
+        y_val,
+        mask,
+        storage,
+        network_params,
+        encoder_params,
+        output_size,
+        random_seed,
+        use_gpu,
+        verbose,
+        load_if_exists,
+        n_jobs,
+        study_name,
+    )
+
+
+def _init_seed_ablation_mp_shared_args(shared_args: Tuple[Any, ...]) -> None:
+    '''Initialize shared arguments for NN seed ablation worker wrappers.'''
+
+    global _seed_ablation_mp_shared_args
+    _seed_ablation_mp_shared_args = shared_args
+
+
+def _run_seed_ablation_worker_with_shared_args(pid: int, seed: Any) -> Any:
+    '''Execute ``NNSeedAblationworker`` using shared process-local arguments.'''
+
+    if _seed_ablation_mp_shared_args is None:
+        raise RuntimeError("NN seed ablation multiprocessing shared arguments are not initialized.")
+    (
+        id,
+        X_train,
+        y_train,
+        X_test,
+        y_test,
+        X_val,
+        y_val,
+        mask,
+        storage,
+        network_params,
+        encoder_params,
+        output_size,
+        use_gpu,
+        verbose,
+        load_if_exists,
+        n_jobs,
+        study_name,
+    ) = _seed_ablation_mp_shared_args
+    return ocscoreworkers.NNSeedAblationworker(
+        pid,
+        id,
+        X_train,
+        y_train,
+        X_test,
+        y_test,
+        X_val,
+        y_val,
+        mask,
+        storage,
+        network_params,
+        seed,
+        encoder_params,
+        output_size,
+        use_gpu,
+        verbose,
+        load_if_exists,
+        n_jobs,
+        study_name,
+    )
 
 ## Public ##
 
@@ -284,28 +434,57 @@ def optimize_NN(
                             ) for pid in range(num_processes_autoencoder)
                         )
                     elif parallel_backend == "multiprocessing":
-                        # Create a pool of worker processes
-                        with Pool(num_processes_autoencoder) as pool:
-                            # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
-                            pool.starmap(ocscoreworkers.AEworker, [(
-                                pid,
-                                storage_id,
-                                AO_X_train,
-                                AO_X_test,
-                                AO_X_val,
-                                encoding_dims,
-                                storage,
-                                models_folder,
-                                random_seed,              # random_seed
-                                use_gpu,                  # use_gpu
-                                verbose,                  # verbose
-                                "minimize",               # direction
-                                n_trials_autoencoder,     # n_trials
-                                load_if_exists,           # load_if_exists
-                                1,                        # n_jobs
-                                f"Multi_AE_Optimization_{name}" # study_name
-                                ) for pid in range(num_processes_autoencoder)
-                            ])
+                        # Create a pool of worker processes with shared payload.
+                        ae_shared_args = (
+                            storage_id,
+                            AO_X_train,
+                            AO_X_test,
+                            AO_X_val,
+                            encoding_dims,
+                            storage,
+                            models_folder,
+                            random_seed,
+                            use_gpu,
+                            verbose,
+                            "minimize",
+                            n_trials_autoencoder,
+                            load_if_exists,
+                            1,
+                            f"Multi_AE_Optimization_{name}",
+                        )
+                        try:
+                            with Pool(
+                                num_processes_autoencoder,
+                                initializer = _init_ae_mp_shared_args,
+                                initargs = (ae_shared_args,),
+                            ) as pool:
+                                pool.starmap(
+                                    _run_ae_worker_with_shared_args,
+                                    [(pid,) for pid in range(num_processes_autoencoder)],
+                                )
+                        except TypeError as exc:
+                            if not _pool_initializer_not_supported(exc):
+                                raise
+                            with Pool(num_processes_autoencoder) as pool:
+                                pool.starmap(ocscoreworkers.AEworker, [(
+                                    pid,
+                                    storage_id,
+                                    AO_X_train,
+                                    AO_X_test,
+                                    AO_X_val,
+                                    encoding_dims,
+                                    storage,
+                                    models_folder,
+                                    random_seed,
+                                    use_gpu,
+                                    verbose,
+                                    "minimize",
+                                    n_trials_autoencoder,
+                                    load_if_exists,
+                                    1,
+                                    f"Multi_AE_Optimization_{name}"
+                                    ) for pid in range(num_processes_autoencoder)
+                                ])
                     else:
                         # User-facing error: invalid parallel backend
                         ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
@@ -366,28 +545,57 @@ def optimize_NN(
                         ) for pid in range(num_processes_autoencoder)
                     )
                 elif parallel_backend == "multiprocessing":
-                    # Create a pool of worker processes
-                    with Pool(num_processes_autoencoder) as pool:
-                        # Each process will execute the 'NNworker' function with the datasets and optimizer parameters
-                        pool.starmap(ocscoreworkers.AEworker, [(
-                            pid,
-                            storage_id,
-                            X_train,
-                            X_test,
-                            X_val,
-                            encoder_dims,
-                            storage,
-                            models_folder,
-                            random_seed,
-                            use_gpu,
-                            verbose,
-                            "minimize",           # direction
-                            n_trials_autoencoder,
-                            load_if_exists,
-                            1,                    # n_jobs
-                            f"AO_Optimization"    # study_name
-                            ) for pid in range(num_processes_autoencoder)
-                        ])
+                    # Create a pool of worker processes with shared payload.
+                    ae_shared_args = (
+                        storage_id,
+                        X_train,
+                        X_test,
+                        X_val,
+                        encoder_dims,
+                        storage,
+                        models_folder,
+                        random_seed,
+                        use_gpu,
+                        verbose,
+                        "minimize",
+                        n_trials_autoencoder,
+                        load_if_exists,
+                        1,
+                        f"AO_Optimization",
+                    )
+                    try:
+                        with Pool(
+                            num_processes_autoencoder,
+                            initializer = _init_ae_mp_shared_args,
+                            initargs = (ae_shared_args,),
+                        ) as pool:
+                            pool.starmap(
+                                _run_ae_worker_with_shared_args,
+                                [(pid,) for pid in range(num_processes_autoencoder)],
+                            )
+                    except TypeError as exc:
+                        if not _pool_initializer_not_supported(exc):
+                            raise
+                        with Pool(num_processes_autoencoder) as pool:
+                            pool.starmap(ocscoreworkers.AEworker, [(
+                                pid,
+                                storage_id,
+                                X_train,
+                                X_test,
+                                X_val,
+                                encoder_dims,
+                                storage,
+                                models_folder,
+                                random_seed,
+                                use_gpu,
+                                verbose,
+                                "minimize",
+                                n_trials_autoencoder,
+                                load_if_exists,
+                                1,
+                                f"AO_Optimization"
+                                ) for pid in range(num_processes_autoencoder)
+                            ])
                 else:
                     # User-facing error: invalid parallel backend
                     ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
@@ -460,27 +668,59 @@ def optimize_NN(
                 ) for pid in range(num_processes_NN)
             )
         elif parallel_backend == "multiprocessing":
-            with Pool(num_processes_NN) as pool:
-                # Each process will execute the "NNworker" function with the datasets and optimizer parameters
-                pool.starmap(ocscoreworkers.NNworker, [(
-                    pid,
-                    storage_id,
-                    new_X_train, y_train,
-                    new_X_test, y_test,
-                    new_X_val, y_val,
-                    storage,
-                    best_ao_params,   # encoder
-                    1,                # output_size
-                    random_seed,
-                    use_gpu,
-                    verbose,
-                    "minimize",       # direction
-                    n_trials_NN,
-                    load_if_exists,
-                    1,                # n_jobs
-                    study_name
-                    ) for pid in range(num_processes_NN)
-                ])
+            nn_shared_args = (
+                storage_id,
+                new_X_train,
+                y_train,
+                new_X_test,
+                y_test,
+                new_X_val,
+                y_val,
+                storage,
+                best_ao_params,
+                1,
+                random_seed,
+                use_gpu,
+                verbose,
+                "minimize",
+                n_trials_NN,
+                load_if_exists,
+                1,
+                study_name,
+            )
+            try:
+                with Pool(
+                    num_processes_NN,
+                    initializer = _init_nn_mp_shared_args,
+                    initargs = (nn_shared_args,),
+                ) as pool:
+                    pool.starmap(
+                        _run_nn_worker_with_shared_args,
+                        [(pid,) for pid in range(num_processes_NN)],
+                    )
+            except TypeError as exc:
+                if not _pool_initializer_not_supported(exc):
+                    raise
+                with Pool(num_processes_NN) as pool:
+                    pool.starmap(ocscoreworkers.NNworker, [(
+                        pid,
+                        storage_id,
+                        new_X_train, y_train,
+                        new_X_test, y_test,
+                        new_X_val, y_val,
+                        storage,
+                        best_ao_params,
+                        1,
+                        random_seed,
+                        use_gpu,
+                        verbose,
+                        "minimize",
+                        n_trials_NN,
+                        load_if_exists,
+                        1,
+                        study_name
+                        ) for pid in range(num_processes_NN)
+                    ])
         else:
             raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 
@@ -642,31 +882,61 @@ def perform_ablation_study_NN(
             ) for pid, mask in enumerate(split_masks)
         )
     elif parallel_backend == "multiprocessing":
-        # Create a pool of worker processes
-        with Pool(inner_num_processes) as pool:
-            # Each process will execute the 'NNAblationworker' function with the datasets and optimizer parameters
-            pool.starmap(ocscoreworkers.NNAblationworker, [(
-                pid,
-                id,
-                X_train,
-                y_train,
-                X_test,
-                y_test,
-                X_val,
-                y_val,
-                mask,
-                storage,
-                best_params,
-                encoder_params,
-                output_size,
-                random_seed,
-                use_gpu,
-                verbose,
-                load_if_exists,
-                n_jobs,
-                study_name,
-                ) for pid, mask in enumerate(split_masks)
-            ])
+        ablation_shared_args = (
+            id,
+            X_train,
+            y_train,
+            X_test,
+            y_test,
+            X_val,
+            y_val,
+            storage,
+            best_params,
+            encoder_params,
+            output_size,
+            random_seed,
+            use_gpu,
+            verbose,
+            load_if_exists,
+            n_jobs,
+            study_name,
+        )
+        try:
+            with Pool(
+                inner_num_processes,
+                initializer = _init_ablation_mp_shared_args,
+                initargs = (ablation_shared_args,),
+            ) as pool:
+                pool.starmap(
+                    _run_ablation_worker_with_shared_args,
+                    [(pid, mask) for pid, mask in enumerate(split_masks)],
+                )
+        except TypeError as exc:
+            if not _pool_initializer_not_supported(exc):
+                raise
+            with Pool(inner_num_processes) as pool:
+                pool.starmap(ocscoreworkers.NNAblationworker, [(
+                    pid,
+                    id,
+                    X_train,
+                    y_train,
+                    X_test,
+                    y_test,
+                    X_val,
+                    y_val,
+                    mask,
+                    storage,
+                    best_params,
+                    encoder_params,
+                    output_size,
+                    random_seed,
+                    use_gpu,
+                    verbose,
+                    load_if_exists,
+                    n_jobs,
+                    study_name,
+                    ) for pid, mask in enumerate(split_masks)
+                ])
     else:
         # User-facing error: invalid parallel backend
         ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
@@ -796,31 +1066,61 @@ def perform_seed_ablation_study_NN(
             ) for pid, seed in enumerate(split_seeds)
         )
     elif parallel_backend == "multiprocessing":
-        # Create a pool of worker processes
-        with Pool(inner_num_processes) as pool:
-            # Each process will execute the 'NNAblationworker' function with the datasets and optimizer parameters
-            pool.starmap(ocscoreworkers.NNSeedAblationworker, [(
-                pid,
-                id,
-                X_train,
-                y_train,
-                X_test,
-                y_test,
-                X_val,
-                y_val,
-                mask,
-                storage,
-                best_params,
-                seed,
-                encoder_params,
-                output_size,
-                use_gpu,
-                verbose,
-                load_if_exists,
-                n_jobs,
-                study_name
-                ) for pid, seed in enumerate(split_seeds)
-            ])
+        seed_shared_args = (
+            id,
+            X_train,
+            y_train,
+            X_test,
+            y_test,
+            X_val,
+            y_val,
+            mask,
+            storage,
+            best_params,
+            encoder_params,
+            output_size,
+            use_gpu,
+            verbose,
+            load_if_exists,
+            n_jobs,
+            study_name,
+        )
+        try:
+            with Pool(
+                inner_num_processes,
+                initializer = _init_seed_ablation_mp_shared_args,
+                initargs = (seed_shared_args,),
+            ) as pool:
+                pool.starmap(
+                    _run_seed_ablation_worker_with_shared_args,
+                    [(pid, seed) for pid, seed in enumerate(split_seeds)],
+                )
+        except TypeError as exc:
+            if not _pool_initializer_not_supported(exc):
+                raise
+            with Pool(inner_num_processes) as pool:
+                pool.starmap(ocscoreworkers.NNSeedAblationworker, [(
+                    pid,
+                    id,
+                    X_train,
+                    y_train,
+                    X_test,
+                    y_test,
+                    X_val,
+                    y_val,
+                    mask,
+                    storage,
+                    best_params,
+                    seed,
+                    encoder_params,
+                    output_size,
+                    use_gpu,
+                    verbose,
+                    load_if_exists,
+                    n_jobs,
+                    study_name
+                    ) for pid, seed in enumerate(split_seeds)
+                ])
     else:
         # User-facing error: invalid parallel backend
         ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
