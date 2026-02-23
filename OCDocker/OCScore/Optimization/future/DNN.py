@@ -21,7 +21,7 @@ from joblib import Parallel, delayed
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
 from sklearn.model_selection import GroupShuffleSplit
-from typing import Union
+from typing import Any, Optional, Tuple, Union
 
 import OCDocker.OCScore.Utils.Data as ocscoredata
 import OCDocker.Toolbox.Printing as ocprint
@@ -51,6 +51,31 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Private ##
+
+_future_nn_mp_shared_args: Optional[Tuple[Any, ...]] = None
+
+
+def _pool_initializer_not_supported(exc: TypeError) -> bool:
+    '''Check whether a Pool TypeError comes from unsupported initializer kwargs.'''
+
+    msg = str(exc).lower()
+    return "initializer" in msg or "initargs" in msg or "unexpected keyword argument" in msg
+
+
+def _init_future_nn_mp_shared_args(shared_args: Tuple[Any, ...]) -> None:
+    '''Initialize shared arguments for future NN worker wrappers.'''
+
+    global _future_nn_mp_shared_args
+    _future_nn_mp_shared_args = shared_args
+
+
+def _run_future_nn_worker_with_shared_args(pid: int) -> Any:
+    '''Execute ``_future_worker`` using shared process-local arguments.'''
+
+    if _future_nn_mp_shared_args is None:
+        raise RuntimeError("Future NN multiprocessing shared arguments are not initialized.")
+    return _future_worker(pid, *_future_nn_mp_shared_args)
+
 
 def _future_worker(
         pid: int,
@@ -315,25 +340,55 @@ def optimize_NN_future(
             ) for pid in range(num_processes_NN)
         )
     elif parallel_backend == "multiprocessing":
-        with Pool(num_processes_NN) as pool:
-            pool.starmap(_future_worker, [(
-                pid,
-                storage_id,
-                X_pdb_train,
-                y_pdb_train,
-                X_pdb_test,
-                y_pdb_test,
-                dude_train,
-                dude_val,
-                storage,
-                best_ao_params,
-                random_seed,
-                use_gpu,
-                verbose,
-                n_trials,
-                study_name,
-                future_config or {}
-            ) for pid in range(num_processes_NN)])
+        future_shared_args = (
+            storage_id,
+            X_pdb_train,
+            y_pdb_train,
+            X_pdb_test,
+            y_pdb_test,
+            dude_train,
+            dude_val,
+            storage,
+            best_ao_params,
+            random_seed,
+            use_gpu,
+            verbose,
+            n_trials,
+            study_name,
+            future_config or {},
+        )
+        try:
+            with Pool(
+                num_processes_NN,
+                initializer = _init_future_nn_mp_shared_args,
+                initargs = (future_shared_args,),
+            ) as pool:
+                pool.starmap(
+                    _run_future_nn_worker_with_shared_args,
+                    [(pid,) for pid in range(num_processes_NN)],
+                )
+        except TypeError as exc:
+            if not _pool_initializer_not_supported(exc):
+                raise
+            with Pool(num_processes_NN) as pool:
+                pool.starmap(_future_worker, [(
+                    pid,
+                    storage_id,
+                    X_pdb_train,
+                    y_pdb_train,
+                    X_pdb_test,
+                    y_pdb_test,
+                    dude_train,
+                    dude_val,
+                    storage,
+                    best_ao_params,
+                    random_seed,
+                    use_gpu,
+                    verbose,
+                    n_trials,
+                    study_name,
+                    future_config or {}
+                ) for pid in range(num_processes_NN)])
     else:
         raise ValueError(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
 

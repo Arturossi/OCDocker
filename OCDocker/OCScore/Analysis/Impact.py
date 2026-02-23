@@ -248,9 +248,18 @@ def build_impact_overview(
     categories = any_cont.columns.astype(str).tolist()
     beneficial = _beneficial_categories(metric, categories, custom=beneficial_custom)
 
+    feature_idx = chi_df.columns.get_loc('Feature')
+    chi2_idx = chi_df.columns.get_loc('Chi2 Statistic') if 'Chi2 Statistic' in chi_df.columns else None
+    pvalue_idx = chi_df.columns.get_loc('p-value') if 'p-value' in chi_df.columns else None
+    cramers_v_idx = chi_df.columns.get_loc("Cramér's V") if "Cramér's V" in chi_df.columns else None
+
     rows = []
-    for _, r in chi_df.iterrows():
-        feat = r['Feature']
+    for row in chi_df.itertuples(index = False, name = None):
+        feat = row[feature_idx]
+        chi2_val = row[chi2_idx] if chi2_idx is not None else np.nan
+        pvalue_val = row[pvalue_idx] if pvalue_idx is not None else np.nan
+        cramers_v_val = row[cramers_v_idx] if cramers_v_idx is not None else np.nan
+
         cont = contingency_dict.get(feat)
         if cont is None or cont.empty:
             rows.append({
@@ -258,9 +267,9 @@ def build_impact_overview(
                 'NBS': np.nan,
                 'Direction': 'neutral',
                 'Strength': 'unknown',
-                'Chi2': r.get('Chi2 Statistic', np.nan),
-                'p-value': r.get('p-value', np.nan),
-                'CramersV': r.get("Cramér's V", np.nan),
+                'Chi2': chi2_val,
+                'p-value': pvalue_val,
+                'CramersV': cramers_v_val,
                 'FavoredCategory': None,
                 'HurtCategory': None,
             })
@@ -281,10 +290,10 @@ def build_impact_overview(
             'Feature': feat,
             'NBS': nbs,
             'Direction': direction,
-            'Strength': _strength_from_v(r.get("Cramér's V", np.nan)),
-            'Chi2': r.get('Chi2 Statistic', np.nan),
-            'p-value': r.get('p-value', np.nan),
-            'CramersV': r.get("Cramér's V", np.nan),
+            'Strength': _strength_from_v(cramers_v_val),
+            'Chi2': chi2_val,
+            'p-value': pvalue_val,
+            'CramersV': cramers_v_val,
             'FavoredCategory': favored,
             'HurtCategory': hurt,
         })
@@ -391,23 +400,23 @@ def plot_impact_arrows_inline_labels(
     fig_h = min(max(6.0, height_per_feature * len(df)), max_height)
     plt.figure(figsize=(12, fig_h))
 
-    for i, r in df.iterrows():
-        plt.plot([0, r['NBS_norm']], [i, i], color=r['Color'], linewidth=2, alpha=r['Alpha'])
+    for i, row in enumerate(df.itertuples(index = False)):
+        plt.plot([0, row.NBS_norm], [i, i], color=row.Color, linewidth=2, alpha=row.Alpha)
         plt.scatter(
-            r['NBS_norm'],
+            row.NBS_norm,
             i,
-            s=r['Size'],
-            c=r['Color'],
-            marker=r['Marker'],
+            s=row.Size,
+            c=row.Color,
+            marker=row.Marker,
             edgecolor='k',
             linewidth=0.4,
             zorder=3,
         )
 
-    for i, r in df.iterrows():
-        x = r['NBS_norm'] + (xpad if r['NBS_norm'] >= 0 else -xpad)
-        ha = 'left' if r['NBS_norm'] >= 0 else 'right'
-        plt.text(x, i, str(r['Feature']), va='center', ha=ha, fontsize=font_size)
+    for i, row in enumerate(df.itertuples(index = False)):
+        x = row.NBS_norm + (xpad if row.NBS_norm >= 0 else -xpad)
+        ha = 'left' if row.NBS_norm >= 0 else 'right'
+        plt.text(x, i, str(row.Feature), va='center', ha=ha, fontsize=font_size)
 
     plt.yticks([], [])
     plt.axvline(0, color='k', linestyle='--', linewidth=1)
@@ -442,7 +451,6 @@ def plot_impact_arrows_inline_labels(
 
 # Public API
 ###############################################################################
-
 
 
 

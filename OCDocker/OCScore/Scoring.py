@@ -466,8 +466,10 @@ def get_score(
             ocerror.Error.value_error(f"Failed to enforce reference column order: {e}")
             raise
 
-    # Store original data structure for return format
-    original_data = df.copy()
+    # Store only metadata needed for return format to avoid cloning all feature columns.
+    original_metadata_cols = ["receptor", "ligand", "name", "type", "db", "experimental"]
+    available_original_metadata_cols = [col for col in original_metadata_cols if col in df.columns]
+    original_data = df[available_original_metadata_cols].copy() if available_original_metadata_cols else pd.DataFrame(index=df.index)
     is_dataframe = True
 
     # Identify score columns

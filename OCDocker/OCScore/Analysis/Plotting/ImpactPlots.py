@@ -199,8 +199,8 @@ def plot_chi2_contrib(contingency: pd.DataFrame,
     # Render horizontal bar plot with annotations
     plt.figure(figsize=(7,4))
     sns.barplot(data=df, x="Chi2SharePct", y="MetricCategory", orient="h", color="steelblue")
-    for _, r in df.iterrows():
-        plt.text(r["Chi2SharePct"] + 0.5, r["MetricCategory"], f"{r['Chi2SharePct']:.1f}%", va="center")
+    for row in df.itertuples(index = False):
+        plt.text(row.Chi2SharePct + 0.5, row.MetricCategory, f"{row.Chi2SharePct:.1f}%", va="center")
     plt.xlabel("Share of Chi-square (%)")
     plt.ylabel("")
     plt.title(title or f"{feature_name} — per-category χ² contribution (feature=1)")
@@ -233,10 +233,14 @@ def plot_prop_delta(contingency: pd.DataFrame, title: str = 'Proportion delta (1
                 palette=df["prop_delta"].map(lambda v: "tab:red" if v>0 else "tab:blue"))
     # Draw reference at zero and annotate values
     plt.axvline(0, ls="--", c="k", lw=1)
-    for _, r in df.iterrows():
-        plt.text(r["prop_delta"] + (0.01 if r["prop_delta"]>=0 else -0.01),
-                 r["MetricCategory"], f"{r['prop_delta']:.2f}",
-                 va="center", ha="left" if r["prop_delta"]>=0 else "right")
+    for row in df.itertuples(index = False):
+        plt.text(
+            row.prop_delta + (0.01 if row.prop_delta >= 0 else -0.01),
+            row.MetricCategory,
+            f"{row.prop_delta:.2f}",
+            va="center",
+            ha="left" if row.prop_delta >= 0 else "right",
+        )
     # Labeling and layout
     plt.title(title)
     plt.xlabel("Proportion delta (feature=1 minus feature=0)")

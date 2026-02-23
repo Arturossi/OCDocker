@@ -961,18 +961,20 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             # Match only split files from this specific ligand
             ligands.extend(glob(f"{outPath}/{ligandName}_split_*.pdbqt"))
 
+    cfg = get_config()
+    smina_executable = cfg.smina.executable
+
     # For each ligand in the ligands list (newly splited ligands)
     for ligand in ligands:
         # Get the splited ligand name
         ligand_name = os.path.splitext(os.path.basename(ligand))[0]
 
         # Create the command list
-        cfg = get_config()
         # Ensure ligand path is absolute and normalized (remove duplicate directory components)
         ligand = ocff.normalize_path(ligand)
         # Construct log file path using os.path.join for proper path construction
         rescore_log_file = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{scoring_function}_rescoring.log"))
-        cmd = [cfg.smina.executable, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", ligand, "--log", rescore_log_file, "--cpu", "1"]
+        cmd = [smina_executable, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", ligand, "--log", rescore_log_file, "--cpu", "1"]
 
         # If the logFile already exists, check also if the user wants to overwrite it
         if not os.path.isfile(rescore_log_file) or overwrite:

@@ -825,18 +825,20 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             # Match only split files from this specific ligand
             ligands.extend(glob(f"{outPath}/{ligandName}_split_*.pdbqt"))
 
+    config = get_config()
+    vina_executable = config.vina.executable
+
     # For each ligand in the ligands list (newly splited ligands)
     for ligand in ligands:
         # Get the splited ligand name
         ligand_name = os.path.splitext(os.path.basename(ligand))[0]
 
         # Create the command list
-        config = get_config()
         # Ensure ligand path is absolute and normalized (remove duplicate directory components)
         ligand = ocff.normalize_path(ligand)
         # Construct log file path using os.path.join for proper path construction
         log_file_path = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{scoring_function}_rescoring.log"))
-        cmd = [config.vina.executable, "--scoring", scoring_function, "--autobox", "--score_only", "--config", confFile, "--ligand", ligand, "--dir", outPath, "--cpu", "1"]
+        cmd = [vina_executable, "--scoring", scoring_function, "--autobox", "--score_only", "--config", confFile, "--ligand", ligand, "--dir", outPath, "--cpu", "1"]
 
         # Create the log file path
         logFile = log_file_path

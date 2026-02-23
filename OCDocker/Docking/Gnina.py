@@ -1139,6 +1139,12 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
     cnn_model = _as_text(cnn_model)
     run_label = f"cnn_{cnn_model}" if cnn_model else scoring_function
 
+    cfg = get_config()
+    gnina_executable = cfg.gnina.executable
+    cnn_scoring_mode = _as_text(getattr(cfg.gnina, "cnn_scoring", "rescore")) or "rescore"
+    use_no_gpu = _is_true(getattr(cfg.gnina, "no_gpu", "no"))
+    gnina_device = _as_text(getattr(cfg.gnina, "device", ""))
+
     # Print verboosity
     ocprint.printv(f"Running gnina using the '{confFile}' configurations and rescoring setup '{run_label}'.")
 
@@ -1175,12 +1181,11 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
         ligand_name = os.path.splitext(os.path.basename(ligand))[0]
 
         # Create the command list
-        cfg = get_config()
         ligand = ocff.normalize_path(ligand)
         rescore_log_file = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{run_label}_rescoring.log"))
 
         cmd = [
-            cfg.gnina.executable,
+            gnina_executable,
             "--scoring", scoring_function,
             "--score_only",
             "--config", confFile,
@@ -1193,15 +1198,13 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             cmd.extend(["--cnn_scoring", "none"])
         elif cnn_model:
             cmd.extend(["--cnn", cnn_model])
-            cnn_scoring_mode = _as_text(getattr(cfg.gnina, "cnn_scoring", "rescore")) or "rescore"
             cmd.extend(["--cnn_scoring", cnn_scoring_mode])
 
-        if _is_true(getattr(cfg.gnina, "no_gpu", "no")):
+        if use_no_gpu:
             cmd.append("--no_gpu")
         else:
-            device = _as_text(getattr(cfg.gnina, "device", ""))
-            if device and device.lower() != "no":
-                cmd.extend(["--device", device])
+            if gnina_device and gnina_device.lower() != "no":
+                cmd.extend(["--device", gnina_device])
 
         # If the logFile already exists, check also if the user wants to overwrite it
         if not os.path.isfile(rescore_log_file) or overwrite:
