@@ -238,7 +238,7 @@ def optimize_XGB(
             )
         elif parallel_backend == "multiprocessing":
             # Run the optimization using multiprocessing with shared worker payload.
-            pre_shared_args = (
+            pre_shared_args: Tuple[Any, ...] = (
                 storage_id,
                 X_train,
                 X_test,
@@ -468,7 +468,7 @@ def optimize_XGB(
             )
         elif parallel_backend == "multiprocessing":
             # Run the optimization using multiprocessing with shared worker payload.
-            final_shared_args = (
+            final_shared_args: Tuple[Any, ...] = (
                 storage_id,
                 X_train_filtered,
                 X_test_filtered,

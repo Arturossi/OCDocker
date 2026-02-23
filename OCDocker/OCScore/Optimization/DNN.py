@@ -435,7 +435,7 @@ def optimize_NN(
                         )
                     elif parallel_backend == "multiprocessing":
                         # Create a pool of worker processes with shared payload.
-                        ae_shared_args = (
+                        ae_shared_args: Tuple[Any, ...] = (
                             storage_id,
                             AO_X_train,
                             AO_X_test,
@@ -546,7 +546,7 @@ def optimize_NN(
                     )
                 elif parallel_backend == "multiprocessing":
                     # Create a pool of worker processes with shared payload.
-                    ae_shared_args = (
+                    ae_shared_args: Tuple[Any, ...] = (
                         storage_id,
                         X_train,
                         X_test,

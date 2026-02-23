@@ -303,12 +303,12 @@ def export_db_to_csv(
         return output_buffer.getvalue() if output_buffer is not None else '[]'
 
     if output_format == 'csv':
-        output_buffer: Optional[StringIO] = None
+        csv_output_buffer: Optional[StringIO] = None
         if output_file:
             handle = open(output_file, 'w', newline='')
         else:
-            output_buffer = StringIO()
-            handle = output_buffer
+            csv_output_buffer = StringIO()
+            handle = csv_output_buffer
 
         try:
             writer = csv.DictWriter(handle, fieldnames=column_order)
@@ -332,7 +332,7 @@ def export_db_to_csv(
 
         if output_file:
             return None
-        return output_buffer.getvalue() if output_buffer is not None else ''
+        return csv_output_buffer.getvalue() if csv_output_buffer is not None else ''
 
     ocerror.Error.value_error(f"Invalid output format: '{output_format}'. Please choose 'dataframe', 'json', or 'csv'.")
     raise ValueError("Invalid output format. Please choose 'dataframe', 'json', or 'csv'.")
