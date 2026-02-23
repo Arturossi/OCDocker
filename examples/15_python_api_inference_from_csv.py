@@ -164,6 +164,13 @@ def main() -> None:
         action="store_true",
         help="Disable enforcement of reference_column_order (not recommended).",
     )
+    parser.add_argument(
+        "--invert-conditionally",
+        dest="invert_conditionally",
+        action="store_true",
+        default=False,
+        help="Invert VINA/SMINA/PLANTS-like columns before inference (default: enabled).",
+    )
     args = parser.parse_args()
 
     if not os.path.isfile(args.csv_path):
@@ -218,6 +225,7 @@ def main() -> None:
         scaler_path=scaler_path,
         use_gpu=args.use_gpu,
         enforce_reference_column_order=enforce_reference_order,
+        invert_conditionally=args.invert_conditionally,
     )
 
     if "predicted_score" not in predictions.columns:
