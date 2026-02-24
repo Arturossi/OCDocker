@@ -465,22 +465,20 @@ def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize
     None
     '''
 
-    # Arguments to pass to each Thread in the Thread Pool
-    arguments = []
-
-    # For each file in the glob
-    for path in paths:
-        # Append a tuple containing the file name and ovewrite flag to the arguments list
-        arguments.append((path, overwrite, archive, sanitize, spacing, all_boxes))
+    total_jobs = len(paths)
+    arguments = (
+        (path, overwrite, archive, sanitize, spacing, all_boxes)
+        for path in paths
+    )
 
     try:
         # Create a Thread pool with the maximum available_cores
         config = get_config()
         with Pool(config.available_cores) as p:
-            collect_every = __gc_collect_interval(len(arguments))
-            chunksize = __pool_chunksize(len(arguments), config.available_cores)
+            collect_every = __gc_collect_interval(total_jobs)
+            chunksize = __pool_chunksize(total_jobs, config.available_cores)
             # Perform the multi process
-            for i, _ in enumerate(tqdm(p.imap_unordered(__thread_prepare, arguments, chunksize=chunksize), total = len(arguments), desc = desc), start=1):
+            for i, _ in enumerate(tqdm(p.imap_unordered(__thread_prepare, arguments, chunksize=chunksize), total = total_jobs, desc = desc), start=1):
                 # Large batches benefit from less frequent explicit GC.
                 __collect_periodically(i, collect_every, gc.collect)
     except IOError as e:

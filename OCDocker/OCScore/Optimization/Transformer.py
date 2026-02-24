@@ -16,7 +16,7 @@ import OCDocker.OCScore.Optimization.Transformer as octrans
 from joblib import Parallel, delayed
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
-from typing import Any, Optional, Union
+from typing import Any, Optional, Tuple, Union
 
 import OCDocker.Error as ocerror
 import OCDocker.OCScore.Utils.Data as ocscoredata
@@ -47,6 +47,30 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Private ##
+
+_trans_mp_shared_args: Optional[Tuple[Any, ...]] = None
+
+
+def _pool_initializer_not_supported(exc: TypeError) -> bool:
+    '''Check whether a Pool TypeError comes from unsupported initializer kwargs.'''
+
+    msg = str(exc).lower()
+    return "initializer" in msg or "initargs" in msg or "unexpected keyword argument" in msg
+
+
+def _init_trans_mp_shared_args(shared_args: Tuple[Any, ...]) -> None:
+    '''Initialize shared arguments for Transformer worker wrappers.'''
+
+    global _trans_mp_shared_args
+    _trans_mp_shared_args = shared_args
+
+
+def _run_trans_worker_with_shared_args(pid: int) -> Any:
+    '''Execute ``Transworker`` using shared process-local arguments.'''
+
+    if _trans_mp_shared_args is None:
+        raise RuntimeError("Transformer multiprocessing shared arguments are not initialized.")
+    return ocscoreworkers.Transworker(pid, *_trans_mp_shared_args)
 
 ## Public ##
 
@@ -182,27 +206,57 @@ def optimize_Transformer(
                 ) for pid in range(num_processes_Trans)
             )
         elif parallel_backend == "multiprocessing":
-            # Run the optimization using multiprocessing
-            with Pool(num_processes_Trans) as pool:
-                # Each process will execute the 'Transworker' function with the datasets and optimizer parameters
-                pool.starmap(ocscoreworkers.Transworker, [(
-                    pid,
-                    storage_id,
-                    X_train, y_train,
-                    X_test, y_test,
-                    X_val, y_val,
-                    storage,
-                    1,              # output_size
-                    random_seed,
-                    use_gpu,
-                    verbose,
-                    "minimize",     # direction
-                    n_trials_Trans,
-                    load_if_exists,
-                    1,              # n_jobs
-                    study_name
-                    ) for pid in range(num_processes_Trans)
-                ])
+            trans_shared_args = (
+                storage_id,
+                X_train,
+                y_train,
+                X_test,
+                y_test,
+                X_val,
+                y_val,
+                storage,
+                1,
+                random_seed,
+                use_gpu,
+                verbose,
+                "minimize",
+                n_trials_Trans,
+                load_if_exists,
+                1,
+                study_name,
+            )
+            try:
+                with Pool(
+                    num_processes_Trans,
+                    initializer = _init_trans_mp_shared_args,
+                    initargs = (trans_shared_args,),
+                ) as pool:
+                    pool.starmap(
+                        _run_trans_worker_with_shared_args,
+                        [(pid,) for pid in range(num_processes_Trans)],
+                    )
+            except TypeError as exc:
+                if not _pool_initializer_not_supported(exc):
+                    raise
+                with Pool(num_processes_Trans) as pool:
+                    pool.starmap(ocscoreworkers.Transworker, [(
+                        pid,
+                        storage_id,
+                        X_train, y_train,
+                        X_test, y_test,
+                        X_val, y_val,
+                        storage,
+                        1,              # output_size
+                        random_seed,
+                        use_gpu,
+                        verbose,
+                        "minimize",     # direction
+                        n_trials_Trans,
+                        load_if_exists,
+                        1,              # n_jobs
+                        study_name
+                        ) for pid in range(num_processes_Trans)
+                    ])
         else:
             # User-facing error: invalid parallel backend
             ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")

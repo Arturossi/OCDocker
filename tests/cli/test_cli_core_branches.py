@@ -14,6 +14,7 @@ pytest tests/test_cli_core_branches.py
 ###############################################################################
 import argparse
 import builtins
+import math
 import runpy
 import sys
 import types
@@ -385,3 +386,76 @@ def test_db_dependencies_available_handles_missing_modules(monkeypatch):
     assert ok is False
     assert isinstance(exc, ModuleNotFoundError)
     assert "sqlalchemy" in str(exc)
+
+
+@pytest.mark.order(468)
+def test_wait_for_rescore_logs_ready_returns_immediately_when_parseable(monkeypatch):
+    sleep_calls = []
+    monkeypatch.setattr(cli.time, "sleep", lambda seconds: sleep_calls.append(seconds))
+
+    paths, data, ready = cli._wait_for_rescore_logs_ready(
+        lambda _out: ["lig_vina_rescoring.log"],
+        lambda _paths, onlyBest=True: {"vina_vina_rescoring": -7.5 if onlyBest else -6.0},
+        "unused",
+        timeout_seconds=1.0,
+        poll_interval_seconds=0.01,
+    )
+
+    assert ready is True
+    assert paths == ["lig_vina_rescoring.log"]
+    assert data["vina_vina_rescoring"] == -7.5
+    assert sleep_calls == []
+
+
+@pytest.mark.order(469)
+def test_wait_for_rescore_logs_ready_retries_until_valid_scores(monkeypatch):
+    state = {"paths_calls": 0, "read_calls": 0, "sleep_calls": 0}
+
+    def _paths(_out):
+        state["paths_calls"] += 1
+        if state["paths_calls"] < 2:
+            return []
+        return ["lig_smina_rescoring.log"]
+
+    def _read(_paths, onlyBest=True):
+        _ = onlyBest
+        state["read_calls"] += 1
+        if state["read_calls"] == 1:
+            return {}
+        if state["read_calls"] == 2:
+            return {"smina_vinardo_rescoring": float("nan")}
+        return {"smina_vinardo_rescoring": -8.1}
+
+    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: state.__setitem__("sleep_calls", state["sleep_calls"] + 1))
+
+    paths, data, ready = cli._wait_for_rescore_logs_ready(
+        _paths,
+        _read,
+        "unused",
+        timeout_seconds=1.0,
+        poll_interval_seconds=0.0,
+    )
+
+    assert ready is True
+    assert paths == ["lig_smina_rescoring.log"]
+    assert data["smina_vinardo_rescoring"] == -8.1
+    assert state["sleep_calls"] >= 1
+
+
+@pytest.mark.order(470)
+def test_wait_for_rescore_logs_ready_times_out_with_non_parseable_data(monkeypatch):
+    ticks = iter([0.0, 0.0])
+    monkeypatch.setattr(cli.time, "monotonic", lambda: next(ticks))
+    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
+
+    paths, data, ready = cli._wait_for_rescore_logs_ready(
+        lambda _out: ["lig_gnina_rescoring.log"],
+        lambda _paths, onlyBest=True: {"gnina_default_rescoring": float("nan")},
+        "unused",
+        timeout_seconds=0.0,
+        poll_interval_seconds=0.01,
+    )
+
+    assert ready is False
+    assert paths == ["lig_gnina_rescoring.log"]
+    assert math.isnan(float(data["gnina_default_rescoring"]))

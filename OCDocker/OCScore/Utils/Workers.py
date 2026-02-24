@@ -14,12 +14,13 @@ import OCDocker.OCScore.Utils.Workers as ocscoreworkers
 ###############################################################################
 
 import optuna
+import os
 import time
 
 import numpy as np
 
 from optuna.samplers import TPESampler
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, TypeVar, Union
 
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -52,6 +53,128 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Private ##
+
+_T = TypeVar("_T")
+
+
+def _is_transient_optuna_storage_error(exc: Exception) -> bool:
+    '''Detect transient Optuna storage contention/migration race errors.
+
+    Parameters
+    ----------
+    exc : Exception
+        Raised exception.
+
+    Returns
+    -------
+    bool
+        True when the error is likely transient and safe to retry.
+    '''
+
+    msg = str(exc).lower()
+
+    sqlite_lock = "database is locked" in msg
+    sqlite_schema_race = (
+        ("alembic_version" in msg and ("already exists" in msg or "unique constraint failed" in msg))
+        or ("table study_" in msg and "already exists" in msg)
+        or ("table trial_" in msg and "already exists" in msg)
+        or ("table studies" in msg and "already exists" in msg)
+    )
+
+    # Common transactional lock/contention markers for network DB backends.
+    rdb_lock = (
+        "deadlock detected" in msg
+        or "lock wait timeout exceeded" in msg
+        or "could not serialize access due to concurrent update" in msg
+        or "serialization failure" in msg
+        or "could not obtain lock on row" in msg
+        or "(1213" in msg  # MySQL deadlock
+        or "(1205" in msg  # MySQL lock wait timeout
+        or "40p01" in msg  # PostgreSQL deadlock SQLSTATE
+        or "40001" in msg  # PostgreSQL serialization failure SQLSTATE
+    )
+
+    # Bootstrap/migration DDL races that can occur when multiple workers hit
+    # create_study() at once on fresh storage (MySQL/PostgreSQL included).
+    rdb_schema_race = (
+        # PostgreSQL-style relation races
+        ("relation " in msg and "already exists" in msg and (
+            "alembic_version" in msg
+            or "study_" in msg
+            or "trial_" in msg
+            or "studies" in msg
+        ))
+        # Generic duplicate-key races during bootstrap/create-study
+        or (
+            (
+                "duplicate key value violates unique constraint" in msg
+                or "unique constraint failed" in msg
+                or "duplicate entry" in msg
+                or "(1062" in msg  # MySQL duplicate entry
+            )
+            and (
+                "alembic_version" in msg
+                or "studies" in msg
+                or "study_" in msg
+                or "trial_" in msg
+            )
+        )
+        # MySQL table-exists bootstrap race
+        or (("(1050" in msg) and ("study_" in msg or "trial_" in msg or "alembic_version" in msg))
+    )
+
+    return sqlite_lock or sqlite_schema_race or rdb_lock or rdb_schema_race
+
+
+def _run_optuna_op_with_retry(
+    operation: Callable[[], _T],
+    *,
+    pid: int,
+    verbose: bool,
+    context: str,
+) -> _T:
+    '''Run an Optuna operation with retry on transient storage contention.
+
+    The retry logic is intentionally scoped to Optuna storage race/lock errors
+    to avoid masking real training/logic failures.
+    '''
+
+    try:
+        retries = max(0, int(os.getenv("OCDOCKER_OPTUNA_LOCK_RETRIES", "6")))
+    except (TypeError, ValueError):
+        retries = 6
+
+    try:
+        base_delay = max(0.0, float(os.getenv("OCDOCKER_OPTUNA_LOCK_BASE_DELAY", "0.15")))
+    except (TypeError, ValueError):
+        base_delay = 0.15
+
+    try:
+        max_delay = max(base_delay, float(os.getenv("OCDOCKER_OPTUNA_LOCK_MAX_DELAY", "3.0")))
+    except (TypeError, ValueError):
+        max_delay = 3.0
+
+    for attempt in range(retries + 1):
+        try:
+            return operation()
+        except Exception as exc:
+            if not _is_transient_optuna_storage_error(exc) or attempt >= retries:
+                raise
+
+            delay = min(max_delay, base_delay * (2 ** attempt))
+            # Deterministic micro-jitter to avoid synchronized retries.
+            delay += ((pid % 13) + 1) * 0.01
+
+            if verbose:
+                ocprint.print_warning(
+                    f"Transient Optuna storage contention during '{context}' "
+                    f"(attempt {attempt + 1}/{retries + 1}). Retrying in {delay:.2f}s. "
+                    f"Error: {type(exc).__name__}: {exc}"
+                )
+            time.sleep(delay)
+
+    # Unreachable, loop always returns or raises.
+    raise RuntimeError(f"Unexpected retry loop termination for context '{context}'.")
 
 ## Public ##
 
@@ -122,9 +245,6 @@ def AEworker(
     if verbose:
         ocprint.printv(f"Process {pid} starting optimization")
 
-    # Sleep pid % 3 seconds before starting
-    time.sleep(pid % 3)
-
     # Initialize the trainer
     trainer = AutoencoderOptimizer(
         X_train,
@@ -141,13 +261,18 @@ def AEworker(
     study = None
 
     # Run optimization
-    study = trainer.optimize(
+    study = _run_optuna_op_with_retry(
+        lambda: trainer.optimize(
             direction = direction,
             n_trials = n_trials,
             study_name = f"{study_name}_{id}",
             load_if_exists = load_if_exists,
             sampler = TPESampler(),
             n_jobs = n_jobs
+        ),
+        pid=pid,
+        verbose=verbose,
+        context=f"{study_name}_{id}",
     )
 
     if verbose:
@@ -230,14 +355,21 @@ def GAWorker(
     if verbose:
         ocprint.printv(f"Process {pid} starting optimization")
 
-    # Sleep pid % 3 seconds before starting
-    time.sleep(pid % 3)
-
     # Create the GeneticAlgorithm object
     evo = GeneticAlgorithm(X_train, y_train, X_test, y_test, X_validation = X_validation, y_validation = y_validation, storage = storage, xgboost_params = best_params, use_gpu = use_gpu, random_state = random_state, verbose = verbose)
 
     # Run the optimization
-    study, best_features, best_score = evo.optimize(study_name = f"{study_name}_{id}", direction = "minimize", n_trials = n_trials, n_jobs = n_jobs)
+    study, best_features, best_score = _run_optuna_op_with_retry(
+        lambda: evo.optimize(
+            study_name = f"{study_name}_{id}",
+            direction = "minimize",
+            n_trials = n_trials,
+            n_jobs = n_jobs
+        ),
+        pid=pid,
+        verbose=verbose,
+        context=f"{study_name}_{id}",
+    )
 
     if verbose:
         ocprint.printv(f"Process {pid} has completed the optimization")
@@ -307,9 +439,6 @@ def NNAblationworker(
     if verbose:
         ocprint.printv(f"Process {pid} starting ablation")
 
-    # Sleep pid % 3 seconds before starting
-    time.sleep(pid % 3)
-
     # If mask is a list of np.ndarrays
     if isinstance(mask, list) and isinstance(mask[0], np.ndarray):
         for m in mask:
@@ -328,12 +457,17 @@ def NNAblationworker(
             )
 
             # Run optimization
-            trainer.ablate(
-                network_params = network_params,
-                n_trials = 1,
-                study_name = f"{study_name}_{id}",
-                load_if_exists = load_if_exists,
-                n_jobs = n_jobs
+            _run_optuna_op_with_retry(
+                lambda: trainer.ablate(
+                    network_params = network_params,
+                    n_trials = 1,
+                    study_name = f"{study_name}_{id}",
+                    load_if_exists = load_if_exists,
+                    n_jobs = n_jobs
+                ),
+                pid=pid,
+                verbose=verbose,
+                context=f"{study_name}_{id}",
             )
 
         if verbose:
@@ -355,12 +489,17 @@ def NNAblationworker(
         )
 
         # Run optimization
-        trainer.ablate(
-            network_params = network_params,
-            n_trials = 1,
-            study_name = f"{study_name}_{id}",
-            load_if_exists = load_if_exists,
-            n_jobs = n_jobs
+        _run_optuna_op_with_retry(
+            lambda: trainer.ablate(
+                network_params = network_params,
+                n_trials = 1,
+                study_name = f"{study_name}_{id}",
+                load_if_exists = load_if_exists,
+                n_jobs = n_jobs
+            ),
+            pid=pid,
+            verbose=verbose,
+            context=f"{study_name}_{id}",
         )
 
         if verbose:
@@ -433,9 +572,6 @@ def NNSeedAblationworker(
     if verbose:
         ocprint.printv(f"Process {pid} starting ablation")
 
-    # Sleep pid % 3 seconds before starting
-    time.sleep(pid % 3)
-
     # If random_seeds is a list of ints
     if isinstance(random_seeds, list) and isinstance(random_seeds[0], int):
         for random_seed in random_seeds:
@@ -454,12 +590,17 @@ def NNSeedAblationworker(
             )
 
             # Run optimization
-            trainer.ablate(
-                network_params = network_params,
-                n_trials = 1,
-                study_name = f"{study_name}_{id}",
-                load_if_exists = load_if_exists,
-                n_jobs = n_jobs
+            _run_optuna_op_with_retry(
+                lambda: trainer.ablate(
+                    network_params = network_params,
+                    n_trials = 1,
+                    study_name = f"{study_name}_{id}",
+                    load_if_exists = load_if_exists,
+                    n_jobs = n_jobs
+                ),
+                pid=pid,
+                verbose=verbose,
+                context=f"{study_name}_{id}",
             )
 
         if verbose:
@@ -481,12 +622,17 @@ def NNSeedAblationworker(
         )
 
         # Run optimization
-        trainer.ablate(
-            network_params = network_params,
-            n_trials = 1,
-            study_name = f"{study_name}_{id}",
-            load_if_exists = load_if_exists,
-            n_jobs = n_jobs
+        _run_optuna_op_with_retry(
+            lambda: trainer.ablate(
+                network_params = network_params,
+                n_trials = 1,
+                study_name = f"{study_name}_{id}",
+                load_if_exists = load_if_exists,
+                n_jobs = n_jobs
+            ),
+            pid=pid,
+            verbose=verbose,
+            context=f"{study_name}_{id}",
         )
 
         if verbose:
@@ -555,9 +701,6 @@ def NNworker(
     if True:
         ocprint.printv(f"Process {pid} starting optimization")
 
-    # Sleep pid % 3 seconds before starting
-    #time.sleep(pid % 3)
-
     # Initialize the trainer
     trainer = DNNOptimizer(
         X_train, y_train,
@@ -572,13 +715,18 @@ def NNworker(
     )
 
     # Run optimization
-    trainer.optimize(
-        direction = direction,
-        n_trials = n_trials,
-        study_name = f"{study_name}_{id}",
-        load_if_exists = load_if_exists,
-        sampler = TPESampler(),
-        n_jobs = n_jobs
+    _run_optuna_op_with_retry(
+        lambda: trainer.optimize(
+            direction = direction,
+            n_trials = n_trials,
+            study_name = f"{study_name}_{id}",
+            load_if_exists = load_if_exists,
+            sampler = TPESampler(),
+            n_jobs = n_jobs
+        ),
+        pid=pid,
+        verbose=verbose,
+        context=f"{study_name}_{id}",
     )
 
     # Setup unique to this instance, potentially using instance_id to differentiate setups
@@ -667,13 +815,18 @@ def Transworker(
         )
 
         # Run optimization
-        trainer.optimize(
-            direction = direction,
-            n_trials = n_trials,
-            study_name = f"{study_name}_{id}",
-            load_if_exists = load_if_exists,
-            sampler = TPESampler(),
-            n_jobs = n_jobs
+        _run_optuna_op_with_retry(
+            lambda: trainer.optimize(
+                direction = direction,
+                n_trials = n_trials,
+                study_name = f"{study_name}_{id}",
+                load_if_exists = load_if_exists,
+                sampler = TPESampler(),
+                n_jobs = n_jobs
+            ),
+            pid=pid,
+            verbose=verbose,
+            context=f"{study_name}_{id}",
         )
 
         if verbose:
@@ -758,9 +911,6 @@ def XGBworker(
     # Set direction based on X_val
     direction = "maximize" if X_val is None else "minimize"
 
-    # Sleep pid seconds before starting
-    time.sleep(pid)
-
     # Create the XGBoostOptimizer object
     xgb = XGBoostOptimizer(
         X_train,
@@ -778,12 +928,17 @@ def XGBworker(
     )
 
     # Run the pre-optimization for XGBoost
-    study_pre = xgb.optimize(
-        direction = direction,
-        n_trials = n_trials,
-        n_jobs = n_jobs,
-        study_name = f"{study_name}_{id}",
-        load_if_exists = load_if_exists,
+    study_pre = _run_optuna_op_with_retry(
+        lambda: xgb.optimize(
+            direction = direction,
+            n_trials = n_trials,
+            n_jobs = n_jobs,
+            study_name = f"{study_name}_{id}",
+            load_if_exists = load_if_exists,
+        ),
+        pid=pid,
+        verbose=verbose,
+        context=f"{study_name}_{id}",
     )
 
     if verbose:

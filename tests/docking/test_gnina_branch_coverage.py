@@ -535,8 +535,12 @@ def test_gnina_run_rescore_split_cleanup_cnn_and_skip_existing(monkeypatch, tmp_
     seen_cmds = []
 
     def _run_stub(cmd, logFile=""):
+        _ = logFile
         seen_cmds.append(list(cmd))
-        Path(logFile).write_text("log without affinity marker\n", encoding="utf-8")
+        if "--log" in cmd:
+            log_index = cmd.index("--log")
+            if log_index + 1 < len(cmd):
+                Path(cmd[log_index + 1]).write_text("log without affinity marker\n", encoding="utf-8")
         return 0
 
     removed = []
@@ -580,8 +584,12 @@ def test_gnina_run_rescore_split_cleanup_cnn_and_skip_existing(monkeypatch, tmp_
 
     existing.unlink()
     def _run_ok(cmd, logFile=""):
+        _ = logFile
         seen_cmds.append(list(cmd))
-        Path(logFile).write_text("Affinity: -7.9 (kcal/mol)\n", encoding="utf-8")
+        if "--log" in cmd:
+            log_index = cmd.index("--log")
+            if log_index + 1 < len(cmd):
+                Path(cmd[log_index + 1]).write_text("Affinity: -7.9 (kcal/mol)\n", encoding="utf-8")
         return 0
     monkeypatch.setattr(ocgnina.ocrun, "run", _run_ok)
 
@@ -664,7 +672,15 @@ def test_gnina_run_rescore_handles_log_read_errors(monkeypatch, tmp_path):
     ligand = out_path / "lig_split_1.pdbqt"
     ligand.write_text("MODEL 1\nENDMDL\n", encoding="utf-8")
 
-    monkeypatch.setattr(ocgnina.ocrun, "run", lambda _cmd, logFile="": Path(logFile).write_text("anything\n", encoding="utf-8") or 0)
+    monkeypatch.setattr(
+        ocgnina.ocrun,
+        "run",
+        lambda cmd, logFile="": (
+            Path(cmd[cmd.index("--log") + 1]).write_text("anything\n", encoding="utf-8")
+            if "--log" in cmd and cmd.index("--log") + 1 < len(cmd)
+            else 0
+        ) or 0,
+    )
     removed = []
     monkeypatch.setattr(ocgnina.ocff, "safe_remove_file", lambda p: removed.append(str(p)) or 0)
 

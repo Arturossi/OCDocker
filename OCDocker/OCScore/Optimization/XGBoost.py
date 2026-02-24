@@ -18,7 +18,7 @@ import optuna
 from joblib import Parallel, delayed
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
-from typing import Any, Optional, Union
+from typing import Any, Optional, Tuple, Union
 
 import OCDocker.Error as ocerror
 import OCDocker.OCScore.Utils.Data as ocscoredata
@@ -48,6 +48,46 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Private ##
+
+_xgb_mp_shared_args: Optional[Tuple[Any, ...]] = None
+_ga_mp_shared_args: Optional[Tuple[Any, ...]] = None
+
+
+def _pool_initializer_not_supported(exc: TypeError) -> bool:
+    '''Check whether a Pool TypeError comes from unsupported initializer kwargs.'''
+
+    msg = str(exc).lower()
+    return "initializer" in msg or "initargs" in msg or "unexpected keyword argument" in msg
+
+
+def _init_xgb_mp_shared_args(shared_args: Tuple[Any, ...]) -> None:
+    '''Initialize shared arguments for XGB worker wrappers.'''
+
+    global _xgb_mp_shared_args
+    _xgb_mp_shared_args = shared_args
+
+
+def _run_xgb_worker_with_shared_args(pid: int) -> Any:
+    '''Execute ``XGBworker`` using shared process-local arguments.'''
+
+    if _xgb_mp_shared_args is None:
+        raise RuntimeError("XGB multiprocessing shared arguments are not initialized.")
+    return ocscoreworkers.XGBworker(pid, *_xgb_mp_shared_args)
+
+
+def _init_ga_mp_shared_args(shared_args: Tuple[Any, ...]) -> None:
+    '''Initialize shared arguments for GA worker wrappers.'''
+
+    global _ga_mp_shared_args
+    _ga_mp_shared_args = shared_args
+
+
+def _run_ga_worker_with_shared_args(pid: int) -> Any:
+    '''Execute ``GAWorker`` using shared process-local arguments.'''
+
+    if _ga_mp_shared_args is None:
+        raise RuntimeError("GA multiprocessing shared arguments are not initialized.")
+    return ocscoreworkers.GAWorker(pid, *_ga_mp_shared_args)
 
 ## Public ##
 
@@ -197,30 +237,61 @@ def optimize_XGB(
                 ) for i in range(num_processes_pre_XGB)
             )
         elif parallel_backend == "multiprocessing":
-            # Run the optimization using multiprocessing
-            with Pool(num_processes_pre_XGB) as p:
-                # Run the optimization
-                _ = p.starmap(ocscoreworkers.XGBworker, [(
-                        i,
-                        storage_id,
-                        X_train,
-                        X_test,
-                        X_val,
-                        y_train,
-                        y_test,
-                        y_val,
-                        storage,
-                        random_seed,
-                        use_gpu,
-                        verbose,
-                        n_trials_pre_XGB,
-                        load_if_exists,
-                        1,
-                        "Pre_XGB_Optimization",
-                        early_stopping_rounds,
-                        {}
-                    ) for i in range(num_processes_pre_XGB)
-                ])
+            # Run the optimization using multiprocessing with shared worker payload.
+            pre_shared_args: Tuple[Any, ...] = (
+                storage_id,
+                X_train,
+                X_test,
+                X_val,
+                y_train,
+                y_test,
+                y_val,
+                storage,
+                random_seed,
+                use_gpu,
+                verbose,
+                n_trials_pre_XGB,
+                load_if_exists,
+                1,
+                "Pre_XGB_Optimization",
+                early_stopping_rounds,
+                {},
+            )
+            try:
+                with Pool(
+                    num_processes_pre_XGB,
+                    initializer = _init_xgb_mp_shared_args,
+                    initargs = (pre_shared_args,),
+                ) as p:
+                    _ = p.starmap(
+                        _run_xgb_worker_with_shared_args,
+                        [(i,) for i in range(num_processes_pre_XGB)],
+                    )
+            except TypeError as exc:
+                if not _pool_initializer_not_supported(exc):
+                    raise
+                with Pool(num_processes_pre_XGB) as p:
+                    _ = p.starmap(ocscoreworkers.XGBworker, [(
+                            i,
+                            storage_id,
+                            X_train,
+                            X_test,
+                            X_val,
+                            y_train,
+                            y_test,
+                            y_val,
+                            storage,
+                            random_seed,
+                            use_gpu,
+                            verbose,
+                            n_trials_pre_XGB,
+                            load_if_exists,
+                            1,
+                            "Pre_XGB_Optimization",
+                            early_stopping_rounds,
+                            {}
+                        ) for i in range(num_processes_pre_XGB)
+                    ])
         else:
             # User-facing error: invalid parallel backend
             ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
@@ -277,28 +348,57 @@ def optimize_XGB(
                 ) for i in range(num_processes_GA)
             )
         elif parallel_backend == "multiprocessing":
-            # Run the optimization using multiprocessing
-            with Pool(num_processes_GA) as p:
-                # Run the optimization
-                _ = p.starmap(ocscoreworkers.GAWorker, [(
-                    i,
-                    storage_id,
-                    X_train,
-                    y_train,
-                    X_test,
-                    y_test,
-                    X_val,
-                    y_val,
-                    storage,
-                    best_pre_xgb_params,
-                    n_trials_GA,
-                    "feature_selection",
-                    random_seed,
-                    use_gpu,
-                    verbose,
-                    1
-                ) for i in range(num_processes_GA)
-                ])
+            # Run the optimization using multiprocessing with shared worker payload.
+            ga_shared_args = (
+                storage_id,
+                X_train,
+                y_train,
+                X_test,
+                y_test,
+                X_val,
+                y_val,
+                storage,
+                best_pre_xgb_params,
+                n_trials_GA,
+                "feature_selection",
+                random_seed,
+                use_gpu,
+                verbose,
+                1,
+            )
+            try:
+                with Pool(
+                    num_processes_GA,
+                    initializer = _init_ga_mp_shared_args,
+                    initargs = (ga_shared_args,),
+                ) as p:
+                    _ = p.starmap(
+                        _run_ga_worker_with_shared_args,
+                        [(i,) for i in range(num_processes_GA)],
+                    )
+            except TypeError as exc:
+                if not _pool_initializer_not_supported(exc):
+                    raise
+                with Pool(num_processes_GA) as p:
+                    _ = p.starmap(ocscoreworkers.GAWorker, [(
+                        i,
+                        storage_id,
+                        X_train,
+                        y_train,
+                        X_test,
+                        y_test,
+                        X_val,
+                        y_val,
+                        storage,
+                        best_pre_xgb_params,
+                        n_trials_GA,
+                        "feature_selection",
+                        random_seed,
+                        use_gpu,
+                        verbose,
+                        1
+                    ) for i in range(num_processes_GA)
+                    ])
         else:
             # User-facing error: invalid parallel backend
             ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")
@@ -367,30 +467,61 @@ def optimize_XGB(
                 ) for i in range(num_processes_XGB)
             )
         elif parallel_backend == "multiprocessing":
-            # Run the optimization using multiprocessing
-            with Pool(num_processes_XGB) as p:
-                # Run the optimization
-                _ = p.starmap(ocscoreworkers.XGBworker, [(
-                        i,
-                        storage_id,
-                        X_train_filtered,
-                        X_test_filtered,
-                        X_val_filtered,
-                        y_train,
-                        y_test,
-                        y_val,
-                        storage,
-                        random_seed,
-                        use_gpu,
-                        verbose,
-                        n_trials_XGB,
-                        load_if_exists,
-                        1,
-                        study_name,
-                        early_stopping_rounds,
-                        {}
-                    ) for i in range(num_processes_XGB)
-                ])
+            # Run the optimization using multiprocessing with shared worker payload.
+            final_shared_args: Tuple[Any, ...] = (
+                storage_id,
+                X_train_filtered,
+                X_test_filtered,
+                X_val_filtered,
+                y_train,
+                y_test,
+                y_val,
+                storage,
+                random_seed,
+                use_gpu,
+                verbose,
+                n_trials_XGB,
+                load_if_exists,
+                1,
+                study_name,
+                early_stopping_rounds,
+                {},
+            )
+            try:
+                with Pool(
+                    num_processes_XGB,
+                    initializer = _init_xgb_mp_shared_args,
+                    initargs = (final_shared_args,),
+                ) as p:
+                    _ = p.starmap(
+                        _run_xgb_worker_with_shared_args,
+                        [(i,) for i in range(num_processes_XGB)],
+                    )
+            except TypeError as exc:
+                if not _pool_initializer_not_supported(exc):
+                    raise
+                with Pool(num_processes_XGB) as p:
+                    _ = p.starmap(ocscoreworkers.XGBworker, [(
+                            i,
+                            storage_id,
+                            X_train_filtered,
+                            X_test_filtered,
+                            X_val_filtered,
+                            y_train,
+                            y_test,
+                            y_val,
+                            storage,
+                            random_seed,
+                            use_gpu,
+                            verbose,
+                            n_trials_XGB,
+                            load_if_exists,
+                            1,
+                            study_name,
+                            early_stopping_rounds,
+                            {}
+                        ) for i in range(num_processes_XGB)
+                    ])
         else:
             # User-facing error: invalid parallel backend
             ocerror.Error.value_error(f"Invalid parallel backend: '{parallel_backend}'. Please use 'joblib' or 'multiprocessing'.")

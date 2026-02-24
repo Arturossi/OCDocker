@@ -93,6 +93,7 @@ def read_index() -> Optional[Dict[str, Dict[str, Union[str, float]]]]:
     if os.path.isfile(indexFile):
         # List to hold the protein data
         proteinDataOrder = f"{config.paths.pdbbind_kdki_order}M"
+        unit_scale = order[config.paths.pdbbind_kdki_order]
         proteinDataDict = {}  # Dict of dictionaries to hold data for each protein
 
         # Open the file in read mode
@@ -110,21 +111,20 @@ def read_index() -> Optional[Dict[str, Dict[str, Union[str, float]]]]:
                 tp, kdki_str = splitedLine[4].split("=")
 
                 # Normalize the Kd/Ki values to a consistent unit (mol/L)
-                config = get_config()
                 if "mM" in kdki_str:
-                    kdki = float(kdki_str.replace("mM", "")) * order[config.paths.pdbbind_kdki_order]["m"]
+                    kdki = float(kdki_str.replace("mM", "")) * unit_scale["m"]
                 elif "uM" in kdki_str:
-                    kdki = float(kdki_str.replace("uM", "")) * order[config.paths.pdbbind_kdki_order]["u"]
+                    kdki = float(kdki_str.replace("uM", "")) * unit_scale["u"]
                 elif "nM" in kdki_str:
-                    kdki = float(kdki_str.replace("nM", "")) * order[config.paths.pdbbind_kdki_order]["n"]
+                    kdki = float(kdki_str.replace("nM", "")) * unit_scale["n"]
                 elif "pM" in kdki_str:
-                    kdki = float(kdki_str.replace("pM", "")) * order[config.paths.pdbbind_kdki_order]["p"]
+                    kdki = float(kdki_str.replace("pM", "")) * unit_scale["p"]
                 elif "fM" in kdki_str:
-                    kdki = float(kdki_str.replace("fM", "")) * order[config.paths.pdbbind_kdki_order]["f"]
+                    kdki = float(kdki_str.replace("fM", "")) * unit_scale["f"]
                 elif "cM" in kdki_str:
-                    kdki = float(kdki_str.replace("cM", "")) * order[config.paths.pdbbind_kdki_order]["c"]
+                    kdki = float(kdki_str.replace("cM", "")) * unit_scale["c"]
                 else:  # Assume M if not otherwise specified
-                    kdki = float(kdki_str.replace("M", "")) * order[config.paths.pdbbind_kdki_order]["M"]
+                    kdki = float(kdki_str.replace("M", "")) * unit_scale["M"]
 
                 # Create a dictionary for this protein and its data
                 dG = float(occ.convert_Ki_Kd_to_dG(kdki))

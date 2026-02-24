@@ -21,7 +21,7 @@ import pandas as pd
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from typing import Any, Optional, Union, cast
+from typing import Any, Dict, Iterator, Optional, Union, cast
 
 import OCDocker.Error as ocerror
 import OCDocker.OCScore.Utils.Data as ocscoredata
@@ -50,6 +50,151 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Private ##
+
+def _iter_query_rows(query: Any, batch_size: int = 1000) -> Iterator[Any]:
+    '''Iterate query rows using streaming when available.
+
+    Parameters
+    ----------
+    query : Any
+        SQLAlchemy query-like object.
+    batch_size : int, optional
+        Preferred streaming batch size for query backends that support it.
+
+    Returns
+    -------
+    Iterator[Any]
+        Iterator over query rows.
+    '''
+
+    streamed = query
+    if hasattr(streamed, "yield_per"):
+        try:
+            streamed = streamed.yield_per(batch_size)
+        except Exception:
+            streamed = query
+
+    yielded_any = False
+    try:
+        for row in streamed:
+            yielded_any = True
+            yield row
+        return
+    except Exception:
+        if yielded_any:
+            raise
+
+    if streamed is not query:
+        try:
+            for row in query:
+                yield row
+            return
+        except Exception:
+            pass
+
+    all_method = getattr(query, "all", None)
+    if callable(all_method):
+        for row in all_method():
+            yield row
+
+
+def _apply_eager_relationship_loading(query: Any, model: Any) -> Any:
+    '''Apply eager relationship loading to reduce N+1 queries when supported.
+
+    Parameters
+    ----------
+    query : Any
+        SQLAlchemy query-like object.
+    model : Any
+        ORM model class that may expose ``ligand`` and ``receptor`` relationships.
+
+    Returns
+    -------
+    Any
+        Query with eager loading options when possible, or the original query.
+    '''
+
+    if not hasattr(query, "options"):
+        return query
+
+    try:
+        from sqlalchemy.orm import joinedload
+    except Exception:
+        return query
+
+    eager_options = []
+    for rel_name in ("ligand", "receptor"):
+        rel_attr = getattr(model, rel_name, None)
+        if rel_attr is None:
+            continue
+        try:
+            eager_options.append(joinedload(rel_attr))
+        except Exception:
+            continue
+
+    if not eager_options:
+        return query
+
+    try:
+        return query.options(*eager_options)
+    except Exception:
+        return query
+
+
+def _build_dataframe_from_complexes_query(
+    query: Any,
+    descriptors: list[str],
+    batch_size: int = 1000,
+) -> pd.DataFrame:
+    '''Build a DataFrame from a complexes query using chunked row collection.
+
+    Parameters
+    ----------
+    query : Any
+        Query object returning Complexes ORM rows.
+    descriptors : list[str]
+        Descriptor names to collect from each complex row.
+    batch_size : int, optional
+        Number of rows to collect before creating each DataFrame chunk.
+
+    Returns
+    -------
+    pd.DataFrame
+        Aggregated DataFrame created from chunked query iteration.
+    '''
+
+    chunks: list[pd.DataFrame] = []
+    rows: list[Dict[str, Any]] = []
+
+    for complex_obj in _iter_query_rows(query, batch_size=batch_size):
+        row: Dict[str, Any] = {}
+        for desc in descriptors:
+            desc_attr = desc.lower()
+            if hasattr(complex_obj, desc_attr):
+                value = getattr(complex_obj, desc_attr)
+                if value is not None:
+                    row[desc] = value
+
+        if hasattr(complex_obj, 'ligand') and complex_obj.ligand and hasattr(complex_obj.ligand, 'name'):
+            row['ligand'] = complex_obj.ligand.name
+        if hasattr(complex_obj, 'receptor') and complex_obj.receptor and hasattr(complex_obj.receptor, 'name'):
+            row['receptor'] = complex_obj.receptor.name
+        if 'db' not in row:
+            row['db'] = 'UNKNOWN'
+
+        rows.append(row)
+        if len(rows) >= batch_size:
+            chunks.append(pd.DataFrame(rows))
+            rows = []
+
+    if rows:
+        chunks.append(pd.DataFrame(rows))
+
+    if not chunks:
+        return pd.DataFrame()
+    if len(chunks) == 1:
+        return chunks[0]
+    return pd.concat(chunks, ignore_index=True, sort=False)
 
 ## Public ##
 
@@ -267,34 +412,13 @@ def get_score(
 
             # Read from database
             with init.session() as s:
-                # Query all complexes
-                complexes = s.query(Complexes).all()
-
-                # Convert to DataFrame
-                data_list = []
-                for complex_obj in complexes:
-                    row = {}
-                    # Get all descriptor columns
-                    for desc in Complexes.allDescriptors:
-                        desc_attr = desc.lower()
-                        if hasattr(complex_obj, desc_attr):
-                            value = getattr(complex_obj, desc_attr)
-                            # Only add non-None values
-                            if value is not None:
-                                row[desc] = value
-                    # Add metadata if available
-                    if hasattr(complex_obj, 'ligand') and complex_obj.ligand:
-                        if hasattr(complex_obj.ligand, 'name'):
-                            row['ligand'] = complex_obj.ligand.name
-                    if hasattr(complex_obj, 'receptor') and complex_obj.receptor:
-                        if hasattr(complex_obj.receptor, 'name'):
-                            row['receptor'] = complex_obj.receptor.name
-                    # Add db column if not present (for compatibility with preprocessing)
-                    if 'db' not in row:
-                        row['db'] = 'UNKNOWN'
-                    data_list.append(row)
-
-                df_db = pd.DataFrame(data_list)
+                query = s.query(Complexes)
+                query = _apply_eager_relationship_loading(query, Complexes)
+                df_db = _build_dataframe_from_complexes_query(
+                    query,
+                    list(getattr(Complexes, "allDescriptors", [])),
+                    batch_size=1000,
+                )
 
                 if df_db.empty:
                     ocerror.Error.data_not_found("No data found in database.")
@@ -332,7 +456,7 @@ def get_score(
                 df = ocscoredata.reorder_columns_to_match_data_order(
                     df,
                     data_source=None,
-                    keep_extra_columns=True,
+                    keep_extra_columns=False,
                     fill_missing_columns=False
                 )
             else:
@@ -342,8 +466,10 @@ def get_score(
             ocerror.Error.value_error(f"Failed to enforce reference column order: {e}")
             raise
 
-    # Store original data structure for return format
-    original_data = df.copy()
+    # Store only metadata needed for return format to avoid cloning all feature columns.
+    original_metadata_cols = ["receptor", "ligand", "name", "type", "db", "experimental"]
+    available_original_metadata_cols = [col for col in original_metadata_cols if col in df.columns]
+    original_data = df[available_original_metadata_cols].copy() if available_original_metadata_cols else pd.DataFrame(index=df.index)
     is_dataframe = True
 
     # Identify score columns

@@ -135,9 +135,9 @@ def _generate_digest_generic(
                 box_key = str(box_id)
                 if box_key not in digest or not isinstance(digest.get(box_key), dict):
                     digest[box_key] = {}
-                digest[box_key] = {**digest[box_key], **dockingDigest}
+                digest[box_key].update(dockingDigest)
             else:
-                digest = {**digest, **dockingDigest}
+                digest.update(dockingDigest)
 
             # If the format is json, write the digest file
             if digestFormat == "json":

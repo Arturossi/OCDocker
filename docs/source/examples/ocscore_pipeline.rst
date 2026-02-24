@@ -40,6 +40,33 @@ This script demonstrates:
 * Automatic mapping of rescoring results to database column names
 * Multiprocessing support for processing multiple ligands
 
+Inference from CSV
+------------------
+
+Example of OCScore inference loading features directly from a CSV file:
+
+.. literalinclude:: ../../../examples/15_python_api_inference_from_csv.py
+   :language: python
+   :caption: OCScore inference from CSV
+
+This script demonstrates:
+
+* Loading input features from a ``.csv`` file
+* Loading OCDocker config so ``reference_column_order`` is enforced
+* Resolving model artifacts from ``OCScore_models`` (or a custom directory)
+* Optional mask and scaler loading
+* Running model inference and exporting an output CSV with original rows/columns plus ``OCSCORE``
+
+Example command:
+
+.. code-block:: bash
+
+   python examples/15_python_api_inference_from_csv.py \
+       --csv-path /path/to/features.csv \
+       --model-name OCScore \
+       --config-path /path/to/OCDocker.cfg \
+       --output-csv /path/to/scored.csv
+
 Configuration
 -------------
 
@@ -72,4 +99,3 @@ Example configuration:
    # Multiprocessing
    N_JOBS = 4  # Number of parallel jobs
    USE_MULTIPROCESSING = True
-

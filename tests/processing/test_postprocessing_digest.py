@@ -8,8 +8,10 @@ Coverage tests for Processing.Postprocessing.Digest.
 
 # Imports
 ###############################################################################
+import builtins
 import importlib
 import importlib.util as util
+import json
 import os
 import sys
 import types
@@ -75,12 +77,16 @@ def _import_digest(monkeypatch):
 
     # Lightweight stubs for dependencies used by Digest.py
     gnina = types.ModuleType("OCDocker.Docking.Gnina")
+    gnina.read_log = lambda *_a, **_k: {}  # type: ignore[attr-defined]
     gnina.generate_digest = lambda *a, **k: 0  # type: ignore[attr-defined]
     plants = types.ModuleType("OCDocker.Docking.PLANTS")
+    plants.read_log = lambda *_a, **_k: {}  # type: ignore[attr-defined]
     plants.generate_digest = lambda *a, **k: 0  # type: ignore[attr-defined]
     smina = types.ModuleType("OCDocker.Docking.Smina")
+    smina.read_log = lambda *_a, **_k: {}  # type: ignore[attr-defined]
     smina.generate_digest = lambda *a, **k: 0  # type: ignore[attr-defined]
     vina = types.ModuleType("OCDocker.Docking.Vina")
+    vina.read_log = lambda *_a, **_k: {}  # type: ignore[attr-defined]
     vina.generate_digest = lambda *a, **k: 0  # type: ignore[attr-defined]
 
     basetools = types.ModuleType("OCDocker.Toolbox.Basetools")
@@ -165,15 +171,23 @@ def test_core_generate_digest_single_box_calls_all_engines(tmp_path, monkeypatch
     (ligand_dir / "ligand_descriptors.json").write_text("{}", encoding="utf-8")
 
     calls = []
-    monkeypatch.setattr(ocdigest.ocgnina, "generate_digest", lambda *a, **k: calls.append(("gnina", a, k)))
-    monkeypatch.setattr(ocdigest.ocvina, "generate_digest", lambda *a, **k: calls.append(("vina", a, k)))
-    monkeypatch.setattr(ocdigest.ocsmina, "generate_digest", lambda *a, **k: calls.append(("smina", a, k)))
-    monkeypatch.setattr(ocdigest.ocplants, "generate_digest", lambda *a, **k: calls.append(("plants", a, k)))
+    monkeypatch.setattr(ocdigest.ocgnina, "read_log", lambda path, onlyBest=False: calls.append(("gnina", path, onlyBest)) or {"1": {"GNINA_AFFINITY": -7.0}})
+    monkeypatch.setattr(ocdigest.ocvina, "read_log", lambda path, onlyBest=False: calls.append(("vina", path, onlyBest)) or {"1": {"VINA_AFFINITY": -6.5}})
+    monkeypatch.setattr(ocdigest.ocsmina, "read_log", lambda path, onlyBest=False: calls.append(("smina", path, onlyBest)) or {"1": {"SMINA_AFFINITY": -6.2}})
+    monkeypatch.setattr(ocdigest.ocplants, "read_log", lambda path, onlyBest=False: calls.append(("plants", path, onlyBest)) or {"1": {"PLANTS_TOTAL_SCORE": -55.0}})
     monkeypatch.setattr(ocdigest, "_resolve_smina_log", lambda run_dir: f"{run_dir}/resolved.log")
 
     rc = ocdigest.__core_generate_digest(str(tmp_path / "ptn"), str(ligand_dir), "pdbbind", overwrite=True, digestFormat="json")
     assert rc == ocerror.ErrorCode.OK
     assert [c[0] for c in calls] == ["gnina", "vina", "smina", "plants"]
+
+    digest_file = ligand_dir / "dockingDigest.json"
+    assert digest_file.exists()
+    digest_data = json.loads(digest_file.read_text(encoding="utf-8"))
+    assert digest_data["1"]["GNINA_AFFINITY"] == -7.0
+    assert digest_data["1"]["VINA_AFFINITY"] == -6.5
+    assert digest_data["1"]["SMINA_AFFINITY"] == -6.2
+    assert digest_data["1"]["PLANTS_TOTAL_SCORE"] == -55.0
 
 
 @pytest.mark.order(128)
@@ -185,23 +199,56 @@ def test_core_generate_digest_all_boxes_calls_per_box(tmp_path, monkeypatch, ocd
     (boxes_dir / "box0.pdb").write_text("box0", encoding="utf-8")
     (boxes_dir / "box1.pdb").write_text("box1", encoding="utf-8")
 
-    box_ids = []
-
-    def _recorder(*_args, **kwargs):
-        box_ids.append(kwargs.get("box_id"))
-        return 0
-
-    monkeypatch.setattr(ocdigest.ocgnina, "generate_digest", _recorder)
-    monkeypatch.setattr(ocdigest.ocvina, "generate_digest", _recorder)
-    monkeypatch.setattr(ocdigest.ocsmina, "generate_digest", _recorder)
-    monkeypatch.setattr(ocdigest.ocplants, "generate_digest", _recorder)
+    call_paths = []
+    monkeypatch.setattr(ocdigest.ocgnina, "read_log", lambda path, onlyBest=False: call_paths.append(("gnina", path, onlyBest)) or {"1": {"GNINA_AFFINITY": -7.0}})
+    monkeypatch.setattr(ocdigest.ocvina, "read_log", lambda path, onlyBest=False: call_paths.append(("vina", path, onlyBest)) or {"1": {"VINA_AFFINITY": -6.5}})
+    monkeypatch.setattr(ocdigest.ocsmina, "read_log", lambda path, onlyBest=False: call_paths.append(("smina", path, onlyBest)) or {"1": {"SMINA_AFFINITY": -6.2}})
+    monkeypatch.setattr(ocdigest.ocplants, "read_log", lambda path, onlyBest=False: call_paths.append(("plants", path, onlyBest)) or {"1": {"PLANTS_TOTAL_SCORE": -55.0}})
     monkeypatch.setattr(ocdigest, "_resolve_smina_log", lambda run_dir: os.path.join(run_dir, "resolved.log"))
 
     rc = ocdigest.__core_generate_digest(str(tmp_path / "ptn"), str(ligand_dir), "dudez", overwrite=False, all_boxes=True)
     assert rc == ocerror.ErrorCode.OK
-    assert len(box_ids) == 8
-    assert box_ids.count("box0") == 4
-    assert box_ids.count("box1") == 4
+    assert len(call_paths) == 8
+    assert sum(1 for _, path, _ in call_paths if "/box0/" in path or "\\box0\\" in path) == 4
+    assert sum(1 for _, path, _ in call_paths if "/box1/" in path or "\\box1\\" in path) == 4
+
+    digest_file = ligand_dir / "dockingDigest.json"
+    digest_data = json.loads(digest_file.read_text(encoding="utf-8"))
+    assert digest_data["box0"]["1"]["GNINA_AFFINITY"] == -7.0
+    assert digest_data["box0"]["1"]["PLANTS_TOTAL_SCORE"] == -55.0
+    assert digest_data["box1"]["1"]["VINA_AFFINITY"] == -6.5
+    assert digest_data["box1"]["1"]["SMINA_AFFINITY"] == -6.2
+
+
+@pytest.mark.order(175)
+def test_core_generate_digest_writes_once_per_ligand(tmp_path, monkeypatch, ocdigest):
+    ligand_dir = tmp_path / "ligandC"
+    boxes_dir = ligand_dir / "boxes"
+    boxes_dir.mkdir(parents=True, exist_ok=True)
+    (ligand_dir / "ligand_descriptors.json").write_text("{}", encoding="utf-8")
+    (boxes_dir / "box0.pdb").write_text("box0", encoding="utf-8")
+    (boxes_dir / "box1.pdb").write_text("box1", encoding="utf-8")
+
+    monkeypatch.setattr(ocdigest.ocgnina, "read_log", lambda *_a, **_k: {"1": {"GNINA_AFFINITY": -7.0}})
+    monkeypatch.setattr(ocdigest.ocvina, "read_log", lambda *_a, **_k: {"1": {"VINA_AFFINITY": -6.5}})
+    monkeypatch.setattr(ocdigest.ocsmina, "read_log", lambda *_a, **_k: {"1": {"SMINA_AFFINITY": -6.2}})
+    monkeypatch.setattr(ocdigest.ocplants, "read_log", lambda *_a, **_k: {"1": {"PLANTS_TOTAL_SCORE": -55.0}})
+    monkeypatch.setattr(ocdigest, "_resolve_smina_log", lambda run_dir: os.path.join(run_dir, "resolved.log"))
+
+    digest_file = ligand_dir / "dockingDigest.json"
+    original_open = builtins.open
+    writes = {"count": 0}
+
+    def _count_writes(path, mode="r", *args, **kwargs):
+        if str(path) == str(digest_file) and "w" in mode:
+            writes["count"] += 1
+        return original_open(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", _count_writes)
+
+    rc = ocdigest.__core_generate_digest(str(tmp_path / "ptn"), str(ligand_dir), "dudez", overwrite=False, all_boxes=True)
+    assert rc == ocerror.ErrorCode.OK
+    assert writes["count"] == 1
 
 
 @pytest.mark.order(129)

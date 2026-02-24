@@ -20,7 +20,7 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import DeclarativeBase, declared_attr
 
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, Iterator, List, Optional, Union, cast
 
 import OCDocker.Error as ocerror
 
@@ -218,6 +218,49 @@ class Base(DeclarativeBase):
         return Float()
 
     @classmethod
+    def find_iter(cls, idorname: Union[int, str], batch_size: int = 1000) -> Iterator[DeclarativeMeta]:
+        ''' Search data in the database and stream the rows.
+
+        Parameters
+        ----------
+        idorname : Union[int, str]
+            The ID or name of the data to be searched.
+        batch_size : int, optional
+            Number of rows per fetch batch.
+
+        Returns
+        -------
+        Iterator[DeclarativeMeta]
+            Iterator with matching rows.
+        '''
+
+        # Check if session is defined
+        if session is None:
+            # The session is not defined
+            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
+
+            # Return an empty iterator
+            return iter(())
+
+        # Ensure a valid positive batch size
+        normalized_batch_size = max(1, int(batch_size))
+
+        def _iter_rows() -> Iterator[DeclarativeMeta]:
+            # Open the session
+            with session() as s:
+                # Build the query
+                if isinstance(idorname, int):
+                    query = s.query(cls).filter(cls.id == idorname)
+                else:
+                    query = s.query(cls).filter(func.lower(cls.name) == func.lower(idorname))
+
+                # Stream results to avoid materializing large result sets in memory
+                for row in query.execution_options(stream_results = True):
+                    yield cast(DeclarativeMeta, row)
+
+        return _iter_rows()
+
+    @classmethod
     def find(cls, idorname: Union[int, str]) -> List[DeclarativeMeta]:
         ''' Search data in the database.
 
@@ -232,23 +275,42 @@ class Base(DeclarativeBase):
             The data found.
         '''
 
+        return list(cls.find_iter(idorname))
+
+    @classmethod
+    def find_all_iter(cls, batch_size: int = 1000) -> Iterator[DeclarativeMeta]:
+        ''' Search all data in the database and stream the rows.
+
+        Parameters
+        ----------
+        batch_size : int, optional
+            Number of rows per fetch batch.
+
+        Returns
+        -------
+        Iterator[DeclarativeMeta]
+            Iterator with all rows.
+        '''
+
         # Check if session is defined
         if session is None:
             # The session is not defined
             _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
-            # Return an empty list
-            return []
+            # Return an empty iterator
+            return iter(())
 
-        # Open the session
-        with session() as s:
-            # Perform the search
-            if isinstance(idorname, int):
-                data = s.query(cls).filter(cls.id == idorname).all()
-            else:
-                data = s.query(cls).filter(func.lower(cls.name) == func.lower(idorname)).all()
+        # Ensure a valid positive batch size
+        normalized_batch_size = max(1, int(batch_size))
 
-        return cast(List[DeclarativeMeta], data)
+        def _iter_rows() -> Iterator[DeclarativeMeta]:
+            # Open the session
+            with session() as s:
+                query = s.query(cls)
+                for row in query.execution_options(stream_results = True):
+                    yield cast(DeclarativeMeta, row)
+
+        return _iter_rows()
 
     @classmethod
     def find_all(cls) -> List[DeclarativeMeta]:
@@ -260,20 +322,42 @@ class Base(DeclarativeBase):
             The data found.
         '''
 
+        return list(cls.find_all_iter())
+
+    @classmethod
+    def find_all_names_iter(cls, batch_size: int = 1000) -> Iterator[str]:
+        ''' Search all names in the database and stream the rows.
+
+        Parameters
+        ----------
+        batch_size : int, optional
+            Number of rows per fetch batch.
+
+        Returns
+        -------
+        Iterator[str]
+            Iterator with all names.
+        '''
+
         # Check if session is defined
         if session is None:
             # The session is not defined
             _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
 
-            # Return an empty list
-            return []
+            # Return an empty iterator
+            return iter(())
 
-        # Open the session
-        with session() as s:
-            # Perform the search
-            data = s.query(cls).all()
+        # Ensure a valid positive batch size
+        normalized_batch_size = max(1, int(batch_size))
 
-        return cast(List[DeclarativeMeta], data)
+        def _iter_rows() -> Iterator[str]:
+            # Open the session
+            with session() as s:
+                query = s.query(cls.name)
+                for row in query.execution_options(stream_results = True).yield_per(normalized_batch_size):
+                    yield cast(str, row[0])
+
+        return _iter_rows()
 
     @classmethod
     def find_all_names(cls) -> List[str]:
@@ -285,20 +369,57 @@ class Base(DeclarativeBase):
             The names found.
         '''
 
+        return list(cls.find_all_names_iter())
+
+    @classmethod
+    def find_attribute_iter(cls, column: str, value: Any, operator: str = "==", batch_size: int = 1000) -> Iterator[DeclarativeMeta]:
+        ''' Search data in the database based on an attribute and stream rows.
+
+        Parameters
+        ----------
+        column : str
+            The column name.
+        value : Any
+            The value to be searched.
+        operator : str
+            The operator to be used.
+        batch_size : int, optional
+            Number of rows per fetch batch.
+
+        Returns
+        -------
+        Iterator[DeclarativeMeta]
+            Iterator with matching rows.
+        '''
+
         # Check if session is defined
         if session is None:
-            # The session is not defined
             _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
+            return iter(())
 
-            # Return an empty list
-            return []
+        # Check if the operator is valid
+        if operator not in OPMAP:
+            _ = ocerror.Error.malformed_payload(f"Unsupported operator '{operator}'.")
+            return iter(())
 
-        # Open the session
-        with session() as s:
-            # Perform the search
-            data = s.query(cls.name).all()
+        # Get the column
+        try:
+            col = getattr(cls, column)
+        except AttributeError:
+            _ = ocerror.Error.malformed_payload(f"Unknown column '{column}'.")
+            return iter(())
 
-        return [row[0] for row in data]
+        # Ensure a valid positive batch size
+        normalized_batch_size = max(1, int(batch_size))
+
+        def _iter_rows() -> Iterator[DeclarativeMeta]:
+            # Open the session
+            with session() as s:
+                query = s.query(cls).filter(OPMAP[operator](col, value))
+                for row in query.execution_options(stream_results = True):
+                    yield cast(DeclarativeMeta, row)
+
+        return _iter_rows()
 
     @classmethod
     def find_attribute(cls, column: str, value: Any, operator: str = "==") -> List[DeclarativeMeta]:
@@ -319,26 +440,7 @@ class Base(DeclarativeBase):
             The data found.
         '''
 
-        # Check if session is defined
-        if session is None:
-            _ = ocerror.Error.session_not_created("The session is not defined. Please create the session first.")
-            return []
-
-        # Check if the operator is valid
-        if operator not in OPMAP:
-            _ = ocerror.Error.malformed_payload(f"Unsupported operator '{operator}'.")
-            return []
-
-        # Get the column
-        try:
-            col = getattr(cls, column)
-        except AttributeError:
-            _ = ocerror.Error.malformed_payload(f"Unknown column '{column}'.")
-            return []
-
-        # Open the session
-        with session() as s:
-            return cast(List[DeclarativeMeta], s.query(cls).filter(OPMAP[operator](col, value)).all())
+        return list(cls.find_attribute_iter(column, value, operator))
 
     @classmethod
     def find_first(cls, idorname: Union[int, str]) -> Optional[DeclarativeMeta]:

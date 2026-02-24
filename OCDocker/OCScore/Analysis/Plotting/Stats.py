@@ -116,10 +116,18 @@ def plot_bar_with_significance(
 
         return '***' if p < 0.001 else ('**' if p < 0.01 else ('*' if p < 0.05 else ''))
 
-    for i, r in df.reset_index(drop=True).iterrows():
-        ax.text(r[y_col] + (0.01 if r[y_col] >= 0 else -0.01), i,
-                f"{r[y_col]:.3f}  (p={r['pval']:.2e}) {stars(r['pval'])}",
-                ha='left' if r[y_col] >= 0 else 'right', va='center', fontsize=8)
+    df_plot = df.reset_index(drop = True)
+    y_values = df_plot[y_col].to_numpy()
+    p_values = df_plot['pval'].to_numpy()
+    for i, (y_val, p_val) in enumerate(zip(y_values, p_values)):
+        ax.text(
+            y_val + (0.01 if y_val >= 0 else -0.01),
+            i,
+            f"{y_val:.3f}  (p={p_val:.2e}) {stars(p_val)}",
+            ha='left' if y_val >= 0 else 'right',
+            va='center',
+            fontsize=8,
+        )
 
     ax.set_title(f'Games-Howell pairwise differences — {metric}')
     ax.set_xlabel(f'Difference in {metric}')

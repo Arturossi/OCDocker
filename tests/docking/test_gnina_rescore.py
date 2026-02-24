@@ -124,10 +124,12 @@ def test_gnina_run_rescore_builds_expected_command(tmp_path, monkeypatch):
     seen_cmds: list[list[str]] = []
 
     def _fake_run(cmd, logFile = '', cwd = '', timeout = None):
-        _ = cwd, timeout
+        _ = logFile, cwd, timeout
         seen_cmds.append(list(cmd))
-        if logFile:
-            Path(logFile).write_text('Affinity: -7.2 (kcal/mol)\n', encoding = 'utf-8')
+        if "--log" in cmd:
+            log_index = cmd.index("--log")
+            if log_index + 1 < len(cmd):
+                Path(cmd[log_index + 1]).write_text('Affinity: -7.2 (kcal/mol)\n', encoding = 'utf-8')
         return 0
 
     monkeypatch.setattr(ocgnina.ocrun, 'run', _fake_run)

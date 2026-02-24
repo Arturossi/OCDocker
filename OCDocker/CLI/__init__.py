@@ -42,11 +42,12 @@ import shlex
 import shutil
 import subprocess
 import sys
+import time
 
 from datetime import datetime, timezone
 from glob import glob
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import OCDocker.Toolbox.Security as ocsec
 
@@ -300,6 +301,143 @@ def _to_numeric(value: Any) -> Optional[float]:
     if math.isnan(numeric_value) or math.isinf(numeric_value):
         return None
     return numeric_value
+
+
+def _rescoring_data_has_numeric_scores(data: Dict[str, Any]) -> bool:
+    '''Check whether rescoring payload has at least one finite numeric score.
+
+    Parameters
+    ----------
+    data : Dict[str, Any]
+        Parsed rescoring payload keyed by rescoring label.
+
+    Returns
+    -------
+    bool
+        True when at least one score is numeric and finite, otherwise False.
+    '''
+
+    for raw_value in data.values():
+        if _to_numeric(raw_value) is not None:
+            return True
+        if isinstance(raw_value, (list, tuple)):
+            for item in raw_value:
+                if _to_numeric(item) is not None:
+                    return True
+    return False
+
+
+def _collect_log_file_signatures(paths: List[str]) -> Tuple[Dict[str, Tuple[int, int]], bool]:
+    '''Collect file signatures for rescoring logs.
+
+    Parameters
+    ----------
+    paths : List[str]
+        Candidate rescoring log paths.
+
+    Returns
+    -------
+    Tuple[Dict[str, Tuple[int, int]], bool]
+        Mapping ``path -> (size_bytes, mtime_ns)`` for files that could be
+        stat-ed, plus a flag that indicates at least one unstable/missing path.
+    '''
+
+    signatures: Dict[str, Tuple[int, int]] = {}
+    has_unstable_paths = False
+
+    for raw_path in sorted(set(paths)):
+        path = str(raw_path)
+        try:
+            stat_result = os.stat(path)
+            mtime_ns = int(getattr(stat_result, "st_mtime_ns", int(stat_result.st_mtime * 1_000_000_000)))
+            signatures[path] = (int(stat_result.st_size), mtime_ns)
+        except (FileNotFoundError, PermissionError, OSError):
+            has_unstable_paths = True
+
+    return signatures, has_unstable_paths
+
+
+def _wait_for_rescore_logs_ready(
+    get_log_paths: Callable[[str], List[str]],
+    read_log_data: Callable[..., Dict[str, Any]],
+    out_dir: str,
+    *,
+    timeout_seconds: float = 2.0,
+    poll_interval_seconds: float = 0.05,
+) -> Tuple[List[str], Dict[str, Any], bool]:
+    '''Wait for rescoring logs to become available and parse-ready.
+
+    Polls log discovery and parsing helpers until either:
+    1) at least one finite numeric score is parsed; or
+    2) the timeout is reached.
+
+    Parameters
+    ----------
+    get_log_paths : Callable[[str], List[str]]
+        Function that returns rescoring log paths for an output directory.
+    read_log_data : Callable[..., Dict[str, Any]]
+        Function that parses rescoring logs and returns score data.
+    out_dir : str
+        Output directory where rescoring logs are expected.
+    timeout_seconds : float, optional
+        Maximum wait time before giving up. By default 2.0.
+    poll_interval_seconds : float, optional
+        Delay between polling attempts. By default 0.05.
+
+    Returns
+    -------
+    Tuple[List[str], Dict[str, Any], bool]
+        Tuple with the most recent log paths, parsed data snapshot, and a
+        readiness flag indicating whether parse-ready numeric data was found.
+    '''
+
+    deadline = time.monotonic() + max(0.0, float(timeout_seconds))
+    base_poll_interval = max(0.0, float(poll_interval_seconds))
+    max_poll_interval = max(base_poll_interval, 0.5)
+    last_paths: List[str] = []
+    last_data: Dict[str, Any] = {}
+    last_signatures: Dict[str, Tuple[int, int]] = {}
+    stable_poll_count = 0
+
+    while True:
+        try:
+            current_paths = sorted(str(path) for path in (get_log_paths(out_dir) or []))
+        except Exception:
+            current_paths = []
+
+        if current_paths:
+            current_signatures, has_unstable_paths = _collect_log_file_signatures(current_paths)
+            paths_changed = current_paths != last_paths
+            signatures_changed = current_signatures != last_signatures
+            should_reparse = paths_changed or signatures_changed or has_unstable_paths or not last_data
+
+            last_paths = list(current_paths)
+            last_signatures = current_signatures
+
+            if should_reparse:
+                try:
+                    current_data = read_log_data(current_paths, onlyBest=True) or {}
+                except Exception:
+                    current_data = {}
+
+                if current_data:
+                    last_data = current_data
+                    if _rescoring_data_has_numeric_scores(current_data):
+                        return last_paths, last_data, True
+                stable_poll_count = 0
+            else:
+                stable_poll_count += 1
+        else:
+            stable_poll_count = 0
+            last_signatures = {}
+
+        if time.monotonic() >= deadline:
+            return last_paths, last_data, False
+
+        sleep_interval = base_poll_interval
+        if base_poll_interval > 0.0 and stable_poll_count > 0:
+            sleep_interval = min(max_poll_interval, base_poll_interval * (2 ** min(stable_poll_count, 4)))
+        time.sleep(sleep_interval)
 
 
 def _collect_numeric_descriptors(obj: Any, descriptor_names: List[str]) -> Dict[str, Union[int, float]]:
@@ -2187,10 +2325,11 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                     except Exception as e:
                         ocprint.print_warning(f"Vina rescoring with {sf} failed: {e}. Continuing with other scoring functions...")
                 try:
-                    # Wait a moment for files to be written (in case of async operations)
-                    import time
-                    time.sleep(0.5)
-                    log_paths = v_logs(ctx["vina"]["dir"])
+                    log_paths, data, logs_ready = _wait_for_rescore_logs_ready(
+                        v_logs,
+                        v_read,
+                        ctx["vina"]["dir"],
+                    )
                     if not log_paths:
                         ocprint.print_warning(f"No Vina rescoring log files found in {ctx['vina']['dir']}. Check if rescoring completed successfully.")
                         # Debug: list files in directory
@@ -2198,8 +2337,11 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                             files = list(Path(ctx["vina"]["dir"]).glob("*"))
                             ocprint.print_warning(f"Files in Vina directory: {[f.name for f in files]}")
                     else:
+                        if not logs_ready:
+                            ocprint.print_warning("Vina rescoring logs were not parse-ready within 2.0 seconds. Continuing with best available data.")
                         ocprint.printv(f"Found Vina rescoring log files: {log_paths}")
-                        data = v_read(log_paths, onlyBest=True)
+                        if not data:
+                            data = v_read(log_paths, onlyBest=True)
                         if not data:
                             ocprint.print_warning(f"Vina rescoring log files found but no data extracted. Log paths: {log_paths}")
                         else:
@@ -2298,10 +2440,11 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                         except Exception as e:
                             ocprint.print_warning(f"Smina rescoring with {sf} failed: {e}. Continuing with other scoring functions...")
                     try:
-                        # Wait a moment for files to be written (in case of async operations)
-                        import time
-                        time.sleep(0.5)
-                        log_paths = s_logs(ctx["smina"]["dir"])
+                        log_paths, data, logs_ready = _wait_for_rescore_logs_ready(
+                            s_logs,
+                            s_read,
+                            ctx["smina"]["dir"],
+                        )
                         if not log_paths:
                             ocprint.print_warning(f"No Smina rescoring log files found in {ctx['smina']['dir']}")
                             # Debug: list files in directory
@@ -2309,8 +2452,11 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                                 files = list(Path(ctx["smina"]["dir"]).glob("*"))
                                 ocprint.print_warning(f"Files in Smina directory: {[f.name for f in files]}")
                         else:
+                            if not logs_ready:
+                                ocprint.print_warning("Smina rescoring logs were not parse-ready within 2.0 seconds. Continuing with best available data.")
                             ocprint.printv(f"Found Smina rescoring log files: {log_paths}")
-                            data = s_read(log_paths, onlyBest=True)
+                            if not data:
+                                data = s_read(log_paths, onlyBest=True)
                             smina_vals: Dict[str, float] = {}
                             # Data structure: Dict[str, float] (read_rescoring_log returns float, not list)
                             # Key format: "rescoring_{scoring_function}_{pose_number}" or "smina_{scoring_function}_rescoring"
@@ -2426,17 +2572,22 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                         ocprint.print_warning(f"Gnina rescoring with CNN model '{cnn_model}' failed: {e}. Continuing with other CNN models...")
 
                 try:
-                    import time
-                    time.sleep(0.5)
-                    log_paths = g_logs(ctx["gnina"]["dir"])
+                    log_paths, data, logs_ready = _wait_for_rescore_logs_ready(
+                        g_logs,
+                        g_read,
+                        ctx["gnina"]["dir"],
+                    )
                     if not log_paths:
                         ocprint.print_warning(f"No Gnina rescoring log files found in {ctx['gnina']['dir']}")
                         if Path(ctx["gnina"]["dir"]).exists():
                             files = list(Path(ctx["gnina"]["dir"]).glob("*"))
                             ocprint.print_warning(f"Files in Gnina directory: {[f.name for f in files]}")
                     else:
+                        if not logs_ready:
+                            ocprint.print_warning("Gnina rescoring logs were not parse-ready within 2.0 seconds. Continuing with best available data.")
                         ocprint.printv(f"Found Gnina rescoring log files: {log_paths}")
-                        data = g_read(log_paths, onlyBest=True)
+                        if not data:
+                            data = g_read(log_paths, onlyBest=True)
                         gnina_vals: Dict[str, float] = {}
                         for k, v in data.items():
                             try:

@@ -1,3 +1,3 @@
 """Package version (single source of truth)."""
 
-__version__ = "0.13.2"
+__version__ = "0.13.4"

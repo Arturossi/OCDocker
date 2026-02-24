@@ -672,21 +672,22 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
         # Make it a list
         rescoreLogPaths = [rescoreLogPaths]
 
+    # Resolve and pre-sort scoring functions once for this batch.
+    config = get_config()
+    scoring_functions = getattr(config.vina, 'scoring_functions', [])
+    sorted_scoring_functions = sorted(scoring_functions, key=len, reverse=True) if scoring_functions else []
+
     # For each rescore log path
     for rescoreLogPath in rescoreLogPaths:
         # Get the original filename without extension
         original_filename = os.path.splitext(os.path.basename(rescoreLogPath))[0]
 
         # Extract scoring function from filename ending with _rescoring
-        # Get scoring functions from config and match against filename
-        config = get_config()
-        scoring_functions = getattr(config.vina, 'scoring_functions', [])
-
         scoring_function = None
         if original_filename.endswith("_rescoring") and scoring_functions:
             # Check if any scoring function from config appears in the filename
             # Sort by length (longest first) to match longer names before shorter ones (e.g., "dkoes_scoring" before "scoring")
-            for sf in sorted(scoring_functions, key=len, reverse=True):
+            for sf in sorted_scoring_functions:
                 # Check if filename ends with _{scoring_function}_rescoring
                 if original_filename.endswith(f"_{sf}_rescoring"):
                     scoring_function = sf
@@ -824,18 +825,20 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             # Match only split files from this specific ligand
             ligands.extend(glob(f"{outPath}/{ligandName}_split_*.pdbqt"))
 
+    config = get_config()
+    vina_executable = config.vina.executable
+
     # For each ligand in the ligands list (newly splited ligands)
     for ligand in ligands:
         # Get the splited ligand name
         ligand_name = os.path.splitext(os.path.basename(ligand))[0]
 
         # Create the command list
-        config = get_config()
         # Ensure ligand path is absolute and normalized (remove duplicate directory components)
         ligand = ocff.normalize_path(ligand)
         # Construct log file path using os.path.join for proper path construction
         log_file_path = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{scoring_function}_rescoring.log"))
-        cmd = [config.vina.executable, "--scoring", scoring_function, "--autobox", "--score_only", "--config", confFile, "--ligand", ligand, "--dir", outPath, "--cpu", "1"]
+        cmd = [vina_executable, "--scoring", scoring_function, "--autobox", "--score_only", "--config", confFile, "--ligand", ligand, "--dir", outPath, "--cpu", "1"]
 
         # Create the log file path
         logFile = log_file_path

@@ -737,21 +737,22 @@ def read_rescore_logs(rescoreLogPaths: Union[List[str], str], onlyBest: bool = F
         # Make it a list
         rescoreLogPaths = [rescoreLogPaths]
 
+    # Resolve and pre-sort scoring functions once for this batch.
+    config = get_config()
+    scoring_functions = getattr(config.smina, 'scoring_functions', [])
+    sorted_scoring_functions = sorted(scoring_functions, key=len, reverse=True) if scoring_functions else []
+
     # For each rescore log path
     for rescoreLogPath in rescoreLogPaths:
         # Get the original filename without extension
         original_filename = os.path.splitext(os.path.basename(rescoreLogPath))[0]
 
         # Extract scoring function from filename ending with _rescoring
-        # Get scoring functions from config and match against filename
-        config = get_config()
-        scoring_functions = getattr(config.smina, 'scoring_functions', [])
-
         scoring_function = None
         if original_filename.endswith("_rescoring") and scoring_functions:
             # Check if any scoring function from config appears in the filename
             # Sort by length (longest first) to match longer names before shorter ones (e.g., "dkoes_scoring" before "scoring")
-            for sf in sorted(scoring_functions, key=len, reverse=True):
+            for sf in sorted_scoring_functions:
                 # Check if filename ends with _{scoring_function}_rescoring
                 if original_filename.endswith(f"_{sf}_rescoring"):
                     scoring_function = sf
@@ -960,49 +961,48 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             # Match only split files from this specific ligand
             ligands.extend(glob(f"{outPath}/{ligandName}_split_*.pdbqt"))
 
+    cfg = get_config()
+    smina_executable = cfg.smina.executable
+
     # For each ligand in the ligands list (newly splited ligands)
     for ligand in ligands:
         # Get the splited ligand name
         ligand_name = os.path.splitext(os.path.basename(ligand))[0]
 
         # Create the command list
-        cfg = get_config()
         # Ensure ligand path is absolute and normalized (remove duplicate directory components)
         ligand = ocff.normalize_path(ligand)
         # Construct log file path using os.path.join for proper path construction
-        log_file_path = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{scoring_function}_rescoring.log"))
-        cmd = [cfg.smina.executable, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", ligand, "--log", log_file_path, "--cpu", "1"]
-
-        # Create the log file path
-        logFile = log_file_path
+        rescore_log_file = ocff.normalize_path(os.path.join(outPath, f"{ligand_name}_{scoring_function}_rescoring.log"))
+        cmd = [smina_executable, "--scoring", scoring_function, "--score_only", "--config", confFile, "--ligand", ligand, "--log", rescore_log_file, "--cpu", "1"]
 
         # If the logFile already exists, check also if the user wants to overwrite it
-        if not os.path.isfile(logFile) or overwrite:
+        if not os.path.isfile(rescore_log_file) or overwrite:
             # Print verboosity
             ocprint.printv(f"Running smina using the '{confFile}' configurations and scoring function '{scoring_function}'.")
 
-            # Run the command
-            _ = ocrun.run(cmd, logFile = logFile)
+            # Keep engine log and command stdout/stderr separated to avoid concurrent writes.
+            _ = ocrun.run(cmd, logFile = "")
 
             # Check if the log file exists and has valid output.
             # Smina rescoring logs include the "Affinity" marker.
             log_file_valid = False
-            if os.path.isfile(logFile):
+            if os.path.isfile(rescore_log_file):
                 try:
-                    with open(logFile, "r", encoding = "utf-8", errors = "ignore") as handle:
+                    with open(rescore_log_file, "r", encoding = "utf-8", errors = "ignore") as handle:
                         log_file_valid = any("Affinity" in line for line in handle)
                 except (IOError, OSError):
                     pass
 
             if not log_file_valid:
                 # Print an error (only once, not duplicated)
-                ocprint.print_error(f"Problems while running smina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'. Check the log file: {logFile}")
+                ocprint.print_error(f"Problems while running smina for the ligand '{ligand_name}' using the scoring function '{scoring_function}'. Check the log file: {rescore_log_file}")
 
                 # Remove the invalid log file
-                _ = ocff.safe_remove_file(logFile)
+                _ = ocff.safe_remove_file(rescore_log_file)
         else:
             # Print verboosity
-            ocprint.printv(f"The log file '{logFile}' already exists. Skipping the smina run for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
+            ocprint.printv(f"The log file '{rescore_log_file}' already exists. Skipping the smina run for the ligand '{ligand_name}' using the scoring function '{scoring_function}'.")
 
     # Think about how can this be done to deal with multiple runs
     return None
