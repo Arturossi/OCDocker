@@ -10,6 +10,7 @@ Tests for Toolbox.Printing helpers.
 ###############################################################################
 import datetime
 import importlib
+import logging
 import pytest
 import sys
 import types
@@ -45,6 +46,11 @@ def _set_level(level):
     prev = ocerror.Error.get_output_level()
     ocerror.Error.set_output_level(level)
     return prev
+
+
+def _captured_text(capsys, caplog):
+    captured = capsys.readouterr()
+    return f"{captured.out}\n{captured.err}\n{caplog.text}"
 
 
 ## Public ##
@@ -87,27 +93,29 @@ def ocprint(monkeypatch):
 
 
 @pytest.mark.order(77)
-def test_print_error_contains_tag(ocprint, capsys):
+def test_print_error_contains_tag(ocprint, capsys, caplog):
     prev = _set_level(ocerror.ReportLevel.ERROR)
     try:
-        ocprint.print_error("fail")
+        with caplog.at_level(logging.ERROR, logger="ocdocker"):
+            ocprint.print_error("fail")
     finally:
         ocerror.Error.set_output_level(prev)
-    captured = capsys.readouterr()
-    assert "ERROR" in captured.out
-    assert "fail" in captured.out
+    txt = _captured_text(capsys, caplog)
+    assert "ERROR" in txt
+    assert "fail" in txt
 
 
 @pytest.mark.order(74)
-def test_print_info_contains_tag(ocprint, capsys):
+def test_print_info_contains_tag(ocprint, capsys, caplog):
     prev = _set_level(ocerror.ReportLevel.INFO)
     try:
-        ocprint.print_info("info message")
+        with caplog.at_level(logging.INFO, logger="ocdocker"):
+            ocprint.print_info("info message")
     finally:
         ocerror.Error.set_output_level(prev)
-    captured = capsys.readouterr()
-    assert "INFO" in captured.out
-    assert "info message" in captured.out
+    txt = _captured_text(capsys, caplog)
+    assert "INFO" in txt
+    assert "info message" in txt
 
 
 @pytest.mark.order(78)
@@ -146,38 +154,41 @@ def test_print_subsection_outputs_header(ocprint, capsys, tmp_path):
 
 
 @pytest.mark.order(75)
-def test_print_success_contains_tag(ocprint, capsys):
+def test_print_success_contains_tag(ocprint, capsys, caplog):
     prev = _set_level(ocerror.ReportLevel.SUCCESS)
     try:
-        ocprint.print_success("great")
+        with caplog.at_level(logging.INFO, logger="ocdocker"):
+            ocprint.print_success("great")
     finally:
         ocerror.Error.set_output_level(prev)
-    captured = capsys.readouterr()
-    assert "SUCCESS" in captured.out
-    assert "great" in captured.out
+    txt = _captured_text(capsys, caplog)
+    assert "SUCCESS" in txt
+    assert "great" in txt
 
 
 @pytest.mark.order(76)
-def test_print_warning_contains_tag(ocprint, capsys):
+def test_print_warning_contains_tag(ocprint, capsys, caplog):
     prev = _set_level(ocerror.ReportLevel.WARNING)
     try:
-        ocprint.print_warning("caution")
+        with caplog.at_level(logging.WARNING, logger="ocdocker"):
+            ocprint.print_warning("caution")
     finally:
         ocerror.Error.set_output_level(prev)
-    captured = capsys.readouterr()
-    assert "WARNING" in captured.out
-    assert "caution" in captured.out
+    txt = _captured_text(capsys, caplog)
+    assert "WARNING" in txt
+    assert "caution" in txt
 
 
 @pytest.mark.order(73)
-def test_printv_outputs_message(ocprint, capsys):
+def test_printv_outputs_message(ocprint, capsys, caplog):
     prev = _set_level(ocerror.ReportLevel.DEBUG)
     try:
-        ocprint.printv("hello")
+        with caplog.at_level(logging.DEBUG, logger="ocdocker"):
+            ocprint.printv("hello")
     finally:
         ocerror.Error.set_output_level(prev)
-    captured = capsys.readouterr()
-    assert "hello" in captured.out
+    txt = _captured_text(capsys, caplog)
+    assert "hello" in txt
 
 
 @pytest.mark.order(79)

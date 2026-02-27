@@ -56,7 +56,7 @@ class _State(TypedDict):
 _STATE: _State = {
     "configured": False,
     "logger": logging.getLogger("ocdocker"),
-    "use_rich": False,
+    "use_rich": True,
     "to_stdout": True,
     "stream_handler": None,
 }
