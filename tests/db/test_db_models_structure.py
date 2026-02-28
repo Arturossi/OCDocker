@@ -68,13 +68,13 @@ def test_complexes_model_descriptor_catalog_and_relationships():
     all_desc = occomplexes.Complexes.allDescriptors
     assert "SMINA_VINA" in all_desc
     assert "VINA_VINARDO" in all_desc
+    assert "GNINA_DEFAULT" in all_desc
     assert "PLANTS_CHEMPLP" in all_desc
     assert "ODDT_RFSCORE_V1" in all_desc
     assert "OCSCORE" in all_desc
 
-    for desc in ["SMINA_VINA", "VINA_VINARDO", "PLANTS_CHEMPLP", "ODDT_RFSCORE_V1", "OCSCORE"]:
+    for desc in ["SMINA_VINA", "VINA_VINARDO", "GNINA_DEFAULT", "PLANTS_CHEMPLP", "ODDT_RFSCORE_V1", "OCSCORE"]:
         assert hasattr(occomplexes.Complexes, desc)
 
     assert hasattr(occomplexes.Complexes, "ligand")
     assert hasattr(occomplexes.Complexes, "receptor")
-

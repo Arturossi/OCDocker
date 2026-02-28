@@ -39,6 +39,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 
+
 class Complexes(base):
     """ Define the Complex table 
     
@@ -69,6 +70,8 @@ class Complexes(base):
     descriptors_names = {
         "smina_": ["vina", "scoring_dkoes", "vinardo", "old_scoring_dkoes", "fast_dkoes", "scoring_ad4"],
         "vina_": ["vina", "vinardo"],
+        # Keep Gnina hardcoded for stable DB schema, matching gnina_scoring_functions defaults.
+        "gnina_": ["ad4_scoring", "default", "dkoes_fast", "dkoes_scoring", "dkoes_scoring_old", "vina", "vinardo"],
         "plants_": ["chemplp", "plp", "plp95"],
         "oddt_": [f"rfscore_v{i}" for i in range(1, 4)] + ["PLECrf_p5_l1_s65536", "nnscore"]
     }
