@@ -263,6 +263,12 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         # Transform it into a list
         preparedLigandPath = [preparedLigandPath]
 
+    # ODDT's multiprocessing path provides no benefit for a single ligand and
+    # can deadlock/leave zombies in nested workflow execution contexts.
+    effective_n_cpu = n_cpu
+    if len(preparedLigandPath) <= 1 and (effective_n_cpu is None or int(effective_n_cpu) != 1):
+        effective_n_cpu = 1
+
     # Get configuration and requested scoring functions
     config = get_config()
     # Determine which scoring families should be loaded.
@@ -303,10 +309,28 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     # Get the models (only files)
     models = [model for model in glob(f"{config.oddt_models_dir}/*.pickle") if os.path.isfile(model)]
 
+    def _is_exact_model_available(requested_name: str, available_stems: set[str]) -> bool:
+        if requested_name in available_stems:
+            return True
+
+        # Backward-compatible alias support:
+        # treat plecrf_pdbbind2016 as satisfied when any concrete plecrf model
+        # for that pdbbind version exists (e.g., plecrf_p5_l1_pdbbind2016_s65536).
+        if requested_name.startswith("plecrf_"):
+            _, _, suffix = requested_name.partition("_")
+            for stem in available_stems:
+                if not stem.startswith("plecrf_"):
+                    continue
+                if not suffix or suffix in stem:
+                    return True
+        return False
+
     # Attempt to generate missing exact models if requested
     if exact_requested:
         existing_stems = {os.path.splitext(os.path.basename(m))[0].lower() for m in models}
-        missing_exact = sorted([name for name in exact_requested if name not in existing_stems])
+        missing_exact = sorted(
+            [name for name in exact_requested if not _is_exact_model_available(name, existing_stems)]
+        )
         if missing_exact:
             if config.oddt_models_dir and os.path.isdir(config.oddt_models_dir):
                 try:
@@ -355,7 +379,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR)
 
     # Create the vs object
-    pipeline = vs(n_cpu=n_cpu, verbose=verbose, chunksize=chunksize)
+    pipeline = vs(n_cpu=effective_n_cpu, verbose=verbose, chunksize=chunksize)
 
     # Load the receptor - extract format using os.path.splitext for robustness
     receptor_ext = os.path.splitext(preparedReceptorPath)[1]
@@ -573,6 +597,14 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                 match = True
             else:
                 match = model_stem in exact_requested
+                if (not match) and model_family == "plec":
+                    for req in exact_requested:
+                        if not req.startswith("plecrf_"):
+                            continue
+                        _, _, suffix = req.partition("_")
+                        if not suffix or suffix in model_stem:
+                            match = True
+                            break
         else:
             match = any(sf in model_name for sf in sf_set)
 
@@ -603,10 +635,10 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     use_threading_backend = False
     try:
         config = get_config()
-        use_threading_backend = (config.multiprocess or n_cpu > 1)
+        use_threading_backend = bool(config.multiprocess) and int(effective_n_cpu) > 1
     except (ImportError, AttributeError):
         # Fallback: check n_cpu if config not available
-        use_threading_backend = (n_cpu > 1)
+        use_threading_backend = int(effective_n_cpu) > 1
 
     # Use threading backend context manager if multiprocess is enabled
     # This prevents loky from trying to spawn new processes in nested multiprocessing contexts
@@ -658,7 +690,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                 sf_name = model_sf_map.get(model, os.path.basename(model))
                 try:
                     # Create a new pipeline for this scoring function
-                    individual_pipeline = vs(n_cpu=n_cpu, verbose=verbose, chunksize=chunksize)
+                    individual_pipeline = vs(n_cpu=effective_n_cpu, verbose=verbose, chunksize=chunksize)
                     for ligand in preparedLigandPath:
                         # Extract format using os.path.splitext for robustness
                         ligand_ext = os.path.splitext(ligand)[1]

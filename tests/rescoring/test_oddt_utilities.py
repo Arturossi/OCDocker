@@ -1167,6 +1167,80 @@ def test_run_oddt_attempts_to_initialize_missing_exact_models(monkeypatch, tmp_p
     assert rc == ocerror.ErrorCode.WRONG_TYPE
 
 
+@pytest.mark.order(2531)
+def test_run_oddt_single_ligand_forces_single_cpu_even_when_requested_parallel(monkeypatch, tmp_path, ocoddt_helpers):
+    receptor_path, ligand_path, output_dir, _models_dir = _prepare_run_oddt_inputs(monkeypatch, ocoddt_helpers, tmp_path)
+    _patch_valid_receptor_and_ligand(monkeypatch, ocoddt_helpers)
+
+    captured_n_cpu = []
+
+    class _CaptureVS:
+        def __init__(self, *args, **kwargs):
+            _ = args
+            captured_n_cpu.append(kwargs.get("n_cpu"))
+
+        def load_ligands(self, *_a, **_k):
+            return None
+
+        def score(self, *_a, **_k):
+            return None
+
+        def fetch(self):
+            return iter([_FakeMol("ligand.sdf", {"rfscore_v1": -7.5})])
+
+    monkeypatch.setattr(ocoddt_helpers, "vs", _CaptureVS)
+    monkeypatch.setattr(ocoddt_helpers, "scorer", SimpleNamespace(load=lambda *_a, **_k: object()))
+
+    result = ocoddt_helpers.run_oddt(
+        preparedReceptorPath=str(receptor_path),
+        preparedLigandPath=str(ligand_path),
+        ligandName="lig",
+        outputPath=str(output_dir),
+        overwrite=True,
+        returnData=True,
+        n_cpu=-1,
+    )
+
+    assert isinstance(result, pd.DataFrame)
+    assert captured_n_cpu
+    assert captured_n_cpu[0] == 1
+
+
+@pytest.mark.order(2532)
+def test_run_oddt_plecrf_alias_does_not_trigger_missing_model_initialization(monkeypatch, tmp_path, ocoddt_helpers):
+    output_dir = tmp_path / "out"
+    models_dir = tmp_path / "models"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    models_dir.mkdir(parents=True, exist_ok=True)
+    (models_dir / "plecrf_p5_l1_pdbbind2016_s65536.pickle").write_text("model", encoding="utf-8")
+
+    monkeypatch.setattr(
+        ocoddt_helpers,
+        "get_config",
+        lambda: SimpleNamespace(
+            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["plecrf_pdbbind2016"]),
+            oddt_models_dir=str(models_dir),
+            multiprocess=False,
+        ),
+    )
+
+    init_calls = []
+    init_mod = types.ModuleType("OCDocker.Initialise")
+    init_mod.initialise_oddt_models = lambda *_a, **_k: init_calls.append(True)  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "OCDocker.Initialise", init_mod)
+
+    rc = ocoddt_helpers.run_oddt(
+        preparedReceptorPath=123,  # type: ignore[arg-type]
+        preparedLigandPath="ligand.sdf",
+        ligandName="lig",
+        outputPath=str(output_dir),
+        overwrite=True,
+    )
+
+    assert rc == ocerror.ErrorCode.WRONG_TYPE
+    assert not init_calls
+
+
 @pytest.mark.order(254)
 def test_run_oddt_warns_when_exact_models_missing_and_models_dir_invalid(monkeypatch, tmp_path, ocoddt_helpers):
     output_dir = tmp_path / "out"
