@@ -271,6 +271,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # Get configuration and requested scoring functions
     config = get_config()
+
     # Determine which scoring families should be loaded.
     # If specific model names are requested (e.g., rfscore_v2_pdbbind2016),
     # load only those exact models. Family-only requests (e.g., rfscore) load all.
@@ -279,9 +280,11 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         for score in getattr(config.oddt, 'scoring_functions', [])
         if isinstance(score, str) and score.strip()
     ]
+
     family_only: set[str] = set()
     exact_requested: set[str] = set()
     sf_set: set[str] = set()
+
     if requested_scores:
         for score in requested_scores:
             if score.startswith('rfscore'):
@@ -310,6 +313,23 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     models = [model for model in glob(f"{config.oddt_models_dir}/*.pickle") if os.path.isfile(model)]
 
     def _is_exact_model_available(requested_name: str, available_stems: set[str]) -> bool:
+        '''Check if the exact model name is available in the available stems, with backward-compatible alias support for plecrf_pdbbind2016.
+        
+        For example, if requested_name is "plecrf_pdbbind2016", it will be considered available if any model stem starts with "plecrf_" and contains "pdbbind2016" (e.g., "plecrf_p5_l1_pdbbind2016_s65536"). This allows users to request the general plecrf_pdbbind2016 model without needing to specify the exact variant, while still supporting specific model requests.
+
+        Parameters
+        ----------
+        requested_name : str
+            The exact model name being requested (e.g., "rfscore_v2_pdbbind2016").
+        available_stems : set[str]
+            A set of available model stems (filenames without extension, in lower case).
+
+        Returns
+        -------
+        bool
+            True if the requested model is available, False otherwise.
+        '''
+        
         if requested_name in available_stems:
             return True
 
