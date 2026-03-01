@@ -650,18 +650,17 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     all_datas = []
     failed_scoring_functions = []
 
-    # Check if multiprocess is enabled (via config or n_cpu > 1)
-    # If so, use threading backend to avoid loky nested process issues
-    use_threading_backend = False
+    # Decide whether the caller asked for parallel work.
+    # Keep this tied to requested n_cpu (not effective_n_cpu) so we still
+    # guard nested joblib/loky behavior even when single-ligand runs are
+    # coerced to n_cpu=1 internally for stability.
     try:
-        config = get_config()
-        use_threading_backend = bool(config.multiprocess) and int(effective_n_cpu) > 1
-    except (ImportError, AttributeError):
-        # Fallback: check n_cpu if config not available
-        use_threading_backend = int(effective_n_cpu) > 1
+        use_threading_backend = (n_cpu is not None) and (int(n_cpu) != 1)
+    except (TypeError, ValueError):
+        use_threading_backend = int(effective_n_cpu) != 1
 
-    # Use threading backend context manager if multiprocess is enabled
-    # This prevents loky from trying to spawn new processes in nested multiprocessing contexts
+    # Use threading backend context manager when parallel execution was requested.
+    # This prevents loky from trying to spawn new processes in nested multiprocessing contexts.
     if use_threading_backend:
         try:
             from joblib import parallel_backend
