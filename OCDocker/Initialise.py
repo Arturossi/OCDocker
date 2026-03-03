@@ -656,7 +656,6 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         'ledock_num_poses': get_config('ledock_num_poses', ''),
 
         # ODDT
-        'oddt': get_config('oddt', ''),
         'oddt_seed': get_config('oddt_seed', ''),
         'oddt_chunk_size': get_config('oddt_chunk_size', ''),
         'oddt_scoring_functions': get_config('oddt_scoring_functions', [], list),
@@ -1403,20 +1402,11 @@ def create_ocdocker_conf() -> None:
     # endregion
 
     #region ODDT variables
-    try:
-        confODDT = os.popen("which oddt_cli").read().replace('\n', '').strip()
-    except (OSError, IOError):
-        # Fallback to default path if 'which' command fails
-        confODDT = "/usr/bin/oddt_cli"
-
     confODDT_scoring_functions = "rfscore_v1_pdbbind2016,rfscore_v2_pdbbind2016,rfscore_v3_pdbbind2016,nnscore_pdbbind2016,plecrf_pdbbind2016"
     confODDT_seed = 42
     confODDT_chunk_size = 100
 
     print("\nODDT configuration")
-    answer = input(f"Path to the ODDT file/command. Default [{confODDT}] (press enter to keep default): ")
-    confODDT = confODDT if not answer else answer
-
     answer = input(f"ODDT seed parameter. Default [{confODDT_seed}] (press enter to keep default): ")
     if answer:
         try:
@@ -1714,9 +1704,6 @@ ledock_rmsd = """ + str(confLedock_rmsd) + """
 ledock_num_poses = """ + str(confLedock_num_poses) + """
 
 ################## ODDT PARAMETERS ##################
-
-# Path to the oddt_cli file
-oddt = """ + str(confODDT) + """
 
 # Seed for the ODDT software
 oddt_seed = """ + str(confODDT_seed) + """

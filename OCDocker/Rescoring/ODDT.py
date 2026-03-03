@@ -27,11 +27,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, cast
 
 import OCDocker.Error as ocerror
-import OCDocker.Ligand as ocl
-import OCDocker.Receptor as ocr
 import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Toolbox.Printing as ocprint
-import OCDocker.Toolbox.Running as ocrun
 
 from OCDocker.Config import get_config
 
@@ -57,54 +54,6 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Functions
 ###############################################################################
-## Private ##
-def __build_cmd(receptorPath: str, ligandPath: str, outputFile: str) -> Union[List[str], int]:
-    '''Builds the command to run ODDT.
-
-    Parameters
-    ----------
-    receptorPath : str
-        The path to the receptor file.
-    ligandPath : str
-        The path to the ligand file.
-    outputFile : str
-        The path to the output file.
-
-    Returns
-    -------
-    List[str] | int
-        The command to run ODDT or an error code (based on the Error.py code table).
-    '''
-
-    # Check if the output file is a csv
-    if not outputFile.endswith(".csv"):
-        return ocerror.Error.unsupported_extension("The output file must be a csv file.", level = ocerror.ReportLevel.ERROR)
-
-    # Extract ligand file format from extension
-    ligand_ext = os.path.splitext(ligandPath)[1]
-    if ligand_ext.startswith('.'):
-        ligand_format = ligand_ext[1:]  # Remove leading dot
-    else:
-        ligand_format = ligand_ext
-
-    config = get_config()
-
-    # Start building the command
-    # Use configured ODDT CLI program from Initialise
-    cmd = [config.oddt.executable, ligandPath, "-O", outputFile, "--receptor", receptorPath, "-i", ligand_format, "-n", "1"]
-
-    # Check if there are scoring functions to be used
-    if isinstance(config.oddt.scoring_functions, list) and len(config.oddt.scoring_functions) > 0:
-        # Add the scoring functions
-        for score in config.oddt.scoring_functions:
-            cmd.append("--score")
-            cmd.append(score)
-    else:
-        ocprint.print_error("No scoring functions were provided to ODDT. Please check your configuration file.")
-
-    return cmd
-
-
 def __read_receptor_with_retry(receptor_format: str, receptor_path: str, retries: int = 5, delay: float = 1.0) -> Tuple[Optional[object], Optional[Exception]]:
     '''Read a prepared receptor with retries to avoid transient empty-file reads.
 
@@ -883,98 +832,3 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # Just return an ok code
     return ocerror.Error.ok()
-
-def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Ligand, str], outputPath: str, overwrite: bool = False, logFile: str = "", cleanModels: bool = False) -> Union[int, Tuple[int, str]]:
-    '''Run ODDT using the oddt_cli command. UNSTABLE FUNCTION DO NOT USE.
-
-    Parameters
-    ----------
-    receptor : ocr.Receptor | str
-        The receptor to be used in the docking.
-    ligand : ocl.Ligand | str
-        The ligand to be used in the docking.
-    outputPath : str
-        The path where the output file will be saved.
-    overwrite : bool, optional
-        If True, the output file will be overwritten. The default is False.
-    logFile : str, optional
-        The path to the log file. The default is "" (no log file).
-    cleanModels : bool, optional
-        If True, the models will be deleted after the rescoring. The default is False. If set to False, this can speed up the rescoring process for multiple ligands.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table).
-    '''
-
-    # Check if the output dir exists
-    if not os.path.isdir(outputPath):
-        return ocerror.Error.dir_not_exist(f"The output directory '{outputPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
-
-    # Check if the receptor is an ocr.Receptor object
-    if isinstance(receptor, ocr.Receptor):
-        # Get the receptor path
-        receptorPath = receptor.path
-    # Check if the receptor is a string
-    elif isinstance(receptor, str):
-        # Get the receptor path
-        receptorPath = receptor
-    else:
-        return ocerror.Error.wrong_type(f"The receptor must be a string or an ocr.Receptor object. The type {type(receptor)} was given.", level = ocerror.ReportLevel.ERROR)
-
-    # Check if the ligand is an ocl.Ligand object
-    if isinstance(ligand, ocl.Ligand):
-        # Get the ligand path
-        ligandPath = ligand.path
-        # Output file name
-        outputFile = f"{outputPath}/{ligand.name}.csv"
-    # Check if the ligand is a string
-    elif isinstance(ligand, str):
-        # Get the ligand path
-        ligandPath = ligand
-        # Get the ligand name from the path
-        ligandName = ".".join(os.path.basename(ligandPath).split(".")[:-1])
-        # Output file name
-        outputFile = f"{outputPath}/{ligandName}.csv"
-    else:
-        return ocerror.Error.wrong_type(f"The ligand must be a string or an ocl.Ligand object. The type {type(ligand)} was given.", level = ocerror.ReportLevel.ERROR)
-
-    # Check if the output file exists
-    if os.path.isfile(outputFile) and not overwrite:
-        return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR)
-
-    # Check if the receptor exists
-    if not os.path.isfile(receptorPath):
-        return ocerror.Error.file_not_exist(f"The receptor file '{receptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
-
-    # Check if the ligand exists
-    if not os.path.isfile(ligandPath):
-        return ocerror.Error.file_not_exist(f"The ligand file '{ligandPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
-
-    # Create the output file path
-
-    # Get the command
-    cmd = __build_cmd(receptorPath, ligandPath, outputFile)
-
-    # If the command is an int, it is an error code
-    if isinstance(cmd, int):
-        return cmd
-
-    # Run the command
-    config = get_config()
-    exitCode = ocrun.run(cmd, logFile = logFile, cwd = config.oddt_models_dir)
-    if isinstance(exitCode, tuple):
-        exitCode = exitCode[0]
-
-    # If the models should be deleted
-    if cleanModels:
-        # Get the models
-        models = get_models(outputPath)
-
-        # For each model
-        for model in models:
-            # Delete it
-            ocff.safe_remove_file(model)
-
-    return exitCode
