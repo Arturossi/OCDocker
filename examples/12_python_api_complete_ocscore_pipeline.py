@@ -101,11 +101,20 @@ SAVE_TO_FILE = True  # Set to False to only store results in memory
 N_JOBS = 4                  # Number of parallel jobs (cores) to use. Set to -1 for all available cores
 USE_MULTIPROCESSING = True  # Set to False to process ligands sequentially
 
+# Checkpoint/resume configuration
+# When enabled, each ligand writes a per-ligand checkpoint and can resume from the
+# last completed stage. This is backward-compatible with runs done before this code:
+# if no checkpoint file exists, completion is inferred from existing output artifacts.
+ENABLE_LIGAND_CHECKPOINT = True
+LIGAND_CHECKPOINT_FILE = ".ocscore_pipeline_checkpoint.json"
+LIGAND_FEATURES_CACHE_FILE = ".ocscore_pipeline_features.json"
+
 ###############################################################################
 # END USER CONFIGURATION
 ###############################################################################
 
 import argparse
+import json
 import os
 import time
 import warnings
@@ -114,7 +123,7 @@ import numpy as np
 import pandas as pd
 
 from glob import glob
-from typing import Optional
+from typing import Any, Dict, Optional, Tuple
 
 # Configure sklearn/joblib to use threading backend for parallel execution
 # This allows sklearn models to use multiple threads while main process uses multiprocessing
@@ -614,8 +623,487 @@ def map_rescoring_key_to_db_column(key: str, engine: Optional[str] = None) -> st
     return key.upper()
 
 
+CHECKPOINT_STAGE_DOCKING = "docking"
+CHECKPOINT_STAGE_RESCORING = "rescoring"
+CHECKPOINT_STAGE_FEATURES = "features"
+
+
+def _checkpoint_path(ligand_path: str) -> str:
+    return os.path.join(ligand_path, LIGAND_CHECKPOINT_FILE)
+
+
+def _features_cache_path(ligand_path: str) -> str:
+    return os.path.join(ligand_path, LIGAND_FEATURES_CACHE_FILE)
+
+
+def _write_json_atomic(path: str, payload: Dict[str, Any]) -> None:
+    tmp_path = f"{path}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True, default=_json_default)
+    os.replace(tmp_path, path)
+
+
+def _json_default(value: Any) -> Any:
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, (set, tuple)):
+        return list(value)
+    return str(value)
+
+
+def _default_checkpoint(ligand_name: str) -> Dict[str, Any]:
+    return {
+        "version": 1,
+        "ligand": ligand_name,
+        "status": "new",
+        "completed_stages": [],
+        "stage_data": {},
+        "failed_stage": "",
+        "last_error": "",
+        "updated_at": time.time(),
+    }
+
+
+def _load_checkpoint(ligand_path: str, ligand_name: str) -> Dict[str, Any]:
+    checkpoint = _default_checkpoint(ligand_name)
+    if not ENABLE_LIGAND_CHECKPOINT:
+        return checkpoint
+
+    path = _checkpoint_path(ligand_path)
+    if not os.path.isfile(path):
+        return checkpoint
+
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            loaded = json.load(handle)
+    except Exception:
+        return checkpoint
+
+    if not isinstance(loaded, dict):
+        return checkpoint
+
+    checkpoint["status"] = str(loaded.get("status", checkpoint["status"]))
+    checkpoint["failed_stage"] = str(loaded.get("failed_stage", ""))
+    checkpoint["last_error"] = str(loaded.get("last_error", ""))
+    checkpoint["updated_at"] = loaded.get("updated_at", checkpoint["updated_at"])
+
+    completed = loaded.get("completed_stages", [])
+    if isinstance(completed, list):
+        checkpoint["completed_stages"] = sorted({str(stage) for stage in completed})
+
+    stage_data = loaded.get("stage_data", {})
+    if isinstance(stage_data, dict):
+        checkpoint["stage_data"] = stage_data
+
+    return checkpoint
+
+
+def _save_checkpoint(ligand_path: str, checkpoint: Dict[str, Any]) -> None:
+    if not ENABLE_LIGAND_CHECKPOINT:
+        return
+    checkpoint["updated_at"] = time.time()
+    _write_json_atomic(_checkpoint_path(ligand_path), checkpoint)
+
+
+def _is_stage_complete(checkpoint: Dict[str, Any], stage: str) -> bool:
+    completed = checkpoint.get("completed_stages", [])
+    return stage in completed if isinstance(completed, list) else False
+
+
+def _clear_stage(checkpoint: Dict[str, Any], stage: str) -> None:
+    completed = checkpoint.get("completed_stages", [])
+    if isinstance(completed, list):
+        checkpoint["completed_stages"] = sorted([st for st in completed if st != stage])
+    stage_data = checkpoint.get("stage_data", {})
+    if isinstance(stage_data, dict):
+        stage_data.pop(stage, None)
+    checkpoint["status"] = "in_progress"
+
+
+def _mark_stage_complete(checkpoint: Dict[str, Any], stage: str, stage_data: Optional[Dict[str, Any]] = None) -> None:
+    completed = checkpoint.get("completed_stages", [])
+    completed_set = set(completed if isinstance(completed, list) else [])
+    completed_set.add(stage)
+    checkpoint["completed_stages"] = sorted(completed_set)
+    checkpoint["status"] = "in_progress" if stage != CHECKPOINT_STAGE_FEATURES else "completed"
+    checkpoint["failed_stage"] = ""
+    checkpoint["last_error"] = ""
+    if stage_data:
+        checkpoint.setdefault("stage_data", {})[stage] = stage_data
+
+
+def _mark_stage_failed(checkpoint: Dict[str, Any], stage: str, message: str) -> None:
+    checkpoint["status"] = "failed"
+    checkpoint["failed_stage"] = stage
+    checkpoint["last_error"] = message
+
+
+def _load_cached_features(ligand_path: str) -> Optional[Dict[str, Any]]:
+    path = _features_cache_path(ligand_path)
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        if isinstance(payload, dict):
+            return payload
+    except Exception:
+        return None
+    return None
+
+
+def _save_cached_features(ligand_path: str, features: Dict[str, Any]) -> None:
+    if not ENABLE_LIGAND_CHECKPOINT:
+        return
+    _write_json_atomic(_features_cache_path(ligand_path), features)
+
+
+def _normalize_sf_names(rescoring_result: Dict[str, Any]) -> Dict[str, Any]:
+    sf_name_corrections = {
+        "SMINA_DKOES_FAST": "SMINA_FAST_DKOES",
+        "SMINA_DKOES_SCORING_OLD": "SMINA_OLD_SCORING_DKOES",
+        "SMINA_SCORING_DKOES_OLD": "SMINA_OLD_SCORING_DKOES",
+        "SMINA_FAST_DKOES_RESCORING": "SMINA_FAST_DKOES",
+        "SMINA_OLD_SCORING_DKOES_RESCORING": "SMINA_OLD_SCORING_DKOES",
+    }
+    for old_name, correct_name in sf_name_corrections.items():
+        if old_name in rescoring_result and correct_name not in rescoring_result:
+            rescoring_result[correct_name] = rescoring_result.pop(old_name)
+    return rescoring_result
+
+
+def _value_from_rescore_entry(value: Any) -> Any:
+    if isinstance(value, list) and len(value) > 0:
+        return value[0]
+    return value
+
+
+def _add_plants_scores_to_rescoring_result(plants_rescoring: Dict[str, Any], rescoring_result: Dict[str, Any]) -> None:
+    for outer_key, inner_dict in plants_rescoring.items():
+        db_column_name = map_rescoring_key_to_db_column(outer_key)
+
+        if isinstance(inner_dict, dict):
+            if "PLANTS_TOTAL_SCORE" in inner_dict:
+                total_score = inner_dict["PLANTS_TOTAL_SCORE"]
+                rescoring_result[db_column_name] = _value_from_rescore_entry(total_score)
+            else:
+                print(
+                    f"Warning: PLANTS_TOTAL_SCORE not found in inner dict for {outer_key}. "
+                    f"Available keys: {list(inner_dict.keys())}"
+                )
+        else:
+            rescoring_result[db_column_name] = _value_from_rescore_entry(inner_dict)
+
+
+def _read_rescoring_outputs(
+    ligand_path: str,
+    ligand_name: str,
+    vina_ligand: ocvina.Vina,
+    plants_ligand: ocplants.PLANTS,
+    smina_ligand: ocsmina.Smina,
+) -> Optional[Dict[str, Any]]:
+    rescoring_result: Dict[str, Any] = {}
+
+    oddt_csv = os.path.join(ligand_path, "oddt", f"{ligand_name}.csv")
+    if not os.path.isfile(oddt_csv):
+        return None
+    try:
+        oddt_df = pd.read_csv(oddt_csv)
+        oddt_dict = ocoddt.df_to_dict(oddt_df)
+        if not oddt_dict:
+            return None
+        first_key = list(oddt_dict.keys())[0]
+        oddt_scores = oddt_dict[first_key]
+        if not isinstance(oddt_scores, dict):
+            return None
+        for key, value in oddt_scores.items():
+            db_column_name = map_rescoring_key_to_db_column(f"oddt_{key}")
+            rescoring_result[db_column_name] = value
+    except Exception:
+        return None
+
+    try:
+        plants_rescoring = plants_ligand.read_rescore_logs(f"{ligand_path}/plantsFiles")
+    except Exception:
+        return None
+    if not plants_rescoring:
+        return None
+    _add_plants_scores_to_rescoring_result(plants_rescoring, rescoring_result)
+
+    try:
+        vina_rescoring = vina_ligand.read_rescore_logs(f"{ligand_path}/vinaFiles/rescoring")
+    except Exception:
+        return None
+    if not vina_rescoring:
+        return None
+    for key, value in vina_rescoring.items():
+        db_column_name = map_rescoring_key_to_db_column(key, engine="vina")
+        rescoring_result[db_column_name] = _value_from_rescore_entry(value)
+
+    try:
+        smina_rescoring = smina_ligand.read_rescore_logs(f"{ligand_path}/sminaFiles/rescoring")
+    except Exception:
+        return None
+    if not smina_rescoring:
+        return None
+    for key, value in smina_rescoring.items():
+        db_column_name = map_rescoring_key_to_db_column(key, engine="smina")
+        rescoring_result[db_column_name] = _value_from_rescore_entry(value)
+
+    return _normalize_sf_names(rescoring_result)
+
+
+def _run_docking_stage(ligand_path: str, vina_ligand: ocvina.Vina, plants_ligand: ocplants.PLANTS) -> Tuple[list, list]:
+    # Vina
+    vina_ligand.run_prepare_receptor(overwrite=True)
+    vina_ligand.run_prepare_ligand(overwrite=True)
+    vina_ligand.run_docking(overwrite=True)
+    vina_ligand.split_poses()
+
+    vina_poses_dir = os.path.dirname(vina_ligand.output_vina) if hasattr(vina_ligand, "output_vina") else f"{ligand_path}/vinaFiles"
+    vina_pattern = f"{vina_poses_dir}/*_split_*.pdbqt"
+    pose_files_found = False
+    for _ in range(50):
+        found_files = glob(vina_pattern)
+        if found_files and wait_for_files_ready(found_files, max_wait=2.0):
+            pose_files_found = True
+            break
+        time.sleep(0.2)
+    if not pose_files_found:
+        print("Warning: No stable pose files found for Vina after waiting, proceeding anyway...")
+    time.sleep(0.5)
+    vina_poses = vina_ligand.get_docked_poses()
+    if vina_poses and not wait_for_files_ready(vina_poses, max_wait=5.0):
+        print("Warning: Some Vina pose files may not be fully ready, but proceeding...")
+
+    # PLANTS
+    plants_ligand.run_prepare_receptor(overwrite=True)
+    plants_ligand.run_prepare_ligand(overwrite=True)
+    plants_ligand.run_docking(overwrite=True)
+
+    plants_output_dir = plants_ligand.output_plants if hasattr(plants_ligand, "output_plants") else f"{ligand_path}/plantsFiles"
+    plants_run_dir = os.path.join(plants_output_dir, "run")
+    plants_pattern = f"{plants_run_dir}/*.mol2"
+    plants_files_found = False
+    for _ in range(100):
+        found_files = [
+            f for f in glob(plants_pattern)
+            if not f.endswith("_protein.mol2") and not f.endswith("_fixed.mol2")
+        ]
+        if found_files and wait_for_files_ready(found_files, max_wait=2.0):
+            plants_files_found = True
+            break
+        time.sleep(0.2)
+    if not plants_files_found:
+        print("Warning: No stable PLANTS output files found after waiting, proceeding anyway...")
+
+    time.sleep(0.5)
+    time.sleep(0.5)
+    plants_poses = plants_ligand.get_docked_poses()
+    if plants_poses and not wait_for_files_ready(plants_poses, max_wait=3.0):
+        print("Warning: Some PLANTS pose files may not be fully ready, but proceeding...")
+
+    if not vina_poses or not plants_poses:
+        raise ValueError("Docking did not generate valid pose files for both Vina and PLANTS.")
+
+    return vina_poses, plants_poses
+
+
+def _load_existing_docking_poses(vina_ligand: ocvina.Vina, plants_ligand: ocplants.PLANTS) -> Tuple[list, list]:
+    vina_poses = vina_ligand.get_docked_poses()
+    plants_poses = plants_ligand.get_docked_poses()
+    if vina_poses:
+        _ = wait_for_files_ready(vina_poses, max_wait=2.0)
+    if plants_poses:
+        _ = wait_for_files_ready(plants_poses, max_wait=2.0)
+    return vina_poses, plants_poses
+
+
+def _select_representative_medoid(
+    ligand_path: str,
+    ligand_name: str,
+    vina_poses: list,
+    plants_poses: list,
+    vina_ligand: ocvina.Vina,
+    plants_ligand: ocplants.PLANTS,
+) -> str:
+    poses_list = vina_poses + plants_poses
+
+    valid_poses = []
+    max_retries = 5
+    retry_delay = 0.3
+    for pose_file in poses_list:
+        validated = False
+        for attempt in range(max_retries):
+            if validate_molecule_file(pose_file):
+                valid_poses.append(pose_file)
+                validated = True
+                break
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay * (attempt + 1))
+        if not validated:
+            print(f"Warning: Could not validate pose file {pose_file} after {max_retries} attempts, skipping.")
+
+    if not valid_poses:
+        raise ValueError(f"No valid pose files found for ligand {ligand_name} after validation")
+    if len(valid_poses) < 2:
+        raise ValueError(f"Need at least 2 valid poses for RMSD calculation, found {len(valid_poses)} for ligand {ligand_name}")
+
+    mol2_poses_dir = f"{ligand_path}/poses_mol2"
+    os.makedirs(mol2_poses_dir, exist_ok=True)
+    mol2_poses = []
+    mol2_to_original_map = {}
+
+    for pose_file in valid_poses:
+        pose_ext = os.path.splitext(pose_file)[1].lower()
+        pose_basename = os.path.basename(pose_file)
+
+        if pose_ext == ".mol2":
+            mol2_poses.append(pose_file)
+            mol2_to_original_map[pose_file] = pose_file
+        else:
+            mol2_path = os.path.join(mol2_poses_dir, f"{os.path.splitext(pose_basename)[0]}.mol2")
+            occonversion.convert_mols(pose_file, mol2_path, overwrite=True)
+            if wait_for_file_stable(mol2_path, max_wait=3.0):
+                mol2_poses.append(mol2_path)
+                mol2_to_original_map[mol2_path] = pose_file
+            else:
+                print(f"Warning: Could not convert {pose_file} to MOL2 format, skipping for RMSD calculation")
+
+    if len(mol2_poses) < 2:
+        raise ValueError(f"Need at least 2 valid MOL2 poses for RMSD calculation, found {len(mol2_poses)} for ligand {ligand_name}")
+    if not wait_for_files_ready(mol2_poses, max_wait=5.0):
+        print("Warning: Some MOL2 pose files may not be fully ready for RMSD calculation, but proceeding...")
+    time.sleep(0.5)
+
+    rmsd_matrix = ocmolproc.get_rmsd_matrix(mol2_poses)
+
+    pose_engine_map = {}
+    for mol2_pose in mol2_poses:
+        original_pose = mol2_to_original_map.get(mol2_pose, mol2_pose)
+        if original_pose in vina_poses:
+            pose_engine_map[mol2_pose] = "vina"
+        elif original_pose in plants_poses:
+            pose_engine_map[mol2_pose] = "plants"
+
+    clusters = ocrmsdclust.cluster_rmsd(
+        rmsd_matrix,
+        algorithm="agglomerativeClustering",
+        outputPlot=f"{ligand_path}/medoids.png",
+        pose_engine_map=pose_engine_map,
+    )
+    medoids_mol2 = ocrmsdclust.get_medoids(rmsd_matrix, clusters, onlyBiggest=True)
+    medoids = [mol2_to_original_map.get(medoid_mol2, medoid_mol2) for medoid_mol2 in medoids_mol2]
+
+    medoids_dict = {}
+    for medoid in medoids:
+        if medoid in vina_poses:
+            medoids_dict[medoid] = vina_ligand.read_log(onlyBest=False)[ocvina.get_pose_index_from_file_path(medoid)]
+        elif medoid in plants_poses:
+            medoids_dict[medoid] = plants_ligand.read_log(onlyBest=False)[ocplants.get_pose_index_from_file_path(medoid)]
+
+    if not medoids_dict:
+        raise ValueError(f"Could not determine medoid for ligand {ligand_name}")
+
+    return list(medoids_dict.keys())[0]
+
+
+def _run_rescoring_stage(
+    ligand_path: str,
+    ligand_name: str,
+    ligand: ocl.Ligand,
+    medoid: str,
+    vina_ligand: ocvina.Vina,
+    plants_ligand: ocplants.PLANTS,
+    smina_ligand: ocsmina.Smina,
+) -> Dict[str, Any]:
+    oddt_outdir = os.path.join(ligand_path, "oddt")
+    try:
+        from joblib import parallel_backend
+        with parallel_backend("threading"):
+            _ = ocoddt.run_oddt(
+                vina_ligand.prepared_receptor,
+                medoid,
+                ligand.name,
+                oddt_outdir,
+                overwrite=True,
+            )
+    except ImportError:
+        _ = ocoddt.run_oddt(
+            vina_ligand.prepared_receptor,
+            medoid,
+            ligand.name,
+            oddt_outdir,
+            overwrite=True,
+        )
+
+    medoid_extension = os.path.splitext(medoid)[1].lower()
+    if medoid_extension != ".mol2":
+        plants_input = medoid.replace(medoid_extension, ".mol2")
+        occonversion.convert_mols(medoid, plants_input, overwrite=True)
+    else:
+        plants_input = medoid
+
+    plants_pose_list = f"{ligand_path}/plantsFiles/plants_pose_list.txt"
+    ocplants.write_pose_list(plants_input, plants_pose_list)
+    plants_ligand.run_rescore(plants_pose_list, logFile="", overwrite=True)
+    time.sleep(0.3)
+
+    if medoid_extension != ".pdbqt":
+        vina_smina_input = medoid.replace(medoid_extension, ".pdbqt")
+        occonversion.convert_mols(medoid, vina_smina_input, overwrite=True)
+    else:
+        vina_smina_input = medoid
+
+    vina_ligand.run_rescore(
+        f"{ligand_path}/vinaFiles/rescoring",
+        vina_smina_input,
+        overwrite=True,
+        splitLigand=False,
+    )
+    smina_ligand.run_rescore(
+        f"{ligand_path}/sminaFiles/rescoring",
+        vina_smina_input,
+        overwrite=True,
+        splitLigand=False,
+    )
+
+    rescoring_result = _read_rescoring_outputs(ligand_path, ligand_name, vina_ligand, plants_ligand, smina_ligand)
+    if rescoring_result is None:
+        raise ValueError(f"Rescoring outputs are incomplete or invalid for ligand {ligand_name}")
+    return rescoring_result
+
+
+def _infer_legacy_stages(
+    ligand_path: str,
+    ligand_name: str,
+    checkpoint: Dict[str, Any],
+    vina_ligand: ocvina.Vina,
+    plants_ligand: ocplants.PLANTS,
+    smina_ligand: ocsmina.Smina,
+) -> None:
+    if _is_stage_complete(checkpoint, CHECKPOINT_STAGE_FEATURES) and _is_stage_complete(checkpoint, CHECKPOINT_STAGE_RESCORING):
+        return
+
+    cached_features = _load_cached_features(ligand_path)
+    if isinstance(cached_features, dict) and not _is_stage_complete(checkpoint, CHECKPOINT_STAGE_FEATURES):
+        _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_FEATURES)
+
+    rescoring_result = _read_rescoring_outputs(ligand_path, ligand_name, vina_ligand, plants_ligand, smina_ligand)
+    if rescoring_result is not None:
+        if not _is_stage_complete(checkpoint, CHECKPOINT_STAGE_RESCORING):
+            _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_RESCORING)
+        if not _is_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING):
+            _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING)
+        return
+
+    vina_poses, plants_poses = _load_existing_docking_poses(vina_ligand, plants_ligand)
+    if vina_poses and plants_poses and not _is_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING):
+        _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING)
+
+
 def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Receptor) -> Optional[dict]:
-    ''' Process a single ligand through the complete OCScore pipeline.
+    ''' Process a single ligand through the complete OCScore pipeline with checkpoint/resume support.
     
     Parameters
     ----------
@@ -632,441 +1120,128 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         Dictionary containing all features and OCScore prediction. None if processing fails.
     '''
 
+    checkpoint: Optional[Dict[str, Any]] = None
+    current_stage = "initialization"
+
     try:
-        # Ligand creation
         ligand = ocl.Ligand(f"{ligand_path}/{ligand_name}.smi", name=ligand_name)
-        
-        ligand.create_box(centroid = BOX_CENTER, save_path = f"{ligand_path}/boxes/")
+        ligand.create_box(centroid=BOX_CENTER, save_path=f"{ligand_path}/boxes/")
 
-        ####################### VINA #########################
-        
-        # Create object
         vina_ligand = ocvina.Vina(
-            f"{ligand_path}/vinaFiles/conf_vina.txt", 
-            f"{ligand_path}/boxes/box0.pdb", 
-            receptor, PREPARED_RECEPTOR_PDBQT, 
-            ligand, f"{ligand_path}/prepared_ligand.pdbqt", 
-            f"{ligand_path}/vinaFiles/vina.log", f"{ligand_path}/vinaFiles/vina.pdbqt", 
-            name=f"Vina {receptor.name}-{ligand_name}"
+            f"{ligand_path}/vinaFiles/conf_vina.txt",
+            f"{ligand_path}/boxes/box0.pdb",
+            receptor, PREPARED_RECEPTOR_PDBQT,
+            ligand, f"{ligand_path}/prepared_ligand.pdbqt",
+            f"{ligand_path}/vinaFiles/vina.log", f"{ligand_path}/vinaFiles/vina.pdbqt",
+            name=f"Vina {receptor.name}-{ligand_name}",
         )
-        
-        # Prepare receptor
-        vina_ligand.run_prepare_receptor(overwrite=True)
-        
-        # Prepare ligand
-        vina_ligand.run_prepare_ligand(overwrite=True)
-        
-        # Run docking
-        vina_ligand.run_docking(overwrite=True)
-        
-        # Get the docked poses for vina
-        vina_ligand.split_poses()
-        
-        # Wait for split_poses to fully complete - get expected output directory
-        vina_poses_dir = os.path.dirname(vina_ligand.output_vina) if hasattr(vina_ligand, 'output_vina') else f"{ligand_path}/vinaFiles"
-        
-        # Wait for pose files to be generated and stable
-        # Check for expected pose files pattern
-        max_expected_poses = 10  # Reasonable upper limit
-        expected_pattern = f"{vina_poses_dir}/*_split_*.pdbqt"
-        
-        # Wait for at least some pose files to appear and stabilize
-        pose_files_found = False
-        for _ in range(50):  # Wait up to 10 seconds (50 * 0.2s)
-            found_files = glob(expected_pattern)
-            if found_files:
-                # Wait for all found files to stabilize
-                if wait_for_files_ready(found_files, max_wait=2.0):
-                    pose_files_found = True
-                    break
-            time.sleep(0.2)
-        
-        if not pose_files_found:
-            print(f"Warning: No stable pose files found for Vina after waiting, proceeding anyway...")
-        
-        # Additional safety delay for multiprocessing
-        time.sleep(0.5)
-        
-        # Now get the docked poses
-        vinaPoses = vina_ligand.get_docked_poses()
-        
-        # Wait for all retrieved pose files to be stable before proceeding
-        if vinaPoses:
-            if not wait_for_files_ready(vinaPoses, max_wait=5.0):
-                print(f"Warning: Some Vina pose files may not be fully ready, but proceeding...")
-        
-        ####################### PLANTS #########################
-        
-        # Create object
         plants_ligand = ocplants.PLANTS(
-            f"{ligand_path}/plantsFiles/conf_plants.txt", 
-            f"{ligand_path}/boxes/box0.pdb", 
-            receptor, PREPARED_RECEPTOR_MOL2, 
-            ligand, f"{ligand_path}/prepared_ligand.mol2", 
-            f"{ligand_path}/plantsFiles/plants.log", f"{ligand_path}/plantsFiles", 
-            name=f"Plants {receptor.name}-{ligand_name}"
+            f"{ligand_path}/plantsFiles/conf_plants.txt",
+            f"{ligand_path}/boxes/box0.pdb",
+            receptor, PREPARED_RECEPTOR_MOL2,
+            ligand, f"{ligand_path}/prepared_ligand.mol2",
+            f"{ligand_path}/plantsFiles/plants.log", f"{ligand_path}/plantsFiles",
+            name=f"Plants {receptor.name}-{ligand_name}",
         )
-        
-        # Prepare receptor
-        plants_ligand.run_prepare_receptor(overwrite=True)
-        
-        # Prepare ligand
-        plants_ligand.run_prepare_ligand(overwrite=True)
-        
-        # Run docking
-        plants_ligand.run_docking(overwrite=True)
-        
-        # Wait for PLANTS docking to fully complete
-        # PLANTS writes outputs under output_dir/run in the config
-        plants_output_dir = plants_ligand.output_plants if hasattr(plants_ligand, 'output_plants') else f"{ligand_path}/plantsFiles"
-        plants_run_dir = os.path.join(plants_output_dir, "run")
-        
-        # Wait for PLANTS output files to appear and stabilize
-        # Use a broad mol2 glob in the run directory to avoid name mismatches
-        expected_pattern = f"{plants_run_dir}/*.mol2"
-        
-        plants_files_found = False
-        for _ in range(100):  # Wait up to 20 seconds (100 * 0.1s)
-            found_files = [
-                f for f in glob(expected_pattern)
-                if not f.endswith("_protein.mol2") and not f.endswith("_fixed.mol2")
-            ]
-            if found_files:
-                # Wait for all found files to stabilize
-                if wait_for_files_ready(found_files, max_wait=2.0):
-                    plants_files_found = True
-                    break
-            time.sleep(0.2)
-        
-        if not plants_files_found:
-            print(f"Warning: No stable PLANTS output files found after waiting, proceeding anyway...")
-        
-        # Additional safety delay for multiprocessing
-        time.sleep(0.5)
-        
-        # Get the docked poses for plants
-        # Additional delay to ensure PLANTS has fully released file handles
-        time.sleep(0.5)
-        
-        # Now get the docked poses
-        plantsPoses = plants_ligand.get_docked_poses()
-        
-        # Wait for all retrieved pose files to be stable before proceeding
-        if plantsPoses:
-            if not wait_for_files_ready(plantsPoses, max_wait=3.0):
-                print(f"Warning: Some PLANTS pose files may not be fully ready, but proceeding...")
-        
-        ####################### SMINA #########################
-        
-        # Create object
         smina_ligand = ocsmina.Smina(
-            f"{ligand_path}/sminaFiles/conf_smina.txt", 
-            f"{ligand_path}/boxes/box0.pdb", 
-            receptor, PREPARED_RECEPTOR_PDBQT, 
-            ligand, f"{ligand_path}/prepared_ligand.pdbqt", 
-            f"{ligand_path}/sminaFiles/smina.log", f"{ligand_path}/sminaFiles/smina.pdbqt", 
-            name=f"Smina {receptor.name}-{ligand_name}"
+            f"{ligand_path}/sminaFiles/conf_smina.txt",
+            f"{ligand_path}/boxes/box0.pdb",
+            receptor, PREPARED_RECEPTOR_PDBQT,
+            ligand, f"{ligand_path}/prepared_ligand.pdbqt",
+            f"{ligand_path}/sminaFiles/smina.log", f"{ligand_path}/sminaFiles/smina.pdbqt",
+            name=f"Smina {receptor.name}-{ligand_name}",
         )
-        
-        #################### Clustering #######################
-        
-        # Make them one single list
-        poses_list = vinaPoses + plantsPoses
-        
-        # Ensure all pose files exist, are stable, and are valid before RMSD calculation
-        # This prevents race conditions in multiprocessing where files might be incomplete or corrupted
-        valid_poses = []
-        max_retries = 5
-        retry_delay = 0.3
-        
-        for pose_file in poses_list:
-            # Retry validation multiple times to handle race conditions
-            validated = False
-            for attempt in range(max_retries):
-                if validate_molecule_file(pose_file):
-                    valid_poses.append(pose_file)
-                    validated = True
-                    break
-                else:
-                    # Wait before retrying
-                    if attempt < max_retries - 1:
-                        time.sleep(retry_delay * (attempt + 1))  # Exponential backoff
-            
-            if not validated:
-                print(f"Warning: Could not validate pose file {pose_file} after {max_retries} attempts, skipping.")
-                continue
-        
-        if not valid_poses:
-            raise ValueError(f"No valid pose files found for ligand {ligand_name} after validation")
-        
-        if len(valid_poses) < 2:
-            raise ValueError(f"Need at least 2 valid poses for RMSD calculation, found {len(valid_poses)} for ligand {ligand_name}")
-        
-        # CRITICAL: Convert all poses to MOL2 format for consistent RMSD calculation
-        # Vina poses are in PDBQT format, PLANTS poses are in MOL2 format
-        # Converting all to MOL2 ensures consistent connectivity representation
-        mol2_poses_dir = f"{ligand_path}/poses_mol2"
-        os.makedirs(mol2_poses_dir, exist_ok=True)
-        mol2_poses = []
-        mol2_to_original_map = {}  # Map MOL2 pose paths back to original pose paths
-        
-        for pose_file in valid_poses:
-            pose_ext = os.path.splitext(pose_file)[1].lower()
-            pose_basename = os.path.basename(pose_file)
-            
-            if pose_ext == ".mol2":
-                # Already MOL2, use as-is
-                mol2_poses.append(pose_file)
-                mol2_to_original_map[pose_file] = pose_file
-            else:
-                # Convert to MOL2
-                mol2_path = os.path.join(mol2_poses_dir, f"{os.path.splitext(pose_basename)[0]}.mol2")
-                occonversion.convert_mols(pose_file, mol2_path, overwrite=True)
-                # Wait for conversion to complete
-                if wait_for_file_stable(mol2_path, max_wait=3.0):
-                    mol2_poses.append(mol2_path)
-                    mol2_to_original_map[mol2_path] = pose_file
-                else:
-                    print(f"Warning: Could not convert {pose_file} to MOL2 format, skipping for RMSD calculation")
-        
-        if len(mol2_poses) < 2:
-            raise ValueError(f"Need at least 2 valid MOL2 poses for RMSD calculation, found {len(mol2_poses)} for ligand {ligand_name}")
-        
-        # CRITICAL: Ensure all pose files are fully ready before RMSD calculation
-        # This is essential for multiprocessing to avoid reading incomplete files
-        if not wait_for_files_ready(mol2_poses, max_wait=5.0):
-            print(f"Warning: Some MOL2 pose files may not be fully ready for RMSD calculation, but proceeding...")
-        
-        # Additional safety delay before RMSD calculation to ensure all file I/O is complete
-        time.sleep(0.5)
-        
-        # Get the rmsd matrix from the MOL2 poses list
-        # All poses are now in the same format, ensuring consistent connectivity
-        rmsdMatrix = ocmolproc.get_rmsd_matrix(mol2_poses)
-        
-        # Create pose-to-engine mapping for plot coloring
-        # Map MOL2 poses back to original poses, then to engines
-        pose_engine_map = {}
-        for mol2_pose in mol2_poses:
-            original_pose = mol2_to_original_map.get(mol2_pose, mol2_pose)
-            if original_pose in vinaPoses:
-                pose_engine_map[mol2_pose] = 'vina'
-            elif original_pose in plantsPoses:
-                pose_engine_map[mol2_pose] = 'plants'
-            # Check if we have smina poses (if smina is used in the future)
-            # elif original_pose in sminaPoses:
-            #     pose_engine_map[mol2_pose] = 'smina'
-        
-        # Get the clusters
-        clusters = ocrmsdclust.cluster_rmsd(
-            rmsdMatrix, 
-            algorithm='agglomerativeClustering', 
-            outputPlot=f"{ligand_path}/medoids.png",
-            pose_engine_map=pose_engine_map
-        )
-        
-        # Get the medoids (The plot is just for visualization, it is not required)
-        # Note: medoids will be MOL2 file paths
-        medoids_mol2 = ocrmsdclust.get_medoids(
-            rmsdMatrix, 
-            clusters, 
-            onlyBiggest=True
-        )
-        
-        # Map MOL2 medoids back to original pose files
-        medoids = [mol2_to_original_map.get(medoid_mol2, medoid_mol2) for medoid_mol2 in medoids_mol2]
-        
-        # Dictionary with the medoids and its docking method (to be correctly parsed by the next function)
-        medoidsDict = {}
-        
-        ## Find which medoid has the lowest energy
-        # For each medoid (now in original format)
-        for medoid in medoids:
-            # Check if it is contained in vinaPoses list
-            if medoid in vinaPoses:
-                # Add it to the medoidsDict as a list with vina as the key
-                medoidsDict[medoid] = vina_ligand.read_log(onlyBest=False)[ocvina.get_pose_index_from_file_path(medoid)]
-            # Check if it is contained in plantsPoses list
-            elif medoid in plantsPoses:
-                # Add it to the medoidsDict as a list with plants as the key
-                medoidsDict[medoid] = plants_ligand.read_log(onlyBest=False)[ocplants.get_pose_index_from_file_path(medoid)]
-        
-        ################ ODDT RESCORING ################
-        
-        # Initialize rescoring
-        rescoringResult = {}
-        
-        # Run ODDT and get the result as a dataframe
-        # Use threading backend for sklearn models to allow parallelization in multiprocessing context
-        oddt_outdir = os.path.join(ligand_path, "oddt")
-        try:
-            from joblib import parallel_backend
-            with parallel_backend('threading'):
-                df = ocoddt.run_oddt(
-                    vina_ligand.prepared_receptor, 
-                    list(medoidsDict.keys())[0], 
-                    ligand.name, 
-                    oddt_outdir,
-                    overwrite=True
-                )
-        except ImportError:
-            # Fallback if joblib not available
-            df = ocoddt.run_oddt(
-                vina_ligand.prepared_receptor, 
-                list(medoidsDict.keys())[0], 
-                ligand.name, 
-                oddt_outdir,
-                overwrite=True
-            )
-        
-        # If you want a dict, you can convert with this function
-        dt = ocoddt.df_to_dict(df)
-        
-        # Add ODDT results to rescoring dictionary
-        for key in dt[list(dt.keys())[0]].keys():
-            db_column_name = map_rescoring_key_to_db_column(f"oddt_{key}")
-            rescoringResult[db_column_name] = dt[list(dt.keys())[0]][key]
-        
-        # If needed, convert the medoid to the proper format for vina/smina
-        medoid = list(medoidsDict.keys())[0]
-        medoid_extension = os.path.splitext(medoid)[1].lower()
-        
-        if medoid_extension != ".mol2":
-            # Change the output file extension to mol2
-            outfile = medoid.replace(medoid_extension, ".mol2")
-            # Convert the medoid to the proper format (any to mol2)
-            occonversion.convert_mols(medoid, outfile, overwrite=True)
-        else:
-            outfile = medoid
-        
-        ocplants.write_pose_list(outfile, f"{ligand_path}/plantsFiles/plants_pose_list.txt")
-        
-        # Run the rescoring (will create the config file and the output folder)
-        plants_ligand.run_rescore(
-            f"{ligand_path}/plantsFiles/plants_pose_list.txt", 
-            logFile="", 
-            overwrite=True
-        )
-        
-        # Wait for PLANTS rescoring to fully complete
-        time.sleep(0.3)
-        
-        # Get PLANTS rescoring results and map to database column names
-        # PLANTS read_rescore_logs returns Dict[str, Dict[str, float]] where:
-        # - Outer key: "plants_{scoring_function}" (e.g., "plants_chemplp")
-        # - Inner dict: Contains PLANTS score keys (e.g., "PLANTS_TOTAL_SCORE", "PLANTS_SCORE_RB_PEN", etc.)
-        # For each PLANTS scoring function, we extract the PLANTS_TOTAL_SCORE value from the inner dict
-        plants_rescoring = plants_ligand.read_rescore_logs(f"{ligand_path}/plantsFiles")
-        for outer_key, inner_dict in plants_rescoring.items():
-            # Map the outer key (e.g., "plants_chemplp") to database column name (e.g., "PLANTS_CHEMPLP")
-            db_column_name = map_rescoring_key_to_db_column(outer_key)
-            
-            if isinstance(inner_dict, dict):
-                # Extract PLANTS_TOTAL_SCORE from the inner dict
-                if "PLANTS_TOTAL_SCORE" in inner_dict:
-                    total_score = inner_dict["PLANTS_TOTAL_SCORE"]
-                    # Extract numeric value if it's in a list
-                    if isinstance(total_score, list) and len(total_score) > 0:
-                        rescoringResult[db_column_name] = total_score[0]
-                    elif isinstance(total_score, (int, float)):
-                        rescoringResult[db_column_name] = total_score
-                    else:
-                        print(f"Warning: PLANTS_TOTAL_SCORE for {outer_key} has non-numeric value: {total_score} (type: {type(total_score)})")
-                else:
-                    print(f"Warning: PLANTS_TOTAL_SCORE not found in inner dict for {outer_key}. Available keys: {list(inner_dict.keys())}")
-            else:
-                # Fallback: if inner_dict is not a dict, try to use it directly
-                if isinstance(inner_dict, list) and len(inner_dict) > 0:
-                    rescoringResult[db_column_name] = inner_dict[0]
-                else:
-                    rescoringResult[db_column_name] = inner_dict
-        
-        if medoid_extension != ".pdbqt":
-            # Change the output file extension to pdbqt
-            outfile = medoid.replace(medoid_extension, ".pdbqt")
-            # Convert the medoid to the proper format (any to pdbqt)
-            occonversion.convert_mols(medoid, outfile)
-        else:
-            outfile = medoid
-        
-        # Run the rescoring with vina
-        vina_ligand.run_rescore(
-            f'{ligand_path}/vinaFiles/rescoring',
-            outfile,
-            overwrite=True,
-            splitLigand=False
-        )
-        
-        # Get VINA rescoring results and map to database column names
-        vina_rescoring = vina_ligand.read_rescore_logs(f"{ligand_path}/vinaFiles/rescoring")
-        for key, value in vina_rescoring.items():
-            db_column_name = map_rescoring_key_to_db_column(key, engine='vina')
-            # Extract value from list if needed
-            if isinstance(value, list) and len(value) > 0:
-                rescoringResult[db_column_name] = value[0] if isinstance(value[0], (int, float)) else value[0]
-            elif isinstance(value, (int, float)):
-                rescoringResult[db_column_name] = value
-            else:
-                rescoringResult[db_column_name] = value
-        
-        # Run the rescoring with smina
-        smina_ligand.run_rescore(
-            f"{ligand_path}/sminaFiles/rescoring", 
-            outfile,
-            overwrite=True,
-            splitLigand=False
-        )
-        
-        # Get SMINA rescoring results and map to database column names
-        smina_rescoring = smina_ligand.read_rescore_logs(f"{ligand_path}/sminaFiles/rescoring")
-        for key, value in smina_rescoring.items():
-            db_column_name = map_rescoring_key_to_db_column(key, engine='smina')
-            # Extract value from list if needed
-            if isinstance(value, list) and len(value) > 0:
-                rescoringResult[db_column_name] = value[0] if isinstance(value[0], (int, float)) else value[0]
-            elif isinstance(value, (int, float)):
-                rescoringResult[db_column_name] = value
-            else:
-                rescoringResult[db_column_name] = value
-        
-        # Normalize all SF column names to match SCORING_FUNCTION_ORDER exactly
-        # !!! CRITICAL: This ensures consistency for mask application !!!
-        # Fix common naming variations that might occur
-        sf_name_corrections = {
-            'SMINA_DKOES_FAST': 'SMINA_FAST_DKOES',
-            'SMINA_DKOES_SCORING_OLD': 'SMINA_OLD_SCORING_DKOES',
-            'SMINA_SCORING_DKOES_OLD': 'SMINA_OLD_SCORING_DKOES',
-            'SMINA_FAST_DKOES_RESCORING': 'SMINA_FAST_DKOES',
-            'SMINA_OLD_SCORING_DKOES_RESCORING': 'SMINA_OLD_SCORING_DKOES',
-        }
-        for old_name, correct_name in sf_name_corrections.items():
-            if old_name in rescoringResult and correct_name not in rescoringResult:
-                rescoringResult[correct_name] = rescoringResult.pop(old_name)
 
-        ####################### FEATURE EXTRACTION #########################
-        
-        # Get receptor descriptors
-        receptorDescriptors = receptor.get_descriptors()
-        
-        # Get ligand descriptors
-        ligandDescriptors = ligand.get_descriptors()
-        
-        # Combine all features into a single dictionary
-        all_features = {}
-        all_features.update(rescoringResult)  # Add rescoring results
-        all_features.update(receptorDescriptors)  # Add receptor descriptors
-        all_features.update(ligandDescriptors)  # Add ligand descriptors
-        
-        # Add metadata
-        all_features['name'] = f"{receptor.name}_{ligand.name}"
-        all_features['receptor'] = receptor.name
-        all_features['ligand'] = ligand.name
-        
-        # Store features for batch prediction (don't call get_score here)
-        # We'll batch all ligands together for proper normalization
+        current_stage = "checkpoint"
+        checkpoint = _load_checkpoint(ligand_path, ligand_name)
+        resume_enabled = ENABLE_LIGAND_CHECKPOINT
+        if resume_enabled:
+            _infer_legacy_stages(ligand_path, ligand_name, checkpoint, vina_ligand, plants_ligand, smina_ligand)
+            _save_checkpoint(ligand_path, checkpoint)
+
+        if resume_enabled and _is_stage_complete(checkpoint, CHECKPOINT_STAGE_FEATURES):
+            cached_features = _load_cached_features(ligand_path)
+            if isinstance(cached_features, dict):
+                print(f"[{ligand_name}] Resume: using cached features.")
+                return cached_features
+            _clear_stage(checkpoint, CHECKPOINT_STAGE_FEATURES)
+            _save_checkpoint(ligand_path, checkpoint)
+
+        rescoring_result: Optional[Dict[str, Any]] = None
+        if resume_enabled and _is_stage_complete(checkpoint, CHECKPOINT_STAGE_RESCORING):
+            rescoring_result = _read_rescoring_outputs(ligand_path, ligand_name, vina_ligand, plants_ligand, smina_ligand)
+            if rescoring_result is None:
+                print(f"[{ligand_name}] Checkpoint says rescoring complete, but outputs are missing/corrupted. Recomputing.")
+                _clear_stage(checkpoint, CHECKPOINT_STAGE_RESCORING)
+                _clear_stage(checkpoint, CHECKPOINT_STAGE_FEATURES)
+                _save_checkpoint(ligand_path, checkpoint)
+            else:
+                print(f"[{ligand_name}] Resume: using existing rescoring outputs.")
+
+        if rescoring_result is None:
+            vina_poses: list = []
+            plants_poses: list = []
+
+            if resume_enabled and _is_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING):
+                vina_poses, plants_poses = _load_existing_docking_poses(vina_ligand, plants_ligand)
+                if not vina_poses or not plants_poses:
+                    print(f"[{ligand_name}] Checkpoint says docking complete, but poses are missing. Re-running docking.")
+                    _clear_stage(checkpoint, CHECKPOINT_STAGE_DOCKING)
+                    _save_checkpoint(ligand_path, checkpoint)
+                else:
+                    print(f"[{ligand_name}] Resume: using existing docking outputs.")
+
+            if not vina_poses or not plants_poses:
+                current_stage = CHECKPOINT_STAGE_DOCKING
+                vina_poses, plants_poses = _run_docking_stage(ligand_path, vina_ligand, plants_ligand)
+                _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING)
+                _save_checkpoint(ligand_path, checkpoint)
+
+            current_stage = CHECKPOINT_STAGE_RESCORING
+            medoid = _select_representative_medoid(
+                ligand_path,
+                ligand_name,
+                vina_poses,
+                plants_poses,
+                vina_ligand,
+                plants_ligand,
+            )
+            rescoring_result = _run_rescoring_stage(
+                ligand_path,
+                ligand_name,
+                ligand,
+                medoid,
+                vina_ligand,
+                plants_ligand,
+                smina_ligand,
+            )
+            _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_RESCORING, stage_data={"medoid": medoid})
+            _save_checkpoint(ligand_path, checkpoint)
+
+        current_stage = CHECKPOINT_STAGE_FEATURES
+        receptor_descriptors = receptor.get_descriptors()
+        ligand_descriptors = ligand.get_descriptors()
+
+        all_features: Dict[str, Any] = {}
+        all_features.update(rescoring_result if rescoring_result is not None else {})
+        all_features.update(receptor_descriptors)
+        all_features.update(ligand_descriptors)
+        all_features["name"] = f"{receptor.name}_{ligand.name}"
+        all_features["receptor"] = receptor.name
+        all_features["ligand"] = ligand.name
+
+        _save_cached_features(ligand_path, all_features)
+        _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_FEATURES, stage_data={"feature_count": len(all_features)})
+        _save_checkpoint(ligand_path, checkpoint)
         return all_features
-        
+
     except Exception as e:
+        if checkpoint is not None:
+            try:
+                _mark_stage_failed(checkpoint, current_stage, str(e))
+                _save_checkpoint(ligand_path, checkpoint)
+            except Exception:
+                pass
         print(f"Error processing ligand {ligand_name}: {e}")
         import traceback
         traceback.print_exc()
