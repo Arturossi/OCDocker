@@ -30,12 +30,18 @@ Usage:
 """
 
 import argparse
+import hashlib
+import json
 import os
+import platform
+import shlex
+import subprocess
 import sys
 
 import numpy as np
 import pandas as pd
 
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from typing import Any, List, Optional
 from urllib.parse import quote_plus, urlparse, urlunparse
@@ -59,7 +65,19 @@ from OCDocker.OCScore.DNN.DNNOptimizer import DNNOptimizer
 
 
 def _normalize_db_backend(raw_backend: str) -> str:
-    '''Normalize backend aliases used by config and environment variables.'''
+    '''Normalize backend aliases used by config and environment variables.
+    
+    Parameters
+    ----------
+    raw_backend : str
+        Raw backend string from config or environment variable (e.g., "postgresql", "mysql", "sqlite")
+
+    Returns
+    -------
+    str
+        Normalized backend string ("postgresql", "mysql", or "sqlite")
+    '''
+
     backend = str(raw_backend).strip().lower()
     if backend in ('postgresql', 'postgres', 'pgsql'):
         return 'postgresql'
@@ -71,7 +89,19 @@ def _normalize_db_backend(raw_backend: str) -> str:
 
 
 def _sqlite_storage_for_model(model_type: str) -> str:
-    '''Return a local SQLite storage URL for Optuna studies.'''
+    '''Return a local SQLite storage URL for Optuna studies.
+
+    Parameters
+    ----------
+    model_type : str
+        Type of model (e.g., "DNN", "XGB") to determine which SQLite file to use
+
+    Returns
+    -------
+    str
+        SQLite storage URL (e.g., "sqlite:///NN_optimization.db")
+    '''
+
     mt = str(model_type).upper()
     if mt in ('DNN', 'NN'):
         return "sqlite:///NN_optimization.db"
@@ -81,7 +111,21 @@ def _sqlite_storage_for_model(model_type: str) -> str:
 
 
 def _build_storage_url_from_config(config: Any, model_type: str) -> str:
-    '''Build Optuna storage URL from OCDocker config and backend settings.'''
+    '''Build Optuna storage URL from OCDocker config and backend settings.
+    
+    Parameters
+    ----------
+    config : Any
+        OCDocker config object (after bootstrap)
+    model_type : str
+        Type of model (e.g., "DNN", "XGB") to determine which SQLite file to use if backend is SQLite
+
+    Returns
+    -------
+    str
+        Optuna storage URL (e.g., "postgresql+psycopg://user:***@host:port/db" or "sqlite:///NN_optimization.db")
+    '''
+
     backend_env = os.getenv('OCDOCKER_DB_BACKEND', '') or os.getenv('DB_BACKEND', '')
     backend_cfg = getattr(config.database, 'backend', '')
     backend = _normalize_db_backend(backend_env or backend_cfg or 'postgresql')
@@ -238,6 +282,208 @@ def load_data_from_database(session: Session, methodology: Optional[str] = None)
     return df
 
 
+def get_best_nn_trial_from_study(
+    study_name: str,
+    storage: str,
+    selection_metric: str = "combined"
+) -> dict[str, Any]:
+    '''Return best complete NN trial from one study.
+
+    Parameters
+    ----------
+    study_name : str
+        Optuna NN study name.
+    storage : str
+        Optuna storage URL.
+    selection_metric : str, optional
+        One of ``combined``, ``rmse``, ``auc``.
+        - ``combined``: minimize RMSE - AUC
+        - ``rmse``: minimize RMSE
+        - ``auc``: maximize AUC
+    '''
+
+    import optuna
+
+    study = optuna.load_study(study_name=study_name, storage=storage)
+    study_df = study.trials_dataframe()
+    study_df = study_df[study_df["state"] == "COMPLETE"].copy()
+    if study_df.empty:
+        raise ValueError(f"No complete trials found in {study_name}")
+
+    if "value" not in study_df.columns:
+        raise ValueError(f"Study {study_name} does not contain trial value (RMSE)")
+    study_df = study_df.dropna(subset=["value"]).copy()
+    if study_df.empty:
+        raise ValueError(f"Study {study_name} has no complete trials with RMSE")
+
+    if "user_attrs_AUC" in study_df.columns:
+        study_df["user_attrs_AUC"] = pd.to_numeric(study_df["user_attrs_AUC"], errors="coerce")
+    else:
+        study_df["user_attrs_AUC"] = np.nan
+
+    study_df["combined_metric"] = study_df["value"] - study_df["user_attrs_AUC"]
+
+    metric = str(selection_metric).lower().strip()
+    if metric == "rmse":
+        best_row = study_df.sort_values(
+            by=["value", "user_attrs_AUC"],
+            ascending=[True, False]
+        ).iloc[0]
+    elif metric == "auc":
+        auc_df = study_df.dropna(subset=["user_attrs_AUC"]).copy()
+        if auc_df.empty:
+            raise ValueError(f"Study {study_name} has no complete trials with AUC")
+        best_row = auc_df.sort_values(
+            by=["user_attrs_AUC", "value"],
+            ascending=[False, True]
+        ).iloc[0]
+    else:
+        combined_df = study_df.dropna(subset=["user_attrs_AUC"]).copy()
+        if combined_df.empty:
+            raise ValueError(f"Study {study_name} has no complete trials with AUC required for combined metric")
+        best_row = combined_df.sort_values(
+            by=["combined_metric", "value", "user_attrs_AUC"],
+            ascending=[True, True, False]
+        ).iloc[0]
+    best_trial = study.trials[int(best_row["number"])]
+
+    return {
+        "study_name": study_name,
+        "trial": best_trial,
+        "rmse": float(best_row["value"]),
+        "auc": float(best_row["user_attrs_AUC"]),
+        "combined_metric": float(best_row["combined_metric"])
+    }
+
+
+def get_best_ao_trial_from_study(study_name: str, storage: str) -> dict[str, Any]:
+    '''Return best complete AO trial from one study using RMSE then val RMSE.'''
+
+    import optuna
+
+    study = optuna.load_study(study_name=study_name, storage=storage)
+    study_df = study.trials_dataframe()
+    study_df = study_df[study_df["state"] == "COMPLETE"].copy()
+    if study_df.empty:
+        raise ValueError(f"No complete trials found in {study_name}")
+
+    study_df = study_df.dropna(subset=["value"]).copy()
+    if study_df.empty:
+        raise ValueError(f"Study {study_name} has no complete trials with RMSE")
+
+    if "user_attrs_val_rmse" in study_df.columns:
+        study_df["user_attrs_val_rmse"] = pd.to_numeric(study_df["user_attrs_val_rmse"], errors="coerce").fillna(np.inf)
+    else:
+        study_df["user_attrs_val_rmse"] = np.inf
+
+    best_row = study_df.sort_values(
+        by=["value", "user_attrs_val_rmse"],
+        ascending=[True, True]
+    ).iloc[0]
+    best_trial = study.trials[int(best_row["number"])]
+
+    return {
+        "study_name": study_name,
+        "trial": best_trial,
+        "rmse": float(best_row["value"]),
+        "val_rmse": float(best_row["user_attrs_val_rmse"])
+    }
+
+
+def evaluate_trained_dnn_model(model: Any, data: dict) -> dict[str, float]:
+    '''Evaluate trained DNN using RMSE on X_test and AUC on X_val.'''
+
+    import torch
+    from sklearn.metrics import roc_auc_score
+
+    device = next(model.parameters()).device
+    model.eval()
+
+    with torch.no_grad():
+        X_test_tensor = torch.tensor(np.asarray(data["X_test"]), dtype=torch.float32, device=device)
+        test_pred = model(X_test_tensor).detach().cpu().numpy().reshape(-1)
+
+    y_test_np = np.asarray(data["y_test"]).reshape(-1)
+    rmse = float(np.sqrt(np.mean((test_pred - y_test_np) ** 2)))
+
+    auc = float("nan")
+    auc_adjusted = float("nan")
+    if data.get("X_val") is not None and data.get("y_val") is not None:
+        with torch.no_grad():
+            X_val_tensor = torch.tensor(np.asarray(data["X_val"]), dtype=torch.float32, device=device)
+            val_pred = model(X_val_tensor).detach().cpu().numpy().reshape(-1)
+        y_val_np = np.asarray(data["y_val"]).reshape(-1)
+        unique_classes = np.unique(y_val_np[~np.isnan(y_val_np)])
+        if unique_classes.size >= 2:
+            auc = float(roc_auc_score(y_val_np, val_pred))
+            auc_adjusted = float(max(auc, 1.0 - auc))
+
+    return {"rmse": rmse, "auc": auc, "auc_adjusted": auc_adjusted}
+
+
+def _json_sanitize(value: Any) -> Any:
+    '''Convert nested values to JSON-serializable builtin types.'''
+
+    if isinstance(value, dict):
+        return {str(k): _json_sanitize(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_sanitize(v) for v in value]
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        if np.isnan(value) or np.isinf(value):
+            return None
+        return float(value)
+    if isinstance(value, np.ndarray):
+        return [_json_sanitize(v) for v in value.tolist()]
+    if isinstance(value, float):
+        if np.isnan(value) or np.isinf(value):
+            return None
+        return value
+    if isinstance(value, (str, int, bool)) or value is None:
+        return value
+    return str(value)
+
+
+def _sha256_file(path: str, chunk_size: int = 1024 * 1024) -> Optional[str]:
+    '''Compute SHA256 checksum for a file path.'''
+
+    if not os.path.isfile(path):
+        return None
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _git_head_info(repo_dir: str) -> dict[str, Optional[str]]:
+    '''Collect git HEAD and dirty status (best-effort).'''
+
+    head = None
+    dirty = None
+    try:
+        head = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo_dir,
+            text=True,
+            stderr=subprocess.DEVNULL
+        ).strip()
+        dirty_state = subprocess.check_output(
+            ["git", "status", "--porcelain"],
+            cwd=repo_dir,
+            text=True,
+            stderr=subprocess.DEVNULL
+        ).strip()
+        dirty = "yes" if dirty_state else "no"
+    except Exception:
+        pass
+    return {"head": head, "dirty": dirty}
+
+
 def main():
     parser = argparse.ArgumentParser(description='Train model from database or CSV file')
     parser.add_argument('--from_db', action='store_true',
@@ -286,6 +532,12 @@ def main():
                         help='Output directory for saving models and masks. If not provided, uses default OCScore_models directory.')
     parser.add_argument('--verbose', action='store_true', default=True,
                         help='Verbose output')
+    parser.add_argument('--pair_by_major', action='store_true',
+                        help='For each major N, pair best AO_Optimization_N + NN_Optimization_N, train one model per N, and keep the best performer.')
+    parser.add_argument('--major_numbers', type=int, nargs='+', default=[6, 7, 8, 9, 10],
+                        help='Major IDs used by --pair_by_major (default: 6 7 8 9 10)')
+    parser.add_argument('--pair_select_by', type=str, choices=['combined', 'rmse', 'auc'], default='combined',
+                        help='Selection metric for --pair_by_major: combined=min(RMSE-AUC), rmse=min(RMSE), auc=max(AUC).')
     
     args = parser.parse_args()
     
@@ -308,6 +560,10 @@ def main():
         args.storage = None  # Will be set after bootstrap
     
     print(f"Training with studies: {args.studies}")
+
+    # Shared preprocessing flags (applies to both DB and CSV paths)
+    invert_conditionally = args.invert_conditionally and not args.no_invert
+    normalize = args.normalize and not args.no_normalize
     
     # Check if we need database or CSV
     if args.from_db:
@@ -335,12 +591,6 @@ def main():
             config = get_config()
             args.storage = _build_storage_url_from_config(config, args.model_type)
             print(f"Using storage from config: {mask_password_in_url(args.storage)}")
-        
-        # Handle invert_conditionally flag
-        invert_conditionally = args.invert_conditionally and not args.no_invert
-        
-        # Handle normalize flag
-        normalize = args.normalize and not args.no_normalize
         
         # Prepare data from database
         with init.session() as session:
@@ -407,133 +657,346 @@ def main():
             use_PCA=args.use_pca,
             pca_type=args.pca_type,
             use_pdb_train=args.use_pdb_train,
-            random_seed=args.random_seed
+            random_seed=args.random_seed,
+            invert_conditionally=invert_conditionally,
+            normalize=normalize,
+            scaler=args.scaler,
+            enforce_reference_order=True
         )
     
     print(f"Data prepared: Train={data['X_train'].shape}, Test={data['X_test'].shape}")
     if data.get('X_val') is not None:
         print(f"Validation: {data['X_val'].shape}")
-    
-    # Find the best trial across ALL studies
-    print(f"\n{'='*60}")
-    print(f"FINDING BEST TRIAL ACROSS ALL STUDIES")
-    print(f"{'='*60}")
-    
-    import optuna
-    import re
-    
-    all_trials = []  # List of (study_name, trial, combined_metric)
-    
-    for study_name in args.studies:
-        print(f"Loading study: {study_name}...")
-        try:
-            study = optuna.load_study(study_name=study_name, storage=args.storage)
-            study_df = study.trials_dataframe()
-            study_df = study_df[study_df['state'] == 'COMPLETE']
-            
-            if len(study_df) == 0:
-                print(f"  Warning: No complete trials in {study_name}, skipping...")
+
+    # CSV pipeline compatibility: load_data() may create `<models_dir>/<model_type>_<storage_id>`
+    # even though script 11 does not use that directory for outputs.
+    # Remove it only when it's empty to avoid leaving clutter like `DNN_1`.
+    if (not args.from_db) and isinstance(data, dict):
+        csv_models_folder = data.get("models_folder")
+        if isinstance(csv_models_folder, str):
+            try:
+                if os.path.isdir(csv_models_folder) and len(os.listdir(csv_models_folder)) == 0:
+                    os.rmdir(csv_models_folder)
+                    if args.verbose:
+                        print(f"Removed unused empty folder: {csv_models_folder}")
+            except OSError:
+                # Keep silent if folder is non-empty or cannot be removed.
+                pass
+
+    selected_nn_trial_obj: Optional[Any] = None
+    selected_ao_params: Optional[dict[str, Any]] = None
+    selection_context: dict[str, Any] = {}
+    final_eval_summary: Optional[dict[str, Any]] = None
+
+    pairwise_summary_df = None
+    if args.pair_by_major:
+        if args.model_type != 'DNN':
+            print("ERROR: --pair_by_major is only supported with --model_type DNN.")
+            sys.exit(1)
+
+        major_numbers = sorted(set(args.major_numbers))
+        if len(major_numbers) == 0:
+            print("ERROR: No major numbers provided for --pair_by_major.")
+            sys.exit(1)
+
+        print(f"\n{'='*60}")
+        print("PAIRWISE MAJOR SELECTION (AO_N + NN_N)")
+        print(f"{'='*60}")
+        print(f"Majors: {major_numbers}")
+        print("Selecting the best major from study metrics, then training only that pair.")
+        print(f"{'='*60}\n")
+
+        pairwise_candidates: list[dict[str, Any]] = []
+        for major in major_numbers:
+            nn_study_name = f"NN_Optimization_{major}"
+            ao_study_name = f"AO_Optimization_{major}"
+
+            print(f"\n{'-'*60}")
+            print(f"Major {major}: selecting best AO + best NN")
+            print(f"  AO study: {ao_study_name}")
+            print(f"  NN study: {nn_study_name}")
+            print(f"{'-'*60}")
+
+            try:
+                nn_best = get_best_nn_trial_from_study(
+                    nn_study_name,
+                    args.storage,
+                    selection_metric=args.pair_select_by
+                )
+                ao_best = get_best_ao_trial_from_study(ao_study_name, args.storage)
+            except Exception as e:
+                print(f"  Warning: skipping major {major} due to study loading error: {e}")
                 continue
-            
-            # Compute combined metric (RMSE - AUC) for all trials
-            study_df['combined_metric'] = study_df['value'] - study_df['user_attrs_AUC']
-            
-            # Add all trials from this study
-            for _, row in study_df.iterrows():
-                trial = study.trials[row['number']]
-                all_trials.append({
-                    'study_name': study_name,
-                    'trial': trial,
-                    'combined_metric': row['combined_metric'],
-                    'rmse': row['value'],
-                    'auc': row['user_attrs_AUC']
-                })
-            
-            print(f"  Found {len(study_df)} complete trials")
-        except Exception as e:
-            print(f"  Error loading {study_name}: {e}")
-            continue
-    
-    if len(all_trials) == 0:
-        print("ERROR: No trials found in any study!")
-        sys.exit(1)
-    
-    # Find the best trial (lowest combined_metric = RMSE - AUC)
-    best_trial_info = min(all_trials, key=lambda x: x['combined_metric'])
-    best_study_name = best_trial_info['study_name']
-    best_trial = best_trial_info['trial']
-    
-    print(f"\n{'='*60}")
-    print(f"BEST TRIAL FOUND")
-    print(f"{'='*60}")
-    print(f"Study: {best_study_name}")
-    print(f"Trial number: {best_trial.number}")
-    print(f"RMSE: {best_trial_info['rmse']:.4f}")
-    print(f"AUC: {best_trial_info['auc']:.4f}")
-    print(f"Combined metric (RMSE - AUC): {best_trial_info['combined_metric']:.4f}")
-    print(f"Total trials evaluated: {len(all_trials)}")
-    print(f"{'='*60}\n")
-    
-    # Extract storage_id from best study name
-    match = re.search(r'_(\d+)$', best_study_name)
-    if match:
-        study_storage_id = int(match.group(1))
-    else:
-        study_storage_id = args.storage_id  # Fallback to provided storage_id
-    
-    # Train only ONE model using the best trial
-    print(f"\n{'='*60}")
-    print(f"TRAINING MODEL WITH BEST PIPELINE")
-    print(f"{'='*60}")
-    print(f"Using best trial from: {best_study_name}")
-    print(f"{'='*60}\n")
-    
-    if args.model_type == 'XGB':
-        model, mask = train_xgboost_model(
-            data=data,
-            storage=args.storage,
-            storage_id=study_storage_id,
-            model_name=args.model_name,  # Use base name, not study-specific
-            optimization_type=args.model_type,
-            use_PCA=args.use_pca,
-            pca_type=args.pca_type,
-            no_scores=args.no_scores,
-            only_scores=args.only_scores,
-            study_name=best_study_name,  # Pass best study name for context
-            use_gpu=args.use_gpu,
-            verbose=args.verbose
+
+            print(
+                f"  Selected NN trial {nn_best['trial'].number}: "
+                f"RMSE={nn_best['rmse']:.4f}, AUC={nn_best['auc']:.4f}, Combined={nn_best['combined_metric']:.4f}"
+            )
+            print(
+                f"  Selected AO trial {ao_best['trial'].number}: "
+                f"RMSE={ao_best['rmse']:.4f}, Val_RMSE={ao_best['val_rmse']:.4f}"
+            )
+
+            pairwise_candidates.append({
+                "major": major,
+                "nn_study": nn_study_name,
+                "nn_trial": int(nn_best["trial"].number),
+                "ao_study": ao_study_name,
+                "ao_trial": int(ao_best["trial"].number),
+                "nn_optuna_rmse": float(nn_best["rmse"]),
+                "nn_optuna_auc": float(nn_best["auc"]),
+                "nn_optuna_combined_metric": float(nn_best["combined_metric"]),
+                "ao_optuna_rmse": float(ao_best["rmse"]),
+                "ao_optuna_val_rmse": float(ao_best["val_rmse"]),
+                "nn_trial_obj": nn_best["trial"],
+                "ao_params": ao_best["trial"].params
+            })
+
+        if len(pairwise_candidates) == 0:
+            print("ERROR: No pairwise study candidates were found.")
+            sys.exit(1)
+
+        if args.pair_select_by == "rmse":
+            sort_key = lambda x: (x["nn_optuna_rmse"], x["ao_optuna_rmse"], x["ao_optuna_val_rmse"])
+            sort_label = "NN Optuna RMSE (ascending)"
+        elif args.pair_select_by == "auc":
+            sort_key = lambda x: (-x["nn_optuna_auc"], x["nn_optuna_rmse"], x["nn_optuna_combined_metric"])
+            sort_label = "NN Optuna AUC (descending)"
+        else:
+            sort_key = lambda x: (x["nn_optuna_combined_metric"], x["nn_optuna_rmse"], -x["nn_optuna_auc"])
+            sort_label = "NN Optuna RMSE - AUC (ascending)"
+
+        pairwise_candidates = sorted(pairwise_candidates, key=sort_key)
+        best_pair = pairwise_candidates[0]
+        selected_nn_trial_obj = best_pair["nn_trial_obj"]
+        selected_ao_params = best_pair["ao_params"]
+        selection_context = {
+            "mode": "pair_by_major",
+            "pair_select_by": args.pair_select_by,
+            "selected_major": int(best_pair["major"]),
+            "selected_nn_study": best_pair["nn_study"],
+            "selected_nn_trial": int(best_pair["nn_trial"]),
+            "selected_ao_study": best_pair["ao_study"],
+            "selected_ao_trial": int(best_pair["ao_trial"]),
+            "selected_optuna_metrics": {
+                "nn_optuna_rmse": float(best_pair["nn_optuna_rmse"]),
+                "nn_optuna_auc": float(best_pair["nn_optuna_auc"]),
+                "nn_optuna_combined_metric": float(best_pair["nn_optuna_combined_metric"]),
+                "ao_optuna_rmse": float(best_pair["ao_optuna_rmse"]),
+                "ao_optuna_val_rmse": float(best_pair["ao_optuna_val_rmse"])
+            }
+        }
+
+        display_cols = [
+            "major", "nn_trial", "ao_trial",
+            "nn_optuna_rmse", "nn_optuna_auc", "nn_optuna_combined_metric",
+            "ao_optuna_rmse", "ao_optuna_val_rmse"
+        ]
+        print(f"\n{'='*60}")
+        print(f"PAIRWISE CANDIDATES (sorted by {sort_label})")
+        print(f"{'='*60}")
+        print(
+            pd.DataFrame(
+                [{k: v for k, v in row.items() if k in display_cols} for row in pairwise_candidates]
+            )[display_cols].to_string(index=False, float_format=lambda x: f"{x:.4f}")
         )
-    else:  # DNN
-        # Extract AO study numbers from NN study names (for finding best AE)
-        # Extract numbers from study names like "NN_Optimization_6" -> [6, 7, 8, 9, 10]
-        ao_study_numbers = []
-        for study_name in args.studies:
-            match = re.search(r'_(\d+)$', study_name)
-            if match:
-                study_num = int(match.group(1))
-                # Only include if it's in the AE with NN range (typically 6-10, but be flexible)
-                if study_num >= 6:
-                    ao_study_numbers.append(study_num)
-        
-        # Remove duplicates and sort
-        ao_study_numbers = sorted(list(set(ao_study_numbers))) if ao_study_numbers else None
-        
+        print(f"{'='*60}")
+        print(f"Selected major: {best_pair['major']}")
+        print(f"Selected NN study/trial: {best_pair['nn_study']} / {best_pair['nn_trial']}")
+        print(f"Selected AO study/trial: {best_pair['ao_study']} / {best_pair['ao_trial']}")
+        print(f"Selected NN Optuna RMSE: {best_pair['nn_optuna_rmse']:.4f}")
+        print(f"Selected NN Optuna AUC: {best_pair['nn_optuna_auc']:.4f}")
+        print(f"Selected NN Optuna Combined: {best_pair['nn_optuna_combined_metric']:.4f}")
+        print(f"Selection criterion: {args.pair_select_by}")
+        print(f"{'='*60}\n")
+
+        print(f"\n{'='*60}")
+        print("TRAINING SELECTED BEST PAIR")
+        print(f"{'='*60}")
         model, mask = train_dnn_model(
             data=data,
             storage=args.storage,
-            storage_id=study_storage_id,
-            model_name=args.model_name,  # Use base name, not study-specific
+            storage_id=int(best_pair["major"]),
+            model_name=args.model_name,
             optimization_type=args.model_type,
             use_PCA=args.use_pca,
             pca_type=args.pca_type,
             no_scores=args.no_scores,
             only_scores=args.only_scores,
-            study_name=best_study_name,  # Pass best study name for context
+            study_name=str(best_pair["nn_study"]),
             use_gpu=args.use_gpu,
             verbose=args.verbose,
-            best_trial=best_trial,  # Pass the best trial found across all studies
-            ao_study_numbers=ao_study_numbers  # Pass AO study numbers to search for best AE
+            best_trial=best_pair["nn_trial_obj"],
+            encoder_params_override=best_pair["ao_params"],
+            random_seed=args.random_seed
         )
+
+        best_eval = evaluate_trained_dnn_model(model, data)
+        best_eval_auc = best_eval["auc"]
+        best_eval_combined = best_eval["rmse"] - best_eval_auc if not np.isnan(best_eval_auc) else float("inf")
+        print(
+            f"Selected pair evaluation: RMSE={best_eval['rmse']:.4f}, "
+            f"AUC={best_eval_auc:.4f}, AUC_adj={best_eval['auc_adjusted']:.4f}, "
+            f"Combined={best_eval_combined:.4f}"
+        )
+        final_eval_summary = {
+            "rmse": float(best_eval["rmse"]),
+            "auc": float(best_eval_auc),
+            "auc_adjusted": float(best_eval["auc_adjusted"]),
+            "combined_metric": float(best_eval_combined)
+        }
+
+        pairwise_summary_rows = []
+        for row in pairwise_candidates:
+            summary_row = {k: v for k, v in row.items() if k not in {"nn_trial_obj", "ao_params"}}
+            selected = int(row["major"] == best_pair["major"])
+            summary_row["selected"] = selected
+            summary_row["selection_criterion"] = args.pair_select_by
+            if selected:
+                summary_row["eval_rmse"] = float(best_eval["rmse"])
+                summary_row["eval_auc"] = float(best_eval_auc)
+                summary_row["eval_auc_adjusted"] = float(best_eval["auc_adjusted"])
+                summary_row["eval_combined_metric"] = float(best_eval_combined)
+            else:
+                summary_row["eval_rmse"] = np.nan
+                summary_row["eval_auc"] = np.nan
+                summary_row["eval_auc_adjusted"] = np.nan
+                summary_row["eval_combined_metric"] = np.nan
+            pairwise_summary_rows.append(summary_row)
+        pairwise_summary_df = pd.DataFrame(pairwise_summary_rows)
+    else:
+        # Find the best trial across ALL studies
+        print(f"\n{'='*60}")
+        print(f"FINDING BEST TRIAL ACROSS ALL STUDIES")
+        print(f"{'='*60}")
+
+        import optuna
+        import re
+
+        all_trials = []  # List of (study_name, trial, combined_metric)
+
+        for study_name in args.studies:
+            print(f"Loading study: {study_name}...")
+            try:
+                study = optuna.load_study(study_name=study_name, storage=args.storage)
+                study_df = study.trials_dataframe()
+                study_df = study_df[study_df['state'] == 'COMPLETE']
+
+                if len(study_df) == 0:
+                    print(f"  Warning: No complete trials in {study_name}, skipping...")
+                    continue
+
+                # Compute combined metric (RMSE - AUC) for all trials
+                study_df['combined_metric'] = study_df['value'] - study_df['user_attrs_AUC']
+
+                # Add all trials from this study
+                for _, row in study_df.iterrows():
+                    trial = study.trials[row['number']]
+                    all_trials.append({
+                        'study_name': study_name,
+                        'trial': trial,
+                        'combined_metric': row['combined_metric'],
+                        'rmse': row['value'],
+                        'auc': row['user_attrs_AUC']
+                    })
+
+                print(f"  Found {len(study_df)} complete trials")
+            except Exception as e:
+                print(f"  Error loading {study_name}: {e}")
+                continue
+
+        if len(all_trials) == 0:
+            print("ERROR: No trials found in any study!")
+            sys.exit(1)
+
+        # Find the best trial (lowest combined_metric = RMSE - AUC)
+        best_trial_info = min(all_trials, key=lambda x: x['combined_metric'])
+        best_study_name = best_trial_info['study_name']
+        best_trial = best_trial_info['trial']
+        selected_nn_trial_obj = best_trial
+        selection_context = {
+            "mode": "global_best_trial",
+            "selected_study": best_study_name,
+            "selected_trial": int(best_trial.number),
+            "selected_optuna_metrics": {
+                "rmse": float(best_trial_info["rmse"]),
+                "auc": float(best_trial_info["auc"]),
+                "combined_metric": float(best_trial_info["combined_metric"])
+            }
+        }
+
+        print(f"\n{'='*60}")
+        print(f"BEST TRIAL FOUND")
+        print(f"{'='*60}")
+        print(f"Study: {best_study_name}")
+        print(f"Trial number: {best_trial.number}")
+        print(f"RMSE: {best_trial_info['rmse']:.4f}")
+        print(f"AUC: {best_trial_info['auc']:.4f}")
+        print(f"Combined metric (RMSE - AUC): {best_trial_info['combined_metric']:.4f}")
+        print(f"Total trials evaluated: {len(all_trials)}")
+        print(f"{'='*60}\n")
+
+        # Extract storage_id from best study name
+        match = re.search(r'_(\d+)$', best_study_name)
+        if match:
+            study_storage_id = int(match.group(1))
+        else:
+            study_storage_id = args.storage_id  # Fallback to provided storage_id
+
+        # Train only ONE model using the best trial
+        print(f"\n{'='*60}")
+        print(f"TRAINING MODEL WITH BEST PIPELINE")
+        print(f"{'='*60}")
+        print(f"Using best trial from: {best_study_name}")
+        print(f"{'='*60}\n")
+
+        if args.model_type == 'XGB':
+            model, mask = train_xgboost_model(
+                data=data,
+                storage=args.storage,
+                storage_id=study_storage_id,
+                model_name=args.model_name,  # Use base name, not study-specific
+                optimization_type=args.model_type,
+                use_PCA=args.use_pca,
+                pca_type=args.pca_type,
+                no_scores=args.no_scores,
+                only_scores=args.only_scores,
+                study_name=best_study_name,  # Pass best study name for context
+                use_gpu=args.use_gpu,
+                verbose=args.verbose
+            )
+        else:  # DNN
+            # Extract AO study numbers from NN study names (for finding best AE)
+            # Extract numbers from study names like "NN_Optimization_6" -> [6, 7, 8, 9, 10]
+            ao_study_numbers = []
+            for study_name in args.studies:
+                match = re.search(r'_(\d+)$', study_name)
+                if match:
+                    study_num = int(match.group(1))
+                    # Only include if it's in the AE with NN range (typically 6-10, but be flexible)
+                    if study_num >= 6:
+                        ao_study_numbers.append(study_num)
+
+            # Remove duplicates and sort
+            ao_study_numbers = sorted(list(set(ao_study_numbers))) if ao_study_numbers else None
+
+            model, mask = train_dnn_model(
+                data=data,
+                storage=args.storage,
+                storage_id=study_storage_id,
+                model_name=args.model_name,  # Use base name, not study-specific
+                optimization_type=args.model_type,
+                use_PCA=args.use_pca,
+                pca_type=args.pca_type,
+                no_scores=args.no_scores,
+                only_scores=args.only_scores,
+                study_name=best_study_name,  # Pass best study name for context
+                use_gpu=args.use_gpu,
+                verbose=args.verbose,
+                best_trial=best_trial,  # Pass the best trial found across all studies
+                ao_study_numbers=ao_study_numbers,  # Pass AO study numbers to search for best AE
+                random_seed=args.random_seed
+            )
     
     print(f"\n{'='*60}")
     print(f"TRAINING COMPLETED")
@@ -577,11 +1040,110 @@ def main():
         scaler_path = os.path.join(models_dir, f"{args.model_name}_scaler.pkl")
         ocscoreio.save_object(data['scaler'], scaler_path, serialization_method="joblib")
         print(f"Saved scaler to: {scaler_path}")
+
+    pairwise_summary_path = None
+    if pairwise_summary_df is not None:
+        pairwise_summary_path = os.path.join(models_dir, f"{args.model_name}_pairwise_major_results.csv")
+        pairwise_summary_df.to_csv(pairwise_summary_path, index=False)
+        print(f"Saved pairwise major summary to: {pairwise_summary_path}")
+
+    # Save reproducibility/statistics artifact for this training run.
+    stats_path = os.path.join(models_dir, f"{args.model_name}_run_stats.json")
+    input_data_info: dict[str, Any] = {"from_db": bool(args.from_db)}
+    if args.df_path is not None:
+        input_path = os.path.abspath(args.df_path)
+        input_data_info["df_path"] = input_path
+        if os.path.isfile(input_path):
+            try:
+                st = os.stat(input_path)
+                input_data_info["df_size_bytes"] = int(st.st_size)
+                input_data_info["df_mtime_epoch"] = float(st.st_mtime)
+                input_data_info["df_sha256"] = _sha256_file(input_path)
+            except OSError:
+                pass
+
+    selected_trial_info = None
+    if selected_nn_trial_obj is not None:
+        trial_value = selected_nn_trial_obj.value
+        selected_trial_info = {
+            "number": int(selected_nn_trial_obj.number),
+            "value": None if trial_value is None else float(trial_value),
+            "params": _json_sanitize(dict(selected_nn_trial_obj.params)),
+            "user_attrs": _json_sanitize(dict(selected_nn_trial_obj.user_attrs))
+        }
+
+    pairwise_summary_records = None
+    if pairwise_summary_df is not None:
+        pairwise_summary_records = _json_sanitize(
+            pairwise_summary_df.astype(object).where(pd.notna(pairwise_summary_df), None).to_dict(orient="records")
+        )
+
+    git_info = _git_head_info(_parent_dir)
+    torch_env = {}
+    try:
+        import torch as _torch
+        torch_env = {
+            "torch_version": _torch.__version__,
+            "cuda_available": bool(_torch.cuda.is_available()),
+            "cuda_device_count": int(_torch.cuda.device_count()) if _torch.cuda.is_available() else 0,
+            "cudnn_benchmark": bool(getattr(_torch.backends.cudnn, "benchmark", False)),
+            "cudnn_deterministic": bool(getattr(_torch.backends.cudnn, "deterministic", False))
+        }
+    except Exception:
+        torch_env = {}
+
+    run_stats = {
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "script_path": os.path.abspath(__file__),
+        "command": " ".join(shlex.quote(arg) for arg in sys.argv),
+        "args": _json_sanitize(vars(args)),
+        "storage_url": args.storage,
+        "storage_url_masked": mask_password_in_url(args.storage) if args.storage else None,
+        "input_data": _json_sanitize(input_data_info),
+        "data_shapes": {
+            "X_train": list(data["X_train"].shape),
+            "X_test": list(data["X_test"].shape),
+            "X_val": None if data.get("X_val") is None else list(data["X_val"].shape),
+            "y_train": int(len(data["y_train"])),
+            "y_test": int(len(data["y_test"])),
+            "y_val": None if data.get("y_val") is None else int(len(data["y_val"]))
+        },
+        "selection_context": _json_sanitize(selection_context),
+        "selected_nn_trial": _json_sanitize(selected_trial_info),
+        "selected_ao_params": _json_sanitize(selected_ao_params),
+        "final_eval": _json_sanitize(final_eval_summary),
+        "pairwise_summary_records": pairwise_summary_records,
+        "artifacts": {
+            "model_path": model_path,
+            "mask_path": mask_path,
+            "scaler_path": scaler_path,
+            "pairwise_summary_path": pairwise_summary_path
+        },
+        "mask_info": {
+            "shape": list(mask.shape) if hasattr(mask, "shape") else None,
+            "active_features": int(np.sum(mask)) if mask is not None else None
+        },
+        "git": git_info,
+        "environment": {
+            "python_version": sys.version,
+            "platform": platform.platform(),
+            "numpy_version": np.__version__,
+            "pandas_version": pd.__version__,
+            **torch_env
+        }
+    }
+
+    with open(stats_path, "w", encoding="utf-8") as f:
+        json.dump(_json_sanitize(run_stats), f, indent=2, sort_keys=True)
+    print(f"Saved run statistics to: {stats_path}")
     
     print(f"\nModel saved to: {model_path}")
     print(f"Mask saved to: {mask_path}")
     if scaler_path:
         print(f"Scaler saved to: {scaler_path}")
+    if pairwise_summary_path:
+        print(f"Pairwise summary saved to: {pairwise_summary_path}")
+    print(f"Run stats saved to: {stats_path}")
     print(f"\nTo use this model:")
     print(f"  import OCDocker.OCScore.Scoring as ocscoring")
     print(f"  import OCDocker.OCScore.Utils.IO as ocscoreio")
@@ -631,6 +1193,7 @@ def mask_password_in_url(url: str) -> str:
     str
         URL with password masked (e.g., postgresql+psycopg://user:***@host:port/db)
     '''
+    
     try:
         parsed = urlparse(url)
         if parsed.password:
@@ -869,7 +1432,9 @@ def train_dnn_model(
         use_gpu: bool = True,
         verbose: bool = True,
         best_trial: Optional[Any] = None,  # Optional: if provided, use this trial instead of loading from study
-        ao_study_numbers: Optional[List[int]] = None  # Optional: list of AO study numbers to search (e.g., [6, 7, 8, 9, 10])
+        ao_study_numbers: Optional[List[int]] = None,  # Optional: list of AO study numbers to search (e.g., [6, 7, 8, 9, 10])
+        encoder_params_override: Optional[dict[str, Any]] = None,
+        random_seed: int = 42
     ) -> tuple:
     '''
     Train a DNN model.
@@ -902,6 +1467,10 @@ def train_dnn_model(
         If True, use the GPU.
     verbose : bool
         If True, print the output.
+    encoder_params_override : dict[str, Any], optional
+        If provided, use these AO parameters directly instead of searching AO studies.
+    random_seed : int, optional
+        Random seed used for final DNN retraining.
     
     Returns
     -------
@@ -917,59 +1486,62 @@ def train_dnn_model(
     study_num = int(match.group(1)) if match else None
     
     # Fetch mask from ablation study and autoencoder params for AE with NN studies (6-10)
-    encoder_params = None
+    encoder_params = encoder_params_override
     if mask is None:
         # Check if this is an AE with NN study (studies 6-10)
         if study_num and 6 <= study_num <= 10:
-            print(f"Fetching best autoencoder params across ALL AO studies...")
             import optuna
-            
-            # Find the best AE across ALL AO studies (not just the one matching the NN study number)
-            # This ensures we use the globally best autoencoder, not just the one from the matching study
-            # Use provided ao_study_numbers or default to [6, 7, 8, 9, 10] for AE with NN studies
-            if ao_study_numbers is None:
-                ao_study_numbers = [6, 7, 8, 9, 10]  # Default: All AE with NN study numbers
-            
-            all_ao_trials = []
-            
-            for ao_num in ao_study_numbers:
-                ao_study_name = f"AO_Optimization_{ao_num}"
-                try:
-                    ao_study = optuna.load_study(study_name=ao_study_name, storage=storage)
-                    ao_df = ao_study.trials_dataframe()
-                    ao_df = ao_df[ao_df['state'] == 'COMPLETE']
-                    
-                    if len(ao_df) > 0:
-                        # Sort by value (RMSE) and validation RMSE
-                        ao_df = ao_df.sort_values(by=['value', 'user_attrs_val_rmse'], ascending=[True, True])
-                        best_ao_trial = ao_study.trials[ao_df.iloc[0].number]
-                        all_ao_trials.append({
-                            'study_name': ao_study_name,
-                            'study_number': ao_num,
-                            'trial': best_ao_trial,
-                            'value': best_ao_trial.value,
-                            'val_rmse': best_ao_trial.user_attrs.get('val_rmse', float('inf'))
-                        })
+            if encoder_params is None:
+                print(f"Fetching best autoencoder params across ALL AO studies...")
+
+                # Find the best AE across ALL AO studies (not just the one matching the NN study number)
+                # This ensures we use the globally best autoencoder, not just the one from the matching study
+                # Use provided ao_study_numbers or default to [6, 7, 8, 9, 10] for AE with NN studies
+                if ao_study_numbers is None:
+                    ao_study_numbers = [6, 7, 8, 9, 10]  # Default: All AE with NN study numbers
+
+                all_ao_trials = []
+
+                for ao_num in ao_study_numbers:
+                    ao_study_name = f"AO_Optimization_{ao_num}"
+                    try:
+                        ao_study = optuna.load_study(study_name=ao_study_name, storage=storage)
+                        ao_df = ao_study.trials_dataframe()
+                        ao_df = ao_df[ao_df['state'] == 'COMPLETE']
+
+                        if len(ao_df) > 0:
+                            # Sort by value (RMSE) and validation RMSE
+                            ao_df = ao_df.sort_values(by=['value', 'user_attrs_val_rmse'], ascending=[True, True])
+                            best_ao_trial = ao_study.trials[ao_df.iloc[0].number]
+                            all_ao_trials.append({
+                                'study_name': ao_study_name,
+                                'study_number': ao_num,
+                                'trial': best_ao_trial,
+                                'value': best_ao_trial.value,
+                                'val_rmse': best_ao_trial.user_attrs.get('val_rmse', float('inf'))
+                            })
+                            if verbose:
+                                print(f"  Found best trial in {ao_study_name}: RMSE={best_ao_trial.value:.4f}, Val_RMSE={best_ao_trial.user_attrs.get('val_rmse', 'N/A')}")
+                    except Exception as e:
                         if verbose:
-                            print(f"  Found best trial in {ao_study_name}: RMSE={best_ao_trial.value:.4f}, Val_RMSE={best_ao_trial.user_attrs.get('val_rmse', 'N/A')}")
-                except Exception as e:
+                            print(f"  Warning: Could not load autoencoder study {ao_study_name}: {e}")
+
+                # Find the best AE trial across all studies
+                if len(all_ao_trials) > 0:
+                    # Sort by value (RMSE) first, then by validation RMSE
+                    best_ao_info = min(all_ao_trials, key=lambda x: (x['value'], x['val_rmse']))
+                    encoder_params = best_ao_info['trial'].params
                     if verbose:
-                        print(f"  Warning: Could not load autoencoder study {ao_study_name}: {e}")
-            
-            # Find the best AE trial across all studies
-            if len(all_ao_trials) > 0:
-                # Sort by value (RMSE) first, then by validation RMSE
-                best_ao_info = min(all_ao_trials, key=lambda x: (x['value'], x['val_rmse']))
-                encoder_params = best_ao_info['trial'].params
-                if verbose:
-                    print(f"\nSelected best autoencoder from: {best_ao_info['study_name']}")
-                    print(f"  Trial number: {best_ao_info['trial'].number}")
-                    print(f"  RMSE: {best_ao_info['value']:.4f}")
-                    print(f"  Val RMSE: {best_ao_info['val_rmse']:.4f}")
-                    print(f"  (Selected from {len(all_ao_trials)} AO studies)")
-            else:
-                if verbose:
-                    print(f"Warning: No autoencoder studies found. Training without autoencoder.")
+                        print(f"\nSelected best autoencoder from: {best_ao_info['study_name']}")
+                        print(f"  Trial number: {best_ao_info['trial'].number}")
+                        print(f"  RMSE: {best_ao_info['value']:.4f}")
+                        print(f"  Val RMSE: {best_ao_info['val_rmse']:.4f}")
+                        print(f"  (Selected from {len(all_ao_trials)} AO studies)")
+                else:
+                    if verbose:
+                        print(f"Warning: No autoencoder studies found. Training without autoencoder.")
+            elif verbose:
+                print("Using provided autoencoder params (encoder_params_override).")
             
             # Load ablation study to get mask
             ablation_study_name = "NN_Ablation_Optimization_1"
@@ -1124,7 +1696,7 @@ def train_dnn_model(
         mask=mask,
         storage=storage,
         output_size=1,
-        random_seed=42,
+        random_seed=random_seed,
         use_gpu=use_gpu,
         verbose=verbose
     )
@@ -1162,7 +1734,7 @@ def train_dnn_model(
         1,
         encoder_params=encoder_params,  # Use autoencoder params if available (for AE with NN)
         nn_params=best_trial.params,
-        random_seed=42,
+        random_seed=random_seed,
         use_gpu=use_gpu,
         verbose=verbose,
         mask=mask
@@ -1177,6 +1749,7 @@ def train_dnn_model(
     print(f"  Batch size: {best_trial.params.get('batch_size', 'N/A')}")
     print(f"  Learning rate: {best_trial.params.get('lr', 'N/A')}")
     print(f"  Optimizer: {best_trial.params.get('optimizer', 'N/A')}")
+    print(f"  Random seed: {random_seed}")
     print(f"  Using GPU: {use_gpu}")
     print(f"  Training samples: {data['X_train'].shape[0]}")
     print(f"  Test samples: {data['X_test'].shape[0]}")
