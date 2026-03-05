@@ -344,7 +344,7 @@ def _get_reference_column_order_from_cfg_file(config_file: Optional[str] = None)
         Parsed reference column order, or None if not found/invalid.
     '''
 
-    cfg_path = config_file or os.getenv("OCDOCKER_CONFIG", "OCDocker.cfg")
+    cfg_path = config_file or os.getenv("OCDOCKER_CONFIG") or "OCDocker.cfg"
     if not os.path.isfile(cfg_path):
         return None
 
