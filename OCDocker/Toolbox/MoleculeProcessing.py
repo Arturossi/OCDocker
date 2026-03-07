@@ -14,11 +14,16 @@ import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
 # Imports
 ###############################################################################
 import os
+import tempfile
 from functools import lru_cache
 
 from spyrmsd import io, rmsd
+try:
+    from spyrmsd.exceptions import NonIsomorphicGraphs
+except Exception:
+    NonIsomorphicGraphs = ValueError  # type: ignore[assignment]
 from threading import Lock
-from typing import Dict, List, Tuple, Union, cast
+from typing import Dict, List, Set, Tuple, Union, cast
 
 import OCDocker.Error as ocerror
 
@@ -187,15 +192,28 @@ def clean_for_dssp(structurePath: str) -> int:
                     # Add the line to the list
                     lines.append(line)
 
-        # Create a lock for multithreading
-        lock = Lock()
-
-        # Start the lock with statement
-        with lock:
-            # Write the lines to the file
-            with open(structurePath, 'w') as pdbFile:
-                # Write the lines list to the file
+        # Write atomically to avoid truncated/partial files being read by
+        # concurrent DSSP calls. Readers will see either the old full file
+        # or the new full file, never an in-progress write.
+        temp_dir = os.path.dirname(structurePath) or "."
+        temp_path = ""
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                dir=temp_dir,
+                prefix=f".{os.path.basename(structurePath)}.dssp_tmp.",
+                suffix=".pdb",
+                delete=False,
+            ) as pdbFile:
+                temp_path = pdbFile.name
                 pdbFile.writelines(lines)
+            os.replace(temp_path, structurePath)
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
 
         return ocerror.Error.ok()
     else:
@@ -272,7 +290,7 @@ def convert_pdb_charmm_to_canonical(
     overwrite: bool = False,
     in_place: bool = False,
 ) -> int:
-    """Convert a CHARMM-named PDB to canonical PDB names using PDB2PQR mappings.
+    '''Convert a CHARMM-named PDB to canonical PDB names using PDB2PQR mappings.
 
     Parameters
     ----------
@@ -286,7 +304,7 @@ def convert_pdb_charmm_to_canonical(
         Whether to overwrite output file when in_place=False.
     in_place : bool, optional
         If True, overwrite the input file path atomically.
-    """
+    '''
 
     input_path = os.fspath(pdb_in)
     output_path = os.fspath(pdb_out)
@@ -429,30 +447,98 @@ def get_rmsd_matrix(molecules: List[str]) -> Dict[str, Dict[str, float]]:
         The rmsd matrix.
     '''
 
-    # Initialise the rmsd matrix
-    rmsdMatrix = {}
+    # Initialise the rmsd matrix with diagonal values
+    rmsdMatrix: Dict[str, Dict[str, float]] = {
+        molecule: {other: (0.0 if molecule == other else 0.0) for other in molecules}
+        for molecule in molecules
+    }
 
-    # For each molecule in molecules
-    for molecule in molecules:
-        # Initialise the row of the rmsd matrix
-        rmsdRow = {}
+    # Assign a large finite penalty when bond-graph inference yields
+    # non-isomorphic poses for the same target (e.g., malformed PDBQT->MOL2).
+    non_isomorphic_penalty = 1_000.0
+    non_isomorphic_pairs = 0
+    failed_pairs = 0
+    affected_poses: Set[str] = set()
 
-        # For each molecule in molecules
-        for otherMolecule in molecules:
-            # If the molecule is the same as the otherMolecule
-            if molecule == otherMolecule:
-                # Append 0 to the row
-                rmsdRow[otherMolecule] = 0.0
-            else:
-                # Get the rmsd between the molecule and the other molecule
+    def _pose_label(path: str) -> str:
+        '''Return a compact pose label suitable for one-line warnings.
+        
+        Parameters
+        ----------
+        path : str
+            The path to the pose file.
+        
+        Returns
+        -------
+        str
+            A compact label for the pose, derived from the filename.
+        '''
+
+        base = os.path.basename(path)
+        engine = base.split("_", 1)[0]
+        if "_split_" in base:
+            idx = base.rsplit("_split_", 1)[1].split(".", 1)[0]
+            return f"{engine}{idx}"
+        if len(base) > 28:
+            return f"{base[:25]}..."
+        return base
+
+    # Compute only upper triangle and mirror to keep the matrix symmetric.
+    for index, molecule in enumerate(molecules):
+        for otherMolecule in molecules[index + 1:]:
+            value: float
+            try:
                 tmpMolecule = get_rmsd(molecule, otherMolecule)
-                # Get the rmsd between the molecule and the other molecule
-                rmsdRow[otherMolecule] = tmpMolecule if isinstance(tmpMolecule, float) else tmpMolecule[0]
+                value = float(tmpMolecule if isinstance(tmpMolecule, float) else tmpMolecule[0])
+            except NonIsomorphicGraphs:
+                value = non_isomorphic_penalty
+                non_isomorphic_pairs += 1
+                affected_poses.add(molecule)
+                affected_poses.add(otherMolecule)
+                ocprint.print_warning(
+                    f"RMSD noniso: {_pose_label(molecule)}|{_pose_label(otherMolecule)} "
+                    f"p={non_isomorphic_penalty:.0f}"
+                )
+            except Exception as e:
+                value = non_isomorphic_penalty
+                failed_pairs += 1
+                ocprint.print_warning(
+                    f"RMSD err: {_pose_label(molecule)}|{_pose_label(otherMolecule)} "
+                    f"p={non_isomorphic_penalty:.0f} t={type(e).__name__}"
+                )
 
-        # Append the row to the rmsd matrix
-        rmsdMatrix[molecule] = rmsdRow
+            rmsdMatrix[molecule][otherMolecule] = value
+            rmsdMatrix[otherMolecule][molecule] = value
 
-    # Return the rmsd matrix
+    total_poses = len(molecules)
+    total_pairs = (total_poses * (total_poses - 1)) // 2
+    if total_poses > 0 and non_isomorphic_pairs > 0:
+        affected_ratio = len(affected_poses) / total_poses
+        pair_ratio = (non_isomorphic_pairs / total_pairs) if total_pairs > 0 else 0.0
+
+        if affected_ratio > 0.5:
+            severity = "high"
+        elif affected_ratio > 0.2:
+            severity = "moderate"
+        else:
+            severity = "low"
+
+        ocprint.print_warning(
+            "RMSD QC: "
+            f"noniso={non_isomorphic_pairs}/{total_pairs} "
+            f"aff={len(affected_poses)}/{total_poses} "
+            f"sev={severity}"
+        )
+        if affected_ratio > 0.5:
+            ocprint.print_warning(
+                "RMSD QC: aff>50%; review target."
+            )
+
+    if failed_pairs > 0:
+        ocprint.print_warning(
+            f"RMSD QC: failed={failed_pairs} p={non_isomorphic_penalty:.0f}"
+        )
+
     return rmsdMatrix
 
 def needs_canonical_pdb_fix(

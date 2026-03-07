@@ -461,7 +461,7 @@ def _map_score_to_complex_column(raw_key: str) -> Optional[str]:
     '''Map raw rescoring keys to Complexes table descriptor columns.'''
 
     key = raw_key.strip().lower()
-    key = key.replace("-", "_").replace(" ", "_")
+    key = key.replace("-", "_").replace(" ", "_").replace(".", "_")
     while "__" in key:
         key = key.replace("__", "_")
 
@@ -481,11 +481,13 @@ def _map_score_to_complex_column(raw_key: str) -> Optional[str]:
         # Keep Gnina mapping hardcoded like other engines, matching gnina_scoring_functions defaults.
         "gnina_ad4_scoring": "GNINA_AD4_SCORING",
         "gnina_scoring_ad4": "GNINA_AD4_SCORING",
+        "gnina_ad4": "GNINA_AD4_SCORING",
         "gnina_default": "GNINA_DEFAULT",
         "gnina_dkoes_fast": "GNINA_DKOES_FAST",
         "gnina_fast_dkoes": "GNINA_DKOES_FAST",
         "gnina_dkoes_scoring": "GNINA_DKOES_SCORING",
         "gnina_scoring_dkoes": "GNINA_DKOES_SCORING",
+        "gnina_dkoes": "GNINA_DKOES_SCORING",
         "gnina_dkoes_scoring_old": "GNINA_DKOES_SCORING_OLD",
         "gnina_old_scoring_dkoes": "GNINA_DKOES_SCORING_OLD",
         "gnina_vina": "GNINA_VINA",
@@ -501,6 +503,11 @@ def _map_score_to_complex_column(raw_key: str) -> Optional[str]:
     }
     if key in direct_map:
         return direct_map[key]
+
+    # Gnina emits many CNN model aliases (cnn_all/crossdock/default*/dense/fast/general/redock).
+    # Complexes currently stores a single GNINA_DEFAULT column for these scores.
+    if key.startswith("gnina_cnn_"):
+        return "GNINA_DEFAULT"
 
     # ODDT can emit several naming variants (e.g. rfscore_v1_pdbbind2016, plecrf_*).
     oddt_key = key[5:] if key.startswith("oddt_") else key
