@@ -504,11 +504,6 @@ def _map_score_to_complex_column(raw_key: str) -> Optional[str]:
     if key in direct_map:
         return direct_map[key]
 
-    # Gnina emits many CNN model aliases (cnn_all/crossdock/default*/dense/fast/general/redock).
-    # Complexes currently stores a single GNINA_DEFAULT column for these scores.
-    if key.startswith("gnina_cnn_"):
-        return "GNINA_DEFAULT"
-
     # ODDT can emit several naming variants (e.g. rfscore_v1_pdbbind2016, plecrf_*).
     oddt_key = key[5:] if key.startswith("oddt_") else key
     if "rfscore_v1" in oddt_key or oddt_key.endswith("rfscore1"):
