@@ -50,12 +50,13 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 @pytest.mark.order(25)
 def test_preparse_global_args_and_require(tmp_path):
     ns = cli._preparse_global_args([
-        "vs", "--output-level", "5", "--conf", "cfg.ini", "--overwrite", "--no-stdout-log",
+        "vs", "--output-level", "5", "--conf", "cfg.ini", "--overwrite", "--no-stdout-log", "--no-splash",
     ])
     assert ns.output_level == 5
     assert ns.config_file == "cfg.ini"
     assert ns.overwrite is True
     assert ns.no_stdout_log is True
+    assert ns.no_splash is True
 
     p = tmp_path / "x.pdb"
     p.write_text("ATOM\n")

@@ -8,6 +8,8 @@ Extra tests for Toolbox.Printing helpers.
 
 # Imports
 ###############################################################################
+import logging
+
 import pytest
 
 import OCDocker.Error as ocerror
@@ -53,15 +55,18 @@ def test_print_to_log_files(tmp_path):
 
 
 @pytest.mark.order(83)
-def test_printv_gated_by_level(capsys):
+def test_printv_gated_by_level(capsys, caplog):
     # Ensure DEBUG prints
     ocerror.Error.set_output_level(ocerror.ReportLevel.DEBUG)
-    ocprint.printv("visible")
-    out = capsys.readouterr().out
+    with caplog.at_level(logging.DEBUG, logger="ocdocker"):
+        ocprint.printv("visible")
+    captured = capsys.readouterr()
+    out = f"{captured.out}\n{captured.err}\n{caplog.text}"
     assert "visible" in out
 
     # Ensure non-DEBUG suppresses
     ocerror.Error.set_output_level(ocerror.ReportLevel.INFO)
     ocprint.printv("hidden")
-    out2 = capsys.readouterr().out
+    captured2 = capsys.readouterr()
+    out2 = f"{captured2.out}\n{captured2.err}\n{caplog.text}"
     assert "hidden" not in out2

@@ -173,6 +173,7 @@ def test_preparse_global_args_extra_branches():
     assert ns.multiprocess is False
     assert ns.output_level == 1
     assert ns.log_file == "/tmp/ocdocker.log"
+    assert ns.no_splash is False
 
 
 @pytest.mark.order(456)

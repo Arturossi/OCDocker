@@ -16,7 +16,7 @@ import os
 import shutil
 
 from glob import glob
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import OCDocker.Error as ocerror
 
@@ -60,6 +60,13 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 _GNINA_TRUE_VALUES = {"1", "true", "t", "yes", "y", "on"}
 _GNINA_FALSE_VALUES = {"0", "false", "f", "no", "n", "off"}
+_GNINA_CPU_ENV_VARS = (
+    "OCDOCKER_GNINA_CPU",
+    "SNK_THREADS",
+    "SNAKEMAKE_THREADS",
+    "OMP_NUM_THREADS",
+    "SLURM_CPUS_PER_TASK",
+)
 
 _GNINA_FLAG_OPTIONS = [
     ("score_only", "--score_only"),
@@ -124,7 +131,6 @@ _GNINA_VALUE_OPTIONS = [
     ("out_flex", "--out_flex", True, False),
     ("atom_terms", "--atom_terms", True, False),
     ("pose_sort_order", "--pose_sort_order", False, False),
-    ("cpu", "--cpu", True, True),
     ("seed", "--seed", True, False),
     ("exhaustiveness", "--exhaustiveness", False, False),
     ("num_modes", "--num_modes", False, False),
@@ -147,6 +153,10 @@ def _is_true(value: Union[str, int, float, bool, None]) -> bool:
 def _is_false(value: Union[str, int, float, bool, None]) -> bool:
     txt = _as_text(value).lower()
     return txt in _GNINA_FALSE_VALUES
+
+
+def _is_default_cnn_model(value: Union[str, int, float, bool, None]) -> bool:
+    return _as_text(value).lower() == "default"
 
 
 def _append_option(
@@ -177,6 +187,40 @@ def _resolve_autobox_ligand(value: Union[str, int, float, bool, None], prepared_
     if txt_low in {"yes", "y", "true", "1", "auto", "ligand", "prepared_ligand"}:
         return prepared_ligand
     return txt
+
+
+def _positive_int_or_none(value: Union[str, int, float, bool, None]) -> Optional[int]:
+    txt = _as_text(value)
+    if not txt:
+        return None
+
+    try:
+        parsed = int(txt)
+    except (TypeError, ValueError):
+        return None
+
+    return parsed if parsed > 0 else None
+
+
+def _resolve_gnina_auto_cpu() -> str:
+    for env_name in _GNINA_CPU_ENV_VARS:
+        parsed = _positive_int_or_none(os.getenv(env_name, ""))
+        if parsed is not None:
+            return str(parsed)
+
+    # Conservative default that avoids over-subscribing worker slots in
+    # external schedulers (e.g., Snakemake) when no explicit hint is provided.
+    return "1"
+
+
+def _resolve_gnina_cpu_value(gnina_cfg: Any) -> str:
+    configured_cpu = _as_text(getattr(gnina_cfg, "cpu", ""))
+    configured_cpu_low = configured_cpu.lower()
+
+    if configured_cpu and configured_cpu_low not in {"auto", "no"}:
+        return configured_cpu
+
+    return _resolve_gnina_auto_cpu()
 
 
 def _normalize_string_list(values: Union[List[str], Tuple[str, ...], None], fallback: List[str]) -> List[str]:
@@ -249,8 +293,12 @@ def _build_gnina_cmd(config_path: str, prepared_ligand: str, output_gnina: str, 
     for attr_name, flag, skip_no, skip_auto in _GNINA_VALUE_OPTIONS:
         if attr_name == "device" and no_gpu_enabled:
             continue
-        _append_option(cmd, flag, getattr(gnina_cfg, attr_name, ""), skip_no=skip_no, skip_auto=skip_auto)
+        value = getattr(gnina_cfg, attr_name, "")
+        if attr_name == "cnn" and _is_default_cnn_model(value):
+            continue
+        _append_option(cmd, flag, value, skip_no=skip_no, skip_auto=skip_auto)
 
+    cmd.extend(["--cpu", _resolve_gnina_cpu_value(gnina_cfg)])
     cmd.extend(["--out", output_gnina, "--log", gnina_log])
     return cmd
 
@@ -1141,6 +1189,7 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
 
     cfg = get_config()
     gnina_executable = cfg.gnina.executable
+    gnina_cpu = _resolve_gnina_cpu_value(cfg.gnina)
     cnn_scoring_mode = _as_text(getattr(cfg.gnina, "cnn_scoring", "rescore")) or "rescore"
     use_no_gpu = _is_true(getattr(cfg.gnina, "no_gpu", "no"))
     gnina_device = _as_text(getattr(cfg.gnina, "device", ""))
@@ -1191,13 +1240,14 @@ def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, sco
             "--config", confFile,
             "--ligand", ligand,
             "--log", rescore_log_file,
-            "--cpu", "1",
+            "--cpu", gnina_cpu,
         ]
 
         if disable_cnn:
             cmd.extend(["--cnn_scoring", "none"])
         elif cnn_model:
-            cmd.extend(["--cnn", cnn_model])
+            if not _is_default_cnn_model(cnn_model):
+                cmd.extend(["--cnn", cnn_model])
             cmd.extend(["--cnn_scoring", cnn_scoring_mode])
 
         if use_no_gpu:

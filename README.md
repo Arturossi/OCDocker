@@ -160,17 +160,18 @@ sudo apt-get update && sudo apt-get install -y postgresql postgresql-contrib
 sudo systemctl enable --now postgresql
 ```
 
-2) Create a role and databases
+2) Create a PostgreSQL user and databases
 
 ```bash
 sudo -u postgres psql
 ```
 
 ```sql
-CREATE ROLE ocdocker LOGIN;
--- set the role credential interactively from psql before exit
+CREATE USER ocdocker WITH PASSWORD '<db_password>';
 CREATE DATABASE ocdocker OWNER ocdocker;
 CREATE DATABASE optimization OWNER ocdocker;
+GRANT ALL PRIVILEGES ON DATABASE ocdocker TO ocdocker;
+GRANT ALL PRIVILEGES ON DATABASE optimization TO ocdocker;
 \q
 ```
 
@@ -203,11 +204,66 @@ with engine.connect() as conn:
     print(conn.exec_driver_sql("SELECT 1").scalar())
 ```
 
-MySQL remains supported:
+MySQL setup (quick tutorial)
+----------------------------
 
-- Set `DB_BACKEND = mysql` (or `OCDOCKER_DB_BACKEND=mysql`).
-- Use `PORT = 3306`.
-- SQLAlchemy URL format: `mysql+pymysql://...`.
+This section is optional. Skip it if you are using SQLite (see [Quickstart](#quickstart-minimal-sqlite)).
+
+1) Install and start MySQL (Ubuntu/Debian)
+
+```bash
+sudo apt-get update && sudo apt-get install -y mysql-server
+sudo systemctl enable --now mysql
+```
+
+2) Create a MySQL user and databases
+
+```bash
+sudo mysql
+```
+
+```sql
+CREATE DATABASE IF NOT EXISTS ocdocker
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS optimization
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'ocdocker'@'localhost' IDENTIFIED BY '<db_password>';
+GRANT ALL PRIVILEGES ON ocdocker.* TO 'ocdocker'@'localhost';
+GRANT ALL PRIVILEGES ON optimization.* TO 'ocdocker'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+If OCDocker connects from another host/container, create/grant the same user for the required host (for example `'ocdocker'@'%'`) with proper network hardening.
+
+3) Configure `OCDocker.cfg` (or `OCDocker.yml`)
+
+```ini
+DB_BACKEND = mysql
+HOST = localhost
+PORT = 3306
+USER = ocdocker
+PASSWORD = <db_password>
+DATABASE = ocdocker
+OPTIMIZEDB = optimization
+```
+
+4) Test connectivity from Python
+
+```python
+from sqlalchemy import create_engine
+from urllib.parse import quote_plus
+
+user = "ocdocker"
+password = quote_plus("<db_password>")
+host = "localhost"
+port = 3306
+db = "optimization"
+
+engine = create_engine(f"mysql+pymysql://{user}:{password}@{host}:{port}/{db}")
+with engine.connect() as conn:
+    print(conn.exec_driver_sql("SELECT 1").scalar())
+```
 
 Notes:
 

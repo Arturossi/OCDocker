@@ -19,7 +19,7 @@ Main commands
             pick the representative pose (medoid of the largest cluster), rescore and export results.
 
 Global options
-- --conf, --multiprocess, --update-databases, --output-level, --overwrite:
+- --conf, --multiprocess, --update-databases, --output-level, --overwrite, --no-splash:
   compatible with OCDocker.Initialise and used to bootstrap the environment.
 
 Modules
@@ -461,7 +461,7 @@ def _map_score_to_complex_column(raw_key: str) -> Optional[str]:
     '''Map raw rescoring keys to Complexes table descriptor columns.'''
 
     key = raw_key.strip().lower()
-    key = key.replace("-", "_").replace(" ", "_")
+    key = key.replace("-", "_").replace(" ", "_").replace(".", "_")
     while "__" in key:
         key = key.replace("__", "_")
 
@@ -478,6 +478,20 @@ def _map_score_to_complex_column(raw_key: str) -> Optional[str]:
         "smina_dkoes_fast": "SMINA_FAST_DKOES",
         "smina_scoring_ad4": "SMINA_SCORING_AD4",
         "smina_ad4_scoring": "SMINA_SCORING_AD4",
+        # Keep Gnina mapping hardcoded like other engines, matching gnina_scoring_functions defaults.
+        "gnina_ad4_scoring": "GNINA_AD4_SCORING",
+        "gnina_scoring_ad4": "GNINA_AD4_SCORING",
+        "gnina_ad4": "GNINA_AD4_SCORING",
+        "gnina_default": "GNINA_DEFAULT",
+        "gnina_dkoes_fast": "GNINA_DKOES_FAST",
+        "gnina_fast_dkoes": "GNINA_DKOES_FAST",
+        "gnina_dkoes_scoring": "GNINA_DKOES_SCORING",
+        "gnina_scoring_dkoes": "GNINA_DKOES_SCORING",
+        "gnina_dkoes": "GNINA_DKOES_SCORING",
+        "gnina_dkoes_scoring_old": "GNINA_DKOES_SCORING_OLD",
+        "gnina_old_scoring_dkoes": "GNINA_DKOES_SCORING_OLD",
+        "gnina_vina": "GNINA_VINA",
+        "gnina_vinardo": "GNINA_VINARDO",
         "plants_chemplp": "PLANTS_CHEMPLP",
         "plants_plp": "PLANTS_PLP",
         "plants_plp95": "PLANTS_PLP95",
@@ -604,6 +618,7 @@ def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
         overwrite=False,
         log_file=None,
         no_stdout_log=False,
+        no_splash=False,
     )
 
     i = 0
@@ -647,6 +662,10 @@ def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
             continue
         if tok == "--no-stdout-log":
             ns.no_stdout_log = True
+            i += 1
+            continue
+        if tok == "--no-splash":
+            ns.no_splash = True
             i += 1
             continue
         # skip token
@@ -1080,6 +1099,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Disable logging to stdout. Only log to file if --log-file is specified. Useful for cleaner console output."
     )
+    parser.add_argument(
+        "--no-splash",
+        dest="no_splash",
+        action="store_true",
+        default=False,
+        help="Disable splash banner on startup."
+    )
 
     # Parent parser to allow repeating global options after subcommand
     parent = argparse.ArgumentParser(add_help=False)
@@ -1091,6 +1117,7 @@ def build_parser() -> argparse.ArgumentParser:
     parent.add_argument("--overwrite", dest="overwrite", action="store_true", default=False, help="Allow overwriting existing output files")
     parent.add_argument("--log-file", dest="log_file", type=str, default=None, help="Write log messages to this file")
     parent.add_argument("--no-stdout-log", dest="no_stdout_log", action="store_true", default=False, help="Disable logging to stdout")
+    parent.add_argument("--no-splash", dest="no_splash", action="store_true", default=False, help="Disable splash banner on startup")
 
     sub = parser.add_subparsers(dest="command", required=True)
 

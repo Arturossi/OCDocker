@@ -276,7 +276,6 @@ class LeDockConfig:
 @dataclass
 class ODDTConfig:
     """Configuration for ODDT scoring functions."""
-    executable: str = ""
     seed: str = ""
     chunk_size: str = ""
     scoring_functions: List[str] = field(default_factory=list)
@@ -551,7 +550,6 @@ class OCDockerConfig:
             
             # ODDT
             oddt=ODDTConfig(
-                executable=cfg.get('oddt', ''),
                 seed=cfg.get('oddt_seed', ''),
                 chunk_size=cfg.get('oddt_chunk_size', ''),
                 scoring_functions=cfg.get('oddt_scoring_functions', []),

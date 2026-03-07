@@ -190,10 +190,10 @@ gnina_exhaustiveness = 8
 gnina_num_modes = 9
 
 # Alternative scoring function
-gnina_scoring = default
+gnina_scoring = ad4_scoring
 
 # Available scoring functions
-gnina_scoring_functions = ad4_scoring,default,dkoes_fast,dkoes_scoring,dkoes_scoring_old,vina,vinardo
+gnina_scoring_functions = ad4_scoring,dkoes_fast,dkoes_scoring,dkoes_scoring_old,vina,vinardo
 
 # Custom scoring file
 gnina_custom_scoring = no
@@ -264,7 +264,8 @@ gnina_print_atom_types = no
 # CNN scoring mode: none,rescore,refinement,metrorescore,metrorefine,all
 gnina_cnn_scoring = rescore
 
-# Weight of CNN score when ranking poses
+# Built-in CNN model for gnina (--cnn <model>).
+# If set to 'default', OCDocker omits '--cnn' and lets gnina use its internal default model.
 gnina_cnn = default
 
 # Available CNN models for rescoring
@@ -312,7 +313,7 @@ gnina_pose_sort_order = CNNscore
 # Write full flexible receptor output
 gnina_full_flex_output = no
 
-# Number of CPU threads (auto keeps gnina default behavior)
+# Number of CPU threads (auto uses Snakemake/OMP threads when available; fallback 1)
 gnina_cpu = auto
 
 # RNG seed (optional)
@@ -358,8 +359,6 @@ plants_rescoring_mode = simplex
 
 ################## ODDT PARAMETERS ##################
 
-# Path to the oddt_cli file
-oddt = /home/artur/miniconda3/envs/ocdocker/bin/oddt_cli
 
 # Seed for the ODDT software
 oddt_seed = 42

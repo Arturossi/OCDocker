@@ -55,6 +55,7 @@ dependencies = [
   "typer>=0.15.3",
   "click>=8.2.1",
   "colorlog>=6.8.2",
+  "snakemake-logger-plugin-snkmt>=0.1.6",
   # File handling
   "h5py>=3.11.0",
   "tifffile>=2024.9.20",

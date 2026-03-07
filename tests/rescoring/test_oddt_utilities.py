@@ -106,7 +106,7 @@ def _import_oddt_helpers(monkeypatch):
 
     config_mod = types.ModuleType("OCDocker.Config")
     config_mod.get_config = lambda: SimpleNamespace(
-        oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=[]),
+        oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=[]),
         oddt_models_dir="/tmp",
     )  # type: ignore[attr-defined]
 
@@ -144,7 +144,7 @@ def _prepare_run_oddt_inputs(monkeypatch, ocoddt_helpers, tmp_path):
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -179,50 +179,6 @@ def _make_pipeline(*, score_exc=None, fetch_items=None):
 @pytest.fixture
 def ocoddt_helpers(monkeypatch):
     return _import_oddt_helpers(monkeypatch)
-
-
-@pytest.mark.order(156)
-def test_build_cmd_rejects_non_csv_output(ocoddt_helpers):
-    rc = ocoddt_helpers.__build_cmd("receptor.pdbqt", "ligand.sdf", "output.txt")
-    assert rc == ocerror.ErrorCode.UNSUPPORTED_EXTENSION
-
-
-@pytest.mark.order(157)
-def test_build_cmd_adds_scoring_functions(monkeypatch, ocoddt_helpers):
-    monkeypatch.setattr(
-        ocoddt_helpers,
-        "get_config",
-        lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore", "nnscore"]),
-            oddt_models_dir="/tmp",
-        ),
-    )
-
-    cmd = ocoddt_helpers.__build_cmd("receptor.pdbqt", "ligand.sdf", "output.csv")
-    assert cmd[0] == "oddt_cli"
-    assert "-i" in cmd and "sdf" in cmd
-    assert cmd.count("--score") == 2
-    assert "rfscore" in cmd
-    assert "nnscore" in cmd
-
-
-@pytest.mark.order(158)
-def test_build_cmd_logs_error_when_scoring_functions_missing(monkeypatch, ocoddt_helpers):
-    errors = []
-    monkeypatch.setattr(
-        ocoddt_helpers,
-        "get_config",
-        lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=[]),
-            oddt_models_dir="/tmp",
-        ),
-    )
-    monkeypatch.setattr(ocoddt_helpers.ocprint, "print_error", lambda msg: errors.append(msg))
-
-    cmd = ocoddt_helpers.__build_cmd("receptor.pdbqt", "ligand.sdf", "output.csv")
-    assert isinstance(cmd, list)
-    assert "--score" not in cmd
-    assert errors
 
 
 @pytest.mark.order(159)
@@ -318,7 +274,7 @@ def test_run_oddt_returns_missing_models_when_models_folder_is_empty(monkeypatch
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -557,7 +513,7 @@ def test_run_oddt_reports_missing_expected_scoring_family(monkeypatch, tmp_path,
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore", "nnscore"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore", "nnscore"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -635,176 +591,6 @@ def test_run_oddt_warns_when_parallel_context_close_fails(monkeypatch, tmp_path,
     )
     assert rc == ocerror.ErrorCode.OK
     assert any("Failed to close ODDT parallel context cleanly" in msg for msg in warnings)
-
-
-@pytest.mark.order(192)
-def test_run_oddt_from_cli_rejects_missing_output_dir(tmp_path, ocoddt_helpers):
-    rc = ocoddt_helpers.run_oddt_from_cli(
-        receptor="receptor.pdbqt",
-        ligand="ligand.sdf",
-        outputPath=str(tmp_path / "missing"),
-    )
-    assert rc == ocerror.ErrorCode.DIR_NOT_EXIST
-
-
-@pytest.mark.order(193)
-def test_run_oddt_from_cli_rejects_wrong_input_types(monkeypatch, tmp_path, ocoddt_helpers):
-    output_dir = tmp_path / "out"
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    rc_bad_receptor = ocoddt_helpers.run_oddt_from_cli(
-        receptor=123,  # type: ignore[arg-type]
-        ligand="ligand.sdf",
-        outputPath=str(output_dir),
-    )
-    assert rc_bad_receptor == ocerror.ErrorCode.WRONG_TYPE
-
-    rc_bad_ligand = ocoddt_helpers.run_oddt_from_cli(
-        receptor="receptor.pdbqt",
-        ligand=123,  # type: ignore[arg-type]
-        outputPath=str(output_dir),
-    )
-    assert rc_bad_ligand == ocerror.ErrorCode.WRONG_TYPE
-
-
-@pytest.mark.order(194)
-def test_run_oddt_from_cli_validates_output_and_input_files(monkeypatch, tmp_path, ocoddt_helpers):
-    output_dir = tmp_path / "out"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    receptor_path = tmp_path / "rec.pdbqt"
-    ligand_path = tmp_path / "lig.sdf"
-
-    receptor_path.write_text("REC", encoding="utf-8")
-    ligand_path.write_text("LIG", encoding="utf-8")
-    (output_dir / "lig.csv").write_text("already", encoding="utf-8")
-
-    rc_exists = ocoddt_helpers.run_oddt_from_cli(
-        receptor=str(receptor_path),
-        ligand=str(ligand_path),
-        outputPath=str(output_dir),
-        overwrite=False,
-    )
-    assert rc_exists == ocerror.ErrorCode.FILE_EXISTS
-
-    (output_dir / "lig.csv").unlink()
-    rc_missing_rec = ocoddt_helpers.run_oddt_from_cli(
-        receptor=str(tmp_path / "missing_rec.pdbqt"),
-        ligand=str(ligand_path),
-        outputPath=str(output_dir),
-    )
-    assert rc_missing_rec == ocerror.ErrorCode.FILE_NOT_EXIST
-
-    rc_missing_lig = ocoddt_helpers.run_oddt_from_cli(
-        receptor=str(receptor_path),
-        ligand=str(tmp_path / "missing_lig.sdf"),
-        outputPath=str(output_dir),
-    )
-    assert rc_missing_lig == ocerror.ErrorCode.FILE_NOT_EXIST
-
-
-@pytest.mark.order(195)
-def test_run_oddt_from_cli_propagates_build_cmd_error(monkeypatch, tmp_path, ocoddt_helpers):
-    output_dir = tmp_path / "out"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    receptor_path = tmp_path / "rec.pdbqt"
-    ligand_path = tmp_path / "lig.sdf"
-    receptor_path.write_text("REC", encoding="utf-8")
-    ligand_path.write_text("LIG", encoding="utf-8")
-
-    monkeypatch.setattr(ocoddt_helpers, "__build_cmd", lambda *_a, **_k: ocerror.ErrorCode.UNSUPPORTED_EXTENSION)
-    rc = ocoddt_helpers.run_oddt_from_cli(
-        receptor=str(receptor_path),
-        ligand=str(ligand_path),
-        outputPath=str(output_dir),
-    )
-    assert rc == ocerror.ErrorCode.UNSUPPORTED_EXTENSION
-
-
-@pytest.mark.order(196)
-def test_run_oddt_from_cli_success_with_objects_and_clean_models(monkeypatch, tmp_path, ocoddt_helpers):
-    output_dir = tmp_path / "out"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    receptor_path = tmp_path / "rec.pdbqt"
-    ligand_path = tmp_path / "lig.sdf"
-    receptor_path.write_text("REC", encoding="utf-8")
-    ligand_path.write_text("LIG", encoding="utf-8")
-
-    class _ReceptorObj:
-        def __init__(self, path):
-            self.path = path
-
-    class _LigandObj:
-        def __init__(self, path, name):
-            self.path = path
-            self.name = name
-
-    monkeypatch.setattr(ocoddt_helpers.ocr, "Receptor", _ReceptorObj, raising=False)
-    monkeypatch.setattr(ocoddt_helpers.ocl, "Ligand", _LigandObj, raising=False)
-
-    receptor_obj = _ReceptorObj(str(receptor_path))
-    ligand_obj = _LigandObj(str(ligand_path), "ligObj")
-
-    built = {}
-    removed = []
-
-    monkeypatch.setattr(
-        ocoddt_helpers,
-        "__build_cmd",
-        lambda rec, lig, out: built.update({"receptor": rec, "ligand": lig, "out": out}) or ["oddt_cli", lig],
-    )
-    monkeypatch.setattr(
-        ocoddt_helpers,
-        "get_config",
-        lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
-            oddt_models_dir=str(tmp_path),
-            multiprocess=False,
-        ),
-    )
-    monkeypatch.setattr(ocoddt_helpers.ocrun, "run", lambda *_a, **_k: (ocerror.ErrorCode.OK, ""))
-    monkeypatch.setattr(ocoddt_helpers, "get_models", lambda _p: [str(output_dir / "m1.pickle"), str(output_dir / "m2.pickle")])
-    monkeypatch.setattr(ocoddt_helpers.ocff, "safe_remove_file", lambda p: removed.append(p) or ocerror.ErrorCode.OK)
-
-    rc = ocoddt_helpers.run_oddt_from_cli(
-        receptor=receptor_obj,
-        ligand=ligand_obj,
-        outputPath=str(output_dir),
-        cleanModels=True,
-    )
-    assert rc == ocerror.ErrorCode.OK
-    assert built["receptor"] == str(receptor_path)
-    assert built["ligand"] == str(ligand_path)
-    assert built["out"].endswith("/ligObj.csv")
-    assert len(removed) == 2
-
-
-@pytest.mark.order(197)
-def test_run_oddt_from_cli_returns_nonzero_exit_code_from_runner(monkeypatch, tmp_path, ocoddt_helpers):
-    output_dir = tmp_path / "out"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    receptor_path = tmp_path / "rec.pdbqt"
-    ligand_path = tmp_path / "lig2.sdf"
-    receptor_path.write_text("REC", encoding="utf-8")
-    ligand_path.write_text("LIG", encoding="utf-8")
-
-    monkeypatch.setattr(ocoddt_helpers, "__build_cmd", lambda *_a, **_k: ["oddt_cli"])
-    monkeypatch.setattr(
-        ocoddt_helpers,
-        "get_config",
-        lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
-            oddt_models_dir=str(tmp_path),
-            multiprocess=False,
-        ),
-    )
-    monkeypatch.setattr(ocoddt_helpers.ocrun, "run", lambda *_a, **_k: 9)
-
-    rc = ocoddt_helpers.run_oddt_from_cli(
-        receptor=str(receptor_path),
-        ligand=str(ligand_path),
-        outputPath=str(output_dir),
-    )
-    assert rc == 9
 
 
 @pytest.mark.order(243)
@@ -950,23 +736,6 @@ def test_run_oddt_logs_individual_monotonic_attribute_error(monkeypatch, tmp_pat
     assert any("version mismatch" in msg.lower() for msg in errors)
 
 
-@pytest.mark.order(247)
-def test_build_cmd_supports_ligand_without_extension(monkeypatch, ocoddt_helpers):
-    monkeypatch.setattr(
-        ocoddt_helpers,
-        "get_config",
-        lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
-            oddt_models_dir="/tmp",
-        ),
-    )
-
-    cmd = ocoddt_helpers.__build_cmd("receptor.pdbqt", "ligand_without_ext", "output.csv")
-    assert isinstance(cmd, list)
-    i_flag = cmd.index("-i")
-    assert cmd[i_flag + 1] == ""
-
-
 @pytest.mark.order(248)
 def test_read_receptor_with_retry_tracks_none_and_exception(monkeypatch, ocoddt_helpers):
     monkeypatch.setattr(ocoddt_helpers.od.toolkit, "readfile", lambda *_a, **_k: iter([None]))
@@ -995,7 +764,7 @@ def test_run_oddt_existing_output_dir_with_list_ligands_hits_receptor_type_guard
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -1022,7 +791,7 @@ def test_run_oddt_input_guards_missing_receptor_and_wrong_ligand_type(monkeypatc
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -1064,7 +833,7 @@ def test_run_oddt_handles_receptor_and_ligand_without_extensions(monkeypatch, tm
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -1107,7 +876,7 @@ def test_run_oddt_returns_failure_when_ligand_list_is_empty(monkeypatch, tmp_pat
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -1137,7 +906,7 @@ def test_run_oddt_attempts_to_initialize_missing_exact_models(monkeypatch, tmp_p
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore_v2_pdbbind2016", "nnscore_v1"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore_v2_pdbbind2016", "nnscore_v1"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -1167,6 +936,80 @@ def test_run_oddt_attempts_to_initialize_missing_exact_models(monkeypatch, tmp_p
     assert rc == ocerror.ErrorCode.WRONG_TYPE
 
 
+@pytest.mark.order(2531)
+def test_run_oddt_single_ligand_forces_single_cpu_even_when_requested_parallel(monkeypatch, tmp_path, ocoddt_helpers):
+    receptor_path, ligand_path, output_dir, _models_dir = _prepare_run_oddt_inputs(monkeypatch, ocoddt_helpers, tmp_path)
+    _patch_valid_receptor_and_ligand(monkeypatch, ocoddt_helpers)
+
+    captured_n_cpu = []
+
+    class _CaptureVS:
+        def __init__(self, *args, **kwargs):
+            _ = args
+            captured_n_cpu.append(kwargs.get("n_cpu"))
+
+        def load_ligands(self, *_a, **_k):
+            return None
+
+        def score(self, *_a, **_k):
+            return None
+
+        def fetch(self):
+            return iter([_FakeMol("ligand.sdf", {"rfscore_v1": -7.5})])
+
+    monkeypatch.setattr(ocoddt_helpers, "vs", _CaptureVS)
+    monkeypatch.setattr(ocoddt_helpers, "scorer", SimpleNamespace(load=lambda *_a, **_k: object()))
+
+    result = ocoddt_helpers.run_oddt(
+        preparedReceptorPath=str(receptor_path),
+        preparedLigandPath=str(ligand_path),
+        ligandName="lig",
+        outputPath=str(output_dir),
+        overwrite=True,
+        returnData=True,
+        n_cpu=-1,
+    )
+
+    assert isinstance(result, pd.DataFrame)
+    assert captured_n_cpu
+    assert captured_n_cpu[0] == 1
+
+
+@pytest.mark.order(2532)
+def test_run_oddt_plecrf_alias_does_not_trigger_missing_model_initialization(monkeypatch, tmp_path, ocoddt_helpers):
+    output_dir = tmp_path / "out"
+    models_dir = tmp_path / "models"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    models_dir.mkdir(parents=True, exist_ok=True)
+    (models_dir / "plecrf_p5_l1_pdbbind2016_s65536.pickle").write_text("model", encoding="utf-8")
+
+    monkeypatch.setattr(
+        ocoddt_helpers,
+        "get_config",
+        lambda: SimpleNamespace(
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["plecrf_pdbbind2016"]),
+            oddt_models_dir=str(models_dir),
+            multiprocess=False,
+        ),
+    )
+
+    init_calls = []
+    init_mod = types.ModuleType("OCDocker.Initialise")
+    init_mod.initialise_oddt_models = lambda *_a, **_k: init_calls.append(True)  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "OCDocker.Initialise", init_mod)
+
+    rc = ocoddt_helpers.run_oddt(
+        preparedReceptorPath=123,  # type: ignore[arg-type]
+        preparedLigandPath="ligand.sdf",
+        ligandName="lig",
+        outputPath=str(output_dir),
+        overwrite=True,
+    )
+
+    assert rc == ocerror.ErrorCode.WRONG_TYPE
+    assert not init_calls
+
+
 @pytest.mark.order(254)
 def test_run_oddt_warns_when_exact_models_missing_and_models_dir_invalid(monkeypatch, tmp_path, ocoddt_helpers):
     output_dir = tmp_path / "out"
@@ -1177,7 +1020,7 @@ def test_run_oddt_warns_when_exact_models_missing_and_models_dir_invalid(monkeyp
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore_v9"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore_v9"]),
             oddt_models_dir=str(invalid_models_dir),
             multiprocess=False,
         ),
@@ -1223,7 +1066,7 @@ def test_run_oddt_descriptor_patch_paths_and_model_family_filters(monkeypatch, t
         "get_config",
         lambda: SimpleNamespace(
             oddt=SimpleNamespace(
-                executable="oddt_cli",
+                executable="unused_oddt_command",
                 # exact request covers map assignment branch at line 586
                 scoring_functions=["nnscore_v1", "plec_v2", "rfscore_v1"],
             ),
@@ -1340,7 +1183,7 @@ def test_run_oddt_threading_backend_fallbacks_and_individual_error_paths(monkeyp
         calls["n"] += 1
         if calls["n"] == 1:
             return SimpleNamespace(
-                oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
+                oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore"]),
                 oddt_models_dir=str(models_dir),
                 multiprocess=True,
             )
@@ -1433,7 +1276,7 @@ def test_run_oddt_individual_attribute_and_runtime_errors(monkeypatch, tmp_path,
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -1480,7 +1323,7 @@ def test_run_oddt_creates_output_dir_and_uses_default_family_matching(monkeypatc
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=[]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=[]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -1518,7 +1361,7 @@ def test_run_oddt_requested_plec_and_unknown_score_branches(monkeypatch, tmp_pat
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["plec", "unknown_score_family"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["plec", "unknown_score_family"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -1546,7 +1389,7 @@ def test_run_oddt_warns_when_missing_exact_model_initialization_fails(monkeypatc
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore_v999"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore_v999"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -1590,7 +1433,7 @@ def test_run_oddt_descriptor_patch_deep_branches(monkeypatch, tmp_path, ocoddt_h
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -1735,7 +1578,7 @@ def test_run_oddt_individual_fallback_merge_noext_and_empty_data_paths(monkeypat
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),
@@ -1806,7 +1649,7 @@ def test_run_oddt_merges_duplicate_ligand_rows_from_group_fetch(monkeypatch, tmp
         ocoddt_helpers,
         "get_config",
         lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="oddt_cli", scoring_functions=["rfscore"]),
+            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore"]),
             oddt_models_dir=str(models_dir),
             multiprocess=False,
         ),

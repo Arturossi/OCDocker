@@ -27,11 +27,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, cast
 
 import OCDocker.Error as ocerror
-import OCDocker.Ligand as ocl
-import OCDocker.Receptor as ocr
 import OCDocker.Toolbox.FilesFolders as ocff
 import OCDocker.Toolbox.Printing as ocprint
-import OCDocker.Toolbox.Running as ocrun
 
 from OCDocker.Config import get_config
 
@@ -57,54 +54,6 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 # Functions
 ###############################################################################
-## Private ##
-def __build_cmd(receptorPath: str, ligandPath: str, outputFile: str) -> Union[List[str], int]:
-    '''Builds the command to run ODDT.
-
-    Parameters
-    ----------
-    receptorPath : str
-        The path to the receptor file.
-    ligandPath : str
-        The path to the ligand file.
-    outputFile : str
-        The path to the output file.
-
-    Returns
-    -------
-    List[str] | int
-        The command to run ODDT or an error code (based on the Error.py code table).
-    '''
-
-    # Check if the output file is a csv
-    if not outputFile.endswith(".csv"):
-        return ocerror.Error.unsupported_extension("The output file must be a csv file.", level = ocerror.ReportLevel.ERROR)
-
-    # Extract ligand file format from extension
-    ligand_ext = os.path.splitext(ligandPath)[1]
-    if ligand_ext.startswith('.'):
-        ligand_format = ligand_ext[1:]  # Remove leading dot
-    else:
-        ligand_format = ligand_ext
-
-    config = get_config()
-
-    # Start building the command
-    # Use configured ODDT CLI program from Initialise
-    cmd = [config.oddt.executable, ligandPath, "-O", outputFile, "--receptor", receptorPath, "-i", ligand_format, "-n", "1"]
-
-    # Check if there are scoring functions to be used
-    if isinstance(config.oddt.scoring_functions, list) and len(config.oddt.scoring_functions) > 0:
-        # Add the scoring functions
-        for score in config.oddt.scoring_functions:
-            cmd.append("--score")
-            cmd.append(score)
-    else:
-        ocprint.print_error("No scoring functions were provided to ODDT. Please check your configuration file.")
-
-    return cmd
-
-
 def __read_receptor_with_retry(receptor_format: str, receptor_path: str, retries: int = 5, delay: float = 1.0) -> Tuple[Optional[object], Optional[Exception]]:
     '''Read a prepared receptor with retries to avoid transient empty-file reads.
 
@@ -263,8 +212,15 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         # Transform it into a list
         preparedLigandPath = [preparedLigandPath]
 
+    # ODDT's multiprocessing path provides no benefit for a single ligand and
+    # can deadlock/leave zombies in nested workflow execution contexts.
+    effective_n_cpu = n_cpu
+    if len(preparedLigandPath) <= 1 and (effective_n_cpu is None or int(effective_n_cpu) != 1):
+        effective_n_cpu = 1
+
     # Get configuration and requested scoring functions
     config = get_config()
+
     # Determine which scoring families should be loaded.
     # If specific model names are requested (e.g., rfscore_v2_pdbbind2016),
     # load only those exact models. Family-only requests (e.g., rfscore) load all.
@@ -273,9 +229,11 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
         for score in getattr(config.oddt, 'scoring_functions', [])
         if isinstance(score, str) and score.strip()
     ]
+
     family_only: set[str] = set()
     exact_requested: set[str] = set()
     sf_set: set[str] = set()
+
     if requested_scores:
         for score in requested_scores:
             if score.startswith('rfscore'):
@@ -303,10 +261,45 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     # Get the models (only files)
     models = [model for model in glob(f"{config.oddt_models_dir}/*.pickle") if os.path.isfile(model)]
 
+    def _is_exact_model_available(requested_name: str, available_stems: set[str]) -> bool:
+        '''Check if the exact model name is available in the available stems, with backward-compatible alias support for plecrf_pdbbind2016.
+        
+        For example, if requested_name is "plecrf_pdbbind2016", it will be considered available if any model stem starts with "plecrf_" and contains "pdbbind2016" (e.g., "plecrf_p5_l1_pdbbind2016_s65536"). This allows users to request the general plecrf_pdbbind2016 model without needing to specify the exact variant, while still supporting specific model requests.
+
+        Parameters
+        ----------
+        requested_name : str
+            The exact model name being requested (e.g., "rfscore_v2_pdbbind2016").
+        available_stems : set[str]
+            A set of available model stems (filenames without extension, in lower case).
+
+        Returns
+        -------
+        bool
+            True if the requested model is available, False otherwise.
+        '''
+        
+        if requested_name in available_stems:
+            return True
+
+        # Backward-compatible alias support:
+        # treat plecrf_pdbbind2016 as satisfied when any concrete plecrf model
+        # for that pdbbind version exists (e.g., plecrf_p5_l1_pdbbind2016_s65536).
+        if requested_name.startswith("plecrf_"):
+            _, _, suffix = requested_name.partition("_")
+            for stem in available_stems:
+                if not stem.startswith("plecrf_"):
+                    continue
+                if not suffix or suffix in stem:
+                    return True
+        return False
+
     # Attempt to generate missing exact models if requested
     if exact_requested:
         existing_stems = {os.path.splitext(os.path.basename(m))[0].lower() for m in models}
-        missing_exact = sorted([name for name in exact_requested if name not in existing_stems])
+        missing_exact = sorted(
+            [name for name in exact_requested if not _is_exact_model_available(name, existing_stems)]
+        )
         if missing_exact:
             if config.oddt_models_dir and os.path.isdir(config.oddt_models_dir):
                 try:
@@ -355,7 +348,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR)
 
     # Create the vs object
-    pipeline = vs(n_cpu=n_cpu, verbose=verbose, chunksize=chunksize)
+    pipeline = vs(n_cpu=effective_n_cpu, verbose=verbose, chunksize=chunksize)
 
     # Load the receptor - extract format using os.path.splitext for robustness
     receptor_ext = os.path.splitext(preparedReceptorPath)[1]
@@ -573,6 +566,14 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                 match = True
             else:
                 match = model_stem in exact_requested
+                if (not match) and model_family == "plec":
+                    for req in exact_requested:
+                        if not req.startswith("plecrf_"):
+                            continue
+                        _, _, suffix = req.partition("_")
+                        if not suffix or suffix in model_stem:
+                            match = True
+                            break
         else:
             match = any(sf in model_name for sf in sf_set)
 
@@ -598,18 +599,17 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
     all_datas = []
     failed_scoring_functions = []
 
-    # Check if multiprocess is enabled (via config or n_cpu > 1)
-    # If so, use threading backend to avoid loky nested process issues
-    use_threading_backend = False
+    # Decide whether the caller asked for parallel work.
+    # Keep this tied to requested n_cpu (not effective_n_cpu) so we still
+    # guard nested joblib/loky behavior even when single-ligand runs are
+    # coerced to n_cpu=1 internally for stability.
     try:
-        config = get_config()
-        use_threading_backend = (config.multiprocess or n_cpu > 1)
-    except (ImportError, AttributeError):
-        # Fallback: check n_cpu if config not available
-        use_threading_backend = (n_cpu > 1)
+        use_threading_backend = (n_cpu is not None) and (int(n_cpu) != 1)
+    except (TypeError, ValueError):
+        use_threading_backend = int(effective_n_cpu) != 1
 
-    # Use threading backend context manager if multiprocess is enabled
-    # This prevents loky from trying to spawn new processes in nested multiprocessing contexts
+    # Use threading backend context manager when parallel execution was requested.
+    # This prevents loky from trying to spawn new processes in nested multiprocessing contexts.
     if use_threading_backend:
         try:
             from joblib import parallel_backend
@@ -658,7 +658,7 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                 sf_name = model_sf_map.get(model, os.path.basename(model))
                 try:
                     # Create a new pipeline for this scoring function
-                    individual_pipeline = vs(n_cpu=n_cpu, verbose=verbose, chunksize=chunksize)
+                    individual_pipeline = vs(n_cpu=effective_n_cpu, verbose=verbose, chunksize=chunksize)
                     for ligand in preparedLigandPath:
                         # Extract format using os.path.splitext for robustness
                         ligand_ext = os.path.splitext(ligand)[1]
@@ -832,98 +832,3 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # Just return an ok code
     return ocerror.Error.ok()
-
-def run_oddt_from_cli(receptor: Union[ocr.Receptor, str], ligand: Union[ocl.Ligand, str], outputPath: str, overwrite: bool = False, logFile: str = "", cleanModels: bool = False) -> Union[int, Tuple[int, str]]:
-    '''Run ODDT using the oddt_cli command. UNSTABLE FUNCTION DO NOT USE.
-
-    Parameters
-    ----------
-    receptor : ocr.Receptor | str
-        The receptor to be used in the docking.
-    ligand : ocl.Ligand | str
-        The ligand to be used in the docking.
-    outputPath : str
-        The path where the output file will be saved.
-    overwrite : bool, optional
-        If True, the output file will be overwritten. The default is False.
-    logFile : str, optional
-        The path to the log file. The default is "" (no log file).
-    cleanModels : bool, optional
-        If True, the models will be deleted after the rescoring. The default is False. If set to False, this can speed up the rescoring process for multiple ligands.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table).
-    '''
-
-    # Check if the output dir exists
-    if not os.path.isdir(outputPath):
-        return ocerror.Error.dir_not_exist(f"The output directory '{outputPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
-
-    # Check if the receptor is an ocr.Receptor object
-    if isinstance(receptor, ocr.Receptor):
-        # Get the receptor path
-        receptorPath = receptor.path
-    # Check if the receptor is a string
-    elif isinstance(receptor, str):
-        # Get the receptor path
-        receptorPath = receptor
-    else:
-        return ocerror.Error.wrong_type(f"The receptor must be a string or an ocr.Receptor object. The type {type(receptor)} was given.", level = ocerror.ReportLevel.ERROR)
-
-    # Check if the ligand is an ocl.Ligand object
-    if isinstance(ligand, ocl.Ligand):
-        # Get the ligand path
-        ligandPath = ligand.path
-        # Output file name
-        outputFile = f"{outputPath}/{ligand.name}.csv"
-    # Check if the ligand is a string
-    elif isinstance(ligand, str):
-        # Get the ligand path
-        ligandPath = ligand
-        # Get the ligand name from the path
-        ligandName = ".".join(os.path.basename(ligandPath).split(".")[:-1])
-        # Output file name
-        outputFile = f"{outputPath}/{ligandName}.csv"
-    else:
-        return ocerror.Error.wrong_type(f"The ligand must be a string or an ocl.Ligand object. The type {type(ligand)} was given.", level = ocerror.ReportLevel.ERROR)
-
-    # Check if the output file exists
-    if os.path.isfile(outputFile) and not overwrite:
-        return ocerror.Error.file_exists(f"The output file '{outputFile}' already exists. Please use the overwrite option if you want to overwrite it.", level = ocerror.ReportLevel.ERROR)
-
-    # Check if the receptor exists
-    if not os.path.isfile(receptorPath):
-        return ocerror.Error.file_not_exist(f"The receptor file '{receptorPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
-
-    # Check if the ligand exists
-    if not os.path.isfile(ligandPath):
-        return ocerror.Error.file_not_exist(f"The ligand file '{ligandPath}' does not exist.", level = ocerror.ReportLevel.ERROR)
-
-    # Create the output file path
-
-    # Get the command
-    cmd = __build_cmd(receptorPath, ligandPath, outputFile)
-
-    # If the command is an int, it is an error code
-    if isinstance(cmd, int):
-        return cmd
-
-    # Run the command
-    config = get_config()
-    exitCode = ocrun.run(cmd, logFile = logFile, cwd = config.oddt_models_dir)
-    if isinstance(exitCode, tuple):
-        exitCode = exitCode[0]
-
-    # If the models should be deleted
-    if cleanModels:
-        # Get the models
-        models = get_models(outputPath)
-
-        # For each model
-        for model in models:
-            # Delete it
-            ocff.safe_remove_file(model)
-
-    return exitCode

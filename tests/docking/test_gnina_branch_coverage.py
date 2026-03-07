@@ -107,6 +107,8 @@ def test_gnina_helper_functions_and_command_builder(monkeypatch):
     cfg.gnina.seed = "13"
     cfg.gnina.num_modes = "9"
     monkeypatch.setattr(ocgnina, "get_config", lambda: cfg)
+    for env_name in ocgnina._GNINA_CPU_ENV_VARS:
+        monkeypatch.delenv(env_name, raising=False)
 
     assert ocgnina._as_text(None) == ""
     assert ocgnina._is_true("YES") is True
@@ -129,12 +131,21 @@ def test_gnina_helper_functions_and_command_builder(monkeypatch):
     assert "--autobox_ligand" in built
     assert "--autobox_add" in built
     assert "--autobox_extend" not in built
+    assert "--cnn" not in built
+    assert "--cnn_scoring" in built
     assert "--device" not in built
-    assert "--cpu" not in built
+    assert "--cpu" in built
+    cpu_index = built.index("--cpu")
+    assert built[cpu_index + 1] == "1"
 
     cfg.gnina.stripH = "keep"
     built_custom_bool = ocgnina._build_gnina_cmd("conf.txt", "ligand.pdbqt", "out.pdbqt", "run.log")
     assert "--stripH" in built_custom_bool and "keep" in built_custom_bool
+
+    monkeypatch.setenv("SNAKEMAKE_THREADS", "3")
+    built_snk = ocgnina._build_gnina_cmd("conf.txt", "ligand.pdbqt", "out.pdbqt", "run.log")
+    cpu_index_snk = built_snk.index("--cpu")
+    assert built_snk[cpu_index_snk + 1] == "3"
 
 
 @pytest.mark.order(412)
@@ -608,6 +619,21 @@ def test_gnina_run_rescore_split_cleanup_cnn_and_skip_existing(monkeypatch, tmp_
     assert "--cnn_scoring" in seen_cmds[0]
     assert "--device" in seen_cmds[0]
     assert removed == []
+
+    seen_cmds.clear()
+    ocgnina.run_rescore(
+        confFile=str(conf_file),
+        ligands=str(ligand),
+        outPath=str(out_path),
+        scoring_function="default",
+        splitLigand=False,
+        overwrite=True,
+        cnn_model="default",
+        disable_cnn=False,
+    )
+    assert seen_cmds
+    assert "--cnn" not in seen_cmds[0]
+    assert "--cnn_scoring" in seen_cmds[0]
 
 
 @pytest.mark.order(423)

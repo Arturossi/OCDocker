@@ -325,6 +325,47 @@ def generate_mask(column_names : Union[list[str], pd.Index], score_columns : lis
     return results
 
 
+def _get_reference_column_order_from_cfg_file(config_file: Optional[str] = None) -> Optional[list[str]]:
+    '''Read ``reference_column_order`` directly from an OCDocker config file.
+
+    This is a lightweight fallback used when config bootstrap/get_config is not
+    available (for example, when DB bootstrap fails but the local config file
+    exists).
+
+    Parameters
+    ----------
+    config_file : str | None, optional
+        Path to config file. If None, uses ``OCDOCKER_CONFIG`` env var or
+        ``OCDocker.cfg``.
+
+    Returns
+    -------
+    list[str] | None
+        Parsed reference column order, or None if not found/invalid.
+    '''
+
+    cfg_path = config_file or os.getenv("OCDOCKER_CONFIG") or "OCDocker.cfg"
+    if not os.path.isfile(cfg_path):
+        return None
+
+    try:
+        with open(cfg_path, "r", encoding="utf-8") as handle:
+            for raw_line in handle:
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if line.startswith("reference_column_order"):
+                    parts = raw_line.split("=", 1)
+                    if len(parts) != 2:
+                        return None
+                    cols = [c.strip() for c in parts[1].strip().split(",") if c.strip()]
+                    return cols if cols else None
+    except (OSError, UnicodeDecodeError):
+        return None
+
+    return None
+
+
 def get_column_order(data: Optional[Union[str, pd.DataFrame]] = None) -> list[str]:
     '''Get the column order from a data source (file path or DataFrame) or from config.
 
@@ -452,7 +493,11 @@ def load_data(
         use_PCA : bool = False,
         pca_type : Union[str, int] = 95,
         use_pdb_train : bool = True,
-        random_seed : int = 42
+        random_seed : int = 42,
+        invert_conditionally : bool = True,
+        normalize : bool = True,
+        scaler : str = "standard",
+        enforce_reference_order : bool = False
     ) -> dict:
     ''' Process the data for training and testing the models.
 
@@ -480,6 +525,17 @@ def load_data(
         If True, the PDBbind data is used for training. The default is True.
     random_seed: int, optional
         The random seed for splitting the data. The default is 42.
+    invert_conditionally: bool, optional
+        If True, invert score-like columns conditionally during preprocessing.
+        The default is True.
+    normalize: bool, optional
+        If True, normalize data during preprocessing. The default is True.
+    scaler: str, optional
+        Scaler used when normalize=True. Options are "standard" and "minmax".
+        The default is "standard".
+    enforce_reference_order: bool, optional
+        If True, reorder columns using ``reference_column_order`` from config
+        before split, ensuring stable feature/mask alignment. The default is False.
 
     Returns
     -------
@@ -505,8 +561,30 @@ def load_data(
 
     ############################################################################################################
 
-    # Load and preprocess data returning the DataFrame and the score columns
-    dudez_data, pdbbind_data, score_columns = preprocess_df(df_path, invert_conditionally = True)
+    # Load and preprocess data returning DataFrames/score columns and, when
+    # available, the fitted scaler (for consistent inference preprocessing).
+    fitted_scaler: Optional[Union[StandardScaler, MinMaxScaler]] = None
+    if normalize:
+        preprocessed = preprocess_df(
+            df_path,
+            scaler = scaler,
+            invert_conditionally = invert_conditionally,
+            normalize = normalize,
+            return_scaler = True
+        )
+        # Keep backward compatibility with tests/mocks that may still return
+        # only 3 values.
+        if len(preprocessed) == 4:
+            dudez_data, pdbbind_data, score_columns, fitted_scaler = preprocessed
+        else:
+            dudez_data, pdbbind_data, score_columns = preprocessed
+    else:
+        dudez_data, pdbbind_data, score_columns = preprocess_df(
+            df_path,
+            scaler = scaler,
+            invert_conditionally = invert_conditionally,
+            normalize = normalize
+        )
 
     # Filter the columns to keep
     if no_scores:
@@ -544,6 +622,39 @@ def load_data(
 
         # Set the study name
         study_name = f"PCA{pca_type}_{study_name}"
+
+    # Ensure feature order matches the configured training order when requested.
+    # This is critical for mask alignment at train/inference time.
+    if enforce_reference_order:
+        reference_cols = _get_reference_column_order_from_cfg_file()
+        if reference_cols:
+            reference_df = pd.DataFrame(columns=reference_cols)
+            dudez_data = reorder_columns_to_match_data_order(
+                dudez_data,
+                data_source = reference_df,
+                keep_extra_columns = True,
+                fill_missing_columns = False
+            )
+            pdbbind_data = reorder_columns_to_match_data_order(
+                pdbbind_data,
+                data_source = reference_df,
+                keep_extra_columns = True,
+                fill_missing_columns = False
+            )
+        else:
+            # Fallback to runtime config object (requires bootstrap/get_config).
+            dudez_data = reorder_columns_to_match_data_order(
+                dudez_data,
+                data_source = None,
+                keep_extra_columns = True,
+                fill_missing_columns = False
+            )
+            pdbbind_data = reorder_columns_to_match_data_order(
+                pdbbind_data,
+                data_source = None,
+                keep_extra_columns = True,
+                fill_missing_columns = False
+            )
 
     if use_pdb_train:
         # Split the PDBbind data into training and testing sets
@@ -604,7 +715,8 @@ def load_data(
         "y_train": y_train,
         "y_test": y_test,
         "X_val": X_val,
-        "y_val": y_val
+        "y_val": y_val,
+        "scaler": fitted_scaler
 
 
     }

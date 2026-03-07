@@ -1032,16 +1032,21 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         # Get the structure path from structurePath
         structureDirName = os.path.dirname(structurePath)
 
-        # Create the dssp command
-        config = get_config()
-        dssp_command = [dssp_exe, "-i", structurePath, "-o", f"{structureDirName}/{structureName}.dssp"]
-        # Run the command
-        run_result = ocrun.run(dssp_command)
-        if isinstance(run_result, tuple):
-            exit_code, _stderr = run_result
-        else:
-            exit_code = run_result
         dssp_path = f"{structureDirName}/{structureName}.dssp"
+        dssp_commands = [
+            [dssp_exe, "--output-format=dssp", structurePath, dssp_path],
+            [dssp_exe, structurePath, dssp_path],
+            [dssp_exe, "-i", structurePath, "-o", dssp_path],
+        ]
+        exit_code = 1
+        for dssp_command in dssp_commands:
+            run_result = ocrun.run(dssp_command)
+            if isinstance(run_result, tuple):
+                exit_code, _stderr = run_result
+            else:
+                exit_code = run_result
+            if exit_code == 0 and os.path.isfile(dssp_path):
+                break
         if exit_code != 0 or not os.path.isfile(dssp_path):
             ocprint.print_error(f"DSSP command failed for structure '{structurePath}'.")
             return None

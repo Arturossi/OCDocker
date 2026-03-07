@@ -1151,6 +1151,7 @@ def load_mol(
         # Clone to avoid mutating the caller's molecule
         mol = Chem.Mol(molecule)
         needs_3d = mol.GetNumConformers() == 0
+
         if not needs_3d:
             try:
                 needs_3d = not mol.GetConformer().Is3D()
@@ -1164,12 +1165,14 @@ def load_mol(
                 max_attempts=embed_max_attempts,
                 etkdg_max_attempts=etkdg_max_attempts
             )
+
             if maybe_mol is None:
                 _ = ocerror.Error.parse_molecule(
                     "The provided RDKit molecule could not be embedded in 3D.",
-                    level = ocerror.ReportLevel.WARNING
+                    level = ocerror.ReportLevel.ERROR
                 )
                 return "", None
+            
             mol = maybe_mol
             if not _optimize_mol(mol):
                 _ = ocerror.Error.parse_molecule(
@@ -1280,19 +1283,28 @@ def load_mol(
                     )
             else:
                 # The molecule could not be loaded
-                _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed from smiles.", level = ocerror.ReportLevel.WARNING)
+                _ = ocerror.Error.parse_molecule(
+                    f"The molecule '{molecule}' could not be parsed from smiles.", 
+                    level = ocerror.ReportLevel.WARNING
+                )
                 return "", None
 
         # Handling of multiple molecules in a .sdf file
         if isinstance(mol, Chem.rdmolfiles.SDMolSupplier):
             mol_list = list(mol)
             if len(mol_list) > 1:
-                print("Warning: The .sdf file contains more than one molecule. Only the first will be processed.")
+                _ = ocerror.Error.parse_molecule(
+                    "Warning: The .sdf file contains more than one molecule. Only the first will be processed.",
+                    level = ocerror.ReportLevel.WARNING
+                )
             mol = mol_list[0] if mol_list else None
 
         # Check if the molecule was loaded
         if mol is None:
-            _ = ocerror.Error.parse_molecule(f"The molecule '{molecule}' could not be parsed.", level = ocerror.ReportLevel.WARNING)
+            _ = ocerror.Error.parse_molecule(
+                f"The molecule '{molecule}' could not be parsed.", 
+                level = ocerror.ReportLevel.WARNING
+            )
             return "", None
 
         needs_3d = mol.GetNumConformers() == 0

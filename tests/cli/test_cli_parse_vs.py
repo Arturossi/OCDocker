@@ -59,7 +59,7 @@ def test_cli_vs_parse_smoke():
         '--skip-rescore', '--skip-split',
         '--timeout', '60',
         '--store-db',
-        '--overwrite', '--no-stdout-log',
+        '--overwrite', '--no-stdout-log', '--no-splash',
     ]
     ns = parser.parse_args(argv)
     # basic assertions on parsed args
@@ -69,7 +69,7 @@ def test_cli_vs_parse_smoke():
     assert ns.outdir == 'out'
     assert ns.skip_rescore and ns.skip_split
     assert ns.timeout == 60 and ns.store_db
-    assert ns.overwrite and ns.no_stdout_log
+    assert ns.overwrite and ns.no_stdout_log and ns.no_splash
 
 
 @pytest.mark.order(25)

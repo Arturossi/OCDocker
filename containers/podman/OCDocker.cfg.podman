@@ -81,7 +81,6 @@ plants_scoring_functions = chemplp,plp,plp95
 plants_rescoring_mode = simplex
 
 ################## ODDT PARAMETERS ##################
-oddt = /opt/conda/envs/ocdocker/bin/oddt_cli
 oddt_seed = 42
 oddt_chunk_size = 100
 oddt_models_dir =

@@ -13,7 +13,7 @@ import OCDocker.Toolbox.Printing as ocprint
 # Imports
 ###############################################################################
 import inspect
-from typing import Dict
+from typing import Any, Dict
 from datetime import datetime
 
 import OCDocker.Error as ocerror
@@ -45,17 +45,24 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Local fallback colors (no ANSI by default)
 clrs: Dict[str, str] = {"r":"","g":"","y":"","b":"","p":"","c":"","n":""}
 
-def _should_print() -> bool:
+def _should_print(log: Any = None) -> bool:
     '''Check whether direct prints should be emitted.
+
+    Parameters
+    ----------
+    log : logging.Logger, optional
+        Logger to check for handlers. If None, a logger will be obtained (default None).
 
     Returns
     -------
     bool
-        False when Rich logging is enabled, True otherwise.
+        True only when no logging handlers are available.
     '''
 
     try:
-        return not oclogging.is_rich_enabled()
+        if log is None:
+            log = oclogging.get_logger("printing")
+        return not log.hasHandlers()
     except Exception:
         return True
 
@@ -110,7 +117,7 @@ def print_error(message: str, force: bool = False) -> None:
         else:
             msg = f"ERROR: {message}"
         log.error(msg)
-        if _should_print():
+        if _should_print(log):
             print(msg)
     return
 
@@ -154,7 +161,7 @@ def print_info(message: str, force: bool = False) -> None:
         else:
             msg = f"INFO: {message}"
         log.info(msg)
-        if _should_print():
+        if _should_print(log):
             print(msg)
     return
 
@@ -281,7 +288,7 @@ def print_success(message: str, force: bool = False) -> None:
         else:
             msg = f"SUCCESS: {message}"
         log.info(msg)
-        if _should_print():
+        if _should_print(log):
             print(msg)
     return
 
@@ -331,7 +338,7 @@ def print_warning(message: str, force: bool = False) -> None:
             # For print, add "WARNING:" prefix
             print_msg = f"WARNING: {message}"
         log.warning(log_msg)
-        if _should_print():
+        if _should_print(log):
             print(print_msg)
     return
 
@@ -365,10 +372,11 @@ def printv(message: str) -> None:
     '''
 
     if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-        # log + plain print for test expectations
+        # Keep direct print only as fallback when logging handlers are unavailable.
         oclogging.configure(level=ocerror.Error.get_output_level())
-        oclogging.get_logger("printing").debug(message)
-        if _should_print():
+        log = oclogging.get_logger("printing")
+        log.debug(message)
+        if _should_print(log):
             print(message)
     return
 
