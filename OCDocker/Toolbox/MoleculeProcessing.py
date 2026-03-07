@@ -21,7 +21,8 @@ from spyrmsd import io, rmsd
 try:
     from spyrmsd.exceptions import NonIsomorphicGraphs
 except Exception:
-    NonIsomorphicGraphs = ValueError  # type: ignore[assignment]
+    class NonIsomorphicGraphs(ValueError):
+        """Fallback when spyrmsd.exceptions.NonIsomorphicGraphs is unavailable."""
 from threading import Lock
 from typing import Dict, List, Set, Tuple, Union, cast
 
