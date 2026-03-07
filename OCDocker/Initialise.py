@@ -782,7 +782,8 @@ def bootstrap(ns: Optional[argparse.Namespace] = None, init_db: bool = True) -> 
         raise SystemExit(2)
 
     # Splash
-    print_description()
+    if not bool(getattr(ns, 'no_splash', False)):
+        print_description()
 
     # Create and set Config object first
     from OCDocker.Config import OCDockerConfig, set_config
@@ -1790,6 +1791,12 @@ def get_argument_parsing() -> argparse.ArgumentParser:
                         action="store_true",
                         default=False,
                         help="Defines if OCDocker should overwrite existing files")
+
+    parser.add_argument("--no-splash",
+                        dest="no_splash",
+                        action="store_true",
+                        default=False,
+                        help="Disable splash banner on startup")
 
     # Return the parser
     return parser

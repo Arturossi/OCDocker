@@ -61,7 +61,7 @@ def test_preparse_global_args_reads_scattered_flags(tmp_path):
     cfg = tmp_path / "OCDocker.cfg"
     argv = [
         "vs", "--engine", "vina", "--output-level", "4",
-        "--conf", str(cfg), "--overwrite", "--no-stdout-log",
+        "--conf", str(cfg), "--overwrite", "--no-stdout-log", "--no-splash",
         "--multiprocess", "-u",
     ]
     ns = _preparse_global_args(argv)
@@ -69,6 +69,7 @@ def test_preparse_global_args_reads_scattered_flags(tmp_path):
     assert ns.config_file == str(cfg)
     assert ns.overwrite is True
     assert ns.no_stdout_log is True
+    assert ns.no_splash is True
     assert ns.multiprocess is True
     assert ns.update is True
 

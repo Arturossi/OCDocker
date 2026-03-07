@@ -19,7 +19,7 @@ Main commands
             pick the representative pose (medoid of the largest cluster), rescore and export results.
 
 Global options
-- --conf, --multiprocess, --update-databases, --output-level, --overwrite:
+- --conf, --multiprocess, --update-databases, --output-level, --overwrite, --no-splash:
   compatible with OCDocker.Initialise and used to bootstrap the environment.
 
 Modules
@@ -618,6 +618,7 @@ def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
         overwrite=False,
         log_file=None,
         no_stdout_log=False,
+        no_splash=False,
     )
 
     i = 0
@@ -661,6 +662,10 @@ def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
             continue
         if tok == "--no-stdout-log":
             ns.no_stdout_log = True
+            i += 1
+            continue
+        if tok == "--no-splash":
+            ns.no_splash = True
             i += 1
             continue
         # skip token
@@ -1094,6 +1099,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Disable logging to stdout. Only log to file if --log-file is specified. Useful for cleaner console output."
     )
+    parser.add_argument(
+        "--no-splash",
+        dest="no_splash",
+        action="store_true",
+        default=False,
+        help="Disable splash banner on startup."
+    )
 
     # Parent parser to allow repeating global options after subcommand
     parent = argparse.ArgumentParser(add_help=False)
@@ -1105,6 +1117,7 @@ def build_parser() -> argparse.ArgumentParser:
     parent.add_argument("--overwrite", dest="overwrite", action="store_true", default=False, help="Allow overwriting existing output files")
     parent.add_argument("--log-file", dest="log_file", type=str, default=None, help="Write log messages to this file")
     parent.add_argument("--no-stdout-log", dest="no_stdout_log", action="store_true", default=False, help="Disable logging to stdout")
+    parent.add_argument("--no-splash", dest="no_splash", action="store_true", default=False, help="Disable splash banner on startup")
 
     sub = parser.add_subparsers(dest="command", required=True)
 

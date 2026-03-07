@@ -479,8 +479,6 @@ def get_rmsd_matrix(molecules: List[str]) -> Dict[str, Dict[str, float]]:
         if "_split_" in base:
             idx = base.rsplit("_split_", 1)[1].split(".", 1)[0]
             return f"{engine}{idx}"
-        if len(base) > 28:
-            return f"{base[:25]}..."
         return base
 
     # Compute only upper triangle and mirror to keep the matrix symmetric.
