@@ -18,12 +18,10 @@ import tempfile
 from functools import lru_cache
 
 from spyrmsd import io, rmsd
-from typing import Type
 try:
-    from spyrmsd.exceptions import NonIsomorphicGraphs as _ImportedNonIsomorphicGraphs
+    from spyrmsd.exceptions import NonIsomorphicGraphs
 except Exception:
-    class _ImportedNonIsomorphicGraphs(ValueError):
-        """Fallback when spyrmsd.exceptions.NonIsomorphicGraphs is unavailable."""
+    NonIsomorphicGraphs = ValueError
 from threading import Lock
 from typing import Dict, List, Set, Tuple, Union, cast
 
@@ -34,8 +32,6 @@ import OCDocker.Toolbox.Printing as ocprint
 import OCDocker.Toolbox.Running as ocrun
 
 from OCDocker.Config import get_config
-
-NonIsomorphicGraphs: Type[Exception] = _ImportedNonIsomorphicGraphs
 
 # License
 ###############################################################################
