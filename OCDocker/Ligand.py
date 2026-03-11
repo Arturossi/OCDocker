@@ -1018,16 +1018,19 @@ def _normalize_smiles_with_openbabel(smiles: str) -> Optional[str]:
     if not ob_conversion.ReadString(ob_mol, smiles):
         return None
 
-    normalized = ob_conversion.WriteString(ob_mol)
-    if not normalized:
+    normalized_raw = ob_conversion.WriteString(ob_mol)
+    if not normalized_raw:
         return None
 
-    normalized = normalized.strip()
+    normalized = cast(str, normalized_raw).strip()
     if not normalized:
         return None
 
     # Open Babel may append title/comment tokens after the SMILES.
-    return normalized.split()[0]
+    tokens = normalized.split()
+    if not tokens:
+        return None
+    return tokens[0]
 
 
 def _optimize_mol(mol: Chem.rdchem.Mol) -> bool:
