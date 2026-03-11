@@ -199,6 +199,40 @@ def test_ligand_init_sanitize_false(tmp_path):
         else:
             raise
 
+@pytest.mark.order(27)
+def test_ligand_smiles_normalization_default_off(tmp_path):
+    '''Invalid aromatic SMILES should still fail when normalization is disabled.'''
+
+    bad_smiles = (
+        "[H][c]1[n][c]2[c]([H])[c]([H])[c]([H])[c]([H])n2[c](Cl)[c]1C(=O)OC([H])([H])C([H])([H])[H]"
+    )
+    mol_file = tmp_path / "bad_default.smi"
+    mol_file.write_text(f"{bad_smiles}\n")
+
+    with pytest.raises(ValueError, match="could not be loaded"):
+        ocl.Ligand(molecule=str(mol_file), name="bad_default", sanitize=True)
+
+
+@pytest.mark.order(28)
+def test_ligand_smiles_normalization_with_openbabel(tmp_path):
+    '''Open Babel normalization should allow loading problematic SMILES when enabled.'''
+
+    bad_smiles = (
+        "[H][c]1[n][c]2[c]([H])[c]([H])[c]([H])[c]([H])n2[c](Cl)[c]1C(=O)OC([H])([H])C([H])([H])[H]"
+    )
+    mol_file = tmp_path / "bad_normalized.smi"
+    mol_file.write_text(f"{bad_smiles}\n")
+
+    ligand = ocl.Ligand(
+        molecule=str(mol_file),
+        name="bad_normalized",
+        sanitize=True,
+        normalize_smiles_with_openbabel=True,
+    )
+    assert ligand is not None
+    assert ligand.RadiusOfGyration is not None
+    assert ligand.normalize_smiles_with_openbabel is True
+
 @pytest.mark.order(13)
 def test_ligand_init_with_rdkit_mol(tmp_path):
     '''Test Ligand initialization with RDKit molecule object.'''

@@ -84,6 +84,9 @@ class Ligand:
         Name identifier for the ligand.
     sanitize : bool, optional
         Whether to sanitize the molecule after loading, by default True.
+    normalize_smiles_with_openbabel : bool, optional
+        If True, normalize problematic SMILES strings with Open Babel
+        before retrying RDKit parsing, by default False.
     from_json_descriptors : str, optional
         Path to JSON file containing pre-computed descriptors, by default "".
     embed_max_attempts : int, optional
@@ -98,6 +101,7 @@ class Ligand:
     box_path: str
     name: str
     sanitize: bool
+    normalize_smiles_with_openbabel: bool
     from_json_descriptors: str
 
     RadiusOfGyration: Optional[float]
@@ -110,6 +114,7 @@ class Ligand:
             molecule: Union[str, rdkit.Chem.rdchem.Mol],
             name: str,
             sanitize: bool = True,
+            normalize_smiles_with_openbabel: bool = False,
             from_json_descriptors: str = "",
             embed_max_attempts: int = 10,
             etkdg_max_attempts: int = 1000
@@ -124,6 +129,9 @@ class Ligand:
             The name of the molecule.
         sanitize : bool
             If True, the molecule will be sanitized.
+        normalize_smiles_with_openbabel : bool
+            If True, normalize problematic SMILES strings with Open Babel
+            before retrying RDKit parsing.
         from_json_descriptors : str
             If a path to a json file is provided, the descriptors will be read from the file instead of being computed.
         embed_max_attempts : int, optional
@@ -141,6 +149,7 @@ class Ligand:
         path, mol = load_mol(
             molecule,
             sanitize,
+            normalize_smiles_with_openbabel=normalize_smiles_with_openbabel,
             embed_max_attempts=embed_max_attempts,
             etkdg_max_attempts=etkdg_max_attempts
         )
@@ -168,6 +177,7 @@ class Ligand:
 
         # Set the sanitize attribute
         self.sanitize = sanitize
+        self.normalize_smiles_with_openbabel = normalize_smiles_with_openbabel
 
         # If user pass a json
         if from_json_descriptors:
@@ -212,7 +222,15 @@ class Ligand:
             A string representation of the Ligand object.
         '''
 
-        return f"Ligand(molecule={self.molecule}, name={self.name}, sanitize={self.sanitize}, from_json_descriptors={'True' if self.from_json_descriptors else 'False'})"
+        return (
+            "Ligand("
+            f"molecule={self.molecule}, "
+            f"name={self.name}, "
+            f"sanitize={self.sanitize}, "
+            f"normalize_smiles_with_openbabel={self.normalize_smiles_with_openbabel}, "
+            f"from_json_descriptors={'True' if self.from_json_descriptors else 'False'}"
+            ")"
+        )
 
 
     def __safe_to_dict(self) -> Dict[str, Union[str, int, float]]:
@@ -976,6 +994,42 @@ def _openbabel_3d_from_smiles(smiles: str, sanitize: bool) -> Optional[Chem.rdch
     return Chem.MolFromMol2Block(mol2_block, sanitize=sanitize, removeHs=False)
 
 
+def _normalize_smiles_with_openbabel(smiles: str) -> Optional[str]:
+    '''Normalize a SMILES string using Open Babel canonical output.
+
+    Parameters
+    ----------
+    smiles : str
+        Raw SMILES string.
+
+    Returns
+    -------
+    str | None
+        Canonicalized SMILES if conversion succeeds, otherwise None.
+    '''
+
+    ob_conversion = openbabel.OBConversion()
+    if not ob_conversion.SetInFormat("smi"):
+        return None
+    if not ob_conversion.SetOutFormat("can"):
+        return None
+
+    ob_mol = openbabel.OBMol()
+    if not ob_conversion.ReadString(ob_mol, smiles):
+        return None
+
+    normalized = ob_conversion.WriteString(ob_mol)
+    if not normalized:
+        return None
+
+    normalized = normalized.strip()
+    if not normalized:
+        return None
+
+    # Open Babel may append title/comment tokens after the SMILES.
+    return normalized.split()[0]
+
+
 def _optimize_mol(mol: Chem.rdchem.Mol) -> bool:
     '''Optimize a molecule geometry using MMFF (preferred) or UFF.
 
@@ -1122,6 +1176,7 @@ def get_smiles(molecule: rdkit.Chem.rdchem.Mol) -> Union[str, int]:
 def load_mol(
         molecule: Union[str, Chem.rdchem.Mol],
         sanitize: bool = True,
+        normalize_smiles_with_openbabel: bool = False,
         embed_max_attempts: int = 10,
         etkdg_max_attempts: int = 1000
     ) -> Tuple[str, Optional[Chem.rdchem.Mol]]:
@@ -1133,6 +1188,9 @@ def load_mol(
         The molecule path or the Mol object.
     sanitize : bool
         Whether to sanitize the molecule.
+    normalize_smiles_with_openbabel : bool
+        If True, normalize problematic SMILES strings with Open Babel
+        before retrying RDKit parsing.
     embed_max_attempts : int, optional
         Maximum number of RDKit embedding attempts (outer loop), by default 10.
     etkdg_max_attempts : int, optional
@@ -1231,9 +1289,21 @@ def load_mol(
                     level = ocerror.ReportLevel.WARNING
                 )
             smiles = smiles_lines[0].split()[0]
+            smiles_for_load = smiles
 
             # Load the molecule
-            mol = Chem.MolFromSmiles(smiles, sanitize = sanitize)
+            mol = Chem.MolFromSmiles(smiles_for_load, sanitize = sanitize)
+            if mol is None and normalize_smiles_with_openbabel:
+                normalized_smiles = _normalize_smiles_with_openbabel(smiles_for_load)
+                if normalized_smiles:
+                    if normalized_smiles != smiles_for_load:
+                        _ = ocerror.Error.parse_molecule(
+                            f"Normalized SMILES from '{smiles_for_load}' to '{normalized_smiles}' "
+                            "using Open Babel before RDKit parsing.",
+                            level = ocerror.ReportLevel.WARNING
+                        )
+                    smiles_for_load = normalized_smiles
+                    mol = Chem.MolFromSmiles(smiles_for_load, sanitize = sanitize)
 
             # If the molecule was loaded
             if mol:
@@ -1244,6 +1314,12 @@ def load_mol(
                 mol.SetProp("_Name", name)
 
                 # Remove the salts
+                if not sanitize:
+                    try:
+                        # StripMol requires implicit valence information.
+                        mol.UpdatePropertyCache(strict=False)
+                    except Exception:
+                        pass
                 remover = SaltRemover()
                 mol = remover.StripMol(mol)
 
@@ -1253,7 +1329,7 @@ def load_mol(
                 maybe_mol = _ensure_3d_conformer(
                     mol,
                     sanitize=sanitize,
-                    smiles_source=smiles,
+                    smiles_source=smiles_for_load,
                     add_hs=False,
                     max_attempts=embed_max_attempts,
                     etkdg_max_attempts=etkdg_max_attempts
