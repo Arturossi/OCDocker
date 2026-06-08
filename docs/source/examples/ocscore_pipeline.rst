@@ -3,29 +3,12 @@ OCScore Pipeline Examples
 
 These examples demonstrate how to train and use OCScore models for consensus scoring.
 
-Training Models from Database
-------------------------------
-
-Example of training machine learning models using data from the OCDocker database:
-
-.. literalinclude:: ../../../examples/11_python_api_train_model_from_db.py
-   :language: python
-   :caption: Training model from database
-
-This script demonstrates:
-
-* Loading data from the OCDocker database
-* Finding best hyperparameters across multiple Optuna studies
-* Training DNN or XGBoost models
-* Saving trained models and masks
-* Using the full preprocessing pipeline
-
 Complete OCScore Pipeline
 --------------------------
 
 Complete end-to-end pipeline to obtain OCScore results from scratch:
 
-.. literalinclude:: ../../../examples/12_python_api_complete_ocscore_pipeline.py
+.. literalinclude:: ../../../examples/11_python_api_complete_ocscore_pipeline.py
    :language: python
    :caption: Complete OCScore pipeline
 
@@ -45,7 +28,7 @@ Inference from CSV
 
 Example of OCScore inference loading features directly from a CSV file:
 
-.. literalinclude:: ../../../examples/15_python_api_inference_from_csv.py
+.. literalinclude:: ../../../examples/13_python_api_inference_from_csv.py
    :language: python
    :caption: OCScore inference from CSV
 
@@ -61,11 +44,24 @@ Example command:
 
 .. code-block:: bash
 
-   python examples/15_python_api_inference_from_csv.py \
+   python examples/13_python_api_inference_from_csv.py \
        --csv-path /path/to/features.csv \
        --model-name OCScore \
        --config-path /path/to/OCDocker.cfg \
        --output-csv /path/to/scored.csv
+
+Staged pipeline CLI
+-------------------
+
+Examples 14–16 are also available as ``ocdocker ocscore`` subcommands (requires ``pip install "ocdocker[ml]"``):
+
+.. code-block:: bash
+
+   ocdocker ocscore reduce --pdbbind-archive ... --dudez-archive ... --output-dir ...
+   ocdocker ocscore train --protocol development --raw-input-dir ... --output-dir ...
+   ocdocker ocscore score --export-dir ... --raw-archive ... --output-csv ...
+
+See :doc:`../usage` for the full command list.
 
 Configuration
 -------------

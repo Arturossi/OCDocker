@@ -14,13 +14,14 @@ CLI overview
 Commands
 --------
 
-- Optional feature installs:
+- Optional dependencies: see :doc:`optional_dependencies` for the install cheat
+  sheet and full extra reference. Minimal commands:
 
   .. code-block:: bash
 
-     pip install "ocdocker[docking]"      # required for docking commands
-     pip install "ocdocker[db]"           # required for --store-db
-     pip install "ocdocker[ml]"           # required for ML workflows (PyTorch/XGBoost/Optuna)
+     pip install "ocdocker[docking]"    # vs / pipeline
+     pip install "ocdocker[db]"         # --store-db
+     pip install "ocdocker[ml]"         # OCScore ML
 
 - vs: Dock a single receptor/ligand/box with one engine (vina/smina/plants)
 
@@ -47,17 +48,61 @@ Commands
        --timeout 900 \\
        --store-db
 
-- shap: Delegate to OCScore SHAP CLI
+- ocscore: Staged OCScore ML pipeline (raw preparation -> train-only feature reduction -> Optuna -> export tools)
+
+  Requires ``pip install "ocdocker[ml]"``.
+
+  **Full step-by-step replication guide:** :doc:`ocscore_replication` (also `OCSCORE_REPLICATION.md` in the repo root).
+
+  Minimal commands:
 
   .. code-block:: bash
 
-     ocdocker shap --help
+     # Raw input preparation - inputs: .csv, directory, or tar.gz (PDBbind.csv / DUDEz.csv / pipeline_results.csv)
+     ocdocker ocscore reduce \\
+       --pdbbind-archive path/to/PDBbind.csv \\
+       --dudez-archive path/to/DUDEz.csv \\
+       --output-dir path/to/raw_prepare
+
+     # Staged Optuna (development protocol)
+     ocdocker ocscore train \\
+       --protocol development \\
+       --raw-input-dir path/to/raw_prepare \\
+       --output-dir path/to/optuna_out
+
+     # Feature-policy ablation; bundled .yml policies live in OCDocker/OCScore/Protocols/Ablations/
+     ocdocker ocscore train \
+       --protocol production \
+       --raw-input-dir path/to/raw_prepare \
+       --feature-policy no_pmi \
+       --output-dir path/to/no_pmi
+
+     # Score new pipeline data with an exported best_model bundle
+     ocdocker ocscore score \\
+       --export-dir path/to/replica_000/dudez_optuna/best_model \\
+       --raw-archive path/to/new_pipeline.csv \\
+       --output-csv path/to/predictions.csv
+
+     ocdocker ocscore --help
 
 - console: Interactive console with tab-completion and history
+
+  Launch via ``ocdocker console`` or ``python -m OCDocker.Console``.
+  Importing :mod:`OCDocker.Console` is side-effect-free. API reference:
+  :doc:`OCDocker.Console`.
 
   .. code-block:: bash
 
      ocdocker console --conf OCDocker.cfg
+     ocdocker console --conf OCDocker.cfg --ipython
+
+  Inside the console:
+
+  .. code-block:: pycon
+
+     >>> print_args()                 # environment overview
+     >>> print_args('all')            # all sections
+     >>> print_args('vina')           # also: smina, plants, gnina, oddt, db, paths
 
 - doctor: Diagnostics for binaries/deps/DB
 
@@ -117,11 +162,10 @@ All commands accept the following global options:
 Bootstrap & environment
 -----------------------
 
-- Auto-bootstrap happens on first import outside docs/tests.
+- Imports are side-effect-free. CLI/application code calls explicit bootstrap before runtime state is used.
 - Environment variables:
 
   - ``OCDOCKER_CONFIG``: config file path
-  - ``OCDOCKER_NO_AUTO_BOOTSTRAP``: disable auto-bootstrap on import
   - ``OCDOCKER_DB_BACKEND`` / ``DB_BACKEND``: select backend (``postgresql``, ``mysql``, ``sqlite``)
   - ``OCDOCKER_SQLITE_PATH``: explicit SQLite database file path
   - ``OCDOCKER_TIMEOUT``: default timeout (seconds) for external tools
@@ -135,6 +179,8 @@ Bootstrap & environment
 
      from OCDocker.Toolbox.Security import allow_unsafe_runtime
      allow_unsafe_runtime(deserialization=True, script_exec=False)
+
+Database storage with ``--store-db`` explicitly initializes DB access and creates tables. Missing PostgreSQL/MySQL databases are created only through explicit setup intent; SQLite remains the recommended backend for tests and quick local runs.
 
 See :doc:`OCDocker.Initialise` for details.
 

@@ -8,7 +8,7 @@ import os
 from OCDocker.Docking.PLANTS import PLANTS
 from OCDocker.Docking.Vina import Vina
 from OCDocker.Ligand import Ligand
-from OCDocker.Processing.Preprocessing.RmsdClustering import cluster_rmsd, get_medoids
+from OCDocker.Processing.Preprocessing.RMSDClustering import cluster_rmsd, get_medoids
 from OCDocker.Receptor import Receptor
 from OCDocker.Toolbox.MoleculeProcessing import get_rmsd_matrix
 

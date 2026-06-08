@@ -8,7 +8,7 @@ Submodules
    :maxdepth: 4
 
    OCDocker.Processing.Preprocessing.Prepare
-   OCDocker.Processing.Preprocessing.RmsdClustering
+   OCDocker.Processing.Preprocessing.RMSDClustering
 
 Module contents
 ---------------

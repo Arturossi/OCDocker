@@ -175,13 +175,13 @@ def test_run_docking_dudez(mock_config, monkeypatch, tmp_path):
     
     monkeypatch.setattr("OCDocker.DB.baseDB.get_config", mock_get_config)
     
-    # Mock ocdock.run_docking
+    # Mock ocdock.run_dock
     docking_called = []
     def mock_run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes = False):
         docking_called.append((complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes))
         return ocerror.Error.ok() # type: ignore
     
-    monkeypatch.setattr("OCDocker.DB.baseDB.ocdock.run_docking", mock_run_docking)
+    monkeypatch.setattr("OCDocker.DB.baseDB.ocdock.run_dock", mock_run_docking)
     
     # Call run_docking
     result = ocbdb.run_docking("dudez", "vina", digestFormat="json", overwrite=True)
@@ -211,13 +211,13 @@ def test_run_docking_excludes_index_directory(mock_config, monkeypatch, tmp_path
     
     monkeypatch.setattr("OCDocker.DB.baseDB.get_config", mock_get_config)
     
-    # Mock ocdock.run_docking
+    # Mock ocdock.run_dock
     docking_complex_list = []
     def mock_run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes = False):
         docking_complex_list.extend(complexList)
         return ocerror.Error.ok() # type: ignore
     
-    monkeypatch.setattr("OCDocker.DB.baseDB.ocdock.run_docking", mock_run_docking)
+    monkeypatch.setattr("OCDocker.DB.baseDB.ocdock.run_dock", mock_run_docking)
     
     # Call run_docking
     ocbdb.run_docking("dudez", "vina")
@@ -242,8 +242,8 @@ def test_run_docking_gnina(mock_config, monkeypatch, tmp_path):
     
     monkeypatch.setattr("OCDocker.DB.baseDB.get_config", mock_get_config)
     
-    # Mock ocdock.run_docking
-    monkeypatch.setattr("OCDocker.DB.baseDB.ocdock.run_docking", lambda *args, **kwargs: ocerror.Error.ok()) # type: ignore
+    # Mock ocdock.run_dock
+    monkeypatch.setattr("OCDocker.DB.baseDB.ocdock.run_dock", lambda *args, **kwargs: ocerror.Error.ok()) # type: ignore
     
     # Call run_docking with gnina
     result = ocbdb.run_docking("dudez", "gnina")
@@ -305,13 +305,13 @@ def test_run_docking_pdbbind(mock_config, monkeypatch, tmp_path):
     
     monkeypatch.setattr("OCDocker.DB.baseDB.get_config", mock_get_config)
     
-    # Mock ocdock.run_docking
+    # Mock ocdock.run_dock
     docking_called = []
     def mock_run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes = False):
         docking_called.append((complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes))
         return ocerror.Error.ok() # type: ignore
     
-    monkeypatch.setattr("OCDocker.DB.baseDB.ocdock.run_docking", mock_run_docking)
+    monkeypatch.setattr("OCDocker.DB.baseDB.ocdock.run_dock", mock_run_docking)
     
     # Call run_docking
     result = ocbdb.run_docking("pdbbind", "smina", overwrite=False)
@@ -337,8 +337,8 @@ def test_run_docking_plants(mock_config, monkeypatch, tmp_path):
     
     monkeypatch.setattr("OCDocker.DB.baseDB.get_config", mock_get_config)
     
-    # Mock ocdock.run_docking
-    monkeypatch.setattr("OCDocker.DB.baseDB.ocdock.run_docking", lambda *args, **kwargs: ocerror.Error.ok()) # type: ignore
+    # Mock ocdock.run_dock
+    monkeypatch.setattr("OCDocker.DB.baseDB.ocdock.run_dock", lambda *args, **kwargs: ocerror.Error.ok()) # type: ignore
     
     # Call run_docking with plants
     result = ocbdb.run_docking("dudez", "plants")

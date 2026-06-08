@@ -39,7 +39,15 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 class DownloadProgressBar(tqdm):
-    """Deal with the progress bar to track download. Extends the tqdm class."""
+    """``tqdm`` progress bar hooked to ``urllib`` download callbacks.
+
+    Parameters
+    ----------
+    *args
+        Positional arguments forwarded to :class:`tqdm.tqdm`.
+    **kwargs
+        Keyword arguments forwarded to :class:`tqdm.tqdm`.
+    """
 
 
     def update_to(self, b: int = 1, bsize: int = 1, tsize: int = 0) -> None:

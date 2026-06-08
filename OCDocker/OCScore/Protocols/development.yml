@@ -1,0 +1,50 @@
+name: development
+description: Internal iteration preset using the unified leakage-safe protocol.
+
+replicas: 2
+seed: 42
+
+pdbbind:
+  target_column: experimental
+  trials: 15
+  epochs: 50
+  n_jobs: 1
+  search_phase: full
+  enable_pruning: true
+  split:
+    strategy: receptor_heldout
+    train_size: 0.6
+    validation_size: 0.2
+    test_size: 0.2
+
+dudez:
+  kind_column: kind
+  positive_kind: ligands
+  negative_kind: decoys
+  trials: 15
+  epochs: 50
+  n_jobs: 1
+  primary_metric: BEDROC
+  scaling_strategy: pdbbind_scaler
+  ignore_unknown_kind: false
+
+ablation:
+  enabled: false
+  variants:
+    - ligand_only
+    - receptor_only
+    - sf_only
+    - ligand_sf
+    - receptor_sf
+
+runtime:
+  use_gpu: true
+  pdbbind_only: false
+  replica_jobs: 1
+  resume_completed: false
+
+reporting:
+  generate_final_report: false
+  run_leakage_audit: false
+  run_baselines: false
+  calibration_report_mode: ranking_only

@@ -19,7 +19,7 @@ import OCDocker.DB.Models.Base as base_mod
 import OCDocker.Docking.BaseVinaLike as ocbasevina
 import OCDocker.Error as ocerror
 import OCDocker.OCScore.Scoring as ocscoring
-import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsd
+import OCDocker.Processing.Preprocessing.RMSDClustering as ocrmsd
 import OCDocker.Toolbox.Conversion as occonversion
 import OCDocker.Toolbox.Preparation as ocprep
 import OCDocker.Toolbox.Printing as ocprinting

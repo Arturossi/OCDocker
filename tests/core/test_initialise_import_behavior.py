@@ -33,8 +33,6 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Public ##
 
 def test_initialise_import_does_not_bootstrap_during_pytest(monkeypatch):
-    monkeypatch.delenv("OCDOCKER_AUTO_BOOTSTRAP", raising=False)
-    monkeypatch.delenv("OCDOCKER_NO_AUTO_BOOTSTRAP", raising=False)
     monkeypatch.delenv("OC_BUILD_DOCS", raising=False)
 
     import OCDocker.Initialise as ocinit

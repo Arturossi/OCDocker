@@ -2,7 +2,7 @@
 
 # Description
 ###############################################################################
-'''
+"""
 Database ORM models package.
 
 Usage:
@@ -15,14 +15,14 @@ Modules
 - Complexes: Complexes table model.
 - Ligands: Ligands table model.
 - Receptors: Receptors table model.
-'''
+"""
 
 # Imports
 ###############################################################################
 
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -35,7 +35,7 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
 
 # Classes
 ###############################################################################

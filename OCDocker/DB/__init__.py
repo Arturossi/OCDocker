@@ -2,7 +2,7 @@
 
 # Description
 ###############################################################################
-'''
+"""
 Database package.
 
 Usage:
@@ -17,7 +17,7 @@ Modules
 - DUDEz: DUDE-Z dataset helpers.
 - PDBbind: PDBbind dataset helpers.
 - Models: ORM model definitions.
-'''
+"""
 
 # Imports
 ###############################################################################
@@ -26,7 +26,7 @@ from typing import Optional
 
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -39,7 +39,7 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
 
 # Classes
 ###############################################################################
@@ -62,6 +62,6 @@ except ImportError as exc:
     DB_IMPORT_ERROR = exc
 
 __all__ = [
-    'DB',
-    'DB_IMPORT_ERROR',
+    "DB",
+    "DB_IMPORT_ERROR",
 ]

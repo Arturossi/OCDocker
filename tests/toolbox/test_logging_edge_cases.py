@@ -8,6 +8,7 @@ Extra logging helper tests.
 
 # Imports
 ###############################################################################
+import logging
 import os
 
 import pytest
@@ -42,6 +43,30 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 ## Public ##
 
+@pytest.fixture(autouse=True)
+def _reset_logging_state():
+    logger = oclogging._STATE["logger"]
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+        try:
+            handler.close()
+        except Exception:
+            pass
+    oclogging._STATE["configured"] = False
+    oclogging._STATE["use_rich"] = False
+    oclogging._STATE["to_stdout"] = True
+    oclogging._STATE["stream_handler"] = None
+    yield
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+        try:
+            handler.close()
+        except Exception:
+            pass
+    oclogging._STATE["configured"] = False
+    oclogging._STATE["stream_handler"] = None
+
+
 @pytest.mark.order(70)
 def test_backup_log(tmp_path):
     # Prepare a file in the default logdir matching backup_log expectation
@@ -63,10 +88,13 @@ def test_backup_log(tmp_path):
 def test_logging_config_and_file(tmp_path):
     log_file = tmp_path / "test.log"
 
-    # Configure with file handler and info level
-    oclogging.configure(level=ocerror.Error.get_output_level(), log_file=str(log_file))
+    # Use explicit INFO — get_output_level() can be NONE after other tests.
+    oclogging.configure(level=ocerror.ReportLevel.INFO, log_file=str(log_file))
     logger = oclogging.get_logger("unit")
     logger.info("hello world")
+    for handler in logger.handlers:
+        if isinstance(handler, logging.FileHandler):
+            handler.flush()
 
     assert log_file.exists()
     contents = log_file.read_text()

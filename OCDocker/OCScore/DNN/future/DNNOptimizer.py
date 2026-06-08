@@ -219,7 +219,7 @@ class DNNOptimizer:
     >>> trainer.optimize(n_trials=5)
     >>> # AE -> DNN pipeline with precomputed embeddings
     >>> import torch
-    >>> from OCDocker.OCScore.Dimensionality.future.Autoencoder import Autoencoder
+    >>> Autoencoder = load_archived_autoencoder()
     >>> ae = Autoencoder(input_size=20, encoder_hidden_sizes=[32, 16], latent_dim=8, energy_head_sizes=None)
     >>> with torch.no_grad():
     ...     Z_train = ae.encode(torch.tensor(X_train, dtype=torch.float32)).cpu().numpy()

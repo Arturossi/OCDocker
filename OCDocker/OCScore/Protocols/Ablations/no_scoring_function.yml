@@ -1,0 +1,10 @@
+name: no_scoring_function
+description: Remove classical docking/scoring-function columns.
+include_patterns:
+  - "*"
+exclude_patterns:
+  - "plants_*"
+  - "vina_*"
+  - "smina_*"
+  - "gnina_*"
+  - "oddt_*"

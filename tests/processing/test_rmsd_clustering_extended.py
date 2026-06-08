@@ -3,7 +3,7 @@
 # Description
 ###############################################################################
 '''
-Additional fallback-path tests for Processing.Preprocessing.RmsdClustering.
+Additional fallback-path tests for Processing.Preprocessing.RMSDClustering.
 '''
 
 # Imports
@@ -13,7 +13,7 @@ import pandas as pd
 import pytest
 
 import OCDocker.Error as ocerror
-import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
+import OCDocker.Processing.Preprocessing.RMSDClustering as ocrmsdclust
 
 # License
 ###############################################################################
@@ -172,3 +172,30 @@ def test_cluster_rmsd_pose_engine_partial_path_mapping_branch(monkeypatch, tmp_p
     assert isinstance(clusters, np.ndarray)
     assert clusters.tolist() == [0, 0]
     assert output_plot.exists()
+
+
+@pytest.mark.order(413)
+def test_cluster_rmsd_gnina_mol2_engine_map_colors_plot(monkeypatch, tmp_path):
+    monkeypatch.setattr(ocrmsdclust, "AgglomerativeClustering", _SingleClusterAgglomerative)
+
+    df = pd.DataFrame(
+        [[0.0, 1.0], [1.0, 0.0]],
+        index=["/tmp/gnina_ligand_1.mol2", "/tmp/plants_ligand_2.mol2"],
+        columns=["/tmp/gnina_ligand_1.mol2", "/tmp/plants_ligand_2.mol2"],
+    )
+    output_plot = tmp_path / "gnina_plants.png"
+    clusters = ocrmsdclust.cluster_rmsd(
+        df,
+        max_distance_threshold=5.0,
+        min_distance_threshold=1.0,
+        threshold_step=1.0,
+        outputPlot=str(output_plot),
+        pose_engine_map=ocrmsdclust.build_pose_engine_map(list(df.index)),
+    )
+
+    assert isinstance(clusters, np.ndarray)
+    assert output_plot.exists()
+    assert ocrmsdclust.DEFAULT_ENGINE_COLORS["gnina"] == "#785EF0"
+    assert ocrmsdclust.DEFAULT_ENGINE_COLORS["plants"] == "#009E73"
+    assert ocrmsdclust.DEFAULT_ENGINE_COLORS["smina"] == "#E69F00"
+    assert ocrmsdclust.DEFAULT_ENGINE_COLORS["vina"] == "#0072B2"

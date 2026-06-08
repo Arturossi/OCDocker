@@ -10,6 +10,8 @@ Tests for Vina/Smina log readers using real module imports.
 ###############################################################################
 import pytest
 
+pytest.importorskip("rdkit")
+
 # License
 ###############################################################################
 '''
@@ -31,13 +33,6 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Functions
 ###############################################################################
 ## Public ##
-
-@pytest.fixture(autouse=True)
-def _disable_auto_bootstrap(monkeypatch):
-    # Keep tests import-safe regardless of host environment variables.
-    monkeypatch.setenv("OCDOCKER_NO_AUTO_BOOTSTRAP", "1")
-    monkeypatch.delenv("OCDOCKER_AUTO_BOOTSTRAP", raising=False)
-
 
 def test_smina_log_parsing(tmp_path):
     from OCDocker.Config import get_config

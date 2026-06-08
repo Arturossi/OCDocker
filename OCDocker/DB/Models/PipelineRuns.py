@@ -2,13 +2,13 @@
 
 # Description
 ###############################################################################
-'''
+"""
 SQLAlchemy model for pipeline post-processing metadata.
 
 Usage:
 
 from OCDocker.DB.Models.PipelineRuns import PipelineRuns
-'''
+"""
 
 # Imports
 ###############################################################################
@@ -18,7 +18,7 @@ from OCDocker.DB.Models.Base import base
 
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -31,7 +31,7 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
 
 # Classes
 ###############################################################################
@@ -65,4 +65,3 @@ class PipelineRuns(base):
     summary_json = Column(Text, nullable=True)
     payload_path = Column(String(2048), nullable=True)
     run_report_path = Column(String(2048), nullable=True)
-

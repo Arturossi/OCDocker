@@ -55,7 +55,12 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 
 class PreparationStrategy(ABC):
-    """Abstract base class for molecule preparation strategies."""
+    """Abstract base for ligand and receptor preparation backends.
+
+    Concrete strategies build external-tool command lines and run preparation
+    with shared availability checks, output-directory creation, and overwrite
+    handling.
+    """
 
 
     def _check_tool_available(self, exe: str) -> bool:
@@ -252,7 +257,11 @@ class PreparationStrategy(ABC):
 
 
 class MGLToolsPreparationStrategy(PreparationStrategy):
-    """Preparation strategy using MGLTools (prepare_ligand4.py/prepare_receptor4.py)."""
+    """Prepare ligands and receptors with MGLTools scripts.
+
+    Uses ``prepare_ligand4.py`` and ``prepare_receptor4.py`` via the configured
+    ``pythonsh`` interpreter from :class:`OCDocker.Config.ToolsConfig`.
+    """
 
 
     def get_ligand_command(self, input_path: str, output_path: str) -> list[str]:
@@ -415,7 +424,11 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
 
 
 class SPORESPreparationStrategy(PreparationStrategy):
-    """Preparation strategy using SPORES."""
+    """Prepare receptors with the SPORES external tool.
+
+    Converts receptor structures to MOL2 and applies SPORES protonation and
+    typing using the configured ``spores`` executable.
+    """
 
 
     def _prepare(
@@ -560,7 +573,11 @@ class SPORESPreparationStrategy(PreparationStrategy):
 
 
 class OpenBabelPreparationStrategy(PreparationStrategy):
-    """Preparation strategy using OpenBabel (for Gnina and similar)."""
+    """Prepare ligands and receptors with Open Babel.
+
+    Uses the configured ``obabel`` executable for format conversion and
+    optional protonation when MGLTools is unavailable (e.g. Gnina workflows).
+    """
 
 
     def get_ligand_command(self, input_path: str, output_path: str) -> list[str]:

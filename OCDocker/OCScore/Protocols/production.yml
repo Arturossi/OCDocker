@@ -1,0 +1,59 @@
+name: production
+description: >
+  Production-grade staged validation. Receptor-heldout PDBbind split, train-only
+  feature reduction on a fixed outer split, DUDEz PDBbind scaler, leakage audit,
+  baselines, and provenance bundle.
+
+replicas: 5
+seed: 42
+
+pdbbind:
+  target_column: experimental
+  trials: 100
+  epochs: 100
+  n_jobs: 1
+  search_phase: full
+  enable_pruning: true
+  split:
+    strategy: receptor_heldout
+    train_size: 0.6
+    validation_size: 0.2
+    test_size: 0.2
+
+dudez:
+  kind_column: kind
+  positive_kind: ligands
+  negative_kind: decoys
+  trials: 100
+  epochs: 100
+  n_jobs: 1
+  primary_metric: BEDROC
+  scaling_strategy: pdbbind_scaler
+  ignore_unknown_kind: false
+
+ablation:
+  enabled: false
+  variants:
+    - ligand_only
+    - receptor_only
+    - sf_only
+    - ligand_sf
+    - receptor_sf
+
+runtime:
+  use_gpu: true
+  pdbbind_only: false
+  replica_jobs: 1
+  resume_completed: false
+
+reporting:
+  generate_final_report: true
+  run_leakage_audit: true
+  run_baselines: true
+  calibration_report_mode: ranking_only
+
+production_claim:
+  enforce: true
+  min_replicas: 5
+  min_pdbbind_trials: 10
+  min_dudez_trials: 100

@@ -17,14 +17,19 @@ import OCDocker.OCScore.Utils.IO as ocscoreio
 import joblib
 import os
 import pickle
+import tarfile
 
 import numpy as np
 import pandas as pd
 
-from typing import Any, Optional, Union
+from pathlib import Path
+from typing import Any, Optional, Sequence, Union
 
 import OCDocker.Error as ocerror
+import OCDocker.Toolbox.Logging as oclogging
 import OCDocker.Toolbox.Security as ocsec
+
+LOGGER = oclogging.get_logger("ocscore.utils.io")
 
 # License
 ###############################################################################
@@ -113,9 +118,12 @@ def load_data(file_name : str, exclude_column : str = 'experimental') -> pd.Data
         # Calculate the percentage of rows that will be removed
         percentage_lost = (rows_with_nan / original_size) * 100
 
-        # Notify the user TODO: integrate with OCDocker
-        print(f'Warning: {rows_with_nan} rows contain NaN values in columns other than "{exclude_column}".')
-        print(f'These rows will be removed, which is {percentage_lost:.2f}% of the original dataset.')
+        LOGGER.warning(
+            'Removing %d rows with NaNs outside "%s" (%.2f%% of dataset).',
+            rows_with_nan,
+            exclude_column,
+            percentage_lost,
+        )
 
         # Remove rows with NaN values (except in the specified column)
         df = df.dropna(subset=columns_to_check)
@@ -378,3 +386,244 @@ def save_object(obj : Any, filename : str, serialization_method : str = "auto") 
         raise ValueError(f"Invalid serialization method: '{serialization_method}'. Must be 'auto', 'joblib', 'pickle', or 'torch'.")
 
     return None
+
+
+PIPELINE_RESULTS_NAME = "pipeline_results.csv"
+PIPELINE_CSV_BASENAMES = (
+    PIPELINE_RESULTS_NAME,
+    "PDBbind.csv",
+    "DUDEz.csv",
+)
+DATASET_COLUMN = "dataset"
+TARGET_COLUMN = "experimental"
+DUDEZ_KIND_COLUMN = "kind"
+LABEL_COLUMN = "label"
+
+
+def _read_pipeline_csv(csv_path: Path) -> pd.DataFrame:
+    '''Read a pipeline results CSV and raise on empty files.'''
+
+    try:
+        df = pd.read_csv(csv_path, low_memory=False)
+    except pd.errors.EmptyDataError as exc:
+        raise ValueError(f"{csv_path.name!r} at {csv_path} is empty.") from exc
+    cleaned, _ = drop_empty_input_rows(df, label=str(csv_path))
+    return cleaned
+
+
+def _find_directory_pipeline_csv(directory: Path) -> Path:
+    '''Return the first canonical pipeline CSV in ``directory`` (KTD3 order).'''
+
+    for basename in PIPELINE_CSV_BASENAMES:
+        candidate = directory / basename
+        if candidate.is_file():
+            return candidate
+
+    lower_index = {
+        entry.name.lower(): entry
+        for entry in directory.iterdir()
+        if entry.is_file()
+    }
+    for basename in PIPELINE_CSV_BASENAMES:
+        match = lower_index.get(basename.lower())
+        if match is not None:
+            return match
+
+    expected = ", ".join(PIPELINE_CSV_BASENAMES)
+    raise FileNotFoundError(
+        f"Could not find a pipeline results CSV in directory {directory}. "
+        f"Expected one of: {expected}"
+    )
+
+
+def _collect_tar_pipeline_members(members: Sequence[tarfile.TarInfo]) -> list[tarfile.TarInfo]:
+    '''Return tar members whose basename matches a canonical pipeline CSV name.'''
+
+    canonical = set(PIPELINE_CSV_BASENAMES)
+    canonical_lower = {name.lower() for name in PIPELINE_CSV_BASENAMES}
+    matched: list[tarfile.TarInfo] = []
+    for member in members:
+        if not member.isfile():
+            continue
+        basename = Path(member.name).name
+        if basename in canonical or basename.lower() in canonical_lower:
+            matched.append(member)
+    return matched
+
+
+def load_pipeline_results_from_archive(
+        archive_path: str | Path,
+        member_name: str | None = None,
+    ) -> pd.DataFrame:
+    '''Load pipeline results from a CSV file, directory, or tar archive.
+
+    Accepts a bare ``.csv`` path, a directory, or a tar archive containing one of:
+    ``pipeline_results.csv``, ``PDBbind.csv``, or ``DUDEz.csv`` (classic and ocdb2
+    layouts). When multiple matching members exist inside a tar archive, pass
+    ``member_name`` to select one.
+
+    Parameters
+    ----------
+    archive_path : str or pathlib.Path
+        Path to a pipeline CSV file, extracted directory, or tar archive.
+    member_name : str, optional
+        Explicit tar member path when multiple pipeline CSV files exist.
+
+    Returns
+    -------
+    pd.DataFrame
+        Loaded pipeline results table.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the path or a canonical pipeline CSV is missing.
+    ValueError
+        If the archive cannot be read, the CSV is empty, or multiple members exist
+        without an explicit ``member_name``.
+    '''
+
+    path = Path(archive_path)
+
+    if path.suffix.lower() == ".csv" and path.is_file():
+        return _read_pipeline_csv(path)
+
+    if path.is_dir():
+        csv_path = _find_directory_pipeline_csv(path)
+        return _read_pipeline_csv(csv_path)
+
+    if not path.is_file():
+        raise FileNotFoundError(f"Pipeline input not found: {path}")
+
+    try:
+        with tarfile.open(path, mode="r:*") as archive:
+            members = _collect_tar_pipeline_members(archive.getmembers())
+
+            if not members:
+                expected = ", ".join(PIPELINE_CSV_BASENAMES)
+                raise FileNotFoundError(
+                    f"Could not find a pipeline results CSV inside archive {path}. "
+                    f"Expected one of: {expected}"
+                )
+
+            if member_name is not None:
+                selected = next((member for member in members if member.name == member_name), None)
+                if selected is None:
+                    raise FileNotFoundError(
+                        f"Could not find tar member {member_name!r} in archive: {path}"
+                    )
+                members = [selected]
+            elif len(members) > 1:
+                names = ", ".join(member.name for member in members[:5])
+                suffix = "..." if len(members) > 5 else ""
+                raise ValueError(
+                    f"Found {len(members)} pipeline CSV files inside archive {path}: "
+                    f"{names}{suffix}. Pass member_name to select one."
+                )
+
+            handle = archive.extractfile(members[0])
+            if handle is None:
+                raise ValueError(f"Could not open {members[0].name!r} from archive: {path}")
+
+            df = pd.read_csv(handle, low_memory=False)
+            cleaned, _ = drop_empty_input_rows(df, label=members[0].name)
+            return cleaned
+
+    except tarfile.TarError as exc:
+        raise ValueError(f"Could not read tar archive {path}: {exc}") from exc
+    except pd.errors.EmptyDataError as exc:
+        raise ValueError(f"Pipeline CSV in archive {path} is empty.") from exc
+
+
+load_pipeline_results = load_pipeline_results_from_archive
+
+
+def drop_empty_input_rows(df: pd.DataFrame, *, label: str = "input") -> tuple[pd.DataFrame, int]:
+    '''Drop rows that are entirely empty before OCScore modeling preparation.
+
+    CSV rows containing only blank strings are treated as empty as well as rows
+    parsed as all-NaN.
+    '''
+
+    if df.empty:
+        return df.copy(), 0
+    normalized = df.replace(r"^\s*$", np.nan, regex=True)
+    empty_mask = normalized.isna().all(axis=1)
+    dropped = int(empty_mask.sum())
+    if dropped:
+        LOGGER.warning("Dropped %d completely empty row(s) from %s.", dropped, label)
+    return df.loc[~empty_mask].reset_index(drop=True).copy(), dropped
+
+
+def prepare_pdbbind_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    '''Prepare PDBbind pipeline rows for OCScore feature workflows.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Raw PDBbind pipeline results.
+
+    Returns
+    -------
+    pd.DataFrame
+        Prepared PDBbind rows with ``dataset`` and ``label`` columns.
+
+    Raises
+    ------
+    ValueError
+        If the PDBbind affinity target column is missing.
+    '''
+
+    if TARGET_COLUMN not in df.columns:
+        raise ValueError(f"PDBbind input must contain the target column {TARGET_COLUMN!r}.")
+
+    prepared = df.copy()
+    prepared[DATASET_COLUMN] = "pdbbind"
+    prepared[LABEL_COLUMN] = np.nan
+
+    if DUDEZ_KIND_COLUMN not in prepared.columns:
+        prepared[DUDEZ_KIND_COLUMN] = np.nan
+
+    return prepared
+
+
+def prepare_dudez_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    '''Prepare DUDEz pipeline rows for OCScore feature workflows.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Raw DUDEz pipeline results.
+
+    Returns
+    -------
+    pd.DataFrame
+        Prepared DUDEz rows with ``dataset`` and ``label`` columns.
+
+    Raises
+    ------
+    ValueError
+        If the DUDEz ``kind`` column is missing.
+    '''
+
+    if DUDEZ_KIND_COLUMN not in df.columns:
+        raise ValueError(
+            f"DUDEz input must contain {DUDEZ_KIND_COLUMN!r} so ligands/decoys can be preserved."
+        )
+
+    prepared = df.copy()
+    prepared[DATASET_COLUMN] = "dudez"
+    prepared[TARGET_COLUMN] = np.nan
+
+    kind_values = prepared[DUDEZ_KIND_COLUMN].where(prepared[DUDEZ_KIND_COLUMN].notna(), np.nan)
+    normalized_kind = kind_values.astype("string").str.strip().str.lower()
+    prepared[LABEL_COLUMN] = normalized_kind.map({"ligands": 1, "decoys": 0}).astype("float")
+
+    unknown_kinds = sorted(normalized_kind[prepared[LABEL_COLUMN].isna()].dropna().unique().tolist())
+    if unknown_kinds:
+        LOGGER.warning(
+            "Some DUDEz rows have kind values that were not mapped to label: %s",
+            unknown_kinds,
+        )
+
+    return prepared

@@ -96,23 +96,28 @@ To install OCDocker, follow these steps:
 
       pip install ocdocker
 
-   ``pip install ocdocker`` installs the core package only. To install every optional runtime stack, use ``pip install "ocdocker[all]"``.
+   ``pip install ocdocker`` installs the minimal core (CLI bootstrap, config I/O,
+   logging, and serialization helpers). Feature-specific dependencies are optional
+   extras — see :doc:`optional_dependencies` for the full cheat sheet, per-extra
+   package lists, and command mapping.
 
-   Optional feature extras:
+   Quick install commands:
 
    .. code-block:: bash
 
-      # Docking workflows (RDKit/OpenBabel/BioPython)
-      pip install "ocdocker[docking]"
+      pip install ocdocker                      # minimal core
+      pip install "ocdocker[docking]"           # vs / pipeline
+      pip install "ocdocker[db]"                # --store-db
+      pip install "ocdocker[ml]"                # OCScore ML
+      pip install "ocdocker[analysis]"          # plots / statistics
+      pip install "ocdocker[all]"               # all runtime stacks
+      pip install -e ".[all,dev]"               # typical developer setup
 
-      # Docking + database support (SQLAlchemy + drivers)
-      pip install "ocdocker[docking,db]"
+   Typical combinations (details in :doc:`optional_dependencies`):
 
-      # ML workflows (PyTorch/XGBoost/Optuna)
-      pip install "ocdocker[ml]"
-
-      # Install all optional runtime features
-      pip install "ocdocker[all]"
+   - Single-engine docking: ``ocdocker[docking]``
+   - Multi-engine pipeline with dendrogram output: ``ocdocker[docking,analysis]``
+   - OCScore replication: ``ocdocker[ml]`` (often ``ocdocker[all]`` for full parity)
 
    Option B: install from source (recommended for development):
 
@@ -120,11 +125,11 @@ To install OCDocker, follow these steps:
 
       git clone https://github.com/Arturossi/OCDocker.git
       cd OCDocker
-      # Base package only
-      pip install .
+      # Minimal core
+      pip install -e .
 
-      # Example: source install with docking + DB extras
-      pip install -e ".[docking,db]"
+      # Typical developer install
+      pip install -e ".[all,dev]"
 
 Optional: build the Sphinx documentation
 -----------------------------------------
@@ -142,5 +147,5 @@ Option B (pip extras):
 
 .. code-block:: bash
 
-   pip install -e ".[docs]"
+   pip install -e ".[full]"
    make -C docs html

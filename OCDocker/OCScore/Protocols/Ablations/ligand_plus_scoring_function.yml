@@ -1,0 +1,9 @@
+name: ligand_plus_scoring_function
+description: Use ligand descriptors plus classical scoring-function columns, excluding receptor descriptors.
+include_patterns:
+  - "ligand_*"
+  - "plants_*"
+  - "vina_*"
+  - "smina_*"
+  - "gnina_*"
+  - "oddt_*"

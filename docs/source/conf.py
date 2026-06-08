@@ -315,8 +315,8 @@ html_static_path = ["_static"]
 
 todo_include_todos = True
 
-# Napoleon
-napoleon_google_docstring = True
+# Napoleon — NumPy docstrings only (see obsidian/Decisions/ADR-0005-Numpy-Docstring-Convention-For-Sphinx.md)
+napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 napoleon_include_init_with_doc = True
 napoleon_include_private_with_doc = False
@@ -354,12 +354,12 @@ rst_prolog = """
 .. |SHAP| replace:: SHAP
 """
 
-# Classes
-###############################################################################
+# Autodoc — skip legacy namespaces (not part of published API docs)
+def _autodoc_skip_legacy(app, what, name, obj, skip, options):
+    if name and ".legacy." in name:
+        return True
+    return skip
 
 
-# Functions
-###############################################################################
-## Private ##
-
-## Public ##
+def setup(app):
+    app.connect("autodoc-skip-member", _autodoc_skip_legacy)

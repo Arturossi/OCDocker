@@ -257,7 +257,7 @@ def test_future_dnn_multitask_model_forward_paths():
     assert out["energy"].shape == (4, 1)
     assert out["activity"].shape == (4, 1)
 
-    legacy_model = ocfmodels.MultiTaskModel(
+    compat_model = ocfmodels.MultiTaskModel(
         input_size=3,
         encoder_params={"encoding_dim": 4, "encoder_activation": "ReLU"},
         shared_sizes=[3],
@@ -266,6 +266,6 @@ def test_future_dnn_multitask_model_forward_paths():
         embedding_dim=None,
         batch_norm=False,
     )
-    out_legacy = legacy_model(x, return_reconstruction=False)
-    assert out_legacy["embedding"] is None
-    assert out_legacy["reconstruction"] is None
+    out_compat = compat_model(x, return_reconstruction=False)
+    assert out_compat["embedding"] is None
+    assert out_compat["reconstruction"] is None

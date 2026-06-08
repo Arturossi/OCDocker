@@ -10,7 +10,7 @@ Unit tests for CLI pipeline DB score mapping helpers.
 ###############################################################################
 from __future__ import annotations
 
-from OCDocker.CLI.__init__ import _flatten_rescoring_to_complex_payload, _map_score_to_complex_column
+from OCDocker.CLI.workflow import _flatten_rescoring_to_complex_payload, _map_score_to_complex_column
 
 
 def test_map_score_to_complex_column_supported_keys():

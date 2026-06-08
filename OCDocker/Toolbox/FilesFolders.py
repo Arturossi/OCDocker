@@ -13,7 +13,10 @@ import OCDocker.Toolbox.FilesFolders as ocff
 
 # Imports
 ###############################################################################
-import h5py
+try:
+    import h5py  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+    h5py = None
 import json
 import os
 import pickle
@@ -218,6 +221,13 @@ def from_hdf5(filePath: str) -> Union[None, Any]:
     None | Any
         The data read from the file or None if there was an error.
     '''
+
+    if h5py is None:
+        _ = ocerror.Error.read_file(
+            "Missing optional dependency 'h5py' required for HDF5 I/O. Install h5py to use from_hdf5().",
+            level=ocerror.ReportLevel.ERROR,
+        )
+        return None
 
     # Check if the file does not exists
     if not os.path.isfile(filePath):
@@ -429,6 +439,12 @@ def to_hdf5(filePath: str, data: Any) -> int:
     int
         The exit code of the command (based on the Error.py code table).
     '''
+
+    if h5py is None:
+        return ocerror.Error.write_file(
+            "Missing optional dependency 'h5py' required for HDF5 I/O. Install h5py to use to_hdf5().",
+            level=ocerror.ReportLevel.ERROR,
+        )
 
     try:
         with h5py.File(filePath, 'w') as hf:

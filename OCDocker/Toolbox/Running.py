@@ -45,7 +45,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 
 class SubprocessError(RuntimeError):
-    '''Exception raised when a subprocess fails and OCDOCKER_RAISE_SUBPROCESS is enabled.
+    """Exception raised when a subprocess fails and OCDOCKER_RAISE_SUBPROCESS is enabled.
 
     Parameters
     ----------
@@ -63,7 +63,7 @@ class SubprocessError(RuntimeError):
         Path to the stdout log file.
     report_path : str
         Path to the failure report file.
-    '''
+    """
 
     def __init__(
         self,

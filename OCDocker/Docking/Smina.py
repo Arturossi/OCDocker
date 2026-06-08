@@ -60,7 +60,31 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 class Smina:
-    """Smina object with methods for easy run."""
+    """Workflow wrapper for Smina docking and rescoring.
+
+    Parameters
+    ----------
+    config_path : str
+        Path to the Smina configuration file.
+    box_file : str
+        Path to the docking box PDB file.
+    receptor : ocr.Receptor
+        Receptor object to dock against.
+    prepared_receptor_path : str
+        Path to the prepared receptor file (PDBQT).
+    ligand : ocl.Ligand
+        Ligand object to dock.
+    prepared_ligand_path : str
+        Path to the prepared ligand file (PDBQT).
+    smina_log : str
+        Path to the Smina run log file.
+    output_smina : str
+        Output directory or prefix for Smina pose files.
+    name : str, optional
+        Identifier for this docking run, by default ``""``.
+    overwrite_config : bool, optional
+        Overwrite an existing config file, by default ``False``.
+    """
     ## Private ##
 
     def __init__(self, config_path: str, box_file: str, receptor: ocr.Receptor, prepared_receptor_path: str, ligand: ocl.Ligand, prepared_ligand_path: str, smina_log: str, output_smina: str, name: str = "", overwrite_config: bool = False) -> None:

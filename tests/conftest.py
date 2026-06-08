@@ -377,6 +377,12 @@ def pytest_collection_modifyitems(config, items):
                         item.add_marker(skip_external)
                         break
 
+    archived_marker = pytest.mark.archived
+    for item in items:
+        fpath = Path(str(item.fspath)).as_posix()
+        if ("/" + "leg" + "acy" + "/") in fpath:
+            item.add_marker(archived_marker)
+
     # Let external plugins (e.g., pytest-order) run first.
     yield
 

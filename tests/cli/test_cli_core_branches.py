@@ -14,18 +14,27 @@ pytest tests/test_cli_core_branches.py
 ###############################################################################
 import argparse
 import builtins
+import importlib
 import math
+import os
 import runpy
 import sys
+import time
 import types
 
 from pathlib import Path
 from types import SimpleNamespace
 
 import importlib.metadata
+import numpy as np
+import pandas as pd
 import pytest
 
-import OCDocker.CLI.__init__ as cli
+import OCDocker.CLI as cli
+import OCDocker.CLI.common as cli_common
+import OCDocker.CLI.init_config as cli_init_config
+import OCDocker.CLI.manifest as cli_manifest
+import OCDocker.CLI.workflow as cli_workflow
 
 # License
 ###############################################################################
@@ -66,29 +75,29 @@ class _Parser:
 @pytest.mark.order(450)
 def test_bootstrap_sets_config_and_calls_bootstrap(monkeypatch):
     seen = {"ns": None}
-    fake_mod = types.SimpleNamespace(bootstrap=lambda ns: seen.__setitem__("ns", ns))
-    monkeypatch.setattr(cli.importlib, "import_module", lambda _name: fake_mod)
+    fake_mod = types.SimpleNamespace(bootstrap=lambda ns, init_db=True: seen.__setitem__("ns", ns))
+    monkeypatch.setattr(importlib, "import_module", lambda _name: fake_mod)
 
     ns = argparse.Namespace(config_file="/tmp/custom.cfg")
-    cli._bootstrap_ocdocker_env(ns)
+    cli_common._bootstrap_ocdocker_env(ns)
 
     assert seen["ns"] is ns
-    assert cli.os.environ["OCDOCKER_CONFIG"] == "/tmp/custom.cfg"
+    assert os.environ["OCDOCKER_CONFIG"] == "/tmp/custom.cfg"
 
 
 @pytest.mark.order(451)
 def test_bootstrap_raises_when_bootstrap_not_found(monkeypatch):
-    monkeypatch.setattr(cli.importlib, "import_module", lambda _name: types.SimpleNamespace())
+    monkeypatch.setattr(importlib, "import_module", lambda _name: types.SimpleNamespace())
 
     with pytest.raises(RuntimeError, match="bootstrap not found"):
-        cli._bootstrap_ocdocker_env(argparse.Namespace(config_file=None))
+        cli_common._bootstrap_ocdocker_env(argparse.Namespace(config_file=None))
 
 
 @pytest.mark.order(452)
 def test_box_sort_key_numeric_and_non_numeric():
-    assert cli._box_sort_key(Path("box12.pdb")) == (0, 12)
-    assert cli._box_sort_key(Path("boxx.pdb")) == (1, "boxx")
-    assert cli._box_sort_key(Path("custom.pdb")) == (1, "custom")
+    assert cli_workflow._box_sort_key(Path("box12.pdb")) == (0, 12)
+    assert cli_workflow._box_sort_key(Path("boxx.pdb")) == (1, "boxx")
+    assert cli_workflow._box_sort_key(Path("custom.pdb")) == (1, "custom")
 
 
 @pytest.mark.order(453)
@@ -111,7 +120,7 @@ def test_ensure_mol2_poses_handles_passthrough_and_conversion(monkeypatch, tmp_p
     monkeypatch.setitem(sys.modules, "OCDocker.Toolbox.Conversion", fake_conv)
 
     out_dir = tmp_path / "converted"
-    paths, mapping = cli._ensure_mol2_poses(
+    paths, mapping = cli_workflow._ensure_mol2_poses(
         [str(lig_mol2), str(lig_pdbqt), str(lig_sdf)],
         out_dir,
         pose_engine_map={str(lig_pdbqt): "vina"},
@@ -138,7 +147,7 @@ def test_list_boxes_all_modes_and_resolve_fallback(monkeypatch, tmp_path):
     (ligand_dir / "box_bad.pdb").write_text("ATOM\n", encoding="utf-8")
     (box_dir / "box10.pdb").write_text("ATOM\n", encoding="utf-8")
 
-    one = cli._list_boxes(ligand_dir, box_main, all_boxes=False)
+    one = cli_workflow._list_boxes(ligand_dir, box_main, all_boxes=False)
     assert one == [box_main]
 
     original_resolve = Path.resolve
@@ -149,15 +158,41 @@ def test_list_boxes_all_modes_and_resolve_fallback(monkeypatch, tmp_path):
         return original_resolve(path_obj, *args, **kwargs)
 
     monkeypatch.setattr(Path, "resolve", _resolve)
-    boxes = cli._list_boxes(ligand_dir, box_main, all_boxes=True)
+    boxes = cli_workflow._list_boxes(ligand_dir, box_main, all_boxes=True)
 
     names = [p.name for p in boxes]
     assert names == ["box1.pdb", "box2.pdb", "box10.pdb", "box_bad.pdb"]
 
 
+@pytest.mark.order(454)
+def test_select_pipeline_representative_medoid_prefers_most_compact_tied_cluster():
+    labels = ["poseA", "poseB", "poseC", "poseD"]
+    data = pd.DataFrame(
+        [
+            [0.0, 1.0, 5.0, 5.0],
+            [1.0, 0.0, 5.0, 5.0],
+            [5.0, 5.0, 0.0, 0.1],
+            [5.0, 5.0, 0.1, 0.0],
+        ],
+        index=labels,
+        columns=labels,
+    )
+    clusters = np.array([0, 0, 1, 1], dtype=int)
+
+    rep, info = cli_workflow._select_pipeline_representative_medoid(
+        data,
+        clusters,
+        ["poseA", "poseC"],
+    )
+
+    assert rep == "poseC"
+    assert info["tie_breaker"] == "lowest_intra_cluster_medoid_distance"
+    assert info["selected_cluster_id"] == 1
+
+
 @pytest.mark.order(455)
 def test_preparse_global_args_extra_branches():
-    ns = cli._preparse_global_args(
+    ns = cli_common._preparse_global_args(
         [
             "vs",
             "--version",
@@ -187,7 +222,7 @@ def test_cmd_init_config_example_not_found_anywhere(monkeypatch, tmp_path, capsy
     fake_pkg_init.write_text("", encoding="utf-8")
     monkeypatch.setattr(OCDocker, "__file__", str(fake_pkg_init), raising=False)
 
-    rc = cli.cmd_init_config(SimpleNamespace(config_file=str(tmp_path / "new.cfg")))
+    rc = cli_init_config.cmd_init_config(SimpleNamespace(config_file=str(tmp_path / "new.cfg")))
     assert rc == 1
     assert "not found in current directory or package directory." in capsys.readouterr().out
 
@@ -199,7 +234,7 @@ def test_cmd_init_config_target_already_exists(monkeypatch, tmp_path, capsys):
     existing = tmp_path / "OCDocker.cfg"
     existing.write_text("keep-me\n", encoding="utf-8")
 
-    rc = cli.cmd_init_config(SimpleNamespace(config_file=str(existing)))
+    rc = cli_init_config.cmd_init_config(SimpleNamespace(config_file=str(existing)))
     assert rc == 0
     assert existing.read_text(encoding="utf-8") == "keep-me\n"
     assert "Config already exists" in capsys.readouterr().out
@@ -212,7 +247,7 @@ def test_cmd_init_config_uses_yml_example_for_yml_target(monkeypatch, tmp_path):
     (tmp_path / "OCDocker.yml.example").write_text("from_yml: true\n", encoding="utf-8")
 
     target = tmp_path / "OCDocker.yml"
-    rc = cli.cmd_init_config(SimpleNamespace(config_file=str(target)))
+    rc = cli_init_config.cmd_init_config(SimpleNamespace(config_file=str(target)))
 
     assert rc == 0
     assert target.read_text(encoding="utf-8") == "from_yml: true\n"
@@ -224,7 +259,7 @@ def test_cmd_init_config_yml_target_falls_back_to_cfg_example(monkeypatch, tmp_p
     (tmp_path / "OCDocker.cfg.example").write_text("from_cfg=true\n", encoding="utf-8")
 
     target = tmp_path / "fallback.yml"
-    rc = cli.cmd_init_config(SimpleNamespace(config_file=str(target)))
+    rc = cli_init_config.cmd_init_config(SimpleNamespace(config_file=str(target)))
 
     assert rc == 0
     assert target.read_text(encoding="utf-8") == "from_cfg=true\n"
@@ -237,7 +272,7 @@ def test_cmd_init_config_unknown_extension_prefers_cfg_example(monkeypatch, tmp_
     (tmp_path / "OCDocker.yml.example").write_text("yml: true\n", encoding="utf-8")
 
     target = tmp_path / "custom.conf"
-    rc = cli.cmd_init_config(SimpleNamespace(config_file=str(target)))
+    rc = cli_init_config.cmd_init_config(SimpleNamespace(config_file=str(target)))
 
     assert rc == 0
     assert target.read_text(encoding="utf-8") == "cfg=true\n"
@@ -250,7 +285,7 @@ def test_cmd_version_falls_back_to_importlib_metadata(monkeypatch, capsys):
     monkeypatch.setitem(sys.modules, "OCDocker", fake_oc)
     monkeypatch.setattr(importlib.metadata, "version", lambda _name: "9.9.9")
 
-    rc = cli.cmd_version(SimpleNamespace())
+    rc = cli_manifest.cmd_version(SimpleNamespace())
     assert rc == 0
     assert capsys.readouterr().out.strip() == "9.9.9"
 
@@ -266,7 +301,7 @@ def test_cmd_version_prints_unknown_when_imports_fail(monkeypatch, capsys):
 
     monkeypatch.setattr(builtins, "__import__", _fake_import)
 
-    rc = cli.cmd_version(SimpleNamespace())
+    rc = cli_manifest.cmd_version(SimpleNamespace())
     assert rc == 0
     assert capsys.readouterr().out.strip() == "unknown"
 
@@ -302,7 +337,7 @@ def test_list_boxes_all_boxes_with_missing_primary_box(tmp_path):
     (ligand_dir / "box3.pdb").write_text("ATOM\n", encoding="utf-8")
     missing_box = tmp_path / "missing_box.pdb"
 
-    boxes = cli._list_boxes(ligand_dir, missing_box, all_boxes=True)
+    boxes = cli_workflow._list_boxes(ligand_dir, missing_box, all_boxes=True)
     assert [p.name for p in boxes] == ["box3.pdb"]
 
 
@@ -320,7 +355,7 @@ def test_cmd_init_config_uses_package_example_when_cwd_missing(monkeypatch, tmp_
     monkeypatch.setattr(OCDocker, "__file__", str(fake_pkg_init), raising=False)
 
     target = tmp_path / "generated.cfg"
-    rc = cli.cmd_init_config(SimpleNamespace(config_file=str(target)))
+    rc = cli_init_config.cmd_init_config(SimpleNamespace(config_file=str(target)))
     assert rc == 0
     assert target.read_text(encoding="utf-8") == "from_package=true\n"
 
@@ -334,10 +369,10 @@ def test_bootstrap_passes_init_db_flag_when_supported(monkeypatch):
         seen["init_db"] = init_db
 
     fake_mod = types.SimpleNamespace(bootstrap=_bootstrap)
-    monkeypatch.setattr(cli.importlib, "import_module", lambda _name: fake_mod)
+    monkeypatch.setattr(importlib, "import_module", lambda _name: fake_mod)
 
     ns = argparse.Namespace(config_file=None, _ocdocker_init_db=False)
-    cli._bootstrap_ocdocker_env(ns)
+    cli_common._bootstrap_ocdocker_env(ns)
 
     assert seen["ns"] is ns
     assert seen["init_db"] is False
@@ -345,18 +380,23 @@ def test_bootstrap_passes_init_db_flag_when_supported(monkeypatch):
 
 @pytest.mark.order(465)
 def test_suggest_extra_for_missing_module_uses_ml_for_optuna():
-    assert cli._suggest_extra_for_missing_module("optuna") == "ml"
-    assert cli._suggest_extra_for_missing_module("optuna.samplers") == "ml"
-    assert cli._suggest_extra_for_missing_module("torch") == "ml"
-    assert cli._suggest_extra_for_missing_module("torch.nn") == "ml"
-    assert cli._suggest_extra_for_missing_module("torchaudio") == "ml"
-    assert cli._suggest_extra_for_missing_module("torchvision.transforms") == "ml"
-    assert cli._suggest_extra_for_missing_module("xgboost") == "ml"
-    assert cli._suggest_extra_for_missing_module("torchsummary") == "ml"
-    assert cli._suggest_extra_for_missing_module("torchviz") == "ml"
-    assert cli._suggest_extra_for_missing_module("visualtorch") == "ml"
-    assert cli._suggest_extra_for_missing_module("sqlalchemy") == "db"
-    assert cli._suggest_extra_for_missing_module("rdkit") == "docking"
+    assert cli_common._suggest_extra_for_missing_module("optuna") == "ml"
+    assert cli_common._suggest_extra_for_missing_module("optuna.samplers") == "ml"
+    assert cli_common._suggest_extra_for_missing_module("torch") == "ml"
+    assert cli_common._suggest_extra_for_missing_module("torch.nn") == "ml"
+    assert cli_common._suggest_extra_for_missing_module("torchaudio") == "ml"
+    assert cli_common._suggest_extra_for_missing_module("torchvision.transforms") == "ml"
+    assert cli_common._suggest_extra_for_missing_module("xgboost") == "ml"
+    assert cli_common._suggest_extra_for_missing_module("torchsummary") == "ml"
+    assert cli_common._suggest_extra_for_missing_module("torchviz") == "ml"
+    assert cli_common._suggest_extra_for_missing_module("visualtorch") == "ml"
+    assert cli_common._suggest_extra_for_missing_module("sqlalchemy") == "db"
+    assert cli_common._suggest_extra_for_missing_module("rdkit") == "docking"
+    assert cli_common._suggest_extra_for_missing_module("numpy") == "docking"
+    assert cli_common._suggest_extra_for_missing_module("pandas") == "docking"
+    assert cli_common._suggest_extra_for_missing_module("sklearn") == "docking"
+    assert cli_common._suggest_extra_for_missing_module("matplotlib") == "analysis"
+    assert cli_common._suggest_extra_for_missing_module("snakemake") == "workflow"
 
 
 @pytest.mark.order(466)
@@ -364,7 +404,7 @@ def test_print_optional_dependency_hint_reports_extra(capsys):
     try:
         __import__("definitely_missing_module_for_cli_hint_test")
     except ModuleNotFoundError as exc:
-        rc = cli._print_optional_dependency_hint(feature="ML workflow", extra="ml", exc=exc)
+        rc = cli_common._print_optional_dependency_hint(feature="ML workflow", extra="ml", exc=exc)
     else:  # pragma: no cover
         raise AssertionError("expected import to fail")
 
@@ -381,9 +421,9 @@ def test_db_dependencies_available_handles_missing_modules(monkeypatch):
             raise ModuleNotFoundError("No module named 'sqlalchemy'")
         return object()
 
-    monkeypatch.setattr(cli.importlib, "import_module", _import_module)
+    monkeypatch.setattr(importlib, "import_module", _import_module)
 
-    ok, exc = cli._db_dependencies_available()
+    ok, exc = cli_common._db_dependencies_available()
     assert ok is False
     assert isinstance(exc, ModuleNotFoundError)
     assert "sqlalchemy" in str(exc)
@@ -392,9 +432,9 @@ def test_db_dependencies_available_handles_missing_modules(monkeypatch):
 @pytest.mark.order(468)
 def test_wait_for_rescore_logs_ready_returns_immediately_when_parseable(monkeypatch):
     sleep_calls = []
-    monkeypatch.setattr(cli.time, "sleep", lambda seconds: sleep_calls.append(seconds))
+    monkeypatch.setattr(time, "sleep", lambda seconds: sleep_calls.append(seconds))
 
-    paths, data, ready = cli._wait_for_rescore_logs_ready(
+    paths, data, ready = cli_workflow._wait_for_rescore_logs_ready(
         lambda _out: ["lig_vina_rescoring.log"],
         lambda _paths, onlyBest=True: {"vina_vina_rescoring": -7.5 if onlyBest else -6.0},
         "unused",
@@ -427,9 +467,9 @@ def test_wait_for_rescore_logs_ready_retries_until_valid_scores(monkeypatch):
             return {"smina_vinardo_rescoring": float("nan")}
         return {"smina_vinardo_rescoring": -8.1}
 
-    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: state.__setitem__("sleep_calls", state["sleep_calls"] + 1))
+    monkeypatch.setattr(time, "sleep", lambda _seconds: state.__setitem__("sleep_calls", state["sleep_calls"] + 1))
 
-    paths, data, ready = cli._wait_for_rescore_logs_ready(
+    paths, data, ready = cli_workflow._wait_for_rescore_logs_ready(
         _paths,
         _read,
         "unused",
@@ -446,10 +486,10 @@ def test_wait_for_rescore_logs_ready_retries_until_valid_scores(monkeypatch):
 @pytest.mark.order(470)
 def test_wait_for_rescore_logs_ready_times_out_with_non_parseable_data(monkeypatch):
     ticks = iter([0.0, 0.0])
-    monkeypatch.setattr(cli.time, "monotonic", lambda: next(ticks))
-    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr(time, "monotonic", lambda: next(ticks))
+    monkeypatch.setattr(time, "sleep", lambda _seconds: None)
 
-    paths, data, ready = cli._wait_for_rescore_logs_ready(
+    paths, data, ready = cli_workflow._wait_for_rescore_logs_ready(
         lambda _out: ["lig_gnina_rescoring.log"],
         lambda _paths, onlyBest=True: {"gnina_default_rescoring": float("nan")},
         "unused",

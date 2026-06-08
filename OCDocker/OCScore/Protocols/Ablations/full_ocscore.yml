@@ -1,0 +1,6 @@
+name: full_ocscore
+description: Full OCScore feature set after standard metadata/target exclusion.
+include_patterns:
+  - "*"
+exclude_features: []
+exclude_patterns: []

@@ -16,7 +16,6 @@ OCDocker is a project designed to make the process of Virtual Screening (VS) mor
 
    OCDocker
    modules
-   OCDockerConsole
 
 
 Indices and tables

@@ -36,6 +36,7 @@ Welcome to the official documentation for OCDocker. This documentation provides 
 
    introduction
    installation
+   optional_dependencies
    modules
    examples
    OCDocker
@@ -46,10 +47,12 @@ Welcome to the official documentation for OCDocker. This documentation provides 
    OCDocker.Processing.Postprocessing
    OCDocker.Processing.Preprocessing
    OCDocker.Toolbox
-   OCDockerConsole
    manual
    usage
+   development
+   ocscore_replication
    error_handling
+   changelog
    COLLABORATORS
 
 Indices and tables

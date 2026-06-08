@@ -40,18 +40,30 @@ DB_IMPORT_ERROR: Optional[Exception] = None
 URL: Any = None
 cleanup_engine: Optional[Callable[[Any], None]] = None
 cleanup_session: Optional[Callable[[Any], None]] = None
-create_database_if_not_exists: Optional[Callable[[Any], None]] = None
+create_database_if_not_exists: Optional[Callable[..., Any]] = None
 create_engine: Optional[Callable[..., Any]] = None
 create_session: Optional[Callable[[Any], Any]] = None
+build_database_urls: Optional[Callable[[Any], Tuple[Any, Any]]] = None
+validate_database_config: Optional[Callable[..., Any]] = None
+DatabaseError: Any = RuntimeError
+DatabaseConfigurationError: Any = ValueError
+DatabaseCreationNotAllowedError: Any = RuntimeError
+MissingDatabaseDependencyError: Any = ImportError
 try:
     from sqlalchemy.engine.url import URL as _SQLAlchemyURL
 
     from OCDocker.DB.DBMinimal import (
+        DatabaseConfigurationError as _DatabaseConfigurationError,
+        DatabaseCreationNotAllowedError as _DatabaseCreationNotAllowedError,
+        DatabaseError as _DatabaseError,
+        MissingDatabaseDependencyError as _MissingDatabaseDependencyError,
+        build_database_urls as _build_database_urls,
         cleanup_engine as _cleanup_engine,
         cleanup_session as _cleanup_session,
         create_database_if_not_exists as _create_database_if_not_exists,
         create_engine as _create_engine,
         create_session as _create_session,
+        validate_database_config as _validate_database_config,
     )
 
     URL = _SQLAlchemyURL
@@ -60,6 +72,12 @@ try:
     create_database_if_not_exists = _create_database_if_not_exists
     create_engine = _create_engine
     create_session = _create_session
+    build_database_urls = _build_database_urls
+    validate_database_config = _validate_database_config
+    DatabaseError = _DatabaseError
+    DatabaseConfigurationError = _DatabaseConfigurationError
+    DatabaseCreationNotAllowedError = _DatabaseCreationNotAllowedError
+    MissingDatabaseDependencyError = _MissingDatabaseDependencyError
 except Exception as exc:
     DB_IMPORT_ERROR = exc
 
@@ -334,9 +352,9 @@ def _resolve_config_file_path(requested_config: Optional[str], *, include_packag
 
 
 def _load_cfg_config_values(config_file: str) -> Dict[str, Any]:
-    '''Load legacy key=value config values using configparser.'''
+    '''Load compatibility key=value config values using configparser.'''
 
-    # Allow duplicate keys to maintain compatibility with legacy configs that
+    # Allow duplicate keys to maintain compatibility with older configs that
     # may define the same option multiple times (last one wins).
     # Inline comments are enabled to support values like:
     #   key = value # comment
@@ -497,7 +515,7 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
                 if isinstance(value, str):
                     return value.strip() if value.strip() else default
                 if isinstance(value, bool):
-                    # Keep legacy yes/no semantics for string-valued toggles.
+                    # Keep compatibility yes/no semantics for string-valued toggles.
                     return 'yes' if value else 'no'
                 return str(value).strip()
         except (ValueError, TypeError, configparser.NoOptionError):
@@ -729,7 +747,11 @@ def argument_parsing() -> argparse.Namespace:
     return get_argument_parsing().parse_args()
 
 
-def bootstrap(ns: Optional[argparse.Namespace] = None, init_db: bool = True) -> None:
+def bootstrap(
+    ns: Optional[argparse.Namespace] = None,
+    init_db: bool = True,
+    create_db_if_missing: bool = False,
+) -> None:
     '''Explicitly bootstrap OCDocker environment (config, DB, paths).
 
     Must be called before using modules that depend on Initialise globals.
@@ -741,6 +763,9 @@ def bootstrap(ns: Optional[argparse.Namespace] = None, init_db: bool = True) -> 
     init_db : bool, optional
         If True, initialize SQLAlchemy engine/session and database URLs.
         Set to False for lightweight workflows that do not need database access.
+    create_db_if_missing : bool, optional
+        If True, explicitly create missing PostgreSQL/MySQL databases during
+        DB initialization. Defaults to False to avoid silent remote creation.
     '''
 
     global bootstrapped
@@ -802,18 +827,7 @@ def bootstrap(ns: Optional[argparse.Namespace] = None, init_db: bool = True) -> 
     backend_env = (os.getenv('OCDOCKER_DB_BACKEND', '') or os.getenv('DB_BACKEND', '')).strip()
     backend_cfg = str(config.database.backend or '').strip()
     raw_backend = backend_env or backend_cfg or 'postgresql'
-    normalized_backend = _normalize_db_backend(raw_backend)
-    if normalized_backend is None:
-        print(
-            f"{clrs['r']}ERROR{clrs['n']}: Unsupported DB_BACKEND '{raw_backend}'. "
-            "Use one of: postgresql, mysql, sqlite."
-        )
-        raise SystemExit(2)
-    backend = normalized_backend
 
-    config.database.backend = backend
-
-    # Build DB URLs and connections (optional)
     global db_url, optdb_url, engine, session
     db_url = None
     optdb_url = None
@@ -826,6 +840,8 @@ def bootstrap(ns: Optional[argparse.Namespace] = None, init_db: bool = True) -> 
         and create_engine is not None
         and create_database_if_not_exists is not None
         and create_session is not None
+        and validate_database_config is not None
+        and build_database_urls is not None
     )
     if db_requested and not db_helpers_available:
         missing_detail = ""
@@ -841,67 +857,81 @@ def bootstrap(ns: Optional[argparse.Namespace] = None, init_db: bool = True) -> 
         )
         db_requested = False
 
-    if db_requested and URL is not None:
-        if backend == 'sqlite':
-            _module_dir = os.path.dirname(os.path.abspath(__file__))
-            # Env var takes precedence, then config, then default path
-            sqlite_path_env = os.getenv('OCDOCKER_SQLITE_PATH', '').strip()
-            if sqlite_path_env:
-                sqlite_path = sqlite_path_env
-            elif config.database.sqlite_path:
-                sqlite_path = config.database.sqlite_path
-            else:
-                sqlite_path = os.path.join(_module_dir, 'ocdocker.db')
-            db_url = URL.create(drivername='sqlite', database=sqlite_path)
-            optdb_url = db_url
-            # Warn user about SQLite limitations
-            try:
-                print(f"{clrs['y']}WARNING{clrs['n']}: SQLite backend enabled. This is suitable for development/tests only. For performance and concurrency, PostgreSQL is recommended.")
-                print(
-                    f"{clrs['c']}INFO{clrs['n']}: To use PostgreSQL or MySQL, "
-                    "set DB_BACKEND accordingly."
-                )
-            except (OSError, IOError, BrokenPipeError):
-                # Ignore stdout errors (e.g., when output is redirected to a broken pipe)
-                pass
-        else:
-            # Ensure DB settings exist (client/server DB mode).
-            if not config.database.host or not config.database.user or not config.database.password or not config.database.database:
-                print(f"{clrs['r']}ERROR{clrs['n']}: The variables HOST, USER, PASSWORD and DATABASE must be set in the config file '{config_file}'")
-                raise SystemExit(2)
-            if backend == 'mysql':
-                drivername = 'mysql+pymysql'
-                default_port = 3306
-            else:
-                drivername = 'postgresql+psycopg'
-                default_port = 5432
+    sqlite_path_env = os.getenv('OCDOCKER_SQLITE_PATH', '').strip()
+    sqlite_path = sqlite_path_env or str(config.database.sqlite_path or '').strip()
+    if str(raw_backend).strip().lower() in ('sqlite', 'sqlite3') and not sqlite_path:
+        sqlite_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ocdocker.db')
 
-            config.database.port = int(config.database.port) if config.database.port else default_port
-            if not config.database.optimizedb:
-                config.database.optimizedb = 'optimization'
-
-            db_url = URL.create(
-                drivername=drivername,
+    if validate_database_config is not None:
+        try:
+            db_settings = validate_database_config(
+                raw_backend,
                 host=config.database.host,
-                username=config.database.user,
+                user=config.database.user,
                 password=config.database.password,
                 database=config.database.database,
-                port=config.database.port
+                optimizedb=config.database.optimizedb,
+                port=config.database.port,
+                sqlite_path=sqlite_path,
+                require_credentials=db_requested,
             )
-            optdb_url = URL.create(
-                drivername=drivername,
-                host=config.database.host,
-                username=config.database.user,
-                password=config.database.password,
-                database=config.database.optimizedb,
-                port=config.database.port
+        except DatabaseConfigurationError as exc:
+            print(f"{clrs['r']}ERROR{clrs['n']}: {exc}")
+            raise SystemExit(2) from exc
+    else:
+        normalized_backend = _normalize_db_backend(raw_backend)
+        if normalized_backend is None:
+            print(
+                f"{clrs['r']}ERROR{clrs['n']}: Unsupported DB_BACKEND '{raw_backend}'. "
+                "Use one of: postgresql, mysql, sqlite."
             )
+            raise SystemExit(2)
+        db_settings = None
 
-        if create_engine is not None and create_database_if_not_exists is not None and create_session is not None:
+    backend = db_settings.backend if db_settings is not None else _normalize_db_backend(raw_backend)
+    config.database.backend = backend
+    if db_settings is not None:
+        config.database.port = db_settings.port
+        config.database.sqlite_path = db_settings.sqlite_path
+        if db_settings.backend != 'sqlite' and not config.database.optimizedb:
+            config.database.optimizedb = 'optimization'
+
+    if db_requested and db_settings is not None and build_database_urls is not None:
+        try:
+            db_url, optdb_url = build_database_urls(db_settings)
+
+            if db_settings.backend == 'sqlite':
+                try:
+                    print(
+                        f"{clrs['y']}WARNING{clrs['n']}: SQLite backend enabled. "
+                        "SQLite is suitable for development/tests/small local runs. "
+                        "For persistent, concurrent, or long-running workflows, use PostgreSQL or MySQL."
+                    )
+                    print(
+                        f"{clrs['c']}INFO{clrs['n']}: To use PostgreSQL or MySQL, "
+                        "set DB_BACKEND accordingly."
+                    )
+                except (OSError, IOError, BrokenPipeError):
+                    pass
+
             engine = create_engine(db_url)
-            create_database_if_not_exists(engine.url)
-            create_database_if_not_exists(optdb_url)
+            create_database_if_not_exists(engine.url, create_if_missing=create_db_if_missing)
+            if optdb_url != db_url:
+                create_database_if_not_exists(optdb_url, create_if_missing=create_db_if_missing)
             session = create_session(engine)
+        except MissingDatabaseDependencyError as exc:
+            print(f"{clrs['r']}ERROR{clrs['n']}: {exc}")
+            raise SystemExit(2) from exc
+        except DatabaseCreationNotAllowedError as exc:
+            print(f"{clrs['r']}ERROR{clrs['n']}: {exc}")
+            print(
+                f"{clrs['c']}INFO{clrs['n']}: Database creation is explicit. "
+                "Enable create_db_if_missing=True from application code or use a CLI path that intentionally creates DBs."
+            )
+            raise SystemExit(2) from exc
+        except DatabaseError as exc:
+            print(f"{clrs['r']}ERROR{clrs['n']}: {exc}")
+            raise SystemExit(2) from exc
 
     # Paths and dirs (runtime values - stored in config only, no globals)
     ocdocker_path = os.path.dirname(os.path.abspath(__file__))
@@ -1939,40 +1969,11 @@ _SYNC_SKIP_NAMES = {
 # Initialise
 ###############################################################################
 
-# Auto-bootstrap on first import by default (legacy behavior).
-# - Set OCDOCKER_NO_AUTO_BOOTSTRAP=1 to disable.
-# - Set OCDOCKER_AUTO_BOOTSTRAP explicitly (truthy/falsey) to override.
-try:
-    # Provide harmless defaults when building docs (or tests)
-    if os.getenv("OC_BUILD_DOCS") == "1":
-        if "session" not in globals():
-            session = MagicMock(name="session")
-        if "db_url" not in globals():
-            db_url = "sqlite:///:memory:"
-
-    auto_bootstrap_env = os.getenv("OCDOCKER_AUTO_BOOTSTRAP")
-    auto_bootstrap_enabled = (
-        _is_truthy_env("OCDOCKER_AUTO_BOOTSTRAP")
-        if auto_bootstrap_env is not None
-        else True
-    )
-
-    should_autobootstrap = (
-        auto_bootstrap_enabled
-        and not _is_truthy_env("OCDOCKER_NO_AUTO_BOOTSTRAP")
-        and not bootstrapped
-        and not is_doc_build()
-    )
-
-    if should_autobootstrap:
-        default_ns = argparse.Namespace(
-            multiprocess=True,
-            update=False,
-            config_file=os.getenv("OCDOCKER_CONFIG", "OCDocker.cfg"),
-            output_level=ocerror.ReportLevel.WARNING,
-            overwrite=False,
-        )
-        bootstrap(default_ns)
-except SystemExit:
-    # Propagate the failure semantics as before: importing without a valid config exits
-    raise
+# Importing this module is intentionally side-effect-free. CLI/application code
+# must call bootstrap() explicitly before using runtime globals such as db_url,
+# engine, or session. Sphinx/doc builds still get harmless placeholders.
+if os.getenv("OC_BUILD_DOCS") == "1":
+    if "session" not in globals():
+        session = MagicMock(name="session")
+    if "db_url" not in globals():
+        db_url = "sqlite:///:memory:"

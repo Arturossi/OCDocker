@@ -16,7 +16,8 @@ import pytest
 
 from pathlib import Path
 
-from OCDocker.CLI.__init__ import cmd_init_config, cmd_version
+from OCDocker.CLI.init_config import cmd_init_config
+from OCDocker.CLI.manifest import cmd_version
 
 # License
 ###############################################################################

@@ -2,9 +2,9 @@
 
 # Description
 ###############################################################################
-'''
+"""
 Tests for DBMinimal helpers using dummy SQLAlchemy stubs.
-'''
+"""
 
 # Imports
 ###############################################################################
@@ -17,7 +17,7 @@ from pathlib import Path
 
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -30,7 +30,8 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
+
 
 # Classes
 ###############################################################################
@@ -48,8 +49,8 @@ class DummyURL:
     @classmethod
     def create(cls, drivername, database=None):
         inst = cls()
-        inst.drivername = drivername # type: ignore
-        inst.database = database # type: ignore
+        inst.drivername = drivername  # type: ignore
+        inst.database = database  # type: ignore
         return inst
 
 
@@ -64,19 +65,19 @@ def dbminimal(monkeypatch):
     sqlalchemy = types.ModuleType("sqlalchemy")
     engine_mod = types.ModuleType("sqlalchemy.engine")
     engine_base = types.ModuleType("sqlalchemy.engine.base")
-    engine_base.Engine = DummyEngine # type: ignore
+    engine_base.Engine = DummyEngine  # type: ignore
     engine_url = types.ModuleType("sqlalchemy.engine.url")
-    engine_url.URL = DummyURL # type: ignore
-    engine_url.make_url = lambda url: url if isinstance(url, DummyURL) else DummyURL.create("sqlite", url) # type: ignore
-    engine_mod.base = engine_base # type: ignore
-    engine_mod.url = engine_url # type: ignore
-    sqlalchemy.engine = engine_mod # type: ignore
-    sqlalchemy.create_engine = dummy_create_engine # type: ignore
+    engine_url.URL = DummyURL  # type: ignore
+    engine_url.make_url = lambda url: url if isinstance(url, DummyURL) else DummyURL.create("sqlite", url)  # type: ignore
+    engine_mod.base = engine_base  # type: ignore
+    engine_mod.url = engine_url  # type: ignore
+    sqlalchemy.engine = engine_mod  # type: ignore
+    sqlalchemy.create_engine = dummy_create_engine  # type: ignore
 
     orm_mod = types.ModuleType("sqlalchemy.orm")
-    orm_mod.sessionmaker = dummy_sessionmaker # type: ignore
-    orm_mod.scoped_session = DummyScopedSession # type: ignore
-    sqlalchemy.orm = orm_mod # type: ignore
+    orm_mod.sessionmaker = dummy_sessionmaker  # type: ignore
+    orm_mod.scoped_session = DummyScopedSession  # type: ignore
+    sqlalchemy.orm = orm_mod  # type: ignore
 
     monkeypatch.setitem(sys.modules, "sqlalchemy", sqlalchemy)
     monkeypatch.setitem(sys.modules, "sqlalchemy.engine", engine_mod)
@@ -90,8 +91,8 @@ def dbminimal(monkeypatch):
         dummy_create_database.called = True
 
     dummy_create_database.called = False
-    sqla_utils.create_database = dummy_create_database # type: ignore
-    sqla_utils.database_exists = lambda url: True # type: ignore
+    sqla_utils.create_database = dummy_create_database  # type: ignore
+    sqla_utils.database_exists = lambda url: True  # type: ignore
     monkeypatch.setitem(sys.modules, "sqlalchemy_utils", sqla_utils)
 
     # Ensure package hierarchy exists for import
@@ -104,14 +105,23 @@ def dbminimal(monkeypatch):
 
     db_file = project_root / "OCDocker" / "DB" / "DBMinimal.py"
     spec = importlib.util.spec_from_file_location("OCDocker.DB.DBMinimal", db_file)
-    module = importlib.util.module_from_spec(spec) # type: ignore
+    module = importlib.util.module_from_spec(spec)  # type: ignore
     sys.modules["OCDocker.DB.DBMinimal"] = module
-    assert spec.loader is not None # type: ignore
-    spec.loader.exec_module(module) # type: ignore
+    assert spec.loader is not None  # type: ignore
+    spec.loader.exec_module(module)  # type: ignore
     return module
 
 
-def dummy_create_engine(url, echo=False, pool_size=None, max_overflow=None, pool_timeout=None, pool_recycle=None, pool_pre_ping=None, **kwargs):
+def dummy_create_engine(
+    url,
+    echo=False,
+    pool_size=None,
+    max_overflow=None,
+    pool_timeout=None,
+    pool_recycle=None,
+    pool_pre_ping=None,
+    **kwargs,
+):
     return DummyEngine()
 
 
@@ -124,13 +134,21 @@ def dummy_sessionmaker(bind=None):
 
 ## Public ##
 @pytest.mark.order(53)
-def test_create_database_if_not_exists(monkeypatch, dbminimal):
+def test_create_database_if_not_exists_requires_explicit_creation(
+    monkeypatch, dbminimal
+):
     dbm = dbminimal
-    url = dbm.URL.create("sqlite+pysqlite", database=":memory:")
+    url = dbm.URL.create("postgresql", database="ocdocker")
+    created = []
     monkeypatch.setattr(dbm, "database_exists", lambda url: False)
-    dbm.create_database.called = False
-    dbm.create_database_if_not_exists(url)
-    assert dbm.create_database.called is True
+    monkeypatch.setattr(dbm, "create_database", lambda url: created.append(url))
+
+    with pytest.raises(dbm.DatabaseCreationNotAllowedError):
+        dbm.create_database_if_not_exists(url)
+    assert created == []
+
+    assert dbm.create_database_if_not_exists(url, create_if_missing=True) is True
+    assert created == [url]
 
 
 @pytest.mark.order(50)

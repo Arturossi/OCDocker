@@ -8,7 +8,7 @@ Participation in this project is governed by `CODE_OF_CONDUCT.md`.
 
 ## Ways to Contribute
 - Report bugs with clear, reproducible steps.
-- Improve documentation and examples.
+- Improve documentation and examples (OCScore CLI changes: update [OCSCORE_REPLICATION.md](OCSCORE_REPLICATION.md)).
 - Propose code changes with tests.
 
 ## Before You Start
@@ -29,9 +29,12 @@ conda activate ocdocker
 ```
 
 ```bash
-# Pip from source
+# Pip from source (minimal core)
 pip install -r requirements.txt
 pip install -e .
+
+# Typical developer install with runtime stacks and test tooling
+pip install -e ".[all,dev]"
 ```
 
 Helpful environment settings:
@@ -44,6 +47,8 @@ Helpful environment settings:
 pytest -q
 ```
 
+Good tests assert behavior users depend on (CLI output shape, metric values, security blocks, protocol invariants). Avoid tests that only lock package `__all__` or import/delegation wiring. See `obsidian/Architecture/Testing Map.md` for the fruitfulness rubric and protected suites.
+
 Notes:
 - Tests use fixtures in `test_files/` and do not require external docking
   binaries to run.
@@ -53,6 +58,35 @@ Notes:
 ## Documentation
 Documentation sources live in `docs/`. Update docs when you change user-facing
 behavior or the CLI.
+
+Formatting and readability standards (line length 120, multiline TOML arrays,
+module-level constants for long Python lists) are documented in
+[`docs/source/development.rst`](docs/source/development.rst) (Sphinx: *Development conventions*).
+
+## Output and Logging
+
+OCDocker supports structured logging via `OCDocker.Toolbox.Logging`. Prefer this
+for **library code** so callers (CLI, notebooks, tests) can control verbosity.
+
+- **Library modules**: use a module-level logger and log at appropriate levels:
+
+```python
+import OCDocker.Toolbox.Logging as oclogging
+
+LOGGER = oclogging.get_logger("ocscore.feature_reduction")
+LOGGER.info("message")
+LOGGER.warning("message")
+LOGGER.error("message")
+```
+
+- **CLI / interactive UX**: it is acceptable to use direct `print()` for
+  user-facing guidance (installation hints, prompts, final reports meant for
+  piping). Prefer logging for diagnostics, retries, and debugging output.
+  Keep `print()` out of library modules unless there is a strong UX reason.
+
+- **Logging configuration**: configure logging once at the CLI boundary (or
+  entrypoint) via `oclogging.configure(...)`. Avoid configuring logging deep
+  inside library modules.
 
 ## Submitting Changes
 - Use a dedicated branch.

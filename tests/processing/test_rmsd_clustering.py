@@ -3,7 +3,7 @@
 # Description
 ###############################################################################
 '''
-Coverage tests for Processing.Preprocessing.RmsdClustering.
+Coverage tests for Processing.Preprocessing.RMSDClustering.
 '''
 
 # Imports
@@ -13,7 +13,7 @@ import pandas as pd
 import pytest
 
 import OCDocker.Error as ocerror
-import OCDocker.Processing.Preprocessing.RmsdClustering as ocrmsdclust
+import OCDocker.Processing.Preprocessing.RMSDClustering as ocrmsdclust
 
 # License
 ###############################################################################
@@ -88,6 +88,31 @@ def test_cluster_rmsd_invalid_threshold_order_returns_value_error():
 
 
 @pytest.mark.order(145)
+def test_build_pose_engine_map_from_mol2_filenames():
+    mol2_paths = [
+        "/tmp/poses/gnina_ligand_split_1.mol2",
+        "/tmp/poses/vina_ligand_split_2.mol2",
+    ]
+    engine_map = ocrmsdclust.build_pose_engine_map(mol2_paths)
+
+    assert engine_map == {
+        "/tmp/poses/gnina_ligand_split_1.mol2": "gnina",
+        "/tmp/poses/vina_ligand_split_2.mol2": "vina",
+    }
+
+
+@pytest.mark.order(146)
+def test_build_pose_engine_map_uses_original_pose_paths():
+    mol2_paths = ["/tmp/poses/smina_ligand.mol2"]
+    source_map = {"/dock/smina/ligand.pdbqt": "smina"}
+    aliases = {"/tmp/poses/smina_ligand.mol2": "/dock/smina/ligand.pdbqt"}
+
+    engine_map = ocrmsdclust.build_pose_engine_map(mol2_paths, source_map, aliases)
+
+    assert engine_map == {"/tmp/poses/smina_ligand.mol2": "smina"}
+
+
+@pytest.mark.order(147)
 def test_cluster_rmsd_unsupported_algorithm_returns_error():
     rc = ocrmsdclust.cluster_rmsd(_sample_df(), algorithm="unsupported")
     assert rc == ocerror.ErrorCode.UNSUPPORTED_CLUSTERING_ALGORITHM

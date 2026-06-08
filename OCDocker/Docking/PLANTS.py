@@ -55,7 +55,33 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 class PLANTS:
-    """PLANTS object with methods for easy run."""
+    """Workflow wrapper for PLANTS docking runs.
+
+    Parameters
+    ----------
+    config_path : str
+        Path to the PLANTS configuration file.
+    box_file : str
+        Path to the docking box file.
+    receptor : ocr.Receptor
+        Receptor object to dock against.
+    prepared_receptor_path : str
+        Path to the prepared receptor file.
+    ligand : ocl.Ligand
+        Ligand object to dock.
+    prepared_ligand_path : str
+        Path to the prepared ligand file.
+    plants_log : str
+        Path to the PLANTS log file.
+    output_plants : str
+        Output directory or prefix for PLANTS results.
+    name : str, optional
+        Identifier for this docking run, by default ``""``.
+    box_spacing : float, optional
+        Grid spacing for the PLANTS binding site box (Å), by default ``2.9``.
+    overwrite_config : bool, optional
+        Overwrite an existing config file, by default ``False``.
+    """
     ## Private ##
 
     def __get_binding_site(self) -> Union[Tuple[Tuple[float, float, float], float], int]:

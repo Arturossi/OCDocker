@@ -13,6 +13,7 @@ Modules
 -------
 - Bootstrap: Bootstrap confidence intervals for metrics.
 - Ranking: Core ranking metrics (ROC/PR/EF, etc.).
+- Calibration: Brier, log loss, ECE, and Platt/isotonic calibrators for OCScore.
 '''
 
 # Imports

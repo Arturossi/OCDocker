@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-from __future__ import annotations
 
 # Description
 ###############################################################################
 '''
 Sets of classes and functions that are used to process all content related to
-the ligand.
+the receptor.
 
 Usage:
 
@@ -14,6 +13,8 @@ import OCDocker.Receptor as ocr
 
 # Imports
 ###############################################################################
+from __future__ import annotations
+
 import Bio
 import json
 import math
@@ -89,8 +90,12 @@ class Receptor:
         Path to JSON file containing pre-computed descriptors, by default "".
     overwrite : bool, optional
         Whether to overwrite existing files, by default False.
-    clean : bool, optional
-        Whether to clean/renumber the PDB structure, by default False.
+    allow_missing_surface : bool, optional
+        If True, continue when DSSP/surface amino-acid counts are unavailable,
+        by default False.
+    canonicalize_pdb : bool | str, optional
+        Whether to canonicalize CHARMM-style PDB atom/residue names. Use
+        True, False, or ``"auto"``, by default ``"auto"``.
 
     Attributes
     ----------
@@ -165,14 +170,16 @@ class Receptor:
         clean : bool, optional
             Flag to denote if the pdb file will be cleaned, by default False.
         canonicalize_pdb : bool | str, optional
-            Whether to canonicalize CHARMM-style PDB names. Use True, False, or "auto".
+            Whether to canonicalize CHARMM-style PDB names. Use True, False, or
+            ``"auto"``, by default ``"auto"``.
         allow_missing_surface : bool, optional
-            If True, allows initialization to continue when DSSP/surface AA counts
-            are unavailable, using zeroed surface counts. Default is False.
+            If True, allows initialization when DSSP/surface AA counts are
+            unavailable, using zeroed surface counts, by default False.
 
-        Returns
-        -------
-        None
+        Raises
+        ------
+        ValueError
+            If the receptor name is invalid or the structure cannot be loaded.
         '''
 
         # Name must come first

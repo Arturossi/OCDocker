@@ -1,0 +1,8 @@
+name: no_pmi
+description: Remove direct PMI descriptors to test direct PMI dependence.
+include_patterns:
+  - "*"
+exclude_features:
+  - ligand_PMI1
+  - ligand_PMI2
+  - ligand_PMI3

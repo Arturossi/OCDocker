@@ -8,12 +8,8 @@ Submodules
    :maxdepth: 4
 
    OCDocker.OCScore.Utils.Data
-   OCDocker.OCScore.Utils.Evaluation
+   OCDocker.OCScore.Utils.FeatureReduction
    OCDocker.OCScore.Utils.IO
-   OCDocker.OCScore.Utils.Plotting
-   OCDocker.OCScore.Utils.SimpleConsensus
-   OCDocker.OCScore.Utils.StudyParser
-   OCDocker.OCScore.Utils.Workers
 
 Module contents
 ---------------
@@ -22,3 +18,5 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+
+Staged-pipeline utilities (data loading, feature reduction, I/O).

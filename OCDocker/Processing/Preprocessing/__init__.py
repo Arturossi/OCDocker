@@ -12,7 +12,7 @@ import OCDocker.Processing.Preprocessing as ocprep
 Modules
 -------
 - Prepare: Molecule preparation helpers.
-- RmsdClustering: RMSD clustering helpers.
+- RMSDClustering: RMSD clustering helpers.
 '''
 
 # Imports

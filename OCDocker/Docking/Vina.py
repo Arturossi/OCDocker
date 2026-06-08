@@ -54,7 +54,31 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 # Classes
 ###############################################################################
 class Vina:
-    """Vina object with methods for easy run."""
+    """Workflow wrapper for AutoDock Vina docking and rescoring.
+
+    Parameters
+    ----------
+    config_path : str
+        Path to the Vina configuration file.
+    box_file : str
+        Path to the docking box PDB file.
+    receptor : ocr.Receptor
+        Receptor object to dock against.
+    prepared_receptor_path : str
+        Path to the prepared receptor file (PDBQT).
+    ligand : ocl.Ligand
+        Ligand object to dock.
+    prepared_ligand_path : str
+        Path to the prepared ligand file (PDBQT).
+    vina_log : str
+        Path to the Vina run log file.
+    output_vina : str
+        Output directory or prefix for Vina pose files.
+    name : str, optional
+        Identifier for this docking run, by default ``""``.
+    overwrite_config : bool, optional
+        Overwrite an existing config file, by default ``False``.
+    """
     ## Private ##
 
     def __init__(self, config_path: str, box_file: str, receptor: ocr.Receptor, prepared_receptor_path: str, ligand: ocl.Ligand, prepared_ligand_path: str, vina_log: str, output_vina: str, name: str = "", overwrite_config: bool = False) -> None:

@@ -1,0 +1,4 @@
+name: ligand_only
+description: Use only ligand descriptor columns.
+include_patterns:
+  - "ligand_*"

@@ -2,14 +2,18 @@
 
 # Description
 ###############################################################################
-'''
-Sets of classes and functions that are used as base for all databases. It
-contains functions that are common to all databases.
+"""
+Shared database import and workflow adapter utilities.
+
+``baseDB.py`` contains shared helpers used to prepare/populate OCDocker
+reference databases and coordinate common dataset/database access patterns.
+It intentionally remains the shared database base/adapter layer in this cleanup;
+its functionality is not being renamed or relocated.
 
 Usage:
 
 import OCDocker.DB.baseDB as ocbdb
-'''
+"""
 
 # Imports
 ###############################################################################
@@ -19,17 +23,13 @@ from glob import glob
 
 import OCDocker.Error as ocerror
 
-import OCDocker.Processing.Dock as ocdock
-import OCDocker.Processing.Preprocessing.Prepare as ocprepare
-
 import OCDocker.Toolbox.Printing as ocprint
 
 from OCDocker.Config import get_config
 
-
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -42,18 +42,43 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
 
 # Classes
 ###############################################################################
+
+
+class _LazyPrepareModule:
+    def prepare(self, *args, **kwargs):
+        import OCDocker.Processing.Preprocessing.Prepare as module
+
+        return module.prepare(*args, **kwargs)
+
+
+class _LazyDockModule:
+    def run_dock(self, *args, **kwargs):
+        import OCDocker.Processing.Dock as module
+
+        return module.run_dock(*args, **kwargs)
+
+
+ocprepare = _LazyPrepareModule()
+ocdock = _LazyDockModule()
 
 # Functions
 ###############################################################################
 ## Private ##
 
+
 ## Public ##
-def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, sanitize: bool = True, all_boxes: bool = False) -> None:
-    '''Prepares the database.
+def prepare(
+    archive: str,
+    overwrite: bool = False,
+    spacing: float = 0.33,
+    sanitize: bool = True,
+    all_boxes: bool = False,
+) -> None:
+    """Prepares the database.
 
     Parameters
     ----------
@@ -65,7 +90,7 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
         The spacing to be used in the grid. The default is 0.33.
     sanitize : bool, optional
         If True sanitizes the ligands, if False does not sanitize the ligands. The default is True.
-    '''
+    """
 
     # Find which kind of archive it will be
     config = get_config()
@@ -74,23 +99,35 @@ def prepare(archive: str, overwrite: bool = False, spacing: float = 0.33, saniti
     elif archive.lower() == "pdbbind":
         chosenArchive = config.pdbbind_archive
     else:
-        ocprint.print_error(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
+        ocprint.print_error(
+            f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}."
+        )
         return None
 
     # Get all paths in the database
-    paths = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
+    paths = [
+        d
+        for d in glob(f"{chosenArchive}/*")
+        if os.path.basename(d.split(os.path.sep)[-1]) not in ["index"]
+    ]
 
     # Generate boxes for all receptors
     ocprint.printv("Generating information regarding possible ligand site.")
 
     # Prepare it
-    ocprepare.prepare(paths, overwrite, archive, sanitize, spacing, all_boxes = all_boxes)
+    ocprepare.prepare(paths, overwrite, archive, sanitize, spacing, all_boxes=all_boxes)
 
     return None
 
 
-def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json", overwrite: bool = False, all_boxes: bool = False) -> int:
-    '''Run docking.
+def run_docking(
+    archive: str,
+    dockingAlgorithm: str,
+    digestFormat: str = "json",
+    overwrite: bool = False,
+    all_boxes: bool = False,
+) -> int:
+    """Run docking.
 
     Parameters
     ----------
@@ -107,7 +144,7 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
     -------
     int
         The exit code of the command (based on the Error.py code table).
-    '''
+    """
 
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
@@ -121,15 +158,23 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
         config = get_config()
         chosenArchive = config.pdbbind_archive
     else:
-        return ocerror.Error.not_supported_archive(f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}.")
+        return ocerror.Error.not_supported_archive(
+            f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}."
+        )
 
     # TODO: add support to more docking algorithms
     # Check if the docking algorithm is valid
     if dockingAlgorithm not in ["gnina", "vina", "smina", "plants"]:
-        return ocerror.Error.not_supported_docking_algorithm(f"Docking software not recognized. Expected ('gnina', 'vina', 'smina', 'plants') and got '{dockingAlgorithm}'.")
+        return ocerror.Error.not_supported_docking_algorithm(
+            f"Docking software not recognized. Expected ('gnina', 'vina', 'smina', 'plants') and got '{dockingAlgorithm}'."
+        )
 
     # Get all dirs paths in the database
-    ptnDirs = [d for d in glob(f"{chosenArchive}/*") if os.path.basename(d.split(os.path.sep)[-1]) not in ['index']]
+    ptnDirs = [
+        d
+        for d in glob(f"{chosenArchive}/*")
+        if os.path.basename(d.split(os.path.sep)[-1]) not in ["index"]
+    ]
 
     # Create the complex list
     complexList = []
@@ -142,7 +187,19 @@ def run_docking(archive: str, dockingAlgorithm: str, digestFormat: str = "json",
         candidates = f"{ptnDir}/compounds/candidates"
 
         # Append to the complex list the merged ligandAlternative list with the list with ligands, decoys and candidates. This is made because each receptor must have its own list of ligands, decoys and candidates, otherwise the docking could be done with the same ligands, decoys and candidates for all receptors making everything out of control.
-        complexList.append((ptnDir, glob(f"{ligands}/*") + glob(f"{decoys}/*") + glob(f"{candidates}/*")))
+        complexList.append(
+            (
+                ptnDir,
+                glob(f"{ligands}/*") + glob(f"{decoys}/*") + glob(f"{candidates}/*"),
+            )
+        )
 
     # Run docking
-    return ocdock.run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes = all_boxes)
+    return ocdock.run_dock(
+        complexList,
+        archive,
+        dockingAlgorithm,
+        overwrite,
+        digestFormat,
+        all_boxes=all_boxes,
+    )

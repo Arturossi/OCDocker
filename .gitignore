@@ -226,3 +226,6 @@ auxiliary_files/
 
 # Secret scan output
 .secrets.scan.json
+
+# Obsidian files
+obsidian/

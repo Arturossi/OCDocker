@@ -135,7 +135,7 @@ def test_resolve_smina_log_prefers_primary_file(tmp_path, ocdigest):
 
 
 @pytest.mark.order(124)
-def test_resolve_smina_log_falls_back_to_legacy_name(tmp_path, ocdigest):
+def test_resolve_smina_log_falls_back_to_previous_name(tmp_path, ocdigest):
     run_dir = tmp_path / "sminaFiles"
     run_dir.mkdir(parents=True, exist_ok=True)
 

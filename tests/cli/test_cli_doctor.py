@@ -10,6 +10,7 @@ Coverage tests for CLI doctor diagnostics branches.
 ###############################################################################
 import json
 import os
+import shutil
 import sys
 import types
 
@@ -17,7 +18,7 @@ from types import SimpleNamespace
 
 import pytest
 
-import OCDocker.CLI.__init__ as cli
+import OCDocker.CLI.doctor as cli_doctor
 import OCDocker.Error as ocerror
 
 # License
@@ -123,13 +124,13 @@ def test_cmd_doctor_reports_config_unavailable_and_missing_engine(monkeypatch, c
     config_mod.get_config = lambda: (_ for _ in ()).throw(RuntimeError("missing config"))  # type: ignore[attr-defined]
 
     _install_cli_doctor_modules(monkeypatch, init_mod, config_mod, logging_raise=False)
-    monkeypatch.setattr(cli, "_preparse_global_args", lambda _argv: SimpleNamespace())
-    monkeypatch.setattr(cli, "_bootstrap_ocdocker_env", lambda _ns: None)
-    monkeypatch.setattr(cli.shutil, "which", lambda _cmd: None)
-    monkeypatch.setattr(cli, "_probe_executable_version", lambda _exe: "unknown")
+    monkeypatch.setattr("OCDocker.CLI.doctor._preparse_global_args", lambda _argv: SimpleNamespace())
+    monkeypatch.setattr("OCDocker.CLI.doctor._bootstrap_ocdocker_env", lambda _ns: None)
+    monkeypatch.setattr(shutil, "which", lambda _cmd: None)
+    monkeypatch.setattr("OCDocker.CLI.manifest._probe_executable_version", lambda _exe: "unknown")
 
     args = SimpleNamespace(log_file="", no_stdout_log=True)
-    rc = cli.cmd_doctor(args)
+    rc = cli_doctor.cmd_doctor(args)
     assert rc == 0
 
     report = json.loads(capsys.readouterr().out)
@@ -167,17 +168,16 @@ def test_cmd_doctor_reports_binary_and_database_ok(monkeypatch, tmp_path, capsys
     config_mod.get_config = lambda: cfg_obj  # type: ignore[attr-defined]
 
     _install_cli_doctor_modules(monkeypatch, init_mod, config_mod, logging_raise=False)
-    monkeypatch.setattr(cli, "_preparse_global_args", lambda _argv: SimpleNamespace())
-    monkeypatch.setattr(cli, "_bootstrap_ocdocker_env", lambda _ns: None)
-    monkeypatch.setattr(cli.shutil, "which", lambda cmd: "/usr/bin/smina_cmd" if cmd == "smina_cmd" else None)
+    monkeypatch.setattr("OCDocker.CLI.doctor._preparse_global_args", lambda _argv: SimpleNamespace())
+    monkeypatch.setattr("OCDocker.CLI.doctor._bootstrap_ocdocker_env", lambda _ns: None)
+    monkeypatch.setattr(shutil, "which", lambda cmd: "/usr/bin/smina_cmd" if cmd == "smina_cmd" else None)
     monkeypatch.setattr(
-        cli,
-        "_probe_executable_version",
+        "OCDocker.CLI.manifest._probe_executable_version",
         lambda exe: f"v@{os.path.basename(exe)}" if exe else "unknown",
     )
 
     args = SimpleNamespace(log_file="", no_stdout_log=False)
-    rc = cli.cmd_doctor(args)
+    rc = cli_doctor.cmd_doctor(args)
     assert rc == 0
 
     report = json.loads(capsys.readouterr().out)
@@ -224,11 +224,11 @@ def test_cmd_doctor_ignores_logging_configuration_errors(monkeypatch, capsys):
     config_mod.get_config = lambda: cfg_obj  # type: ignore[attr-defined]
 
     _install_cli_doctor_modules(monkeypatch, init_mod, config_mod, logging_raise=True)
-    monkeypatch.setattr(cli, "_preparse_global_args", lambda _argv: SimpleNamespace())
-    monkeypatch.setattr(cli, "_bootstrap_ocdocker_env", lambda _ns: None)
-    monkeypatch.setattr(cli.shutil, "which", lambda _cmd: None)
+    monkeypatch.setattr("OCDocker.CLI.doctor._preparse_global_args", lambda _argv: SimpleNamespace())
+    monkeypatch.setattr("OCDocker.CLI.doctor._bootstrap_ocdocker_env", lambda _ns: None)
+    monkeypatch.setattr(shutil, "which", lambda _cmd: None)
 
-    rc = cli.cmd_doctor(SimpleNamespace(log_file="/tmp/x.log", no_stdout_log=False))
+    rc = cli_doctor.cmd_doctor(SimpleNamespace(log_file="/tmp/x.log", no_stdout_log=False))
     assert rc == 0
     report = json.loads(capsys.readouterr().out)
     assert "binaries" in report

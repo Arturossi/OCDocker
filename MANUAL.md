@@ -7,6 +7,19 @@ This manual describes the main workflows, inputs and outputs, configuration, and
 for OCDocker. For full API reference see the Sphinx docs in `docs/` and the package pages
 (for example `OCDocker.Docking` and `OCDocker.OCScore`).
 
+Installation
+------------
+
+Quick cheat sheet — see **`docs/source/optional_dependencies.rst`** (Sphinx: *Optional dependencies*) for install extras and **`docs/source/development.rst`** (*Development conventions*) for formatting rules.
+
+```bash
+pip install ocdocker
+pip install "ocdocker[docking]"
+pip install "ocdocker[docking,analysis]"   # pipeline dendrogram plots
+pip install "ocdocker[ml]"                 # OCScore
+pip install -e ".[all,dev]"                # development
+```
+
 Core workflow
 -------------
 
@@ -113,7 +126,6 @@ Common:
 - `OCDOCKER_CONFIG`: path to `OCDocker.cfg`
 - `OCDOCKER_DB_BACKEND` / `DB_BACKEND`: choose backend (`postgresql`, `mysql`, `sqlite`)
 - `OCDOCKER_SQLITE_PATH`: explicit SQLite file path
-- `OCDOCKER_NO_AUTO_BOOTSTRAP`: disable import-time bootstrap
 - `OCDOCKER_TIMEOUT`: default timeout (seconds) for external tools
 
 Advanced (debugging subprocesses):
@@ -138,8 +150,8 @@ Main commands (see `ocdocker <command> --help`):
 
 - `vs`: single-engine docking with optional rescoring of all poses
 - `pipeline`: multi-engine docking, RMSD clustering, representative selection, rescoring
-- `shap`: OCScore SHAP analysis
-- `console`: interactive console with OCDocker pre-loaded
+- `ocscore`: staged OCScore ML pipeline (`reduce`, `train`, `shap`, export tools)
+- `console`: interactive REPL with OCDocker pre-loaded (`help` / `exit` built-ins; use `--ipython` for IPython when installed). Also: `python -m OCDocker.Console`
 - `script`: run a Python script with OCDocker pre-loaded
   (requires `--allow-unsafe-exec` or `OCDOCKER_ALLOW_SCRIPT_EXEC=1`)
 - `doctor`: diagnostics (binaries, deps, DB)
@@ -250,8 +262,11 @@ Rescoring and OCScore
 Database and persistence
 ------------------------
 
-- Default backend is PostgreSQL; MySQL and SQLite are also supported.
-- Use `--store-db` in CLI commands to store receptor/ligand descriptors plus supported rescoring columns in the database.
+- Supported backends are PostgreSQL, MySQL, and SQLite.
+- SQLite is recommended for development, tests, small local runs, and quick experiments.
+- PostgreSQL/MySQL are recommended for persistent, concurrent, or long-running workflows.
+- Use `--store-db` in CLI commands to explicitly initialize DB access, create ORM tables, and store receptor/ligand descriptors plus supported rescoring columns.
+- Missing PostgreSQL/MySQL databases are created only through explicit setup (`create_if_missing=True`) or the intentional `--store-db` CLI path.
 - Database schemas are defined under `OCDocker.DB` and related model pages.
 
 Diagnostics and troubleshooting

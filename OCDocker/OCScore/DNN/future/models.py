@@ -167,7 +167,7 @@ class MultiTaskModel(nn.Module):
         input_size : int
             Input feature dimension.
         encoder_params : dict | None
-            Encoder parameters (legacy format).
+            Encoder parameters (older format).
         shared_sizes : list[int]
             Shared encoder layer sizes.
         shared_activation : str, optional

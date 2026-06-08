@@ -15,6 +15,9 @@ import OCDocker.OCScore.Analysis.Plotting.Colouring as ocstatcolour
 import pandas as pd
 import seaborn as sns
 import OCDocker.Error as ocerror
+import OCDocker.Toolbox.Logging as oclogging
+
+LOGGER = oclogging.get_logger("ocscore.analysis.plotting.colouring")
 
 # License
 ###############################################################################
@@ -82,12 +85,12 @@ def set_color_mapping(df: pd.DataFrame, palette_colour: str = "glasbey") -> dict
         If an unsupported palette is provided.
     '''
 
-    print("Setting the pallette, alpha, and error threshold for the plots.")
+    LOGGER.info("Setting colour palette for plots.")
 
     if palette_colour == "glasbey":
         if cc is None:
             # Fallback when colorcet is not available
-            print("[Colouring] colorcet not available; falling back to 'tab20'.")
+            LOGGER.warning("colorcet not available; falling back to 'tab20'.")
             palette_colour = sns.color_palette("tab20", n_colors = df['Methodology'].nunique())
         else:
             palette_colour = sns.color_palette(cc.glasbey, n_colors = df['Methodology'].nunique())

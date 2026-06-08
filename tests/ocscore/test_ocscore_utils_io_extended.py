@@ -242,3 +242,13 @@ def test_save_object_auto_torch_success_with_fake_torch(monkeypatch, tmp_path):
     assert len(calls) == 1
     assert calls[0][0] == {"w": [1, 2, 3]}
     assert calls[0][1] == str(file_path)
+
+@pytest.mark.order(334)
+def test_load_pipeline_results_drops_completely_empty_rows(tmp_path):
+    csv_path = tmp_path / "pipeline_results.csv"
+    csv_path.write_text("f1,f2\n1,2\n , \n3,4\n", encoding="utf-8")
+
+    loaded = ocscoreio.load_pipeline_results_from_archive(csv_path)
+
+    assert loaded.shape == (2, 2)
+    assert loaded["f1"].tolist() == ["1", "3"]

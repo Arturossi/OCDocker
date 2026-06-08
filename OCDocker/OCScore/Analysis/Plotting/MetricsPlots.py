@@ -165,3 +165,53 @@ def roc_plot(y_true: Union[Sequence[float], np.ndarray],
     return fig, ax
 
 
+def reliability_plot(
+        y_true: Union[Sequence[float], np.ndarray],
+        y_prob: Union[Sequence[float], np.ndarray],
+        *,
+        n_bins: int = 10,
+        label: str = "Model",
+        size: Tuple[float, float] = (6, 4),
+    ) -> Tuple[Figure, Axes]:
+    '''Plot a reliability (calibration) diagram with a perfect-calibration reference line.
+
+    Parameters
+    ----------
+    y_true : array-like
+        Binary labels.
+    y_prob : array-like
+        Predicted probabilities in [0, 1].
+    n_bins : int, optional
+        Number of uniform probability bins, by default 10.
+    label : str, optional
+        Legend label for the reliability curve.
+    size : tuple(float, float), optional
+        Figure size in inches.
+
+    Returns
+    -------
+    tuple(Figure, Axes)
+        Matplotlib figure and axes.
+    '''
+
+    from OCDocker.OCScore.Analysis.Metrics.Calibration import reliability_curve_points
+
+    apply_basic_style()
+    mean_predicted, fraction_positives = reliability_curve_points(
+        np.asarray(y_true, dtype=int),
+        np.asarray(y_prob, dtype=float),
+        n_bins=n_bins,
+    )
+    fig, ax = new_fig(size)
+    ax.plot([0, 1], [0, 1], linestyle="--", linewidth=1, color="gray", label="Perfect")
+    if mean_predicted.size > 0:
+        ax.plot(mean_predicted, fraction_positives, marker="o", label=label)
+    ax.set_xlabel("Mean predicted probability")
+    ax.set_ylabel("Fraction of positives")
+    ax.set_title("Reliability diagram")
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(0.0, 1.0)
+    ax.legend(loc="upper left")
+    return fig, ax
+
+

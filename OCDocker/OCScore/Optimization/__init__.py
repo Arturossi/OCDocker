@@ -11,10 +11,9 @@ import OCDocker.OCScore.Optimization as ocopt
 
 Modules
 -------
-- DNN: DNN training and optimization pipelines.
-- Transformer: Transformer training and optimization pipelines.
-- XGBoost: XGBoost training and optimization pipelines.
-- future: Experimental optimization routines.
+- Protocol: Current minimal staged protocol abstractions.
+- StagedOptuna: Current task-separated PDBbind/DUDEz Optuna protocol.
+- archived: Previous mixed-metric Optuna protocol family.
 '''
 
 # Imports

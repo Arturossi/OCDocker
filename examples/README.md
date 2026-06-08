@@ -35,13 +35,13 @@ Run: `bash examples/03_cli_diagnostics.sh`
 Guide to using the interactive console for step-by-step workflows.
 Run: `ocdocker console --conf OCDocker.cfg`
 
-### 5. Running Scripts (`13_cli_script_example.py`)
+### 5. Running Scripts (`12_cli_script_example.py`)
 Example of running Python scripts with OCDocker libraries pre-loaded:
 - Using the `ocdocker script` command
 - Accessing pre-loaded OCDocker modules
 - Working with script arguments
 - Example workflow structure
-Run: `ocdocker script --conf OCDocker.cfg --allow-unsafe-exec examples/13_cli_script_example.py`
+Run: `ocdocker script --conf OCDocker.cfg --allow-unsafe-exec examples/12_cli_script_example.py`
 (`--allow-unsafe-exec` is required for trusted in-process script execution).
 
 ## Python API Examples
@@ -89,16 +89,7 @@ End-to-end workflow example:
 - Results analysis
 Run: `python examples/10_python_api_complete_workflow.py`
 
-### 12. Train Model from Database (`11_python_api_train_model_from_db.py`)
-Example of training machine learning models using data from the OCDocker database:
-- Loading data from database
-- Finding best hyperparameters across multiple Optuna studies
-- Training DNN or XGBoost models
-- Saving trained models and masks
-- Using the full preprocessing pipeline
-Run: `python examples/11_python_api_train_model_from_db.py`
-
-### 13. Complete OCScore Pipeline (`12_python_api_complete_ocscore_pipeline.py`)
+### 12. Complete OCScore Pipeline (`11_python_api_complete_ocscore_pipeline.py`)
 Complete end-to-end pipeline to obtain OCScore results from scratch:
 - Receptor and ligand preparation
 - Multi-engine docking (Vina, PLANTS)
@@ -107,14 +98,9 @@ Complete end-to-end pipeline to obtain OCScore results from scratch:
 - Feature extraction (receptor and ligand descriptors)
 - Model inference using trained OCScore model
 - Automatic mapping of rescoring results to database column names
-Run: `python examples/12_python_api_complete_ocscore_pipeline.py`
+Run: `python examples/11_python_api_complete_ocscore_pipeline.py`
 
-### 14. Future AE -> DNN Pipeline (`14_python_api_future_ae_dnn.py`)
-Example of training the future Autoencoder to generate embeddings and using them
-to train the future DNN optimizer.
-Run: `python examples/14_python_api_future_ae_dnn.py`
-
-### 15. CSV Inference (`15_python_api_inference_from_csv.py`)
+### 13. CSV Inference (`13_python_api_inference_from_csv.py`)
 Example of OCScore inference loading features directly from a `.csv` file:
 - Resolving model artifacts from `OCScore_models` (or custom directory)
 - Loading OCDocker config to enforce `reference_column_order`
@@ -122,7 +108,72 @@ Example of OCScore inference loading features directly from a `.csv` file:
 - Optional scaler loading for consistent preprocessing
 - Running `ocscoring.get_score(...)` with `data=<csv_path>`
 - Writing an output CSV with the original rows/columns plus an `OCSCORE` column
-Run: `python examples/15_python_api_inference_from_csv.py --csv-path /path/to/features.csv --model-name OCScore --config-path /path/to/OCDocker.cfg --output-csv /path/to/scored.csv`
+Run: `python examples/13_python_api_inference_from_csv.py --csv-path /path/to/features.csv --model-name OCScore --config-path /path/to/OCDocker.cfg --output-csv /path/to/scored.csv`
+
+### 14. Shared PDBbind + DUDEz Feature Reduction (`14_feature_reduction_pdbbind_dudez.py`)
+Example of unsupervised shared feature reduction from two pipeline result archives:
+- Loads pipeline tables from PDBbind and DUDEz inputs (`.csv`, directory, or `.tar.gz` with `pipeline_results.csv`, `PDBbind.csv`, or `DUDEz.csv`)
+- Preserves `experimental` for PDBbind and creates `NaN` DUDEz affinity values
+- Preserves DUDEz `kind` and creates a `label` column for later classification
+- Merges raw unreduced PDBbind and DUDEz pipeline tables into `merged_input_dataset.csv`
+- Writes separate `raw_pdbbind.csv` and `raw_dudez.csv` plus `prepare_manifest.json`
+- Does **not** fit feature reduction (train-only reduction happens in `ocscore train`)
+Run: `python examples/14_feature_reduction_pdbbind_dudez.py --pdbbind-archive /path/to/pdbbind.tar.gz --dudez-archive /path/to/DUDEz.tar.gz --output-dir /path/to/raw_prepare`
+
+CLI: `ocdocker ocscore reduce` (same flags; requires `pip install "ocdocker[ml]"`)
+
+### 15. Staged OCScore Optuna from raw inputs (`15_ocscore_staged_optuna_from_reduction.py`)
+Example of starting the unified staged Optuna modeling protocol from raw unreduced inputs:
+- Loads `merged_input_dataset.csv` (or separate raw PDBbind/DUDEz CSVs)
+- Creates a fixed outer split, fits train-only feature reduction on PDBbind train rows
+- Runs PDBbind RMSE-only regression Optuna, transfers the feature extractor, then runs DUDEz screening Optuna
+- Keeps PDBbind and DUDEz checkpoints, metrics, studies, and protocol logs separate
+Run: `ocdocker ocscore train --protocol development --raw-input-dir /path/to/raw_prepare --output-dir /path/to/optuna_output`
+
+For production validation (protocol files, leakage guards, provenance), see [docs/ocscore-production-protocol.md](../docs/ocscore-production-protocol.md) and `ocdocker ocscore train --protocol production --raw-input-dir ... --output-dir ...`.
+
+CLI: `ocdocker ocscore train` (`--protocol`, `--raw-input-dir` or `--merged-input` or `--pdbbind-input` + `--dudez-input`, `--output-dir`)
+
+### 16. OCScore exported model tools (`16_ocscore_exported_model_tools.py`)
+
+Tools for validating, loading, cross-validating, plotting, rendering architecture diagrams, running SHAP on, and **scoring raw pipeline archives** with exported `best_model/` bundles from example 15.
+
+CLI: `ocdocker ocscore validate|load|retrain|cross-validate|plot|architecture-plot|shap|score` (same flags per subcommand). SHAP on exports: `ocdocker ocscore shap`.
+
+**Inference kit (portable scoring):**
+- `best_model/` export directory (weights, architecture, `feature_metadata.json`, optional `scaler.joblib`)
+- Raw pipeline input (`.csv`, directory, or tar) containing `pipeline_results.csv`, `PDBbind.csv`, or `DUDEz.csv` with the export's selected feature columns
+- For DUDEz transfer models: linked PDBbind `best_model/` (or pass `--pdbbind-export-dir`)
+
+Scoring uses the **frozen `selected_features` list** from the export bundle. It does not re-run feature reduction or refit scalers on new data. Optional `feature_reduction_protocol.json` from example 14 is audit metadata only.
+
+```bash
+python examples/16_ocscore_exported_model_tools.py score \
+  --export-dir /path/to/replica_000/pdbbind/best_model \
+  --raw-archive /path/to/new_pipeline.tar.gz \
+  --output-csv /path/to/predictions.csv
+```
+
+Architecture figures can be generated from an export bundle or a manual JSON/YAML architecture file:
+
+```bash
+ocdocker ocscore architecture-plot \
+  --export-dir /path/to/replica_000/pdbbind/best_model \
+  --output-dir /path/to/figures \
+  --formats png
+```
+
+Architecture figures are compact main-network-only by default. Use `--show-decoder` to include the auxiliary reconstruction branch. In `18_run_full_pipeline.sh`, set `ARCHITECTURE_PLOT_INCLUDE_DECODER=true` for the same behavior.
+
+Other subcommands: `validate`, `load`, `retrain`, `cross-validate`, `plot`, `architecture-plot`, `shap`.
+
+### 17. DUDEz SF baseline comparison (`17_ocscore_dudez_sf_baseline_comparison.py`)
+
+Compares OCScore to individual scoring functions, **descriptor aggregates** (`desc_mean`, … over all model input features), and **SF consensus** (`sf_mean`, … across Vina/Gnina/Smina/… columns only) on saved validation/test splits. It writes pooled metrics (`dudez_sf_baseline_comparison.csv`) and **per-receptor** metrics (`dudez_sf_baseline_per_target.csv`). With `--figures-dir`, it also emits per-target heatmaps, boxplots, and OCScore win-count charts.
+
+**Cross-validation outputs** (under `<export_dir>/cross_validation/` or `--output-dir`):
+- `cross_validation_results.json` — fold metrics and diagnostics (including entity-overlap warnings when present)
+- `cross_validation_per_target_metrics.csv` — per-receptor BEDROC/ROC-AUC (and scoring-function baselines) for DUDEz receptor-grouped CV
 
 ## Getting Started
 

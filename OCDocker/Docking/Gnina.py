@@ -304,7 +304,31 @@ def _build_gnina_cmd(config_path: str, prepared_ligand: str, output_gnina: str, 
 
 
 class Gnina:
-    """Gnina object with methods for easy run."""
+    """Workflow wrapper for Gnina docking, rescoring, and CNN scoring.
+
+    Parameters
+    ----------
+    config_path : str
+        Path to the Gnina configuration file.
+    box_file : str
+        Path to the docking box PDB file.
+    receptor : ocr.Receptor
+        Receptor object to dock against.
+    prepared_receptor_path : str
+        Path to the prepared receptor file (PDBQT).
+    ligand : ocl.Ligand
+        Ligand object to dock.
+    prepared_ligand_path : str
+        Path to the prepared ligand file (PDBQT).
+    gnina_log : str
+        Path to the Gnina run log file.
+    output_gnina : str
+        Output directory or prefix for Gnina pose files.
+    name : str, optional
+        Identifier for this docking run, by default ``""``.
+    overwrite_config : bool, optional
+        Overwrite an existing config file, by default ``False``.
+    """
     ## Private ##
 
     def __init__(

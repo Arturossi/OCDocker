@@ -2,25 +2,36 @@
 
 # Description
 ###############################################################################
-'''
+"""
 SQLAlchemy model for ligand descriptors and complex relationships.
 
 Usage:
 
 from OCDocker.DB.Models.Ligands import Ligands
-'''
+"""
 
 # Imports
 ###############################################################################
+from types import SimpleNamespace
+
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
-import OCDocker.Ligand as ocl
 from OCDocker.DB.Models.Base import base
+
+try:
+    import OCDocker.Ligand as ocl
+except ModuleNotFoundError as exc:
+    if getattr(exc, "name", "") != "rdkit":
+        raise
+    _fallback_ligand_descriptors = ["MolWt", "MolLogP", "NumHAcceptors", "NumHDonors"]
+    ocl = SimpleNamespace(
+        Ligand=SimpleNamespace(allDescriptors=_fallback_ligand_descriptors)
+    )
 
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -33,30 +44,40 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
 
 # Classes
 ###############################################################################
 
+
 class Ligands(base):
-    """ Define the Ligand table 
-    
+    """SQLAlchemy model for ligand descriptor columns.
+
+    Dynamic columns are added from :attr:`OCDocker.Ligand.Ligand.allDescriptors`.
+
     Attributes
     ----------
-    id : Integer
-        Primary key of the table
-    complexes : list
-        Relationship to the Complexes table
-    allDescriptors : list
-        List of all descriptor column names
+    id : sqlalchemy.Integer
+        Primary key.
+    complexes : list[Complexes]
+        Related docking complexes for this ligand.
+    allDescriptors : list[str]
+        Names of dynamically mapped descriptor columns (class attribute).
     """
 
+    allDescriptors = list(ocl.Ligand.allDescriptors)
+
     # Relationships
-    complexes = relationship("Complexes", back_populates = "ligand", cascade = "all, delete-orphan", lazy = "joined")
+    complexes = relationship(
+        "Complexes",
+        back_populates="ligand",
+        cascade="all, delete-orphan",
+        lazy="joined",
+    )
 
 
 # Add columns for each descriptor
-Ligands.add_dynamic_columns(ocl.Ligand.allDescriptors)
+Ligands.add_dynamic_columns(Ligands.allDescriptors)
 
 
 # Functions

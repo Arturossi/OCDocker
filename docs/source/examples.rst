@@ -41,4 +41,3 @@ Complete end-to-end pipeline examples for training and using OCScore models.
    :maxdepth: 1
 
    examples/ocscore_pipeline
-

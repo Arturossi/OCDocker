@@ -40,6 +40,9 @@ Documentation
 -------------
 
 - Manual (GitHub): [MANUAL.md](MANUAL.md)
+- **OCScore replication (reduce → train → score):** [OCSCORE_REPLICATION.md](OCSCORE_REPLICATION.md)
+- Production protocol details: [docs/ocscore-production-protocol.md](docs/ocscore-production-protocol.md)
+- OCScore feature-policy ablations: bundled `.yml` policies live in `OCDocker/OCScore/Protocols/Ablations/` and run with `--feature-policy no_pmi` or `--run-all-feature-policies`.
 - Sphinx docs: `docs/` (install docs deps first; then run `make -C docs html`)
 - Error handling guide: [docs/ERROR_HANDLING.md](docs/ERROR_HANDLING.md)
 
@@ -81,22 +84,46 @@ conda activate ocdocker
 pip install ocdocker
 ```
 
-`pip install ocdocker` installs the core package only. To include every optional runtime stack, use `pip install "ocdocker[all]"`.
+`pip install ocdocker` installs the minimal core package (CLI bootstrap, config I/O, logging, and serialization helpers). Feature-specific dependencies are optional extras.
+
+**Full reference:** [Optional dependencies](docs/source/optional_dependencies.rst) in the Sphinx docs (cheat sheet + per-extra package lists, command map, migration notes). After building docs: `optional_dependencies.html`.
 
 Install optional feature stacks as needed:
 
 ```bash
-# Docking workflows
+# Minimal core (default)
+pip install ocdocker
+
+# Docking workflows (chemistry + numpy/pandas/scipy/scikit-learn for clustering)
 pip install "ocdocker[docking]"
 
-# Docking + DB support
+# Pipeline dendrogram plots (optional; clustering still runs without matplotlib)
+pip install "ocdocker[analysis]"
+
+# Database storage (--store-db)
+pip install "ocdocker[db]"
+
+# Docking + database
 pip install "ocdocker[docking,db]"
 
-# ML workflows (PyTorch/XGBoost/Optuna)
+# ML / OCScore workflows (PyTorch, XGBoost, Optuna)
 pip install "ocdocker[ml]"
 
-# All optional runtime features
+# Plotting, statistics, and explainability tools
+pip install "ocdocker[analysis]"
+
+# Snakemake workflow integration
+pip install "ocdocker[workflow]"
+
+# All optional runtime features (docking, db, ml, analysis, workflow, cloud, gpu)
 pip install "ocdocker[all]"
+
+# Everything including Sphinx documentation build deps
+pip install "ocdocker[full]"
+
+# Developer tooling (pytest, mypy, ruff, pre-commit) — combine with runtime extras in editable installs
+pip install "ocdocker[dev]"
+pip install -e ".[all,dev]"
 ```
 
 **Installing from source with pip:**
@@ -112,11 +139,11 @@ cd OCDocker
 mamba create -n ocdocker python=3.11 -y
 conda activate ocdocker
 
-# Install the package in development mode
+# Install the package in development mode (minimal core)
 pip install -e .
 
-# Optional: install feature extras in editable mode
-pip install -e ".[docking,db,ml]"
+# Typical development install with runtime stacks
+pip install -e ".[all,dev]"
 ```
 
 **Note on chemistry packages (`rdkit`, `openbabel`):**
@@ -269,6 +296,10 @@ Notes:
 
 - For CI/tests or local experiments, set `OCDOCKER_DB_BACKEND=sqlite` to bypass server DBs.
 - You can also set SQLite via config (`DB_BACKEND = sqlite`) and choose a custom file via `SQLITE_PATH`.
+- Supported DB backends are `postgresql`, `mysql`, and `sqlite`. Unsupported backends fail during explicit setup with a clear error.
+- PostgreSQL/MySQL require integer `PORT` values and `HOST`, `USER`, `PASSWORD`, and `DATABASE` when DB initialization is requested.
+- Install DB dependencies with `pip install "ocdocker[db]"`; missing optional drivers report this install hint.
+- Remote database creation is explicit. Lower-level helpers require `create_if_missing=True`; CLI `--store-db` passes that intent when it initializes DB storage.
 
 Troubleshooting
 ---------------
@@ -425,32 +456,37 @@ Usage Overview
 --------------
 
 - CLI: `ocdocker` exposes subcommands for docking, pipelines, SHAP analysis, diagnostics, and an interactive console.
-- Programmatic: importing modules auto‑bootstraps once by default (see Bootstrap below). You can opt out via an env var and call `bootstrap()` explicitly.
+- Programmatic: importing modules is side-effect-free. Call `OCDocker.Initialise.bootstrap()` explicitly before using runtime globals such as configured paths, `engine`, or `session`.
 
 Bootstrap & Configuration
 -------------------------
 
-- Auto‑bootstrap on import: when you import OCDocker modules, the environment initializes once (config, DB, dirs). This is skipped during docs/tests.
+- Imports are side-effect-free: importing OCDocker modules does not read config, connect to DBs, create DB files, print banners, or initialize ODDT models.
 - Configuration file: set `OCDOCKER_CONFIG` to point to your `OCDocker.cfg`/`OCDocker.yml`, or place one of those files in the working directory.
-- Disable auto‑bootstrap: set `OCDOCKER_NO_AUTO_BOOTSTRAP=1` and call `bootstrap()` explicitly:
+- Explicit bootstrap: call `bootstrap()` from CLI/application code before using initialized runtime state:
 
 ```python
 from OCDocker.Initialise import bootstrap
 import argparse
-bootstrap(argparse.Namespace(
-    multiprocess=True,
-    update=False,
-    config_file='OCDocker.cfg',
-    output_level=2,
-    overwrite=False,
-))
+bootstrap(
+    argparse.Namespace(
+        multiprocess=True,
+        update=False,
+        config_file='OCDocker.cfg',
+        output_level=2,
+        overwrite=False,
+    ),
+    init_db=True,
+    create_db_if_missing=False,
+)
 ```
 
 SQLite Fallback (optional)
 --------------------------
 
-- For development/tests, you can bypass PostgreSQL/MySQL entirely by setting `OCDOCKER_DB_BACKEND=sqlite` before import or running the CLI.
-- This creates/uses a local `ocdocker.db` under the module directory.
+- For development/tests, you can bypass PostgreSQL/MySQL by setting `OCDOCKER_DB_BACKEND=sqlite` before explicit bootstrap or running the CLI.
+- SQLite is recommended for development, tests, small local runs, and quick experiments. Use PostgreSQL/MySQL for persistent, concurrent, or long-running workflows.
+- By default, SQLite creates/uses a local `ocdocker.db` under the module directory; set `OCDOCKER_SQLITE_PATH` or `SQLITE_PATH` to choose another file.
 
 Installer behavior with SQLite
 ------------------------------
@@ -556,7 +592,7 @@ ocdocker pipeline \
 Notes:
 
 - `--timeout` limits external tool runtime (also via `OCDOCKER_TIMEOUT`).
-- `--store-db` auto-creates tables and stores receptor/ligand descriptors plus supported rescoring columns in the DB.
+- `--store-db` explicitly initializes database access, creates ORM tables, and stores receptor/ligand descriptors plus supported rescoring columns in the DB. Missing PostgreSQL/MySQL databases are created only through this intentional `--store-db` bootstrap path or by application code passing `create_db_if_missing=True`.
 
 Timeouts & External Tools
 -------------------------
@@ -573,11 +609,21 @@ Binary Checks
 Interactive Console
 -------------------
 
+The **modern CLI** (``ocdocker vs``, ``pipeline``, ``ocscore``, …) is the primary
+scripted interface. The **interactive console** is an optional REPL for exploration,
+debugging, and quick API experiments.
+
+Entrypoints (explicit only — no banner or bootstrap on plain import):
+
 ```bash
 ocdocker console --conf OCDocker.cfg
+python -m OCDocker.Console
 ```
 
-This opens an interactive namespace with common OCDocker utilities imported.
+Inside the console, built-in commands include ``help`` and ``exit``; all other
+input runs as Python in a preloaded namespace (``ocl``, ``ocr``, ``ocvina``,
+``print_args()``, …). Pass ``--ipython`` to ``ocdocker console`` when IPython is
+installed. ``import OCDocker.Console`` remains side-effect-free (no stdout banner).
 
 Running Python Scripts
 ----------------------
@@ -603,7 +649,7 @@ vina = ocvina.Vina(...)
 # ... use OCDocker functionality
 ```
 
-See `examples/13_cli_script_example.py` for a complete example.
+See `examples/12_cli_script_example.py` for a complete example.
 
 Container wrappers (Docker, Podman and Singularity)
 ---------------------------------------------------
@@ -675,7 +721,6 @@ Environment Variables (reference)
 
 - `OCDOCKER_CONFIG`: path to `OCDocker.cfg` (config file with external tool paths and parameters).
 - `OCDOCKER_DB_BACKEND` / `DB_BACKEND`: database backend override (`postgresql`, `mysql`, or `sqlite`).
-- `OCDOCKER_NO_AUTO_BOOTSTRAP`: if set to `1/true/yes`, disables auto‑bootstrap on import; call `bootstrap()` manually.
 - `OCDOCKER_SQLITE_PATH`: optional explicit SQLite database file path (used when backend is `sqlite`).
 - `OCDOCKER_TIMEOUT`: default timeout (seconds) for external tools when not provided via CLI.
 
@@ -729,4 +774,4 @@ Notes for testing
 
 - The tests operate on sample data under `test_files/` and do not require external binaries to actually run (they validate parsing/IO helpers, config generation, log readers, etc.).
 - If you want to run end‑to‑end docking locally, ensure you’ve installed external tools (MGLTools, Vina, Smina/PLANTS where applicable) and set paths in `OCDocker.cfg`.
-- Some modules (e.g., Initialise) perform environment bootstrapping; the test suite avoids heavy side effects, but for interactive usage consider setting `OCDOCKER_CONFIG=./OCDocker.cfg`.
+- Imports should be side-effect-free. Tests that need runtime state call explicit setup/bootstrap and generally use SQLite fixtures.

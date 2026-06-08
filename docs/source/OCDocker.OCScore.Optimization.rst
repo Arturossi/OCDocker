@@ -1,17 +1,6 @@
 OCDocker.OCScore.Optimization package
 =====================================
 
-Submodules
-----------
-
-.. toctree::
-   :maxdepth: 4
-
-   OCDocker.OCScore.Optimization.DNN
-   OCDocker.OCScore.Optimization.Transformer
-   OCDocker.OCScore.Optimization.XGBoost
-   OCDocker.OCScore.Optimization.future
-
 Module contents
 ---------------
 
@@ -19,3 +8,5 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+
+Staged Optuna orchestration (``StagedOptuna``), model export (``ModelExport``), and cross-validation (``ModelCrossValidation``).

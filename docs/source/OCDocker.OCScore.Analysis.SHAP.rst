@@ -7,13 +7,7 @@ Submodules
 .. toctree::
    :maxdepth: 2
 
-   OCDocker.OCScore.Analysis.SHAP.Cli
-   OCDocker.OCScore.Analysis.SHAP.Data
-   OCDocker.OCScore.Analysis.SHAP.Explain
-   OCDocker.OCScore.Analysis.SHAP.Model
-   OCDocker.OCScore.Analysis.SHAP.Plots
-   OCDocker.OCScore.Analysis.SHAP.Runner
-   OCDocker.OCScore.Analysis.SHAP.Studies
+   OCDocker.OCScore.Analysis.SHAP.ExportRunner
 
 Module contents
 ---------------
@@ -24,3 +18,4 @@ Module contents
    :show-inheritance:
    :no-index:
 
+Export-bundle SHAP for staged ``best_model/`` artifacts (``ocdocker ocscore shap``).

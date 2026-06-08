@@ -80,7 +80,7 @@ DockArgs = Tuple[str, str, str, str, _Lock, bool, str, bool]
 
 
 class _NoOpLock:
-    '''No-op lock used to avoid global serialization in multiprocessing.'''
+    """No-op lock used to avoid global serialization in multiprocessing."""
 
     def __enter__(self) -> "_NoOpLock":
         return self
@@ -1287,7 +1287,3 @@ def run_dock(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], a
         else:
             # Prepare the database
             return __run_dock_no_parallel([paths], archive, dockingAlgorithm, overwrite, digestFormat, label, all_boxes)
-
-# Aliases
-###############################################################################
-run_docking = run_dock

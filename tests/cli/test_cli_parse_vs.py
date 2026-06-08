@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import pytest
 
-from OCDocker.CLI.__init__ import build_parser
+from OCDocker.CLI import build_parser
 
 # License
 ###############################################################################

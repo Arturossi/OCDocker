@@ -14,7 +14,6 @@ from pathlib import Path
 
 import pytest
 
-import OCDocker.CLI.__init__ as cli
 import OCDocker.Toolbox.Reproducibility as ocrepro
 
 # License
@@ -45,18 +44,6 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Public ##
 
 @pytest.mark.order(468)
-def test_generate_reproducibility_manifest_delegates_to_cli(monkeypatch):
-    monkeypatch.setattr(
-        cli,
-        "generate_reproducibility_manifest",
-        lambda include_python_packages=True: {"ok": include_python_packages},
-    )
-
-    assert ocrepro.generate_reproducibility_manifest(include_python_packages=False) == {"ok": False}
-    assert ocrepro.generate_manifest(include_python_packages=True) == {"ok": True}
-
-
-@pytest.mark.order(469)
 def test_write_reproducibility_manifest_writes_json(monkeypatch, tmp_path):
     expected = {"schema_version": 1, "ocdocker": {"version": "0.0.test"}}
     monkeypatch.setattr(

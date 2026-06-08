@@ -2,35 +2,35 @@
 
 # Description
 ###############################################################################
-'''
+"""
 Sets of classes and functions that are used for creating everything required
 for the database.
 
 Usage:
 
 import OCDocker.DB.DB as ocdb
-'''
+"""
 
 # Imports
 ###############################################################################
 import csv
 import json
 
+from io import StringIO
+from typing import Any, Dict, Iterator, Literal, Optional, Union
+
 import pandas as pd
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
-from typing import Any, Dict, Iterator, Literal, Optional, Union
-from io import StringIO
 
 import OCDocker.Error as ocerror
-import OCDocker.Toolbox.Printing as ocprint
 
 from OCDocker.DB.Models.Base import Base
-from OCDocker.DB.Models import Complexes, Ligands, PipelineRuns, Receptors
+from OCDocker.DB.Models import Complexes, Ligands, Receptors
 
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -43,25 +43,18 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
 
 # Classes
 ###############################################################################
-
-# May use session from Initialise - runtime global
-session: Any
-try:
-    from OCDocker.Initialise import session as _session
-    session = _session
-except ImportError:
-    session = None
 
 # Functions
 ###############################################################################
 ## Private ##
 
+
 def _iter_query_rows(query: Any, batch_size: int = 1000) -> Iterator[Any]:
-    '''Iterate query rows using streaming when supported.
+    """Iterate query rows using streaming when supported.
 
     Parameters
     ----------
@@ -74,7 +67,7 @@ def _iter_query_rows(query: Any, batch_size: int = 1000) -> Iterator[Any]:
     -------
     Iterator[Any]
         Iterator over query rows.
-    '''
+    """
 
     streamed = query
     if hasattr(streamed, "yield_per"):
@@ -117,7 +110,7 @@ def _build_export_entry(
     receptor_columns: list[str],
     column_order: list[str],
 ) -> Dict[str, Any]:
-    '''Build one merged export row with stable column ordering.'''
+    """Build one merged export row with stable column ordering."""
 
     ligand_name = getattr(ligand, "name", None)
     receptor_name = getattr(receptor, "name", None)
@@ -127,7 +120,9 @@ def _build_export_entry(
         **{col: getattr(receptor, col, None) for col in receptor_columns},
         **{col: getattr(ligand, col, None) for col in ligand_columns},
         "receptor": receptor_name,
-        "ligand": ligand_name.split("_")[-1] if isinstance(ligand_name, str) else ligand_name,
+        "ligand": (
+            ligand_name.split("_")[-1] if isinstance(ligand_name, str) else ligand_name
+        ),
     }
 
     return {col: merged_entry.get(col, None) for col in column_order}
@@ -142,12 +137,15 @@ def _iter_export_entries(
     drop_na: bool,
     batch_size: int = 1000,
 ) -> Iterator[Dict[str, Any]]:
-    '''Yield merged export rows from joined DB tables without materializing `.all()`.'''
+    """Yield merged export rows from joined DB tables without materializing `.all()`."""
 
     query = (
         session.query(Complexes.Complexes, Ligands.Ligands, Receptors.Receptors)
         .join(Ligands.Ligands, Ligands.Ligands.id == Complexes.Complexes.ligand_id)
-        .join(Receptors.Receptors, Receptors.Receptors.id == Complexes.Complexes.receptor_id)
+        .join(
+            Receptors.Receptors,
+            Receptors.Receptors.id == Complexes.Complexes.receptor_id,
+        )
     )
 
     for complex_obj, ligand, receptor in _iter_query_rows(query, batch_size=batch_size):
@@ -164,47 +162,84 @@ def _iter_export_entries(
             continue
         yield row
 
+
+def _get_default_session_factory() -> Any:
+    from OCDocker.DB.DBMinimal import DatabaseConfigurationError, get_default_session
+
+    session_factory = get_default_session()
+    if session_factory is None:
+        raise DatabaseConfigurationError(
+            "Default database session is not initialized. "
+            "Pass a session explicitly or call OCDocker.Initialise.bootstrap(..., init_db=True)."
+        )
+    return session_factory
+
+
+def _resolve_engine(engine: Optional[Engine] = None) -> Engine:
+    if engine is not None:
+        return engine
+
+    from OCDocker.DB.DBMinimal import (
+        DatabaseConfigurationError,
+        create_engine,
+        get_default_engine,
+    )
+
+    default_engine = get_default_engine()
+    if default_engine is not None:
+        return default_engine
+
+    try:
+        import OCDocker.Initialise as init
+    except ImportError as exc:
+        raise DatabaseConfigurationError(
+            "Database engine is not initialized and OCDocker.Initialise is unavailable."
+        ) from exc
+
+    url = getattr(init, "db_url", None)
+    if url is None:
+        raise DatabaseConfigurationError(
+            "Database URL is not configured. Pass an engine explicitly or bootstrap with init_db=True."
+        )
+
+    return create_engine(url)
+
+
 ## Public ##
 
 
 def create_tables(engine: Optional[Engine] = None) -> None:
-    '''Create all ORM tables bound to the provided engine.
+    """Create all ORM tables bound to the provided or default engine.
 
-    If no engine is provided, attempts to resolve the engine from
-    OCDocker.Initialise (and creates one from db_url if necessary).
-    '''
+    If no engine is provided, the default engine must have been initialized
+    explicitly through application/CLI bootstrap.
+    """
 
-    eng = engine
-    if eng is None:
-        try:
-            import OCDocker.Initialise as init
-            eng = getattr(init, 'engine', None)
-            if eng is None:
-                url = getattr(init, 'db_url', None)
-                if url is None:
-                    raise RuntimeError('Database URL is not configured')
-                from OCDocker.DB.DBMinimal import create_engine as _ce  # local import to avoid cycles at import-time
-                eng = _ce(url)
-        except Exception as e:  # pragma: no cover
-            raise RuntimeError(f'Could not resolve database engine to create tables: {e}')
+    try:
+        eng = _resolve_engine(engine)
+    except Exception as exc:  # pragma: no cover
+        raise RuntimeError(
+            f"Could not resolve database engine to create tables: {exc}"
+        ) from exc
 
     Base.metadata.create_all(eng)
 
 
 def export_db_to_csv(
-    session: Session,
-    output_format: Literal['dataframe', 'json', 'csv'] = 'dataframe',
+    session: Optional[Session] = None,
+    output_format: Literal["dataframe", "json", "csv"] = "dataframe",
     output_file: Optional[str] = None,
     drop_na: bool = True,
     batch_size: int = 1000,
 ) -> Union[pd.DataFrame, str, None]:
-    '''
+    """
     Merge data from Complexes, Ligands, and Receptors tables and export.
 
     Parameters
     ----------
-    session : sqlalchemy.orm.session.Session
-        The session object to use for querying the database.
+    session : sqlalchemy.orm.session.Session, optional
+        The session object to use for querying the database. If omitted, the
+        explicitly initialized default session factory is used.
     output_format : {'dataframe','json','csv'}
         Output format. If 'dataframe', returns a DataFrame; for 'json'/'csv' returns a string
         unless `output_file` is provided (then returns None).
@@ -219,19 +254,49 @@ def export_db_to_csv(
     -------
     pandas.DataFrame | str | None
         DataFrame or serialized string depending on `output_format`; None when writing to `output_file`.
-    '''
+    """
+
+    if session is None:
+        session_factory = _get_default_session_factory()
+        with session_factory() as db_session:
+            return export_db_to_csv(
+                db_session,
+                output_format=output_format,
+                output_file=output_file,
+                drop_na=drop_na,
+                batch_size=batch_size,
+            )
 
     # Get the column order based on the table structure
-    complex_columns = [c.name for c in Complexes.Complexes.__table__.columns if c.name not in ['created_at', 'modified_at', 'id', 'name', 'ligand_id', 'receptor_id']]
-    ligand_columns = [c.name for c in Ligands.Ligands.__table__.columns if c.name not in ['created_at', 'modified_at', 'id', 'name']]
-    receptor_columns = [c.name for c in Receptors.Receptors.__table__.columns if c.name not in ['created_at', 'modified_at', 'id', 'name']]
+    complex_columns = [
+        c.name
+        for c in Complexes.Complexes.__table__.columns
+        if c.name
+        not in ["created_at", "modified_at", "id", "name", "ligand_id", "receptor_id"]
+    ]
+    ligand_columns = [
+        c.name
+        for c in Ligands.Ligands.__table__.columns
+        if c.name not in ["created_at", "modified_at", "id", "name"]
+    ]
+    receptor_columns = [
+        c.name
+        for c in Receptors.Receptors.__table__.columns
+        if c.name not in ["created_at", "modified_at", "id", "name"]
+    ]
 
     # Combine the column lists in the same order as the tables
-    column_order = ['name'] + complex_columns + receptor_columns + ligand_columns + ['receptor', 'ligand']
+    column_order = (
+        ["name"]
+        + complex_columns
+        + receptor_columns
+        + ligand_columns
+        + ["receptor", "ligand"]
+    )
 
-    if output_format == 'dataframe':
+    if output_format == "dataframe":
         if output_file:
-            with open(output_file, 'w', newline='') as csvfile:
+            with open(output_file, "w", newline="") as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=column_order)
                 writer.writeheader()
                 for row in _iter_export_entries(
@@ -269,16 +334,16 @@ def export_db_to_csv(
             return frames[0]
         return pd.concat(frames, ignore_index=True)
 
-    if output_format == 'json':
+    if output_format == "json":
         output_buffer: Optional[StringIO] = None
         if output_file:
-            handle: Any = open(output_file, 'w', encoding='utf-8')
+            handle: Any = open(output_file, "w", encoding="utf-8")
         else:
             output_buffer = StringIO()
             handle = output_buffer
 
         try:
-            handle.write('[')
+            handle.write("[")
             wrote_any = False
             for row in _iter_export_entries(
                 session,
@@ -290,22 +355,22 @@ def export_db_to_csv(
                 batch_size=batch_size,
             ):
                 if wrote_any:
-                    handle.write(',')
+                    handle.write(",")
                 handle.write(json.dumps(row))
                 wrote_any = True
-            handle.write(']')
+            handle.write("]")
         finally:
             if output_file:
                 handle.close()
 
         if output_file:
             return None
-        return output_buffer.getvalue() if output_buffer is not None else '[]'
+        return output_buffer.getvalue() if output_buffer is not None else "[]"
 
-    if output_format == 'csv':
+    if output_format == "csv":
         csv_output_buffer: Optional[StringIO] = None
         if output_file:
-            handle = open(output_file, 'w', newline='')
+            handle = open(output_file, "w", newline="")
         else:
             csv_output_buffer = StringIO()
             handle = csv_output_buffer
@@ -332,14 +397,23 @@ def export_db_to_csv(
 
         if output_file:
             return None
-        return csv_output_buffer.getvalue() if csv_output_buffer is not None else ''
+        return csv_output_buffer.getvalue() if csv_output_buffer is not None else ""
 
-    ocerror.Error.value_error(f"Invalid output format: '{output_format}'. Please choose 'dataframe', 'json', or 'csv'.")
-    raise ValueError("Invalid output format. Please choose 'dataframe', 'json', or 'csv'.")
+    ocerror.Error.value_error(
+        f"Invalid output format: '{output_format}'. Please choose 'dataframe', 'json', or 'csv'."
+    )
+    raise ValueError(
+        "Invalid output format. Please choose 'dataframe', 'json', or 'csv'."
+    )
 
 
-def export_table_to_csv(model: type[Base], filename: str, session: Session, batch_size: int = 1000) -> None:
-    '''
+def export_table_to_csv(
+    model: type[Base],
+    filename: str,
+    session: Optional[Session] = None,
+    batch_size: int = 1000,
+) -> None:
+    """
     Export a single ORM model's rows to CSV.
 
     Parameters
@@ -348,15 +422,26 @@ def export_table_to_csv(model: type[Base], filename: str, session: Session, batc
         ORM model class to export.
     filename : str
         Output CSV file path.
-    session : sqlalchemy.orm.session.Session
-        SQLAlchemy session bound to the database engine.
+    session : sqlalchemy.orm.session.Session, optional
+        SQLAlchemy session bound to the database engine. If omitted, the
+        explicitly initialized default session factory is used.
     batch_size : int
         Streaming batch size for DB row iteration. Defaults to 1000.
-    '''
+    """
+
+    if session is None:
+        session_factory = _get_default_session_factory()
+        with session_factory() as db_session:
+            return export_table_to_csv(
+                model,
+                filename,
+                session=db_session,
+                batch_size=batch_size,
+            )
 
     columns = list(model.__table__.columns.keys())
 
-    with open(filename, 'w', newline='') as file:
+    with open(filename, "w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(columns)
         query = session.query(model)
@@ -365,37 +450,58 @@ def export_table_to_csv(model: type[Base], filename: str, session: Session, batc
 
 
 # Explicit initialization only: call setup_database() from CLI or application bootstrap
-def setup_database() -> Engine:
-    '''
+def setup_database(
+    url: Any = None,
+    *,
+    create_if_missing: bool = False,
+    engine: Optional[Engine] = None,
+) -> Engine:
+    """
     Ensure the database exists, create a new Engine, and create tables.
+
+    Parameters
+    ----------
+    url : Any, optional
+        Explicit SQLAlchemy URL/string. If omitted, resolves from explicitly
+        initialized ``OCDocker.Initialise`` state or falls back to SQLite memory.
+    create_if_missing : bool, optional
+        Explicitly create a missing PostgreSQL/MySQL database.
+    engine : Engine, optional
+        Existing engine to bind tables to.
 
     Returns
     -------
     sqlalchemy.engine.base.Engine
         Live engine connected to the configured database URL.
-    '''
+    """
 
-    # Local import to avoid requiring optional deps at import-time
     from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine
 
-    # Resolve the configured DB URL lazily to avoid import-time side effects
-    try:
-        import OCDocker.Initialise as init
-        url = getattr(init, 'db_url', None)
-        if url is None:
-            # Try deriving from an existing engine
-            eng = getattr(init, 'engine', None)
-            if eng is not None:
-                url = eng.url
-        # Final fallback suitable for tests/dev
-        if url is None:
-            url = "sqlite:///:memory:"
-    except (ImportError, AttributeError):
-        # Extremely defensive fallback for environments without Initialise
-        url = "sqlite:///:memory:"
+    if engine is not None:
+        engine_obj = engine
+        create_tables(engine_obj)
+        return engine_obj
 
-    # Create DB if it does not exist
-    create_database_if_not_exists(url)
+    # Resolve the configured DB URL lazily to avoid import-time side effects
+    if url is None:
+        try:
+            import OCDocker.Initialise as init
+
+            url = getattr(init, "db_url", None)
+            if url is None:
+                # Try deriving from an existing engine
+                eng = getattr(init, "engine", None)
+                if eng is not None:
+                    url = eng.url
+            # Final fallback suitable for tests/dev
+            if url is None:
+                url = "sqlite:///:memory:"
+        except (ImportError, AttributeError):
+            # Extremely defensive fallback for environments without Initialise
+            url = "sqlite:///:memory:"
+
+    # Create DB if it does not exist and the caller explicitly allowed creation.
+    create_database_if_not_exists(url, create_if_missing=create_if_missing)
 
     # Create engine and tables
     engine_obj = create_engine(url)

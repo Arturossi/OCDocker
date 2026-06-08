@@ -2,13 +2,13 @@
 
 # Description
 ###############################################################################
-'''
+"""
 SQLAlchemy model for docking complexes with dynamic descriptor columns.
 
 Usage:
 
 from OCDocker.DB.Models.Complexes import Complexes
-'''
+"""
 
 # Imports
 ###############################################################################
@@ -21,7 +21,7 @@ from OCDocker.DB.Models.Receptors import Receptors
 
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -34,49 +34,69 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
 
 # Classes
 ###############################################################################
 
 
 class Complexes(base):
-    """ Define the Complex table 
-    
+    """SQLAlchemy model linking ligand and receptor descriptor rows.
+
     Attributes
     ----------
-    id : Integer
-        Primary key of the table
-    ligand_id : Integer
-        Foreign key referencing the Ligands table
-    receptor_id : Integer
-        Foreign key referencing the Receptors table
+    id : sqlalchemy.Integer
+        Primary key.
+    ligand_id : sqlalchemy.Integer
+        Foreign key to :class:`Ligands`.
+    receptor_id : sqlalchemy.Integer
+        Foreign key to :class:`Receptors`.
     ligand : Ligands
-        Relationship to the Ligands table
+        Parent ligand row.
     receptor : Receptors
-        Relationship to the Receptors table
-    allDescriptors : list
-        List of all descriptor column names
+        Parent receptor row.
+    allDescriptors : list[str]
+        Names of dynamically mapped scoring-function descriptor columns.
     """
-    
+
     # Relationships
     ligand_id = Column(Integer, ForeignKey("ligands.id"))
     receptor_id = Column(Integer, ForeignKey("receptors.id"))
 
-    ligand = relationship("Ligands", back_populates = "complexes")
-    receptor = relationship("Receptors", back_populates = "complexes")
+    ligand = relationship("Ligands", back_populates="complexes")
+    receptor = relationship("Receptors", back_populates="complexes")
 
     # Complexes descriptors
     descriptors_names = {
-        "smina_": ["vina", "scoring_dkoes", "vinardo", "old_scoring_dkoes", "fast_dkoes", "scoring_ad4"],
+        "smina_": [
+            "vina",
+            "scoring_dkoes",
+            "vinardo",
+            "old_scoring_dkoes",
+            "fast_dkoes",
+            "scoring_ad4",
+        ],
         "vina_": ["vina", "vinardo"],
         # Keep Gnina hardcoded for stable DB schema, matching gnina_scoring_functions defaults.
-        "gnina_": ["ad4_scoring", "default", "dkoes_fast", "dkoes_scoring", "dkoes_scoring_old", "vina", "vinardo"],
+        "gnina_": [
+            "ad4_scoring",
+            "default",
+            "dkoes_fast",
+            "dkoes_scoring",
+            "dkoes_scoring_old",
+            "vina",
+            "vinardo",
+        ],
         "plants_": ["chemplp", "plp", "plp95"],
-        "oddt_": [f"rfscore_v{i}" for i in range(1, 4)] + ["PLECrf_p5_l1_s65536", "nnscore"]
+        "oddt_": [f"rfscore_v{i}" for i in range(1, 4)]
+        + ["PLECrf_p5_l1_s65536", "nnscore"],
     }
 
-    allDescriptors = [f"{desc_prefix}{i}".upper() for desc_prefix, desc_indices in descriptors_names.items() for i in desc_indices] + ["OCSCORE"]
+    allDescriptors = [
+        f"{desc_prefix}{i}".upper()
+        for desc_prefix, desc_indices in descriptors_names.items()
+        for i in desc_indices
+    ] + ["OCSCORE"]
 
 
 # Add columns for each descriptor

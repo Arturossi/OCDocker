@@ -215,6 +215,16 @@ def test_from_dict_applies_sections_and_direct_fields():
     assert cfg.oddt_models_dir == "/tmp/models"
 
 
+@pytest.mark.order(116)
+def test_default_reference_column_order_shape():
+    order = occfg.DEFAULT_REFERENCE_COLUMN_ORDER
+    assert len(order) == 457
+    assert order[0] == "name"
+    assert order[1] == "receptor"
+    assert order[-2] == "NHOHCount"
+    assert order[-1] == "NOCount"
+
+
 @pytest.mark.order(115)
 def test_singleton_set_get_and_reset():
     first = occfg.get_config()

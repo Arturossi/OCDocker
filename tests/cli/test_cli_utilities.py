@@ -17,7 +17,9 @@ import pytest
 
 from pathlib import Path
 
-from OCDocker.CLI.__init__ import _preparse_global_args, _require_file, build_parser, cmd_script
+from OCDocker.CLI.common import _preparse_global_args, _require_file
+from OCDocker.CLI.parser import build_parser
+from OCDocker.CLI.script import cmd_script
 
 # License
 ###############################################################################
@@ -125,8 +127,8 @@ def test_cmd_script_success_path(tmp_path, monkeypatch):
     script = tmp_path / "ok.py"
     script.write_text("value = 123\n", encoding="utf-8")
 
-    monkeypatch.setattr("OCDocker.CLI.__init__._preparse_global_args", lambda argv: argparse.Namespace())
-    monkeypatch.setattr("OCDocker.CLI.__init__._bootstrap_ocdocker_env", lambda ns: None)
+    monkeypatch.setattr("OCDocker.CLI.common._preparse_global_args", lambda argv: argparse.Namespace())
+    monkeypatch.setattr("OCDocker.CLI.common._bootstrap_ocdocker_env", lambda ns: None)
 
     rc = cmd_script(_mk_script_args(script))
     assert rc == 0
@@ -137,8 +139,8 @@ def test_cmd_script_syntax_error(tmp_path, monkeypatch):
     script = tmp_path / "bad.py"
     script.write_text("if True print('x')\n", encoding="utf-8")
 
-    monkeypatch.setattr("OCDocker.CLI.__init__._preparse_global_args", lambda argv: argparse.Namespace())
-    monkeypatch.setattr("OCDocker.CLI.__init__._bootstrap_ocdocker_env", lambda ns: None)
+    monkeypatch.setattr("OCDocker.CLI.common._preparse_global_args", lambda argv: argparse.Namespace())
+    monkeypatch.setattr("OCDocker.CLI.common._bootstrap_ocdocker_env", lambda ns: None)
 
     rc = cmd_script(_mk_script_args(script))
     assert rc == 1
@@ -149,8 +151,8 @@ def test_cmd_script_propagates_system_exit(tmp_path, monkeypatch):
     script = tmp_path / "exit.py"
     script.write_text("import sys\nsys.exit(7)\n", encoding="utf-8")
 
-    monkeypatch.setattr("OCDocker.CLI.__init__._preparse_global_args", lambda argv: argparse.Namespace())
-    monkeypatch.setattr("OCDocker.CLI.__init__._bootstrap_ocdocker_env", lambda ns: None)
+    monkeypatch.setattr("OCDocker.CLI.common._preparse_global_args", lambda argv: argparse.Namespace())
+    monkeypatch.setattr("OCDocker.CLI.common._bootstrap_ocdocker_env", lambda ns: None)
 
     rc = cmd_script(_mk_script_args(script))
     assert rc == 7
@@ -161,8 +163,8 @@ def test_cmd_script_handles_keyboard_interrupt(tmp_path, monkeypatch):
     script = tmp_path / "kb.py"
     script.write_text("raise KeyboardInterrupt()\n", encoding="utf-8")
 
-    monkeypatch.setattr("OCDocker.CLI.__init__._preparse_global_args", lambda argv: argparse.Namespace())
-    monkeypatch.setattr("OCDocker.CLI.__init__._bootstrap_ocdocker_env", lambda ns: None)
+    monkeypatch.setattr("OCDocker.CLI.common._preparse_global_args", lambda argv: argparse.Namespace())
+    monkeypatch.setattr("OCDocker.CLI.common._bootstrap_ocdocker_env", lambda ns: None)
 
     rc = cmd_script(_mk_script_args(script))
     assert rc == 130
@@ -173,8 +175,8 @@ def test_cmd_script_handles_runtime_exception(tmp_path, monkeypatch):
     script = tmp_path / "boom.py"
     script.write_text("raise RuntimeError('boom')\n", encoding="utf-8")
 
-    monkeypatch.setattr("OCDocker.CLI.__init__._preparse_global_args", lambda argv: argparse.Namespace())
-    monkeypatch.setattr("OCDocker.CLI.__init__._bootstrap_ocdocker_env", lambda ns: None)
+    monkeypatch.setattr("OCDocker.CLI.common._preparse_global_args", lambda argv: argparse.Namespace())
+    monkeypatch.setattr("OCDocker.CLI.common._bootstrap_ocdocker_env", lambda ns: None)
 
     rc = cmd_script(_mk_script_args(script))
     assert rc == 1

@@ -116,3 +116,16 @@ def test_groupwise_all_single_class_groups_yields_nan_macro_and_bedroc_nan_branc
         ),
     )
     assert np.isnan(ocranking.bedroc(y_true, y_score))
+
+
+@pytest.mark.order(258)
+def test_groupwise_global_single_class_yields_nan_auc_values():
+    y_true = np.array([0, 0, 0, 0], dtype=int)
+    y_score = np.array([0.1, 0.2, 0.3, 0.4], dtype=float)
+
+    grouped = ocranking.groupwise(y_true, y_score, groups=["g1", "g1", "g2", "g2"])
+
+    assert np.isnan(grouped["roc_auc_macro"])
+    assert np.isnan(grouped["pr_auc_macro"])
+    assert np.isnan(grouped["roc_auc_micro"])
+    assert np.isnan(grouped["pr_auc_micro"])

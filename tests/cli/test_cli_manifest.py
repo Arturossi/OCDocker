@@ -15,7 +15,8 @@ from types import SimpleNamespace
 
 import pytest
 
-import OCDocker.CLI.__init__ as cli
+import OCDocker.CLI as cli
+import OCDocker.CLI.manifest as cli_manifest
 
 # License
 ###############################################################################
@@ -55,15 +56,15 @@ def test_build_parser_manifest_subcommand_parse():
 
 @pytest.mark.order(465)
 def test_generate_reproducibility_manifest_structure(monkeypatch):
-    monkeypatch.setattr(cli, "_collect_ocdocker_version", lambda: "0.0.test")
+    monkeypatch.setattr(cli_manifest, "_collect_ocdocker_version", lambda: "0.0.test")
     monkeypatch.setattr(
-        cli,
+        cli_manifest,
         "_collect_external_tool_manifest",
         lambda: {"vina": {"configured": "vina", "resolved": None, "available": False, "version": "unknown"}},
     )
-    monkeypatch.setattr(cli, "_collect_git_manifest", lambda: {"commit": "abc", "branch": "main", "dirty": False})
+    monkeypatch.setattr(cli_manifest, "_collect_git_manifest", lambda: {"commit": "abc", "branch": "main", "dirty": False})
 
-    manifest = cli.generate_reproducibility_manifest(include_python_packages=False)
+    manifest = cli_manifest.generate_reproducibility_manifest(include_python_packages=False)
 
     assert manifest["schema_version"] == 1
     assert manifest["ocdocker"]["version"] == "0.0.test"
@@ -76,10 +77,10 @@ def test_generate_reproducibility_manifest_structure(monkeypatch):
 
 @pytest.mark.order(466)
 def test_cmd_manifest_writes_output_and_stdout(monkeypatch, tmp_path, capsys):
-    monkeypatch.setattr(cli, "_preparse_global_args", lambda _argv: argparse.Namespace(config_file=None))
-    monkeypatch.setattr(cli, "_bootstrap_ocdocker_env", lambda _ns: None)
+    monkeypatch.setattr(cli_manifest, "_preparse_global_args", lambda _argv: argparse.Namespace(config_file=None))
+    monkeypatch.setattr(cli_manifest, "_bootstrap_ocdocker_env", lambda _ns: None)
     monkeypatch.setattr(
-        cli,
+        cli_manifest,
         "generate_reproducibility_manifest",
         lambda include_python_packages=True: {
             "schema_version": 1,
@@ -89,7 +90,7 @@ def test_cmd_manifest_writes_output_and_stdout(monkeypatch, tmp_path, capsys):
     )
 
     output = tmp_path / "repro_manifest.json"
-    rc = cli.cmd_manifest(SimpleNamespace(output=str(output), no_packages=False))
+    rc = cli_manifest.cmd_manifest(SimpleNamespace(output=str(output), no_packages=False))
     assert rc == 0
 
     payload_stdout = json.loads(capsys.readouterr().out)
@@ -102,15 +103,15 @@ def test_cmd_manifest_writes_output_and_stdout(monkeypatch, tmp_path, capsys):
 
 @pytest.mark.order(467)
 def test_cmd_manifest_bootstrap_failure_is_reported(monkeypatch, capsys):
-    monkeypatch.setattr(cli, "_preparse_global_args", lambda _argv: argparse.Namespace(config_file=None))
+    monkeypatch.setattr(cli_manifest, "_preparse_global_args", lambda _argv: argparse.Namespace(config_file=None))
     monkeypatch.setattr(
-        cli,
+        cli_manifest,
         "_bootstrap_ocdocker_env",
         lambda _ns: (_ for _ in ()).throw(RuntimeError("bootstrap failed")),
     )
-    monkeypatch.setattr(cli, "generate_reproducibility_manifest", lambda include_python_packages=True: {"schema_version": 1})
+    monkeypatch.setattr(cli_manifest, "generate_reproducibility_manifest", lambda include_python_packages=True: {"schema_version": 1})
 
-    rc = cli.cmd_manifest(SimpleNamespace(output=None, no_packages=True))
+    rc = cli_manifest.cmd_manifest(SimpleNamespace(output=None, no_packages=True))
     assert rc == 0
 
     payload = json.loads(capsys.readouterr().out)

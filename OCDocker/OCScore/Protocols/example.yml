@@ -1,0 +1,82 @@
+# OCScore staged training protocol — copy this file anywhere and pass its path
+# to `ocdocker ocscore train --protocol /path/to/my-protocol.yml`.
+#
+# Bundled starting points (installed with OCDocker):
+#   production, smoke-test, development  →  OCDocker/OCScore/Protocols/*.yml
+#
+# Training always uses raw unreduced inputs, splits first, then fits feature
+# cleaning/reduction only on training rows.
+
+name: my-custom-run
+description: >
+  Example custom protocol. Copy to ~/protocols/ocscore/my-custom-run.yml and edit
+  replicas, trials, split policy, scaling, and reporting as needed.
+
+# Independent Optuna/modeling replicas. Replica seeds = seed + replica index.
+replicas: 2
+
+# Fixed outer PDBbind/DUDEz split seed and Optuna sampler base seed.
+seed: 42
+
+pdbbind:
+  # Regression target column in the reduction archive
+  target_column: experimental
+  # Optuna trials per replica for the PDBbind stage
+  trials: 10
+  epochs: 30
+  n_jobs: 1
+  # full | encoder_regression (Phase 1 encoder+regression search only)
+  search_phase: full
+  enable_pruning: true
+  split:
+    # receptor_heldout | affinity_quantile_stratified | random_row
+    strategy: receptor_heldout
+    train_size: 0.6
+    validation_size: 0.2
+    test_size: 0.2
+
+dudez:
+  kind_column: kind
+  positive_kind: ligands
+  negative_kind: decoys
+  trials: 10
+  epochs: 30
+  n_jobs: 1
+  # Must be one of the DUDEz primary metrics supported by staged Optuna (e.g. BEDROC)
+  primary_metric: BEDROC
+  # pdbbind_scaler applies the PDBbind-fitted scaler to DUDEz (train-only fit)
+  scaling_strategy: pdbbind_scaler
+  ignore_unknown_kind: false
+
+# Optional descriptor-family ablation. When enabled, train also runs the same
+# staged protocol under ablations/<variant> for each listed feature-block subset.
+ablation:
+  enabled: false
+  variants:
+    - ligand_only
+    - receptor_only
+    - sf_only
+    - ligand_sf
+    - receptor_sf
+
+runtime:
+  use_gpu: true
+  # true = PDBbind Optuna only (skip transfer + DUDEz)
+  pdbbind_only: false
+  replica_jobs: 1
+  resume_completed: false
+
+reporting:
+  generate_final_report: false
+  run_leakage_audit: false
+  run_baselines: false
+  # ranking_only | calibration_validated
+  calibration_report_mode: ranking_only
+
+# Optional. When enforce: true, protocol load fails if replicas/trials are below
+# the minimums (used by the bundled production protocol).
+# production_claim:
+#   enforce: true
+#   min_replicas: 3
+#   min_pdbbind_trials: 50
+#   min_dudez_trials: 50

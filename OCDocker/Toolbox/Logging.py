@@ -23,7 +23,6 @@ from glob import glob
 from typing import Any, Optional, TypedDict
 
 import OCDocker.Error as ocerror
-import OCDocker.Toolbox.FilesFolders as ocff
 
 # License
 ###############################################################################
@@ -184,8 +183,11 @@ def backup_log(logname: str) -> None:
     src = os.path.join(logdir, f"{logname}.log")
     if os.path.isfile(src):
         dst_dir = os.path.join(logdir, "read_log_past")
-        if not os.path.isdir(dst_dir):
-            ocff.safe_create_dir(dst_dir)
+        try:
+            os.makedirs(dst_dir, exist_ok=True)
+        except (OSError, PermissionError):
+            # Ignore errors when creating archive directory
+            return
         dst = os.path.join(dst_dir, f"{logname}_{time.strftime('%d%m%Y-%H%M%S')}.log")
         try:
             os.rename(src, dst)

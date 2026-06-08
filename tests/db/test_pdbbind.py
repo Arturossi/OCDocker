@@ -119,9 +119,11 @@ def test_read_index(mock_index_file, monkeypatch):
         class MockPaths:
             pdbbind_kdki_order = "M"  # Default order
         class MockConfig:
-            pdbbind_archive = str(pdbbind_archive)
-            paths = MockPaths()
-        return MockConfig()
+            pass
+        config = MockConfig()
+        config.pdbbind_archive = str(pdbbind_archive)
+        config.paths = MockPaths()
+        return config
     
     monkeypatch.setattr("OCDocker.DB.PDBbind.get_config", mock_get_config)
     
@@ -177,8 +179,10 @@ def test_read_index_nonexistent(monkeypatch, tmp_path):
     
     def mock_get_config():
         class MockConfig:
-            pdbbind_archive = str(pdbbind_archive)
-        return MockConfig()
+            pass
+        config = MockConfig()
+        config.pdbbind_archive = str(pdbbind_archive)
+        return config
     
     monkeypatch.setattr("OCDocker.DB.PDBbind.get_config", mock_get_config)
     
@@ -222,9 +226,11 @@ def test_read_index_with_different_units(mock_index_file, monkeypatch):
         class MockPaths:
             pdbbind_kdki_order = "M"  # Default order
         class MockConfig:
-            pdbbind_archive = str(pdbbind_archive)
-            paths = MockPaths()
-        return MockConfig()
+            pass
+        config = MockConfig()
+        config.pdbbind_archive = str(pdbbind_archive)
+        config.paths = MockPaths()
+        return config
     
     monkeypatch.setattr("OCDocker.DB.PDBbind.get_config", mock_get_config)
     
@@ -260,6 +266,47 @@ def test_read_index_with_different_units(mock_index_file, monkeypatch):
     # The exact values depend on the order constants, but they should be numbers
     for pdb_id, entry in result.items():
         assert isinstance(entry["Ki/Kd_value"], (int, float))
+
+
+def test_read_index_current_txt_format(tmp_path, monkeypatch):
+    '''Test PDBbind.read_index with the current INDEX_refined_data.txt layout.'''
+
+    index_dir = tmp_path / "index"
+    index_dir.mkdir()
+    index_file = index_dir / "INDEX_refined_data.txt"
+    index_file.write_text('''#
+# PDB code, resolution, release year, binding data, reference, ligand name
+#
+2tpi  2.10  1982  Kd=49uM       // 2tpi.pdf (2-mer)
+4cts  2.90  1984  Kd<10uM       // 4cts.pdf (OAA)
+2mip  2.20  1993  IC50<=3.5nM   // 2mip.pdf (7-mer)
+1abc   NMR  2020  Ki~0.5uM      // 1abc.pdf (LIG) approximate value
+''')
+
+    def mock_get_config():
+        class MockPaths:
+            pdbbind_kdki_order = "M"
+        class MockConfig:
+            pdbbind_archive = str(tmp_path)
+            paths = MockPaths()
+        return MockConfig()
+
+    monkeypatch.setattr("OCDocker.DB.PDBbind.get_config", mock_get_config)
+
+    result = ocpdbbind.read_index(str(index_file))
+
+    assert isinstance(result, dict)
+    assert len(result) == 4
+    assert result["2tpi"]["Ki/Kd"] == "Kd"
+    assert result["2tpi"]["Ki/Kd_value"] == pytest.approx(49e-6)
+    assert result["4cts"]["Ki/Kd_relation"] == "<"
+    assert result["4cts"]["-logKd/Ki"].startswith(">")
+    assert result["2mip"]["Ki/Kd"] == "IC50"
+    assert result["2mip"]["Ki/Kd_relation"] == "<="
+    assert result["1abc"]["resolution"] == "NMR"
+    assert result["1abc"]["ligand_name"] == "LIG"
+    assert result["1abc"]["index_comment"] == "approximate value"
+    assert result["1abc"]["dG_kcal_mol"] == pytest.approx(result["1abc"]["dG"] / 1000)
 
 @pytest.mark.order(5)
 def test_run_gnina(monkeypatch):

@@ -16,7 +16,7 @@ Packages
 Modules
 -------
 - __main__: CLI entry point.
-- OCDockerConsole: Console entry point wrapper.
+- OCDocker.Console: Interactive console package.
 '''
 
 # Imports
