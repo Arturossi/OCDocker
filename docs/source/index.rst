@@ -37,6 +37,9 @@ Welcome to the official documentation for OCDocker. This documentation provides 
    introduction
    installation
    optional_dependencies
+   database_setup
+   external_tools
+   container_usage
    modules
    examples
    OCDocker
