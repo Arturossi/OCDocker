@@ -819,6 +819,18 @@ def bootstrap(
     config.multiprocess = bool(getattr(ns, 'multiprocess', True))
     config.overwrite = overwrite
 
+    requested_threads = getattr(ns, 'threads', None)
+    if requested_threads is None:
+        requested_threads = os.getenv('OCDOCKER_THREADS') or os.getenv('SNAKEMAKE_THREADS')
+    try:
+        requested_threads = int(requested_threads) if requested_threads is not None else None
+    except (TypeError, ValueError):
+        requested_threads = None
+    if requested_threads is not None and requested_threads < 1:
+        requested_threads = 1
+
+    requested_tmp_dir = str(getattr(ns, 'tmp_dir', None) or os.getenv('OCDOCKER_TMP_DIR') or '').strip()
+
     # Determine DB backend.
     # Priority:
     # 1) Environment backend override (OCDOCKER_DB_BACKEND, then DB_BACKEND)
@@ -952,26 +964,35 @@ def bootstrap(
                 # Ignore directory creation errors (non-critical)
                 pass
 
-    # Reset tmp dir
-    tmpDir = f"{ocdocker_path}/tmp"
+    # Temporary directory. Scheduler-managed workflows should provide a job-local
+    # path with --tmp-dir, OCDOCKER_TMP_DIR, or config.tmp_dir to avoid cross-job cleanup.
+    user_managed_tmp = bool(requested_tmp_dir or config.tmp_dir)
+    tmpDir = requested_tmp_dir or config.tmp_dir or f"{ocdocker_path}/tmp"
     tmp_ok = False
     try:
-        if os.path.isdir(tmpDir):
-            shutil.rmtree(tmpDir)
-        os.makedirs(tmpDir, exist_ok=True)
+        if user_managed_tmp:
+            os.makedirs(tmpDir, exist_ok=True)
+        else:
+            if os.path.isdir(tmpDir):
+                shutil.rmtree(tmpDir)
+            os.makedirs(tmpDir, exist_ok=True)
         tmp_ok = os.path.isdir(tmpDir)
     except (OSError, PermissionError, shutil.Error):
         tmp_ok = False
 
     if not tmp_ok:
-        # Fall back to a system temp directory if the project tmp cannot be created
+        # Fall back to a system temp directory if the configured tmp cannot be created.
         try:
             tmpDir = tempfile.mkdtemp(prefix="ocdocker_")
         except Exception:
             tmpDir = tempfile.gettempdir()
 
-    # CPU cores (stored in config only, no global)
-    if config.multiprocess:
+    # CPU cores (stored in config only, no global). Scheduler-provided threads
+    # take precedence over host cpu_count to avoid nested oversubscription.
+    if requested_threads is not None:
+        available_cores = requested_threads
+        config.multiprocess = available_cores > 1
+    elif config.multiprocess:
         n_cpu = multiprocessing.cpu_count() - 1
         available_cores = n_cpu if n_cpu > 1 else 1
     else:
@@ -1767,6 +1788,31 @@ DUDEz = """ + str(confDUDEz) + """
     return
 
 
+def reset_runtime(cleanup: bool = True) -> None:
+    '''Reset process-wide OCDocker runtime state.
+
+    Parameters
+    ----------
+    cleanup : bool, optional
+        If True, close active database session and engine before resetting state,
+        by default True.
+    '''
+
+    global bootstrapped, session, engine, db_url, optdb_url
+    if cleanup:
+        cleanup_database_resources()
+    session = None
+    engine = None
+    db_url = None
+    optdb_url = None
+    bootstrapped = False
+    try:
+        from OCDocker.Config import reset_config
+        reset_config()
+    except Exception:
+        pass
+
+
 def get_argument_parsing() -> argparse.ArgumentParser:
     '''Get data to generate vina conf file from box file.
 
@@ -1821,6 +1867,18 @@ def get_argument_parsing() -> argparse.ArgumentParser:
                         action="store_true",
                         default=False,
                         help="Defines if OCDocker should overwrite existing files")
+
+    parser.add_argument("--threads",
+                        dest="threads",
+                        type=int,
+                        default=None,
+                        help="Maximum worker threads/processes for scheduler-managed runs")
+
+    parser.add_argument("--tmp-dir",
+                        dest="tmp_dir",
+                        type=str,
+                        default=None,
+                        help="Job-local temporary directory")
 
     parser.add_argument("--no-splash",
                         dest="no_splash",

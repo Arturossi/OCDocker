@@ -154,12 +154,32 @@ if [[ -f "${selected_cfg}" ]]; then
 
   export OCDOCKER_CONFIG="${selected_cfg}"
   [[ -n "${cfg_user}" && -z "${OCDOCKER_DB_USER:-}" ]] && export OCDOCKER_DB_USER="${cfg_user}"
-  [[ -n "${cfg_password}" && -z "${OCDOCKER_DB_PASS:-}" ]] && export OCDOCKER_DB_PASS="${cfg_password}"
+  [[ -n "${cfg_password}" && "${cfg_password}" != "<set-by-"* && -z "${OCDOCKER_DB_PASS:-}" ]] && export OCDOCKER_DB_PASS="${cfg_password}"
   [[ -n "${cfg_database}" && -z "${OCDOCKER_DATABASE:-}" ]] && export OCDOCKER_DATABASE="${cfg_database}"
   [[ -n "${cfg_optimizedb}" && -z "${OCDOCKER_OPTIMIZEDB:-}" ]] && export OCDOCKER_OPTIMIZEDB="${cfg_optimizedb}"
 fi
 
-exec docker compose "${compose_args[@]}" run --rm \
+if [[ "${selected_backend}" != "sqlite" && -z "${OCDOCKER_DB_PASS:-}" ]]; then
+  echo "error: set OCDOCKER_DB_PASS before running the Docker wrapper." >&2
+  exit 2
+fi
+
+if [[ "${selected_backend}" == "mysql" && -z "${MYSQL_ROOT_PASSWORD:-}" ]]; then
+  echo "error: set MYSQL_ROOT_PASSWORD before running the MySQL Docker wrapper." >&2
+  exit 2
+fi
+
+compose_cmd=()
+if docker compose version >/dev/null 2>&1; then
+  compose_cmd=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+  compose_cmd=(docker-compose)
+else
+  echo "error: Docker Compose is required. Install the Docker Compose v2 plugin or docker-compose." >&2
+  exit 2
+fi
+
+exec "${compose_cmd[@]}" "${compose_args[@]}" run --rm \
   "${extra_mounts[@]}" \
   --entrypoint ocdocker \
   ocdocker "${args[@]}"

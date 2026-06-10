@@ -210,7 +210,7 @@ def run_export_shap_analysis(
     imp_png = str(output_path / "shap_feature_importance.png")
     bee_png = str(output_path / "shap_beeswarm_plot.png")
     plots.feature_importance_barh(shap_2d, feature_names, out_png=imp_png, top_k=20)
-    plots.beeswarm(shap_2d, X_eval.iloc[: shap_2d.shape[0]], out_png=bee_png)
+    plots.beeswarm(shap_2d, X_eval.iloc[: shap_2d.shape[0]], out_png=bee_png, rng_seed=seed)
 
     shap_report = {
         "export_dir": str(export_path.resolve()),

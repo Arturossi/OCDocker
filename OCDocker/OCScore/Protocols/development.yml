@@ -25,6 +25,7 @@ dudez:
   epochs: 50
   n_jobs: 1
   primary_metric: BEDROC
+  bedroc_alpha: 20.0
   scaling_strategy: pdbbind_scaler
   ignore_unknown_kind: false
 

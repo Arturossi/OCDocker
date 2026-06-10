@@ -19,6 +19,7 @@ from pathlib import Path
 
 from OCDocker.CLI.common import _preparse_global_args, _require_file
 from OCDocker.CLI.parser import build_parser
+from OCDocker.CLI.pipeline import cmd_pipeline
 from OCDocker.CLI.script import cmd_script
 
 # License
@@ -58,12 +59,53 @@ def test_build_parser_subcommands_and_parse():
     assert callable(getattr(ns2, "func", None))
 
 
+def test_build_parser_scheduler_runtime_options(tmp_path):
+    parser = build_parser()
+    tmp_dir = tmp_path / "snakemake_tmp"
+    common = [
+        "--receptor",
+        "receptor.pdb",
+        "--ligand",
+        "ligand.smi",
+        "--box",
+        "box0.pdb",
+        "--strict-engines",
+        "--done-marker",
+        "done.json",
+    ]
+
+    before = parser.parse_args([
+        "--threads",
+        "4",
+        "--tmp-dir",
+        str(tmp_dir),
+        "pipeline",
+        *common,
+    ])
+    after = parser.parse_args([
+        "pipeline",
+        "--threads",
+        "4",
+        "--tmp-dir",
+        str(tmp_dir),
+        *common,
+    ])
+
+    for ns in (before, after):
+        assert ns.threads == 4
+        assert ns.tmp_dir == str(tmp_dir)
+        assert ns.strict_engines is True
+        assert ns.done_marker == "done.json"
+
+
 @pytest.mark.order(19)
 def test_preparse_global_args_reads_scattered_flags(tmp_path):
     cfg = tmp_path / "OCDocker.cfg"
+    tmp_dir = tmp_path / "job_tmp"
     argv = [
         "vs", "--engine", "vina", "--output-level", "4",
         "--conf", str(cfg), "--overwrite", "--no-stdout-log", "--no-splash",
+        "--threads", "3", "--tmp-dir", str(tmp_dir),
         "--multiprocess", "-u",
     ]
     ns = _preparse_global_args(argv)
@@ -72,6 +114,8 @@ def test_preparse_global_args_reads_scattered_flags(tmp_path):
     assert ns.overwrite is True
     assert ns.no_stdout_log is True
     assert ns.no_splash is True
+    assert ns.threads == 3
+    assert ns.tmp_dir == str(tmp_dir)
     assert ns.multiprocess is True
     assert ns.update is True
 
@@ -180,3 +224,69 @@ def test_cmd_script_handles_runtime_exception(tmp_path, monkeypatch):
 
     rc = cmd_script(_mk_script_args(script))
     assert rc == 1
+
+def test_build_parser_pipeline_step_stages(tmp_path):
+    parser = build_parser()
+    outdir = tmp_path / "pipeline_steps"
+    for stage in ["prepare", "dock", "collect", "cluster", "rescore", "export"]:
+        argv = ["pipeline", stage, "--outdir", str(outdir)]
+        if stage in {"prepare", "dock"}:
+            argv.extend(["--receptor", "r.pdbqt", "--ligand", "l.pdbqt", "--box", "box.txt"])
+        ns = parser.parse_args(argv)
+        assert ns.stage == stage
+        assert ns.outdir == str(outdir)
+
+
+def test_pipeline_prepare_collect_export_artifact_stages(tmp_path):
+    receptor = tmp_path / "receptor.pdbqt"
+    ligand = tmp_path / "ligand.pdbqt"
+    box = tmp_path / "box.txt"
+    receptor.write_text("RECEPTOR\n", encoding="utf-8")
+    ligand.write_text("LIGAND\n", encoding="utf-8")
+    box.write_text("BOX\n", encoding="utf-8")
+    outdir = tmp_path / "out"
+
+    parser = build_parser()
+    prepare_args = parser.parse_args([
+        "pipeline",
+        "prepare",
+        "--receptor",
+        str(receptor),
+        "--ligand",
+        str(ligand),
+        "--box",
+        str(box),
+        "--outdir",
+        str(outdir),
+        "--engines",
+        "vina,smina",
+    ])
+    assert cmd_pipeline(prepare_args) == 0
+    assert (outdir / "prepare_manifest.json").is_file()
+
+    engine_dir = outdir / "vinaFiles"
+    engine_dir.mkdir(parents=True)
+    pose = engine_dir / "pose_1.pdbqt"
+    pose.write_text("POSE\n", encoding="utf-8")
+    dock_manifest = {
+        "engine": "vina",
+        "engine_dir": str(engine_dir),
+        "status": "complete",
+        "box": str(box),
+        "config": str(engine_dir / "conf_vina.txt"),
+        "prepared_receptor": str(outdir / "prepared_receptor.pdbqt"),
+        "prepared_ligand": str(outdir / "prepared_ligand.pdbqt"),
+        "poses": [str(pose)],
+    }
+    import json
+    (engine_dir / "dock_manifest.json").write_text(json.dumps(dock_manifest), encoding="utf-8")
+
+    collect_args = parser.parse_args(["pipeline", "collect", "--outdir", str(outdir)])
+    assert cmd_pipeline(collect_args) == 0
+    assert (outdir / "pose_inventory.csv").is_file()
+    assert (outdir / "collect_manifest.json").is_file()
+
+    export_args = parser.parse_args(["pipeline", "export", "--outdir", str(outdir)])
+    assert cmd_pipeline(export_args) == 0
+    assert (outdir / "summary.json").is_file()
+

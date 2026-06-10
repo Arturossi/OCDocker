@@ -104,11 +104,11 @@ def test_cluster_rmsd_non_converged_plot_exception_logs_warning(monkeypatch, tmp
     warnings = []
     monkeypatch.setattr(ocrmsdclust, "AgglomerativeClustering", _AlwaysUniqueAgglomerative)
     monkeypatch.setattr(ocrmsdclust.ocprint, "print_warning", lambda msg: warnings.append(msg))
-    monkeypatch.setattr(
-        ocrmsdclust.plt,
-        "subplots",
-        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("forced subplots failure")),
-    )
+    class _FailingPlotter:
+        def subplots(self, *_a, **_k):
+            raise RuntimeError("forced subplots failure")
+
+    monkeypatch.setattr(ocrmsdclust, "_require_matplotlib", lambda: _FailingPlotter())
 
     out_plot = tmp_path / "non_converged_plot.png"
     rc = ocrmsdclust.cluster_rmsd(

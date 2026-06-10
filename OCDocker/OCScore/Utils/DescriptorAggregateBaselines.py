@@ -154,6 +154,7 @@ def _evaluate_named_row_aggregates_on_fold(
         groups: Optional[np.ndarray],
         *,
         metric_names: Sequence[str],
+        bedroc_alpha: float = 20.0,
         infer_higher_is_better: Callable[[np.ndarray, np.ndarray], bool],
         name_formatter: Callable[[str], str],
     ) -> dict[str, dict[str, float]]:
@@ -169,6 +170,7 @@ def _evaluate_named_row_aggregates_on_fold(
             raw_scores,
             groups=g_val,
             higher_is_better=orientation,
+            bedroc_alpha=bedroc_alpha,
         )
         scorer_name = name_formatter(aggregator)
         results[scorer_name] = {
@@ -186,6 +188,7 @@ def _evaluate_named_row_aggregates_by_group(
         groups: np.ndarray,
         *,
         metric_names: Sequence[str],
+        bedroc_alpha: float = 20.0,
         infer_higher_is_better: Callable[[np.ndarray, np.ndarray], bool],
         name_formatter: Callable[[str], str],
     ) -> dict[str, pd.DataFrame]:
@@ -201,6 +204,7 @@ def _evaluate_named_row_aggregates_by_group(
             g_val,
             higher_is_better=bool(infer_higher_is_better(raw_scores, y_val)),
             metric_names=metric_names,
+            bedroc_alpha=bedroc_alpha,
         )
         if group_df.empty:
             continue
@@ -215,6 +219,7 @@ def evaluate_descriptor_aggregate_baselines_on_fold(
         groups: Optional[np.ndarray],
         *,
         metric_names: Sequence[str],
+        bedroc_alpha: float = 20.0,
         infer_higher_is_better: Callable[[np.ndarray, np.ndarray], bool],
         aggregators: Sequence[str] = ROW_AGGREGATOR_NAMES,
     ) -> dict[str, dict[str, float]]:
@@ -228,6 +233,7 @@ def evaluate_descriptor_aggregate_baselines_on_fold(
         labels[val_idx],
         None if groups is None else groups[val_idx],
         metric_names=metric_names,
+        bedroc_alpha=bedroc_alpha,
         infer_higher_is_better=infer_higher_is_better,
         name_formatter=format_descriptor_aggregate_scorer,
     )
@@ -240,6 +246,7 @@ def evaluate_descriptor_aggregates_by_group(
         groups: np.ndarray,
         *,
         metric_names: Sequence[str],
+        bedroc_alpha: float = 20.0,
         infer_higher_is_better: Callable[[np.ndarray, np.ndarray], bool],
         aggregators: Sequence[str] = ROW_AGGREGATOR_NAMES,
     ) -> Mapping[str, pd.DataFrame]:
@@ -253,6 +260,7 @@ def evaluate_descriptor_aggregates_by_group(
         labels[val_idx],
         groups[val_idx],
         metric_names=metric_names,
+        bedroc_alpha=bedroc_alpha,
         infer_higher_is_better=infer_higher_is_better,
         name_formatter=format_descriptor_aggregate_scorer,
     )
@@ -266,6 +274,7 @@ def evaluate_sf_consensus_baselines_on_fold(
         groups: Optional[np.ndarray],
         *,
         metric_names: Sequence[str],
+        bedroc_alpha: float = 20.0,
         infer_higher_is_better: Callable[[np.ndarray, np.ndarray], bool],
         aggregators: Sequence[str] = ROW_AGGREGATOR_NAMES,
     ) -> dict[str, dict[str, float]]:
@@ -278,6 +287,7 @@ def evaluate_sf_consensus_baselines_on_fold(
         labels[val_idx],
         None if groups is None else groups[val_idx],
         metric_names=metric_names,
+        bedroc_alpha=bedroc_alpha,
         infer_higher_is_better=infer_higher_is_better,
         name_formatter=format_sf_consensus_scorer,
     )
@@ -291,6 +301,7 @@ def evaluate_sf_consensus_by_group(
         groups: np.ndarray,
         *,
         metric_names: Sequence[str],
+        bedroc_alpha: float = 20.0,
         infer_higher_is_better: Callable[[np.ndarray, np.ndarray], bool],
         aggregators: Sequence[str] = ROW_AGGREGATOR_NAMES,
     ) -> Mapping[str, pd.DataFrame]:
@@ -303,6 +314,7 @@ def evaluate_sf_consensus_by_group(
         labels[val_idx],
         groups[val_idx],
         metric_names=metric_names,
+        bedroc_alpha=bedroc_alpha,
         infer_higher_is_better=infer_higher_is_better,
         name_formatter=format_sf_consensus_scorer,
     )

@@ -338,6 +338,8 @@ class DUDEzOptunaConfig:
         Column used for target-grouped splits, by default "receptor".
     primary_metric : str, optional
         DUDEz validation objective metric, by default "BEDROC".
+    bedroc_alpha : float, optional
+        Exponential BEDROC weighting factor, by default 20.0.
     n_trials : int, optional
         Number of Optuna trials, by default 10.
     epochs : int, optional
@@ -386,6 +388,7 @@ class DUDEzOptunaConfig:
     kind_column: str = "kind"
     target_group_column: str = "receptor"
     primary_metric: str = "BEDROC"
+    bedroc_alpha: float = 20.0
     n_trials: int = 10
     epochs: int = 100
     storage: Optional[str] = "auto"
@@ -1214,12 +1217,14 @@ class DUDEzOptunaStage:
             val_score,
             groups=splits.get("val_groups"),
             higher_is_better=True,
+            bedroc_alpha=self.config.bedroc_alpha,
         )
         test_metrics = evaluate_screening_metrics(
             test_true,
             test_score,
             groups=splits.get("test_groups"),
             higher_is_better=True,
+            bedroc_alpha=self.config.bedroc_alpha,
         )
         calibrator = enrich_dudez_export_metrics(
             val_metrics,
@@ -1382,6 +1387,7 @@ class DUDEzOptunaStage:
                 val_score,
                 groups=splits.get("val_groups"),
                 higher_is_better=True,
+                bedroc_alpha=self.config.bedroc_alpha,
             )
             primary_metric, metric_value = _resolve_dudez_objective_value(
                 self.config.primary_metric,
@@ -1404,6 +1410,7 @@ class DUDEzOptunaStage:
             val_score,
             groups=splits.get("val_groups"),
             higher_is_better=True,
+            bedroc_alpha=self.config.bedroc_alpha,
         )
         primary_metric, objective_value = _resolve_dudez_objective_value(
             self.config.primary_metric,
@@ -1615,6 +1622,7 @@ def _dudez_stage_config_payload(
         "kind_column": config.kind_column,
         "target_group_column": config.target_group_column,
         "primary_metric": config.primary_metric,
+        "bedroc_alpha": config.bedroc_alpha,
         "n_trials": config.n_trials,
         "epochs": config.epochs,
         "study_name": config.study_name,

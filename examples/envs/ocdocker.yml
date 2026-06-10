@@ -1,0 +1,8 @@
+name: ocdocker-snakemake
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - ocdocker[docking,analysis,workflow]

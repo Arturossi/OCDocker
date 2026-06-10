@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   OCDocker.API
    OCDocker.DB
    OCDocker.Docking
    OCDocker.CLI

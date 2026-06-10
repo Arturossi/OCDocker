@@ -5,6 +5,7 @@ This directory contains examples demonstrating how to use OCDocker for molecular
 ## Table of Contents
 
 - [CLI Examples](#cli-examples)
+- [Snakemake Example](#snakemake-example)
 - [Python API Examples](#python-api-examples)
 - [Getting Started](#getting-started)
 
@@ -43,6 +44,72 @@ Example of running Python scripts with OCDocker libraries pre-loaded:
 - Example workflow structure
 Run: `ocdocker script --conf OCDocker.cfg --allow-unsafe-exec examples/12_cli_script_example.py`
 (`--allow-unsafe-exec` is required for trusted in-process script execution).
+
+
+## Snakemake Example
+
+### Scheduler-Friendly Pipeline (`19_Snakefile_ocdocker_pipeline.smk`)
+
+This Snakefile is a template for running the multi-engine OCDocker pipeline under Snakemake. It is designed for one receptor/ligand/box job per sample and maps Snakemake resources into OCDocker runtime controls.
+
+Input layout expected by the example:
+
+```text
+input/example/receptor.pdbqt
+input/example/ligand.pdbqt
+input/example/box.txt
+```
+
+Outputs written by the example:
+
+```text
+results/example/summary.json
+results/example/done.json
+logs/example.log
+tmp/example/
+```
+
+Native CLI run:
+
+```bash
+snakemake -s examples/19_Snakefile_ocdocker_pipeline.smk --cores 4
+```
+
+Docker-wrapper run after installing `ocd`:
+
+```bash
+OCDOCKER_GNINA_HOST_PATH=/path/to/downloaded/gnina \
+snakemake -s examples/19_Snakefile_ocdocker_pipeline.smk --cores 4 --config ocdocker_command=ocd
+```
+
+The rule passes `--threads`, `--tmp-dir`, `--strict-engines`, and `--done-marker` to OCDocker. This avoids nested oversubscription, keeps temporary files job-local, and gives Snakemake an atomic completion marker in addition to `summary.json`.
+
+The rule declares `examples/envs/ocdocker.yml` for users who run Snakemake with `--use-conda`. Docker-wrapper users can keep using `--config ocdocker_command=ocd` without enabling conda.
+
+### Granular Engine Pipeline (`20_Snakefile_ocdocker_granular_pipeline.smk`)
+
+This template uses the public step-level pipeline CLI: `prepare`, per-engine `dock`, `collect`, `cluster`, `rescore`, and `export`. This gives Snakemake real stage-level dependencies, per-engine parallelism, retries, logs, temporary directories, and resources without using private OCDocker internals.
+
+Native CLI run:
+
+```bash
+snakemake -s examples/20_Snakefile_ocdocker_granular_pipeline.smk --cores 12
+```
+
+Docker-wrapper run after installing `ocd`:
+
+```bash
+OCDOCKER_GNINA_HOST_PATH=/path/to/downloaded/gnina \
+snakemake -s examples/20_Snakefile_ocdocker_granular_pipeline.smk --cores 12 --config ocdocker_command=ocd
+```
+
+Change engines or sample from the command line:
+
+```bash
+snakemake -s examples/20_Snakefile_ocdocker_granular_pipeline.smk --cores 12 --config sample=my_case engines=vina,smina,plants
+```
+
+This is more granular than example 19 and is the recommended template for scheduler/HPC runs where partial resume and per-stage resources matter.
 
 ## Python API Examples
 
@@ -123,7 +190,7 @@ Run: `python examples/14_feature_reduction_pdbbind_dudez.py --pdbbind-archive /p
 CLI: `ocdocker ocscore reduce` (same flags; requires `pip install "ocdocker[ml]"`)
 
 ### 15. Staged OCScore Optuna from raw inputs (`15_ocscore_staged_optuna_from_reduction.py`)
-Example of starting the unified staged Optuna modeling protocol from raw unreduced inputs:
+Compatibility wrapper for starting the unified staged Optuna modeling protocol from raw unreduced inputs. Prefer the CLI command below for new runs:
 - Loads `merged_input_dataset.csv` (or separate raw PDBbind/DUDEz CSVs)
 - Creates a fixed outer split, fits train-only feature reduction on PDBbind train rows
 - Runs PDBbind RMSE-only regression Optuna, transfers the feature extractor, then runs DUDEz screening Optuna
@@ -136,7 +203,7 @@ CLI: `ocdocker ocscore train` (`--protocol`, `--raw-input-dir` or `--merged-inpu
 
 ### 16. OCScore exported model tools (`16_ocscore_exported_model_tools.py`)
 
-Tools for validating, loading, cross-validating, plotting, rendering architecture diagrams, running SHAP on, and **scoring raw pipeline archives** with exported `best_model/` bundles from example 15.
+Compatibility wrapper for validating, loading, cross-validating, plotting, rendering architecture diagrams, running SHAP on, and **scoring raw pipeline archives** with exported `best_model/` bundles from example 15. Prefer the `ocdocker ocscore ...` commands for new runs.
 
 CLI: `ocdocker ocscore validate|load|retrain|cross-validate|plot|architecture-plot|shap|score` (same flags per subcommand). SHAP on exports: `ocdocker ocscore shap`.
 
@@ -148,7 +215,7 @@ CLI: `ocdocker ocscore validate|load|retrain|cross-validate|plot|architecture-pl
 Scoring uses the **frozen `selected_features` list** from the export bundle. It does not re-run feature reduction or refit scalers on new data. Optional `feature_reduction_protocol.json` from example 14 is audit metadata only.
 
 ```bash
-python examples/16_ocscore_exported_model_tools.py score \
+ocdocker ocscore score \
   --export-dir /path/to/replica_000/pdbbind/best_model \
   --raw-archive /path/to/new_pipeline.tar.gz \
   --output-csv /path/to/predictions.csv
@@ -166,6 +233,9 @@ ocdocker ocscore architecture-plot \
 Architecture figures are compact main-network-only by default. Use `--show-decoder` to include the auxiliary reconstruction branch. In `18_run_full_pipeline.sh`, set `ARCHITECTURE_PLOT_INCLUDE_DECODER=true` for the same behavior.
 
 Other subcommands: `validate`, `load`, `retrain`, `cross-validate`, `plot`, `architecture-plot`, `shap`.
+
+BEDROC alpha is part of the protocol YAML (`dudez.bedroc_alpha`) and is recorded in model exports for downstream analysis reproducibility.
+Script 18 also writes `analysis_protocol.generated.yml`, which records post-training CV, plot, SHAP, architecture, scoring, resume, and interleaving settings.
 
 ### 17. DUDEz SF baseline comparison (`17_ocscore_dudez_sf_baseline_comparison.py`)
 

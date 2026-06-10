@@ -2,45 +2,30 @@
 DB_BACKEND = mysql
 HOST = db
 USER = ocdocker
-PASSWORD = ocdocker_pass
+PASSWORD = <set-by-OCDOCKER_DB_PASS>
 DATABASE = ocdocker
 OPTIMIZEDB = optimization
 PORT = 3306
 
 # SQLite options (optional)
-SQLITE_PATH =
+SQLITE_PATH = /workspace/ocdocker.sqlite
 
-# Root directory for the OCDocker Database
-ocdb = /data/hd4tb/OCDocker/data/ocdb
+# Workspace data roots
+ocdb = /workspace/data/ocdb
+pca = /workspace/data/pca
 
-# Directory for the PCA models
-pca = /data/hd4tb/OCDocker/data/pca
-
-# PLANTS and SPORES path
-plants = /data/hd4tb/OCDocker/software/docking/plants/PLANTS1.2_64bit
-spores = /data/hd4tb/OCDocker/software/docking/plants/SPORES_64bit
-
-# Smina path
-smina = /data/hd4tb/OCDocker/software/docking/smina/build/smina
-
-# Vina paths
-vina = /data/hd4tb/OCDocker/software/docking/vina/bin/vina
-vina_split = /data/hd4tb/OCDocker/software/docking/vina/bin/vina_split
-
-# Gnina path
-gnina = /data/hd4tb/OCDocker/software/docking/gnina/gnina
-
-# MGLTools's pythonsh path
-pythonsh = /data/hd4tb/OCDocker/mgltools/bin/pythonsh
-
-# prepare_ligand4 path
-prepare_ligand = /data/hd4tb/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py
-
-# prepare_receptor4 path
-prepare_receptor = /data/hd4tb/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py
-
-# Open Babel path
-obabel = /data/hd4tb/OCDocker/miniconda3/envs/ocdocker/bin/obabel
+# Docking binaries inside the OCDocker container.
+# GNINA and MGLTools are user-provided because the correct install depends on the host.
+plants = /opt/ocdocker/bin/docking/plants/PLANTS1.2_64bit
+spores = /opt/ocdocker/bin/docking/plants/SPORES_64bit
+smina = /opt/ocdocker/bin/docking/smina/smina
+vina = /opt/ocdocker/bin/docking/vina/vina
+vina_split = /opt/ocdocker/bin/docking/vina/vina_split
+gnina = /workspace/software/docking/gnina/gnina
+pythonsh = /workspace/mgltools/bin/pythonsh
+prepare_ligand = /workspace/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py
+prepare_receptor = /workspace/mgltools/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py
+obabel = /usr/bin/obabel
 
 ############# DATABASE FETCH PARAMETERS #############
 DUDEz = https://dudez.docking.org
@@ -83,7 +68,7 @@ plants_rescoring_mode = simplex
 ################## ODDT PARAMETERS ##################
 oddt_seed = 42
 oddt_chunk_size = 100
-oddt_models_dir =
+oddt_models_dir = /opt/ocdocker/ODDT_models
 oddt_scoring_functions = rfscore_v1_pdbbind2016,rfscore_v2_pdbbind2016,rfscore_v3_pdbbind2016,nnscore_pdbbind2016,plecrf_pdbbind2016
 
 ################## OTHER SOFTWARE ###################

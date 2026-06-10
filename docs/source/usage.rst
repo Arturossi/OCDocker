@@ -158,6 +158,39 @@ All commands accept the following global options:
 - ``--overwrite``: allow overwriting outputs when applicable
 - ``--log-file``: write logs to a file
 - ``--no-stdout-log``: disable logging to stdout
+- ``--threads``: scheduler-provided worker count; also accepts ``OCDOCKER_THREADS`` or ``SNAKEMAKE_THREADS``
+- ``--tmp-dir``: job-local temporary directory; also accepts ``OCDOCKER_TMP_DIR``
+
+
+Scheduler and Snakemake usage
+-----------------------------
+
+For workflow managers, prefer explicit per-job resources instead of host autodetection:
+
+.. code-block:: bash
+
+   ocdocker \
+     --threads 4 \
+     --tmp-dir tmp/sample_001 \
+     pipeline \
+     --receptor input/sample_001/receptor.pdbqt \
+     --ligand input/sample_001/ligand.pdbqt \
+     --box input/sample_001/box.txt \
+     --outdir results/sample_001 \
+     --engines vina,smina,plants \
+     --strict-engines \
+     --done-marker results/sample_001/done.json \
+     --log-file logs/sample_001.log \
+     --no-stdout-log
+
+``--strict-engines`` makes the command fail if any requested docking engine fails.
+``--done-marker`` writes a small JSON completion marker atomically after
+``summary.json`` is written. The example Snakefile is available at
+``examples/19_Snakefile_ocdocker_pipeline.smk`` and can run either native
+``ocdocker`` or the Docker wrapper ``ocd`` through ``--config ocdocker_command=ocd``.
+The Snakefile also declares ``examples/envs/ocdocker.yml`` for ``--use-conda`` runs.
+
+For stage-level scheduling, use ``examples/20_Snakefile_ocdocker_granular_pipeline.smk``. It calls ``ocdocker pipeline prepare``, per-engine ``dock``, ``collect``, ``cluster``, ``rescore``, and ``export`` as separate Snakemake rules.
 
 Bootstrap & environment
 -----------------------

@@ -140,6 +140,8 @@ def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
         config_file=None,
         output_level=1,
         overwrite=False,
+        threads=None,
+        tmp_dir=None,
         log_file=None,
         no_stdout_log=False,
         no_splash=False,
@@ -179,6 +181,17 @@ def _preparse_global_args(argv: list[str]) -> argparse.Namespace:
         if tok == "--overwrite":
             ns.overwrite = True
             i += 1
+            continue
+        if tok == "--threads" and i + 1 < len(argv):
+            try:
+                ns.threads = int(argv[i + 1])
+            except (ValueError, TypeError):
+                pass
+            i += 2
+            continue
+        if tok == "--tmp-dir" and i + 1 < len(argv):
+            ns.tmp_dir = argv[i + 1]
+            i += 2
             continue
         if tok == "--log-file" and i + 1 < len(argv):
             ns.log_file = argv[i + 1]

@@ -7,6 +7,7 @@
 # Imports
 ###############################################################################
 import numpy as np
+import pandas as pd
 import pytest
 from sklearn.preprocessing import StandardScaler
 
@@ -59,8 +60,7 @@ def test_pdbbind_scaler_reused_on_dudez_splits():
     val_idx = np.arange(18, 24)
     test_idx = np.arange(24, 30)
     pdbbind_scaler = StandardScaler()
-    pdbbind_scaler.fit(X[train_idx])
-    pdbbind_scaler.feature_names_in_ = np.array(features, dtype=object)
+    pdbbind_scaler.fit(pd.DataFrame(X[train_idx], columns=features))
 
     X_train, X_val, X_test, metadata, dudez_scaler = scale_dudez_features(
         X,
@@ -73,8 +73,10 @@ def test_pdbbind_scaler_reused_on_dudez_splits():
     )
     assert dudez_scaler is None
     assert metadata["pdbbind_scaler_reused"] is True
-    expected = pdbbind_scaler.transform(X[train_idx])
+    expected = pdbbind_scaler.transform(pd.DataFrame(X[train_idx], columns=features))
     np.testing.assert_allclose(X_train, expected, rtol=1e-5, atol=1e-5)
+
+
 @pytest.mark.order(422)
 def test_dudez_train_scaler_fits_train_only():
     X = _toy_matrix()
@@ -92,3 +94,25 @@ def test_dudez_train_scaler_fits_train_only():
     )
     assert scaler is not None
     assert metadata["dudez_scaler_fit_scope"] == "dudez_train"
+
+
+@pytest.mark.order(423)
+def test_pdbbind_scaler_feature_order_mismatch_raises():
+    X = _toy_matrix()
+    features = [f"f{i}" for i in range(X.shape[1])]
+    train_idx = np.arange(0, 18)
+    val_idx = np.arange(18, 24)
+    test_idx = np.arange(24, 30)
+    pdbbind_scaler = StandardScaler()
+    pdbbind_scaler.fit(pd.DataFrame(X[train_idx], columns=features))
+
+    with pytest.raises(ValueError, match="Feature order mismatch"):
+        scale_dudez_features(
+            X,
+            train_idx=train_idx,
+            val_idx=val_idx,
+            test_idx=test_idx,
+            config=DUDEzScalingConfig(strategy="pdbbind_scaler", strict=True),
+            selected_features=list(reversed(features)),
+            pdbbind_scaler=pdbbind_scaler,
+        )

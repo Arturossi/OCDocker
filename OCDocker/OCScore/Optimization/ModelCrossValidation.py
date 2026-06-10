@@ -490,6 +490,7 @@ def evaluate_scoring_function_baselines_on_fold(
         scoring_columns: Sequence[str],
         *,
         metric_names: Sequence[str] = DUDEZ_CV_METRICS,
+        bedroc_alpha: float = 20.0,
     ) -> dict[str, dict[str, float]]:
     '''Evaluate individual scoring functions on one CV validation fold.
 
@@ -507,6 +508,8 @@ def evaluate_scoring_function_baselines_on_fold(
         Scoring-function columns to evaluate.
     metric_names : Sequence[str], optional
         Metrics retained in each returned scorer dictionary.
+    bedroc_alpha : float, optional
+        BEDROC alpha used for scorer baseline BEDROC, by default 20.0.
 
     Returns
     -------
@@ -526,6 +529,7 @@ def evaluate_scoring_function_baselines_on_fold(
             raw_scores,
             groups=g_val,
             higher_is_better=infer_higher_is_better(raw_scores, y_val),
+            bedroc_alpha=bedroc_alpha,
         )
         results[column] = {
             metric_name: float(metrics[metric_name])
@@ -867,6 +871,7 @@ def _train_dudez_fold(
         transferred_extractor: Optional[FeatureExtractor],
         feature_extractor_architecture: Optional[Mapping[str, Any]],
         primary_metric: str,
+        bedroc_alpha: float,
     ) -> tuple[DUDEzScreeningModel, dict[str, float]]:
     _set_random_seed(fold_seed)
     params = dict(model_config)
@@ -911,6 +916,7 @@ def _train_dudez_fold(
             val_score,
             groups=val_groups,
             higher_is_better=True,
+            bedroc_alpha=bedroc_alpha,
         )
         metric_value = float(val_metrics.get(primary_metric, float("nan")))
         if np.isfinite(metric_value) and metric_value > best_metric:
@@ -925,6 +931,7 @@ def _train_dudez_fold(
         val_score,
         groups=val_groups,
         higher_is_better=True,
+        bedroc_alpha=bedroc_alpha,
     )
     return model, val_metrics
 
@@ -969,8 +976,10 @@ def run_cross_validation_from_export(
     task = str(retrain_config["task"])
     selected_features = list(bundle["selected_features"])
     model_config = dict(retrain_config["resolved_model_config"])
+    stage_config = dict(retrain_config.get("stage_config", {}))
     objective_metric = str(retrain_config.get("objective_metric", "RMSE"))
     resolved_device = bundle["device"]
+    bedroc_alpha = float(stage_config.get("bedroc_alpha", 20.0))
 
     strategy = _resolve_strategy(task, cv_config.strategy, cv_config.group_column, dataframe)
     missing_features = [column for column in selected_features if column not in dataframe.columns]
@@ -1105,6 +1114,7 @@ def run_cross_validation_from_export(
                 transferred_extractor=transferred_extractor,
                 feature_extractor_architecture=feature_extractor_architecture,
                 primary_metric=objective_metric,
+                    bedroc_alpha=bedroc_alpha,
             )
             val_score: Optional[np.ndarray] = None
             val_true: Optional[np.ndarray] = None
@@ -1147,6 +1157,7 @@ def run_cross_validation_from_export(
                     val_groups,
                     higher_is_better=True,
                     metric_names=metric_names,
+                    bedroc_alpha=bedroc_alpha,
                 )
                 per_target_metrics.extend(
                     _dataframe_rows_from_group_metrics(
@@ -1167,6 +1178,7 @@ def run_cross_validation_from_export(
                 groups_all,
                 scoring_function_columns,
                 metric_names=metric_names,
+                bedroc_alpha=bedroc_alpha,
             )
             if groups_all is not None:
                 column_orientations = {
@@ -1184,6 +1196,7 @@ def run_cross_validation_from_export(
                     scoring_function_columns,
                     metric_names=metric_names,
                     column_higher_is_better=column_orientations,
+                    bedroc_alpha=bedroc_alpha,
                 )
                 if not sf_group_df.empty:
                     for column in scoring_function_columns:
@@ -1205,6 +1218,7 @@ def run_cross_validation_from_export(
                 y_all,
                 groups_all,
                 metric_names=metric_names,
+                bedroc_alpha=bedroc_alpha,
                 infer_higher_is_better=infer_higher_is_better,
             )
             sf_metrics.update(desc_metrics)
@@ -1215,6 +1229,7 @@ def run_cross_validation_from_export(
                     y_all,
                     groups_all,
                     metric_names=metric_names,
+                    bedroc_alpha=bedroc_alpha,
                     infer_higher_is_better=infer_higher_is_better,
                 )
                 for scorer_name, group_df in desc_group_frames.items():
@@ -1240,6 +1255,7 @@ def run_cross_validation_from_export(
                 y_all,
                 groups_all,
                 metric_names=metric_names,
+                bedroc_alpha=bedroc_alpha,
                 infer_higher_is_better=infer_higher_is_better,
             )
             sf_metrics.update(consensus_metrics)
@@ -1251,6 +1267,7 @@ def run_cross_validation_from_export(
                     y_all,
                     groups_all,
                     metric_names=metric_names,
+                    bedroc_alpha=bedroc_alpha,
                     infer_higher_is_better=infer_higher_is_better,
                 )
                 for scorer_name, group_df in consensus_group_frames.items():

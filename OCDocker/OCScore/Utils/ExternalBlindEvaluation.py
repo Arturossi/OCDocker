@@ -125,6 +125,7 @@ def _compute_metrics(
         label_column: Optional[str],
         group_column: Optional[str],
         kind_column: Optional[str],
+        bedroc_alpha: float = 20.0,
     ) -> tuple[Optional[dict[str, Any]], str]:
     if label_column is None or label_column not in predictions.columns:
         return None, "labels_unavailable"
@@ -147,6 +148,7 @@ def _compute_metrics(
             y_score,
             groups=groups,
             higher_is_better=True,
+            bedroc_alpha=bedroc_alpha,
         )
         metric_scope = "dudez_grouped_receptor" if groups is not None else "dudez_global"
         return metrics, metric_scope
@@ -165,6 +167,7 @@ def run_external_blind_evaluation(config: ExternalBlindConfig) -> dict[str, Any]
     bundle = ocexport.load_exported_model(export_path, device=config.device)
     retrain_config = bundle["retrain_config"]
     task = str(retrain_config["task"])
+    bedroc_alpha = float((retrain_config.get("stage_config") or {}).get("bedroc_alpha", 20.0))
     feature_metadata = bundle["feature_metadata"]
     selected_features = list(bundle["selected_features"])
     selected_hash = hash_feature_list(selected_features)
@@ -212,6 +215,7 @@ def run_external_blind_evaluation(config: ExternalBlindConfig) -> dict[str, Any]
         label_column,
         config.group_column,
         config.kind_column,
+        bedroc_alpha=bedroc_alpha,
     )
 
     predictions_path = output_dir / EXTERNAL_BLIND_PREDICTIONS_CSV

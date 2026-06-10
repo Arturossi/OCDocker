@@ -56,10 +56,32 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Private ##
 
 def _ensure_dir(path: str) -> None:
-    os.makedirs(path, exist_ok=True)
+    '''Ensure that a directory exists.
+
+    Parameters
+    ----------
+    path : str
+        Directory path to create.
+    '''
+
+    if path:
+        os.makedirs(path, exist_ok=True)
 
 
 def _relative_importance(shap_2d: np.ndarray) -> np.ndarray:
+    '''Calculate relative mean absolute SHAP importance.
+
+    Parameters
+    ----------
+    shap_2d : np.ndarray
+        SHAP values with shape (n_samples, n_features).
+
+    Returns
+    -------
+    np.ndarray
+        Relative importance values summing to 100 when possible.
+    '''
+
     mean_abs = np.asarray(np.abs(shap_2d).mean(axis=0))
     denom = float(mean_abs.sum())
     if denom <= 0:
@@ -74,6 +96,7 @@ def beeswarm(
     X_eval: pd.DataFrame,
     out_png: str,
     figsize: Tuple[int, int] = (10, 6),
+    rng_seed: Optional[int] = 0,
 ) -> str:
     '''Wrapper around shap.summary_plot to save a beeswarm plot.
 
@@ -87,6 +110,9 @@ def beeswarm(
         Where to save the plot.
     figsize : tuple[int, int], optional
         Plot size (width, height). Default is (10, 6).
+    rng_seed : int | None, optional
+        Seed used to build a local NumPy generator for SHAP plotting. Pass None
+        to let SHAP use its own default behavior. Default is 0.
 
     Returns
     -------
@@ -96,9 +122,25 @@ def beeswarm(
 
     # Ensure output directory exists
     _ensure_dir(os.path.dirname(out_png))
-    
-    # Compute relative importance as normalized mean |SHAP|
-    shap.summary_plot(shap_2d, X_eval.to_numpy(), feature_names=X_eval.columns, show=False, plot_size=figsize)
+    rng = np.random.default_rng(rng_seed) if rng_seed is not None else None
+
+    try:
+        shap.summary_plot(
+            shap_2d,
+            X_eval.to_numpy(),
+            feature_names=X_eval.columns,
+            show=False,
+            plot_size=figsize,
+            rng=rng,
+        )
+    except TypeError:
+        shap.summary_plot(
+            shap_2d,
+            X_eval.to_numpy(),
+            feature_names=X_eval.columns,
+            show=False,
+            plot_size=figsize,
+        )
     plt.tight_layout()
     plt.savefig(out_png, dpi=300, bbox_inches='tight')
     plt.close()

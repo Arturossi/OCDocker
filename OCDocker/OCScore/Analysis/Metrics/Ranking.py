@@ -417,6 +417,7 @@ def evaluate_screening_metrics_by_group(
         *,
         higher_is_better: bool = True,
         metric_names: Optional[Sequence[str]] = None,
+        bedroc_alpha: float = 20.0,
     ) -> pd.DataFrame:
     '''Evaluate screening metrics separately for each receptor/group.
 
@@ -433,6 +434,8 @@ def evaluate_screening_metrics_by_group(
     metric_names : Sequence[str] | None, optional
         Metrics to compute per group. Defaults to BEDROC, ROC-AUC, PR-AUC,
         EF, and NDCG variants.
+    bedroc_alpha : float, optional
+        Exponential BEDROC weighting factor for per-group BEDROC, by default 20.0.
 
     Returns
     -------
@@ -451,7 +454,7 @@ def evaluate_screening_metrics_by_group(
         )
         raise ValueError("groups must have the same length as y_true and y_score.")
 
-    metric_fns = _screening_metric_functions()
+    metric_fns = _screening_metric_functions(bedroc_alpha=bedroc_alpha)
     rows: list[dict[str, Any]] = []
     for group in np.unique(group_values):
         mask = group_values == group
@@ -508,6 +511,7 @@ def evaluate_scoring_functions_by_group(
         *,
         metric_names: Sequence[str],
         column_higher_is_better: Optional[Mapping[str, bool]] = None,
+        bedroc_alpha: float = 20.0,
     ) -> pd.DataFrame:
     '''Evaluate scoring-function columns with per-group screening metrics.
 
@@ -527,6 +531,8 @@ def evaluate_scoring_functions_by_group(
         Metrics to retain in the output.
     column_higher_is_better : Mapping[str, bool] | None, optional
         Per-column score orientation. Missing columns default to ``True``.
+    bedroc_alpha : float, optional
+        Exponential BEDROC weighting factor for per-group BEDROC, by default 20.0.
 
     Returns
     -------
@@ -551,6 +557,7 @@ def evaluate_scoring_functions_by_group(
             g_val,
             higher_is_better=bool(orientations.get(column, True)),
             metric_names=metric_names,
+            bedroc_alpha=bedroc_alpha,
         )
         if group_metrics.empty:
             continue
@@ -1018,9 +1025,11 @@ def _promote_global_classification_metrics(metrics: dict[str, float]) -> None:
     metrics["classification_threshold"] = metrics["classification_threshold_global"]
 
 
-def _screening_metric_functions() -> dict[str, Callable[[np.ndarray, np.ndarray], float]]:
+def _screening_metric_functions(
+        bedroc_alpha: float = 20.0,
+    ) -> dict[str, Callable[[np.ndarray, np.ndarray], float]]:
     return {
-        "BEDROC": bedroc,
+        "BEDROC": lambda yt, ys: bedroc(yt, ys, alpha=bedroc_alpha),
         "EF1%": lambda yt, ys: enrichment_factor(yt, ys, 0.01),
         "EF5%": lambda yt, ys: enrichment_factor(yt, ys, 0.05),
         "NDCG@1%": lambda yt, ys: ndcg_at_fraction(yt, ys, 0.01),
@@ -1063,6 +1072,7 @@ def evaluate_screening_metrics(
         y_score: np.ndarray,
         groups: Optional[np.ndarray] = None,
         higher_is_better: bool = True,
+        bedroc_alpha: float = 20.0,
     ) -> dict[str, float]:
     '''Evaluate DUDEz classification and early-recognition metrics.
 
@@ -1071,6 +1081,11 @@ def evaluate_screening_metrics(
 
     When ``groups`` is provided, BEDROC, EF, and NDCG are averaged across
     targets/receptors with both actives and decoys present.
+
+    Parameters
+    ----------
+    bedroc_alpha : float, optional
+        Exponential BEDROC weighting factor, by default 20.0.
     '''
 
     y_true = np.asarray(y_true, dtype=int).reshape(-1)
@@ -1079,7 +1094,7 @@ def evaluate_screening_metrics(
     global_ranking_valid = bool(
         len(np.unique(y_true)) >= 2 and score_diagnostics["ranking_valid"] >= 1.0
     )
-    metric_fns = _screening_metric_functions()
+    metric_fns = _screening_metric_functions(bedroc_alpha=bedroc_alpha)
     metrics: dict[str, float] = {
         "ROC-AUC": _safe_metric(roc_auc_score, y_true, oriented_scores, default=float("nan")),
         "PR-AUC": _safe_metric(average_precision_score, y_true, oriented_scores, default=float("nan")),

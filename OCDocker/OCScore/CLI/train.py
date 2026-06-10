@@ -1649,6 +1649,7 @@ def _build_replicated_staged_protocol(protocol: StagedTrainProtocol) -> Replicat
     dudez_config = ocstaged.DUDEzOptunaConfig(
         kind_column=protocol.dudez.kind_column,
         primary_metric=protocol.dudez.primary_metric,
+        bedroc_alpha=protocol.dudez.bedroc_alpha,
         n_trials=protocol.dudez.trials,
         epochs=protocol.dudez.epochs,
         n_jobs=protocol.dudez.n_jobs,
@@ -1679,7 +1680,8 @@ def _build_replicated_staged_protocol(protocol: StagedTrainProtocol) -> Replicat
         f"pdbbind_phase={protocol.pdbbind.search_phase} "
         f"dudez_trials={0 if protocol.runtime.pdbbind_only else protocol.dudez.trials} "
         f"dudez_n_jobs={0 if protocol.runtime.pdbbind_only else protocol.dudez.n_jobs} "
-        f"dudez_metric={protocol.dudez.primary_metric}"
+        f"dudez_metric={protocol.dudez.primary_metric} "
+        f"dudez_bedroc_alpha={protocol.dudez.bedroc_alpha}"
     )
 
     return ReplicatedStagedProtocol(
@@ -2048,7 +2050,11 @@ def _run_post_training_reports(
             dudez_df=dudez_df,
             selected_features=artifacts.selected_features,
             replica_results=result.replica_results,
-            config=ProductionBaselineConfig(label_column=LABEL_COLUMN, group_column="receptor"),
+            config=ProductionBaselineConfig(
+                label_column=LABEL_COLUMN,
+                group_column="receptor",
+                bedroc_alpha=protocol.dudez.bedroc_alpha,
+            ),
         )
         reporting_paths.update({f"baseline_{key}": value for key, value in baseline_paths.items()})
         _log(f"Production baselines: {_compact_paths(baseline_paths)}")

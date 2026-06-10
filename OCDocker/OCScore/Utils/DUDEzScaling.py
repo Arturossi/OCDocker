@@ -35,7 +35,9 @@ provided this copyright notice is preserved. See the LICENSE file for details.
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 '''
 
-DUDEzScalingStrategy = Literal["pdbbind_scaler", "dudez_train_scaler", "none_prestandardized"]
+DUDEzScalingStrategy = Literal[
+    "pdbbind_scaler", "dudez_train_scaler", "none_prestandardized"
+]
 DUDEZ_SCALING_STRATEGIES: tuple[DUDEzScalingStrategy, ...] = (
     "pdbbind_scaler",
     "dudez_train_scaler",
@@ -60,9 +62,9 @@ class DUDEzScalingConfig:
 
 
 def _validate_feature_order(
-        scaler: StandardScaler,
-        selected_features: Sequence[str],
-    ) -> None:
+    scaler: StandardScaler,
+    selected_features: Sequence[str],
+) -> None:
     '''Ensure scaler feature names match selected features when available.'''
 
     scaler_features = getattr(scaler, "feature_names_in_", None)
@@ -81,16 +83,34 @@ def _validate_feature_order(
         )
 
 
+def _transform_with_feature_names(
+    scaler: StandardScaler,
+    X: np.ndarray,
+    selected_features: Sequence[str],
+) -> np.ndarray:
+    '''Transform arrays as named columns when the fitted scaler expects names.'''
+
+    if getattr(scaler, "feature_names_in_", None) is None:
+        return scaler.transform(X)
+    import pandas as pd
+
+    return scaler.transform(
+        pd.DataFrame(X, columns=[str(name) for name in selected_features])
+    )
+
+
 def scale_dudez_features(
-        X: np.ndarray,
-        *,
-        train_idx: np.ndarray,
-        val_idx: np.ndarray,
-        test_idx: np.ndarray,
-        config: DUDEzScalingConfig,
-        selected_features: Sequence[str],
-        pdbbind_scaler: Optional[StandardScaler] = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict[str, Any], Optional[StandardScaler]]:
+    X: np.ndarray,
+    *,
+    train_idx: np.ndarray,
+    val_idx: np.ndarray,
+    test_idx: np.ndarray,
+    config: DUDEzScalingConfig,
+    selected_features: Sequence[str],
+    pdbbind_scaler: Optional[StandardScaler] = None,
+) -> tuple[
+    np.ndarray, np.ndarray, np.ndarray, dict[str, Any], Optional[StandardScaler]
+]:
     '''Scale DUDEz feature matrices according to ``config``.
 
     Parameters
@@ -140,14 +160,22 @@ def scale_dudez_features(
 
     if strategy == "pdbbind_scaler":
         if pdbbind_scaler is None:
-            raise ValueError("pdbbind_scaler strategy requires a fitted PDBbind StandardScaler.")
+            raise ValueError(
+                "pdbbind_scaler strategy requires a fitted PDBbind StandardScaler."
+            )
         _validate_feature_order(pdbbind_scaler, selected_features)
         metadata["pdbbind_scaler_reused"] = True
         metadata["scaler_fit_scope"] = "pdbbind_train"
         return (
-            pdbbind_scaler.transform(X[train_idx]).astype(np.float32),
-            pdbbind_scaler.transform(X[val_idx]).astype(np.float32),
-            pdbbind_scaler.transform(X[test_idx]).astype(np.float32),
+            _transform_with_feature_names(
+                pdbbind_scaler, X[train_idx], selected_features
+            ).astype(np.float32),
+            _transform_with_feature_names(
+                pdbbind_scaler, X[val_idx], selected_features
+            ).astype(np.float32),
+            _transform_with_feature_names(
+                pdbbind_scaler, X[test_idx], selected_features
+            ).astype(np.float32),
             metadata,
             None,
         )

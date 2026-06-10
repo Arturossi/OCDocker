@@ -17,15 +17,17 @@ from OCDocker.CLI.ocscore import register_ocscore_subparser
 
 def _make_parent_parser() -> argparse.ArgumentParser:
     parent = argparse.ArgumentParser(add_help=False)
-    parent.add_argument("--multiprocess", dest="multiprocess", action="store_true", default=True, help="Enable multiprocessing for supported tasks")
-    parent.add_argument("--no-multiprocess", dest="multiprocess", action="store_false", help="Disable multiprocessing for supported tasks")
-    parent.add_argument("-u", "--update-databases", dest="update", action="store_true", default=False, help="Update databases on startup")
-    parent.add_argument("--conf", dest="config_file", type=str, help="Path to OCDocker configuration file (.cfg or .yml)")
-    parent.add_argument("--output-level", dest="output_level", type=int, default=1, help="Logging verbosity level (0-5)")
-    parent.add_argument("--overwrite", dest="overwrite", action="store_true", default=False, help="Allow overwriting existing output files")
-    parent.add_argument("--log-file", dest="log_file", type=str, default=None, help="Write log messages to this file")
-    parent.add_argument("--no-stdout-log", dest="no_stdout_log", action="store_true", default=False, help="Disable logging to stdout")
-    parent.add_argument("--no-splash", dest="no_splash", action="store_true", default=False, help="Disable splash banner on startup")
+    parent.add_argument("--multiprocess", dest="multiprocess", action="store_true", default=argparse.SUPPRESS, help="Enable multiprocessing for supported tasks")
+    parent.add_argument("--no-multiprocess", dest="multiprocess", action="store_false", default=argparse.SUPPRESS, help="Disable multiprocessing for supported tasks")
+    parent.add_argument("-u", "--update-databases", dest="update", action="store_true", default=argparse.SUPPRESS, help="Update databases on startup")
+    parent.add_argument("--conf", dest="config_file", type=str, default=argparse.SUPPRESS, help="Path to OCDocker configuration file (.cfg or .yml)")
+    parent.add_argument("--output-level", dest="output_level", type=int, default=argparse.SUPPRESS, help="Logging verbosity level (0-5)")
+    parent.add_argument("--overwrite", dest="overwrite", action="store_true", default=argparse.SUPPRESS, help="Allow overwriting existing output files")
+    parent.add_argument("--threads", dest="threads", type=int, default=argparse.SUPPRESS, help="Maximum worker threads/processes for scheduler-managed runs")
+    parent.add_argument("--tmp-dir", dest="tmp_dir", type=str, default=argparse.SUPPRESS, help="Job-local temporary directory")
+    parent.add_argument("--log-file", dest="log_file", type=str, default=argparse.SUPPRESS, help="Write log messages to this file")
+    parent.add_argument("--no-stdout-log", dest="no_stdout_log", action="store_true", default=argparse.SUPPRESS, help="Disable logging to stdout")
+    parent.add_argument("--no-splash", dest="no_splash", action="store_true", default=argparse.SUPPRESS, help="Disable splash banner on startup")
     return parent
 
 
@@ -95,6 +97,20 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         default=False,
         help="Allow overwriting existing output files. By default, existing files are preserved to prevent accidental data loss.",
+    )
+    parser.add_argument(
+        "--threads",
+        dest="threads",
+        type=int,
+        default=None,
+        help="Maximum worker threads/processes for scheduler-managed runs. Also accepts OCDOCKER_THREADS or SNAKEMAKE_THREADS.",
+    )
+    parser.add_argument(
+        "--tmp-dir",
+        dest="tmp_dir",
+        type=str,
+        default=None,
+        help="Job-local temporary directory. Also accepts OCDOCKER_TMP_DIR.",
     )
     parser.add_argument(
         "--log-file",

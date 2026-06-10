@@ -87,6 +87,8 @@ class ProductionBaselineConfig:
         Include shuffled-label logistic regression control, by default True.
     metric_names : Sequence[str], optional
         Ranking metrics retained in outputs, by default production headline metrics.
+    bedroc_alpha : float, optional
+        BEDROC exponential weighting factor, by default 20.0.
     """
 
     label_column: str = "label"
@@ -96,6 +98,7 @@ class ProductionBaselineConfig:
     include_lgbm: bool = True
     include_shuffle_control: bool = True
     metric_names: Sequence[str] = field(default_factory=lambda: PRODUCTION_BASELINE_RANK_METRICS)
+    bedroc_alpha: float = 20.0
 
 
 # Functions
@@ -164,6 +167,7 @@ def _evaluate_split_metrics(
         *,
         higher_is_better: bool,
         metric_names: Sequence[str],
+        bedroc_alpha: float = 20.0,
     ) -> dict[str, float]:
     '''Evaluate ranking metrics for one split.
 
@@ -191,6 +195,7 @@ def _evaluate_split_metrics(
         scores,
         groups=groups,
         higher_is_better=higher_is_better,
+        bedroc_alpha=bedroc_alpha,
     )
     return _metric_subset(metrics, metric_names)
 
@@ -413,6 +418,7 @@ def evaluate_learned_sf_baselines(
                 g_split,
                 higher_is_better=True,
                 metric_names=config.metric_names,
+                bedroc_alpha=config.bedroc_alpha,
             )
             rows.append(
                 {
@@ -458,6 +464,7 @@ def evaluate_individual_sf_baselines(
             groups,
             sf_columns,
             metric_names=config.metric_names,
+            bedroc_alpha=config.bedroc_alpha,
         )
         for baseline_name, metrics in sf_metrics.items():
             rows.append(

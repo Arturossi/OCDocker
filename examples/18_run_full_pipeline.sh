@@ -10,8 +10,6 @@
 #     > /data/hd4tb/OCDocker/data/ocdb2/OCScore/output/logs/full_pipeline.log 2>&1 &
 #   tail -f /data/hd4tb/OCDocker/data/ocdb2/OCScore/output/logs/full_pipeline.log
 #
-# After a failed Stage 2 train, rerun with:
-#   CLEAN_TRAIN_OUTPUT=true nohup .../18_run_full_pipeline.sh > .../full_pipeline.log 2>&1 &
 # Stage 1 is skipped automatically when raw_prepare/merged_input_dataset.csv exists.
 set -euo pipefail
 
@@ -24,62 +22,58 @@ DATA="/data/hd4tb/OCDocker/data/ocdb2/OCScore"
 OUT="${DATA}/output"
 
 # --- Global ---
-TRAIN_SEED="${TRAIN_SEED:-42}"
-REPLICAS="${REPLICAS:-3}"
+# Protocol and analysis values below are intentionally script literals.
+# Edit this file or the generated protocol artifacts; do not override them via environment.
+TRAIN_SEED="42"
+REPLICAS="3"
 # Runs independent replicas concurrently. Keep at 1 on memory-limited GPUs.
-REPLICA_JOBS="${REPLICA_JOBS:-1}"
+REPLICA_JOBS="1"
 # Reuse completed replica directories at module level when rerunning same output.
-RESUME_COMPLETED="${RESUME_COMPLETED:-true}"
-DEVICE="${DEVICE:-cuda}"                    # cuda | cpu
+RESUME_COMPLETED="true"
+DEVICE="cuda"                    # cuda | cpu
 
 # --- Stage 2: Optuna train (PDBbind regression) ---
-PDBBIND_TRIALS="${PDBBIND_TRIALS:-100}"
-PDBBIND_EPOCHS="${PDBBIND_EPOCHS:-100}"
+PDBBIND_TRIALS="100"
+PDBBIND_EPOCHS="100"
 # Parallel Optuna trials inside each PDBbind replica. Usually keep 1 on one GPU.
-PDBBIND_N_JOBS="${PDBBIND_N_JOBS:-1}"
+PDBBIND_N_JOBS="1"
 
 # --- Stage 2: Optuna train (DUDEz screening) ---
-DUDEZ_TRIALS="${DUDEZ_TRIALS:-100}"
-DUDEZ_EPOCHS="${DUDEZ_EPOCHS:-100}"
+DUDEZ_TRIALS="100"
+DUDEZ_EPOCHS="100"
 # Parallel Optuna trials inside each DUDEz replica. Usually keep 1 on one GPU.
-DUDEZ_N_JOBS="${DUDEZ_N_JOBS:-1}"
+DUDEZ_N_JOBS="1"
 
 # --- Stage 3d: cross-validation ---
-PDBBIND_CV_FOLDS="${PDBBIND_CV_FOLDS:-5}"
-PDBBIND_CV_EPOCHS="${PDBBIND_CV_EPOCHS:-100}"
-DUDEZ_CV_FOLDS="${DUDEZ_CV_FOLDS:-5}"
-DUDEZ_CV_EPOCHS="${DUDEZ_CV_EPOCHS:-100}"
+PDBBIND_CV_FOLDS="5"
+PDBBIND_CV_EPOCHS="100"
+DUDEZ_CV_FOLDS="5"
+DUDEZ_CV_EPOCHS="100"
 
 # --- Stage 3e: plots ---
-PLOT_DPI="${PLOT_DPI:-150}"
-ARCHITECTURE_PLOT_DPI="${ARCHITECTURE_PLOT_DPI:-220}"
-ARCHITECTURE_PLOT_FORMATS="${ARCHITECTURE_PLOT_FORMATS:-png}"
-ARCHITECTURE_PLOT_INCLUDE_DECODER="${ARCHITECTURE_PLOT_INCLUDE_DECODER:-false}"
-PDBBIND_CV_PLOT_METRICS="${PDBBIND_CV_PLOT_METRICS:-RMSE,MAE,R2}"
-DUDEZ_CV_PLOT_METRICS="${DUDEZ_CV_PLOT_METRICS:-BEDROC,ROC-AUC,PR-AUC,EF1%,EF5%,NDCG@1%,NDCG@5%}"
+PLOT_DPI="150"
+ARCHITECTURE_PLOT_DPI="220"
+ARCHITECTURE_PLOT_FORMATS="png"
+ARCHITECTURE_PLOT_INCLUDE_DECODER="false"
+PDBBIND_CV_PLOT_METRICS="RMSE,MAE,R2"
+DUDEZ_CV_PLOT_METRICS="BEDROC,ROC-AUC,PR-AUC,EF1%,EF5%,NDCG@1%,NDCG@5%"
 
 # --- Stage 3f: SHAP ---
-SHAP_EXPLAINER="${SHAP_EXPLAINER:-gradient}"  # gradient | deep | kernel | permutation
+SHAP_EXPLAINER="gradient"  # gradient | deep | kernel | permutation
 
 # --- Strict validation + reporting (Stage 2) ---
-GENERATE_FINAL_REPORT="${GENERATE_FINAL_REPORT:-true}"
-RUN_LEAKAGE_AUDIT="${RUN_LEAKAGE_AUDIT:-true}"
-RUN_BASELINES="${RUN_BASELINES:-true}"
-RUN_ABLATIONS="${RUN_ABLATIONS:-true}"
+GENERATE_FINAL_REPORT="true"
+RUN_LEAKAGE_AUDIT="true"
+RUN_BASELINES="true"
+RUN_ABLATIONS="true"
 # Run CV, plots, and SHAP for every completed replica in full and ablation protocols.
-RUN_REPLICA_ANALYSIS="${RUN_REPLICA_ANALYSIS:-true}"
+RUN_REPLICA_ANALYSIS="true"
 # Train and analyze full, then each ablation one at a time.
-INTERLEAVE_PROTOCOL_ANALYSIS="${INTERLEAVE_PROTOCOL_ANALYSIS:-true}"
+INTERLEAVE_PROTOCOL_ANALYSIS="true"
 # Skip analysis blocks that already wrote a completion marker.
 RESUME_ANALYSIS="${RESUME_ANALYSIS:-true}"
 # When true, fails at protocol load if replicas/trials are below production_claim mins
-PRODUCTION_CLAIM_ENFORCE="${PRODUCTION_CLAIM_ENFORCE:-true}"
-
-# --- Stage control ---
-# Remove partial/failed train outputs before restarting Stage 2.
-CLEAN_TRAIN_OUTPUT="${CLEAN_TRAIN_OUTPUT:-false}"
-# Skip Stage 2 when a completed train summary already exists.
-SKIP_TRAIN_IF_COMPLETE="${SKIP_TRAIN_IF_COMPLETE:-false}"
+PRODUCTION_CLAIM_ENFORCE="true"
 
 # =============================================================================
 # Derived paths
@@ -90,6 +84,7 @@ RAW="${OUT}/raw_prepare"
 TRAIN="${OUT}/train"
 EXP="${OUT}/export"
 PROTOCOL="${OUT}/protocol.generated.yml"
+ANALYSIS_PROTOCOL="${OUT}/analysis_protocol.generated.yml"
 OPTUNA_DB="${TRAIN}/optuna.db"
 TRAIN_SUMMARY="${TRAIN}/staged_optuna_protocol.json"
 MODELING_PDB="${TRAIN}/modeling_pdbbind.csv"
@@ -247,6 +242,7 @@ dudez:
   epochs: ${DUDEZ_EPOCHS}
   n_jobs: ${DUDEZ_N_JOBS}
   primary_metric: BEDROC
+  bedroc_alpha: 20.0
   scaling_strategy: pdbbind_scaler
   ignore_unknown_kind: false
 
@@ -294,7 +290,55 @@ EOF
 
 write_train_protocol "$PROTOCOL" false
 
-log_banner "CURRENT STEP | PROTOCOL | generated" "path=${PROTOCOL}" "interleave_protocol_analysis=${INTERLEAVE_PROTOCOL_ANALYSIS}" "run_ablations=${RUN_ABLATIONS}"
+write_analysis_protocol() {
+  local protocol_path="$1"
+  cat > "$protocol_path" <<EOF
+name: full-pipeline-analysis
+training_protocol: ${PROTOCOL}
+description: >
+  Post-training analysis settings generated by examples/18_run_full_pipeline.sh.
+  These settings affect validation analyses, figures, SHAP, scoring exports,
+  resume behavior, and analysis execution order.
+
+seed: ${TRAIN_SEED}
+device: ${DEVICE}
+
+execution:
+  interleave_protocol_analysis: ${INTERLEAVE_PROTOCOL_ANALYSIS}
+  run_replica_analysis: ${RUN_REPLICA_ANALYSIS}
+  resume_analysis: ${RESUME_ANALYSIS}
+  run_ablations: ${RUN_ABLATIONS}
+  score_full_dudez_table: true
+
+cross_validation:
+  pdbbind:
+    folds: ${PDBBIND_CV_FOLDS}
+    epochs: ${PDBBIND_CV_EPOCHS}
+    seed: ${TRAIN_SEED}
+  dudez:
+    folds: ${DUDEZ_CV_FOLDS}
+    epochs: ${DUDEZ_CV_EPOCHS}
+    seed: ${TRAIN_SEED}
+
+plots:
+  dpi: ${PLOT_DPI}
+  pdbbind_metrics: "${PDBBIND_CV_PLOT_METRICS}"
+  dudez_metrics: "${DUDEZ_CV_PLOT_METRICS}"
+
+architecture_plots:
+  dpi: ${ARCHITECTURE_PLOT_DPI}
+  formats: "${ARCHITECTURE_PLOT_FORMATS}"
+  include_decoder: ${ARCHITECTURE_PLOT_INCLUDE_DECODER}
+
+shap:
+  explainer: ${SHAP_EXPLAINER}
+  seed: ${TRAIN_SEED}
+EOF
+}
+
+write_analysis_protocol "$ANALYSIS_PROTOCOL"
+
+log_banner "CURRENT STEP | PROTOCOL | generated" "path=${PROTOCOL}" "analysis_protocol=${ANALYSIS_PROTOCOL}" "interleave_protocol_analysis=${INTERLEAVE_PROTOCOL_ANALYSIS}" "run_ablations=${RUN_ABLATIONS}"
 
 # --- Stage 1: merge raw pipeline tables (no global feature reduction) ---
 if [ -f "${RAW}/merged_input_dataset.csv" ]; then
@@ -313,12 +357,6 @@ if [ ! -f "${RAW}/merged_input_dataset.csv" ]; then
 fi
 
 # --- Stage 2/3: staged training and analysis helpers ---
-if [ "$CLEAN_TRAIN_OUTPUT" = true ]; then
-  log_banner "CURRENT STEP | CLEANUP | train output" "path=${TRAIN}"
-  rm -rf "${TRAIN:?}/"*
-  mkdir -p "$TRAIN"
-fi
-
 require_protocol_artifacts() {
   local protocol_label="$1"
   local protocol_dir="$2"
@@ -337,15 +375,8 @@ require_protocol_artifacts() {
 run_train_stage() {
   local stage_label="$1"
   local protocol_path="$2"
-  local completion_artifact="$3"
-  local honor_skip="${4:-true}"
-  local train_output_dir="${5:-$TRAIN}"
-  local feature_policy="${6:-full_ocscore}"
-
-  if [ "$honor_skip" = true ] && [ "$SKIP_TRAIN_IF_COMPLETE" = true ] && [ -f "$completion_artifact" ]; then
-    log_banner "CURRENT STEP | TRAIN | skipped" "scope=${stage_label}" "found=${completion_artifact}"
-    return 0
-  fi
+  local train_output_dir="${3:-$TRAIN}"
+  local feature_policy="${4:-full_ocscore}"
 
   log_banner "CURRENT STEP | TRAIN | ${stage_label}" "protocol=${protocol_path}" "raw_input=${RAW}" "output=${train_output_dir}" "feature_policy=${feature_policy}" "replicas=${REPLICAS}" "replica_jobs=${REPLICA_JOBS}" "pdbbind_trials=${PDBBIND_TRIALS}" "dudez_trials=${DUDEZ_TRIALS}"
   local train_cmd=(
@@ -370,6 +401,7 @@ write_analysis_marker() {
   ANALYSIS_SCOPE="$scope" \
   ANALYSIS_EXTRA_JSON="$extra_json" \
   SHAP_EXPLAINER_VALUE="$SHAP_EXPLAINER" \
+  ANALYSIS_PROTOCOL_PATH="$ANALYSIS_PROTOCOL" \
   python - <<'PY'
 import json
 import os
@@ -378,9 +410,12 @@ from pathlib import Path
 
 marker = Path(os.environ["ANALYSIS_MARKER"])
 extra = json.loads(os.environ.get("ANALYSIS_EXTRA_JSON") or "{}")
+analysis_protocol = Path(os.environ["ANALYSIS_PROTOCOL_PATH"])
 payload = {
     "protocol_label": os.environ["ANALYSIS_PROTOCOL_LABEL"],
     "scope": os.environ["ANALYSIS_SCOPE"],
+    "analysis_protocol": str(analysis_protocol),
+    "analysis_protocol_sha256": __import__("hashlib").sha256(analysis_protocol.read_bytes()).hexdigest() if analysis_protocol.is_file() else None,
     "shap_explainer": os.environ["SHAP_EXPLAINER_VALUE"],
     "completed_at_utc": datetime.now(timezone.utc).isoformat(),
 }
@@ -794,31 +829,31 @@ run_ablation_analysis_block() {
 }
 
 if [ "$INTERLEAVE_PROTOCOL_ANALYSIS" = true ]; then
-  run_train_stage "full" "$PROTOCOL" "$TRAIN_SUMMARY" true "$TRAIN" full_ocscore
+  run_train_stage "full" "$PROTOCOL" "$TRAIN" full_ocscore
   require_protocol_artifacts "full" "$TRAIN"
   run_full_analysis_block
 
   if [ "$RUN_ABLATIONS" = true ]; then
     for ablation_variant in "${FEATURE_POLICY_ABLATIONS[@]}"; do
-      run_train_stage "ablation ${ablation_variant}" "$PROTOCOL" "${TRAIN}/ablations/${ablation_variant}/staged_optuna_protocol.json" true "${TRAIN}/ablations/${ablation_variant}" "$ablation_variant"
+      run_train_stage "ablation ${ablation_variant}" "$PROTOCOL" "${TRAIN}/ablations/${ablation_variant}" "$ablation_variant"
       require_protocol_artifacts "ablation ${ablation_variant}" "${TRAIN}/ablations/${ablation_variant}"
       run_ablation_analysis_block "$ablation_variant"
     done
 
-    run_train_stage "full report refresh" "$PROTOCOL" "$TRAIN_SUMMARY" false "$TRAIN" full_ocscore
+    run_train_stage "full report refresh" "$PROTOCOL" "$TRAIN" full_ocscore
     require_protocol_artifacts "full" "$TRAIN"
     write_combined_ablation_summary
   else
     log_banner "CURRENT STEP | ABLATIONS | skipped" "reason=RUN_ABLATIONS=false"
   fi
 else
-  run_train_stage "full" "$PROTOCOL" "$TRAIN_SUMMARY" true "$TRAIN" full_ocscore
+  run_train_stage "full" "$PROTOCOL" "$TRAIN" full_ocscore
   require_protocol_artifacts "full" "$TRAIN"
   run_full_analysis_block
 
   if [ "$RUN_ABLATIONS" = true ]; then
     for ablation_variant in "${FEATURE_POLICY_ABLATIONS[@]}"; do
-      run_train_stage "ablation ${ablation_variant}" "$PROTOCOL" "${TRAIN}/ablations/${ablation_variant}/staged_optuna_protocol.json" true "${TRAIN}/ablations/${ablation_variant}" "$ablation_variant"
+      run_train_stage "ablation ${ablation_variant}" "$PROTOCOL" "${TRAIN}/ablations/${ablation_variant}" "$ablation_variant"
       require_protocol_artifacts "ablation ${ablation_variant}" "${TRAIN}/ablations/${ablation_variant}"
       run_ablation_analysis_block "$ablation_variant"
     done

@@ -1,13 +1,16 @@
+name: ocdocker
+
 services:
   db:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${OCDOCKER_DATABASE:-ocdocker}
       POSTGRES_USER: ${OCDOCKER_DB_USER:-ocdocker}
-      POSTGRES_PASSWORD: ${OCDOCKER_DB_PASS:-ocdocker_pass}
+      POSTGRES_PASSWORD: ${OCDOCKER_DB_PASS:?Set OCDOCKER_DB_PASS in your Docker environment}
       OCDOCKER_OPTIMIZEDB: ${OCDOCKER_OPTIMIZEDB:-optimization}
     ports:
-      - "5432:5432"
+      - "${OCDOCKER_DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgresql/init.sh:/docker-entrypoint-initdb.d/20-init-optimization-db.sh:ro
@@ -21,20 +24,28 @@ services:
     build:
       context: ../..
       dockerfile: containers/docker/ocdocker.dockerfile
+    image: ${OCDOCKER_IMAGE:-ocdocker:local}
     depends_on:
       db:
         condition: service_healthy
     environment:
-      OCDOCKER_CONFIG: ${OCDOCKER_CONFIG:-/data/hd4tb/OCDocker/OCDocker/containers/docker/OCDocker.cfg.docker}
+      OCDOCKER_CONFIG: ${OCDOCKER_CONFIG:-/etc/ocdocker/OCDocker.cfg.postgresql}
       OCDOCKER_DB_BACKEND: ${OCDOCKER_DB_BACKEND:-postgresql}
+      OCDOCKER_DB_USER: ${OCDOCKER_DB_USER:-ocdocker}
+      OCDOCKER_DB_PASS: ${OCDOCKER_DB_PASS:?Set OCDOCKER_DB_PASS in your Docker environment}
+      OCDOCKER_DATABASE: ${OCDOCKER_DATABASE:-ocdocker}
+      OCDOCKER_OPTIMIZEDB: ${OCDOCKER_OPTIMIZEDB:-optimization}
+      OCDOCKER_LOCK_WORKSPACE: ${OCDOCKER_LOCK_WORKSPACE:-true}
+      OCDOCKER_THREADS: ${OCDOCKER_THREADS:-}
+      SNAKEMAKE_THREADS: ${SNAKEMAKE_THREADS:-}
+      OCDOCKER_TMP_DIR: ${OCDOCKER_TMP_DIR:-}
       PYTHONUNBUFFERED: "1"
     volumes:
-      - ${HOST_OCDOCKER_ROOT:-/data/hd4tb/OCDocker}:/data/hd4tb/OCDocker
+      - ${OCDOCKER_WORKSPACE:-./workspace}:/workspace
       - ocdocker_cache:/root/.cache
-    working_dir: /data/hd4tb/OCDocker/OCDocker
+    working_dir: /workspace
     stdin_open: true
     tty: true
-    user: root
 
 volumes:
   postgres_data:

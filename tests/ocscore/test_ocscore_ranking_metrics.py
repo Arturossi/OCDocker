@@ -129,3 +129,24 @@ def test_groupwise_global_single_class_yields_nan_auc_values():
     assert np.isnan(grouped["pr_auc_macro"])
     assert np.isnan(grouped["roc_auc_micro"])
     assert np.isnan(grouped["pr_auc_micro"])
+
+
+@pytest.mark.order(259)
+def test_evaluate_screening_metrics_respects_bedroc_alpha():
+    y_true = np.array([1, 0, 0, 1, 0, 0, 1, 0], dtype=int)
+    y_score = np.array([0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1], dtype=float)
+
+    alpha_8 = ocranking.evaluate_screening_metrics(
+        y_true,
+        y_score,
+        bedroc_alpha=8.0,
+    )["BEDROC"]
+    alpha_40 = ocranking.evaluate_screening_metrics(
+        y_true,
+        y_score,
+        bedroc_alpha=40.0,
+    )["BEDROC"]
+
+    assert alpha_8 == pytest.approx(ocranking.bedroc(y_true, y_score, alpha=8.0))
+    assert alpha_40 == pytest.approx(ocranking.bedroc(y_true, y_score, alpha=40.0))
+    assert alpha_8 != pytest.approx(alpha_40)

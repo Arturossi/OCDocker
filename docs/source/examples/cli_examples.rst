@@ -39,3 +39,21 @@ Example of using the interactive console:
    :language: python
    :caption: Interactive console example
 
+Snakemake Pipeline
+------------------
+
+Scheduler-friendly multi-engine pipeline template:
+
+.. literalinclude:: ../../../examples/19_Snakefile_ocdocker_pipeline.smk
+   :language: python
+   :caption: Snakemake multi-engine pipeline
+
+Granular Snakemake Pipeline
+---------------------------
+
+Stage-granular scheduler template using prepare, dock, collect, cluster, rescore, and export rules:
+
+.. literalinclude:: ../../../examples/20_Snakefile_ocdocker_granular_pipeline.smk
+   :language: python
+   :caption: Granular Snakemake multi-engine pipeline
+

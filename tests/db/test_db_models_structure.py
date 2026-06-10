@@ -13,6 +13,7 @@ import pytest
 import OCDocker.DB.Models.Complexes as occomplexes
 import OCDocker.DB.Models.Ligands as ocligands
 import OCDocker.DB.Models.Receptors as ocreceptors
+import OCDocker.DB.Models.PipelineRuns as ocpiperuns
 
 # License
 ###############################################################################
@@ -78,3 +79,30 @@ def test_complexes_model_descriptor_catalog_and_relationships():
 
     assert hasattr(occomplexes.Complexes, "ligand")
     assert hasattr(occomplexes.Complexes, "receptor")
+
+@pytest.mark.order(414)
+def test_pipeline_runs_model_metadata_columns():
+    columns = ocpiperuns.PipelineRuns.__table__.columns
+
+    assert "complex_id" in columns
+    assert "representative_pose" in columns
+    assert "representative_engine" in columns
+    assert "rescoring_json" in columns
+    assert "summary_json" in columns
+    assert "payload_path" in columns
+    assert "run_report_path" in columns
+    assert columns["representative_engine"].type.length == 64
+    assert columns["representative_pose"].type.length == 2048
+
+    run = ocpiperuns.PipelineRuns(
+        complex_id=7,
+        representative_pose="pose.mol2",
+        representative_engine="vina",
+        rescoring_json="{}",
+        summary_json="{}",
+        payload_path="payload.pkl",
+        run_report_path="run_report.json",
+    )
+    assert run.complex_id == 7
+    assert run.representative_engine == "vina"
+

@@ -656,7 +656,8 @@ Container wrappers (Docker, Podman and Singularity)
 
 OCDocker includes helper scripts that auto-mount likely host paths:
 
-- Docker: `containers/docker/ocdocker.sh`
+- Docker: install the `ocd` wrapper with `containers/docker/install_docker.sh --install-ocd`
+- Docker advanced wrapper: `containers/docker/ocdocker.sh`
 - Podman: `containers/podman/ocdocker.sh`
 - Singularity/Apptainer: `containers/singularity/ocdocker.sh`
 
@@ -670,6 +671,7 @@ All wrappers can:
 Docker/Podman backend selection:
 
 - Default is PostgreSQL.
+- Set `OCDOCKER_DB_PASS` before using the Docker wrapper; set `MYSQL_ROOT_PASSWORD` as well for MySQL.
 - Set `OCDOCKER_DB_BACKEND=mysql` (or `DB_BACKEND=mysql`) to use the MySQL compose override and MySQL container config.
 
 Singularity helper extras:
@@ -696,7 +698,7 @@ Default PostgreSQL config matches `containers/singularity/OCDocker.cfg.singulari
 - `HOST=localhost`
 - `PORT=5432`
 - `USER=ocdocker`
-- `PASSWORD=ocdocker_pass`
+- `PASSWORD=<configured sidecar password>`
 - `DATABASE=ocdocker`
 
 For MySQL, use `containers/singularity/OCDocker.cfg.singularity.mysql` (or set `DB_BACKEND=mysql` and port `3306`).

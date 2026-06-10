@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 import OCDocker.OCScore.Analysis.Metrics.Calibration as occal
+import OCDocker.OCScore.Analysis.Metrics.Bootstrap as ocboot
 
 
 # License
@@ -111,3 +112,60 @@ def test_build_calibration_report_section_ranking_only():
     assert section["primary_claim"] == "ranking_screening"
     assert "disclaimer" in section
     assert section["validation"]["diagnostic_Brier"] == 0.2
+
+@pytest.mark.order(289)
+def test_bootstrap_ci_unstratified_and_no_bootstrap_paths():
+    y_true = np.array([0, 1, 0, 1], dtype=int)
+    y_score = np.array([0.1, 0.9, 0.2, 0.8], dtype=float)
+
+    def metric_fn(labels, scores):
+        oriented = np.where(labels == 1, scores, -scores)
+        return float(np.mean(oriented))
+
+    estimate, low, high = ocboot.bootstrap_ci(
+        y_true,
+        y_score,
+        metric_fn,
+        n_boot=20,
+        random_state=0,
+    )
+    assert estimate == pytest.approx(0.35)
+    assert low <= estimate <= high
+
+    estimate_no_boot, low_no_boot, high_no_boot = ocboot.bootstrap_ci(
+        y_true,
+        y_score,
+        metric_fn,
+        n_boot=0,
+        random_state=0,
+    )
+    assert estimate_no_boot == pytest.approx(0.35)
+    assert np.isnan(low_no_boot)
+    assert np.isnan(high_no_boot)
+
+
+@pytest.mark.order(290)
+def test_bootstrap_ci_stratified_preserves_group_sampling():
+    y_true = np.array([0, 1, 0, 1, 0, 1], dtype=int)
+    y_score = np.array([0.1, 0.8, 0.3, 0.7, 0.2, 0.9], dtype=float)
+    strata = np.array(["a", "a", "b", "b", "c", "c"], dtype=object)
+
+    def metric_fn(labels, scores):
+        oriented = np.where(labels == 1, scores, -scores)
+        return float(np.mean(oriented))
+
+    estimate, low, high = ocboot.bootstrap_ci(
+        y_true,
+        y_score,
+        metric_fn,
+        n_boot=20,
+        alpha=0.1,
+        random_state=1,
+        strata=strata,
+    )
+
+    assert np.isfinite(estimate)
+    assert np.isfinite(low)
+    assert np.isfinite(high)
+    assert low <= high
+

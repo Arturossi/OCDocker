@@ -100,6 +100,7 @@ class DUDEzProtocolSection:
     epochs: int
     n_jobs: int
     primary_metric: str
+    bedroc_alpha: float
     scaling_strategy: DUDEzScalingStrategy
     ignore_unknown_kind: bool
 
@@ -165,6 +166,7 @@ class StagedTrainProtocol:
             "n_replicas": self.replicas,
             "pdbbind_trials": self.pdbbind.trials,
             "dudez_trials": self.dudez.trials,
+            "dudez_bedroc_alpha": self.dudez.bedroc_alpha,
             "pdbbind_epochs": self.pdbbind.epochs,
             "dudez_epochs": self.dudez.epochs,
             "pdbbind_n_jobs": self.pdbbind.n_jobs,
@@ -308,6 +310,7 @@ def load_staged_train_protocol(path: Path) -> StagedTrainProtocol:
             epochs=int(dudez_raw["epochs"]),
             n_jobs=int(dudez_raw.get("n_jobs", 1)),
             primary_metric=str(dudez_raw.get("primary_metric", "BEDROC")),
+            bedroc_alpha=float(dudez_raw.get("bedroc_alpha", 20.0)),
             scaling_strategy=str(dudez_raw.get("scaling_strategy", "pdbbind_scaler")),  # type: ignore[arg-type]
             ignore_unknown_kind=bool(dudez_raw.get("ignore_unknown_kind", False)),
         ),
@@ -337,6 +340,8 @@ def load_staged_train_protocol(path: Path) -> StagedTrainProtocol:
     ):
         if int(value) < 1:
             raise ValueError(f"Protocol field {label} must be at least 1.")
+    if protocol.dudez.bedroc_alpha <= 0.0:
+        raise ValueError("Protocol field dudez.bedroc_alpha must be positive.")
     protocol.validate_production_claim_budget()
     return protocol
 

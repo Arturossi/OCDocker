@@ -48,6 +48,7 @@ def test_smoke_test_protocol_is_fast():
     assert protocol.replicas == 1
     assert protocol.pdbbind.trials == 3
     assert protocol.dudez.scaling_strategy == "pdbbind_scaler"
+    assert protocol.dudez.bedroc_alpha == 20.0
 
 
 @pytest.mark.order(413)
@@ -77,7 +78,7 @@ def test_production_protocol_budget_validation_fails_when_edited(tmp_path):
     production_path = resolve_protocol_path("production")
     edited = tmp_path / "production-low.yml"
     edited.write_text(
-        production_path.read_text(encoding="utf-8").replace("trials: 50", "trials: 5", 1),
+        production_path.read_text(encoding="utf-8").replace("trials: 100", "trials: 5", 1),
         encoding="utf-8",
     )
     with pytest.raises(ValueError, match="production-claim budget requirements"):
@@ -120,6 +121,7 @@ dudez:
   epochs: 10
   n_jobs: 3
   primary_metric: BEDROC
+  bedroc_alpha: 12.5
   scaling_strategy: pdbbind_scaler
   ignore_unknown_kind: false
 runtime:
@@ -144,10 +146,12 @@ reporting:
 
     assert protocol.pdbbind.n_jobs == 2
     assert protocol.dudez.n_jobs == 3
+    assert protocol.dudez.bedroc_alpha == 12.5
     assert protocol.runtime.replica_jobs == 2
     assert protocol.runtime.resume_completed is True
     assert protocol.budget_dict()["pdbbind_n_jobs"] == 2
     assert protocol.budget_dict()["dudez_n_jobs"] == 3
+    assert protocol.budget_dict()["dudez_bedroc_alpha"] == 12.5
     assert protocol.budget_dict()["replica_jobs"] == 2
     assert protocol.budget_dict()["resume_completed"] is True
 
@@ -183,4 +187,41 @@ reporting:
     )
 
     with pytest.raises(ValueError, match="pdbbind.n_jobs"):
+        load_staged_train_protocol(protocol_path)
+
+
+@pytest.mark.order(419)
+def test_protocol_bedroc_alpha_must_be_positive(tmp_path):
+    protocol_path = tmp_path / "bad-bedroc-alpha.yml"
+    protocol_path.write_text(
+        """
+name: bad-bedroc-alpha
+replicas: 1
+seed: 42
+pdbbind:
+  trials: 5
+  epochs: 10
+  n_jobs: 1
+  split:
+    strategy: receptor_heldout
+dudez:
+  trials: 5
+  epochs: 10
+  n_jobs: 1
+  primary_metric: BEDROC
+  bedroc_alpha: 0
+runtime:
+  use_gpu: false
+  pdbbind_only: false
+  replica_jobs: 1
+reporting:
+  generate_final_report: false
+  run_leakage_audit: false
+  run_baselines: false
+  calibration_report_mode: ranking_only
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="dudez.bedroc_alpha"):
         load_staged_train_protocol(protocol_path)

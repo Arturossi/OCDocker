@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -37,6 +38,664 @@ _rescoring_data_has_numeric_scores = cli_workflow._rescoring_data_has_numeric_sc
 
 LOGGER = oclogging.get_logger("cli")
 
+def _write_json_atomic(path: Path, payload: Dict[str, Any]) -> None:
+    '''Write JSON through a temporary file and atomically replace the target.
+
+    Parameters
+    ----------
+    path : Path
+        Target JSON file path.
+    payload : Dict[str, Any]
+        JSON-serializable payload to write.
+    '''
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_name(f"{path.name}.tmp")
+    tmp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    os.replace(tmp_path, path)
+
+
+
+def _read_json(path: Path) -> Dict[str, Any]:
+    '''Read a JSON object from disk.
+
+    Parameters
+    ----------
+    path : Path
+        JSON file path.
+
+    Returns
+    -------
+    Dict[str, Any]
+        Parsed JSON object.
+    '''
+
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _write_done_marker(path: Optional[str], payload: Dict[str, Any]) -> None:
+    '''Write an optional workflow-manager completion marker.
+
+    Parameters
+    ----------
+    path : str, optional
+        Marker path. If None, no marker is written.
+    payload : Dict[str, Any]
+        Marker payload.
+    '''
+
+    if path:
+        marker_payload = dict(payload)
+        marker_payload.setdefault("status", "complete")
+        _write_json_atomic(Path(path), marker_payload)
+
+
+def _parse_engine_list(raw: Optional[str], *, rescoring: bool = False) -> List[str]:
+    '''Parse and validate a comma-separated engine list.
+
+    Parameters
+    ----------
+    raw : str, optional
+        Comma-separated engine names.
+    rescoring : bool, optional
+        If True, allow ODDT in addition to docking engines, by default False.
+
+    Returns
+    -------
+    List[str]
+        Valid engine names preserving user order.
+    '''
+
+    valid = {"vina", "smina", "gnina", "plants"}
+    if rescoring:
+        valid = valid | {"oddt"}
+    engines = [item.strip().lower() for item in str(raw or "").split(",") if item.strip()]
+    return [engine for engine in engines if engine in valid]
+
+
+def _prepare_stage_common(args: argparse.Namespace) -> Tuple[Path, str, Path, Path, Path, List[str]]:
+    '''Resolve common stage paths and engine settings.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Pipeline CLI arguments.
+
+    Returns
+    -------
+    Tuple[Path, str, Path, Path, Path, List[str]]
+        Output directory, job name, receptor path, ligand path, box path, and engines.
+    '''
+
+    outdir = Path(args.outdir).resolve()
+    if not args.receptor or not args.ligand or not args.box:
+        raise ValueError("--receptor, --ligand, and --box are required for this pipeline stage")
+    receptor_path = _require_file(str(args.receptor), "--receptor")
+    ligand_path = _require_file(str(args.ligand), "--ligand")
+    box_path = _require_file(str(args.box), "--box")
+    name = args.name or ligand_path.stem
+    engines = _parse_engine_list(args.engines)
+    if not engines:
+        raise ValueError("No valid engine provided. Use --engines vina,smina,gnina,plants")
+    return outdir, name, receptor_path, ligand_path, box_path, engines
+
+
+def _bootstrap_pipeline_stage(args: argparse.Namespace) -> None:
+    '''Bootstrap OCDocker for a pipeline stage command.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Pipeline CLI arguments.
+    '''
+
+    globals_ns = _preparse_global_args(sys.argv[1:])
+    for attr in (
+        "config_file",
+        "multiprocess",
+        "update",
+        "output_level",
+        "overwrite",
+        "threads",
+        "tmp_dir",
+        "log_file",
+        "no_stdout_log",
+        "no_splash",
+    ):
+        if hasattr(args, attr):
+            setattr(globals_ns, attr, getattr(args, attr))
+    setattr(globals_ns, "_ocdocker_init_db", bool(getattr(args, "store_db", False)))
+    setattr(globals_ns, "_ocdocker_create_db_if_missing", bool(getattr(args, "store_db", False)))
+    _bootstrap_ocdocker_env(globals_ns)
+    try:
+        import OCDocker.Error as ocerror
+        import OCDocker.Toolbox.Logging as oclogging
+        oclogging.configure(
+            level=ocerror.Error.get_output_level(),
+            log_file=args.log_file,
+            to_stdout=(not args.no_stdout_log),
+        )
+    except (ImportError, AttributeError, OSError):
+        pass
+    if args.timeout:
+        os.environ["OCDOCKER_TIMEOUT"] = str(args.timeout)
+
+
+def _pipeline_prepare_stage(args: argparse.Namespace) -> int:
+    '''Create the pipeline preparation manifest.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Pipeline CLI arguments.
+
+    Returns
+    -------
+    int
+        Exit code.
+    '''
+
+    try:
+        outdir, name, receptor_path, ligand_path, box_path, engines = _prepare_stage_common(args)
+    except ValueError as exc:
+        print(f"Error: {exc}")
+        return 2
+    boxes = _list_boxes(ligand_path.parent, box_path, args.all_boxes)
+    if args.all_boxes and not boxes:
+        print("Warning: no box*.pdb files found. Skipping preparation manifest.")
+        return 2
+    payload = {
+        "stage": "prepare",
+        "status": "complete",
+        "job": name,
+        "receptor": str(receptor_path),
+        "ligand": str(ligand_path),
+        "box": str(box_path),
+        "boxes": [str(box) for box in boxes],
+        "engines": engines,
+    }
+    manifest = outdir / "prepare_manifest.json"
+    _write_json_atomic(manifest, payload)
+    _write_done_marker(args.done_marker, {"stage": "prepare", "manifest": str(manifest)})
+    print(f"Preparation manifest written: {manifest}")
+    return 0
+
+
+def _pipeline_dock_stage(args: argparse.Namespace) -> int:
+    '''Run docking only and write a dock manifest.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Pipeline CLI arguments.
+
+    Returns
+    -------
+    int
+        Exit code.
+    '''
+
+    _bootstrap_pipeline_stage(args)
+    try:
+        import OCDocker.Docking.Gnina as ocgnina
+        import OCDocker.Docking.PLANTS as ocplants
+        import OCDocker.Docking.Smina as ocsmina
+        import OCDocker.Docking.Vina as ocvina
+        import OCDocker.Ligand as ocl
+        import OCDocker.Receptor as ocr
+        import OCDocker.Toolbox.Printing as ocprint
+    except ModuleNotFoundError as exc:
+        extra = _suggest_extra_for_missing_module(getattr(exc, "name", ""))
+        return _print_optional_dependency_hint(feature="pipeline dock stage", extra=extra, exc=exc)
+
+    try:
+        outdir, name, receptor_path, ligand_path, box_path, engines = _prepare_stage_common(args)
+    except ValueError as exc:
+        print(f"Error: {exc}")
+        return 2
+
+    receptor = ocr.Receptor(str(receptor_path), name=f"{name}_receptor")
+    ligand_name = name if not name.endswith("_ligand") else name[:-7]
+    ligand = ocl.Ligand(str(ligand_path), name=ligand_name)
+    boxes = _list_boxes(ligand_path.parent, box_path, args.all_boxes)
+    if args.all_boxes and not boxes:
+        print("Warning: no box*.pdb files found. Skipping docking.")
+        return 2
+
+    all_manifests: List[Dict[str, Any]] = []
+    overall_rc = 0
+    for box in boxes:
+        box_label = box.stem if args.all_boxes else None
+        box_outdir = outdir / box.stem if args.all_boxes else outdir
+        box_outdir.mkdir(parents=True, exist_ok=True)
+        for engine in engines:
+            engine_dir = box_outdir / f"{engine}Files"
+            engine_dir.mkdir(parents=True, exist_ok=True)
+            poses: List[str] = []
+            context: Dict[str, Any] = {"engine": engine, "engine_dir": str(engine_dir)}
+            try:
+                if engine == "vina":
+                    conf = engine_dir / "conf_vina.txt"
+                    prep_r = box_outdir / "prepared_receptor.pdbqt"
+                    prep_l = box_outdir / "prepared_ligand.pdbqt"
+                    log = engine_dir / f"{name}.log"
+                    outp = engine_dir / f"{name}.pdbqt"
+                    runner = ocvina.Vina(str(conf), str(box), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"VINA {name}", overwrite_config=True)
+                elif engine == "smina":
+                    conf = engine_dir / "conf_smina.txt"
+                    prep_r = box_outdir / "prepared_receptor.pdbqt"
+                    prep_l = box_outdir / "prepared_ligand.pdbqt"
+                    log = engine_dir / f"{name}.log"
+                    outp = engine_dir / f"{name}.pdbqt"
+                    runner = ocsmina.Smina(str(conf), str(box), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"SMINA {name}", overwrite_config=True)
+                elif engine == "gnina":
+                    conf = engine_dir / "conf_gnina.conf"
+                    prep_r = box_outdir / "prepared_receptor.pdbqt"
+                    prep_l = box_outdir / "prepared_ligand.pdbqt"
+                    log = engine_dir / f"{name}.log"
+                    outp = engine_dir / f"{name}.pdbqt"
+                    runner = ocgnina.Gnina(str(conf), str(box), receptor, str(prep_r), ligand, str(prep_l), str(log), str(outp), name=f"GNINA {name}", overwrite_config=True)
+                else:
+                    conf = engine_dir / "conf_plants.txt"
+                    prep_r = box_outdir / "prepared_receptor.mol2"
+                    prep_l = box_outdir / "prepared_ligand.mol2"
+                    log = engine_dir / f"{name}.log"
+                    runner = ocplants.PLANTS(str(conf), str(box), receptor, str(prep_r), ligand, str(prep_l), str(log), str(engine_dir), name=f"PLANTS {name}", overwrite_config=True)
+
+                for prepared_path, label, method_name in ((prep_r, "receptor", "run_prepare_receptor"), (prep_l, "ligand", "run_prepare_ligand")):
+                    if not (prepared_path.is_file() and prepared_path.stat().st_size > 0):
+                        method = getattr(runner, method_name)
+                        rc = method()
+                        rc = rc[0] if isinstance(rc, tuple) else rc
+                        if rc != 0:
+                            raise RuntimeError(f"{label} preparation failed with code {rc}")
+
+                rc = runner.run_docking()
+                rc = rc[0] if isinstance(rc, tuple) else rc
+                if rc != 0:
+                    raise RuntimeError(f"docking failed with code {rc}")
+
+                if engine in {"vina", "smina", "gnina"}:
+                    _ = runner.split_poses(str(engine_dir))
+                poses = [str(pose) for pose in runner.get_docked_poses()]
+                context.update({"box": str(box), "box_label": box_label, "config": str(conf), "prepared_receptor": str(prep_r), "prepared_ligand": str(prep_l), "log": str(log), "poses": poses, "status": "complete"})
+            except Exception as exc:
+                context.update({"status": "failed", "error": str(exc), "poses": poses})
+                overall_rc = 2 if args.strict_engines else max(overall_rc, 1)
+                ocprint.print_warning(f"{engine.capitalize()} dock stage failed: {exc}")
+
+            manifest_path = engine_dir / "dock_manifest.json"
+            _write_json_atomic(manifest_path, context)
+            all_manifests.append({"engine": engine, "manifest": str(manifest_path), "status": context["status"]})
+
+    dock_manifest = outdir / "dock_manifest.json"
+    payload = {"stage": "dock", "status": "complete" if overall_rc == 0 else "partial", "job": name, "manifests": all_manifests}
+    _write_json_atomic(dock_manifest, payload)
+    _write_done_marker(args.done_marker, {"stage": "dock", "manifest": str(dock_manifest), "return_code": overall_rc})
+    print(f"Dock manifest written: {dock_manifest}")
+    return overall_rc
+
+
+def _load_dock_manifests(outdir: Path) -> List[Dict[str, Any]]:
+    '''Load per-engine dock manifests from an output directory.
+
+    Parameters
+    ----------
+    outdir : Path
+        Pipeline output directory.
+
+    Returns
+    -------
+    List[Dict[str, Any]]
+        Loaded dock manifests.
+    '''
+
+    manifests: List[Dict[str, Any]] = []
+    for path in sorted(outdir.glob("**/dock_manifest.json")):
+        if path.parent == outdir:
+            continue
+        try:
+            payload = _read_json(path)
+        except (OSError, json.JSONDecodeError):
+            continue
+        manifests.append(payload)
+    return manifests
+
+
+def _pipeline_collect_stage(args: argparse.Namespace) -> int:
+    '''Collect docked poses into a stable pose inventory.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Pipeline CLI arguments.
+
+    Returns
+    -------
+    int
+        Exit code.
+    '''
+
+    outdir = Path(args.outdir).resolve()
+    manifests = _load_dock_manifests(outdir)
+    rows: List[Dict[str, Any]] = []
+    for manifest in manifests:
+        for pose in manifest.get("poses", []):
+            rows.append({"pose_path": str(pose), "engine": manifest.get("engine"), "box": manifest.get("box"), "engine_dir": manifest.get("engine_dir"), "prepared_receptor": manifest.get("prepared_receptor"), "prepared_ligand": manifest.get("prepared_ligand"), "config": manifest.get("config")})
+    if not rows:
+        print("Error: no docked poses found. Run 'ocdocker pipeline dock' first.")
+        return 2
+    import pandas as pd
+    inventory = outdir / "pose_inventory.csv"
+    inventory.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(rows).to_csv(inventory, index=False)
+    manifest_path = outdir / "collect_manifest.json"
+    _write_json_atomic(manifest_path, {"stage": "collect", "status": "complete", "pose_inventory": str(inventory), "n_poses": len(rows)})
+    _write_done_marker(args.done_marker, {"stage": "collect", "manifest": str(manifest_path)})
+    print(f"Pose inventory written: {inventory}")
+    return 0
+
+
+def _pipeline_cluster_stage(args: argparse.Namespace) -> int:
+    '''Cluster collected poses and select a representative pose.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Pipeline CLI arguments.
+
+    Returns
+    -------
+    int
+        Exit code.
+    '''
+
+    _bootstrap_pipeline_stage(args)
+    try:
+        import numpy as np
+        import pandas as pd
+        import OCDocker.Processing.Preprocessing.RMSDClustering as ocrmsd
+        import OCDocker.Toolbox.MoleculeProcessing as ocmolproc
+    except ModuleNotFoundError as exc:
+        extra = _suggest_extra_for_missing_module(getattr(exc, "name", ""))
+        return _print_optional_dependency_hint(feature="pipeline cluster stage", extra=extra, exc=exc)
+
+    outdir = Path(args.outdir).resolve()
+    inventory = outdir / "pose_inventory.csv"
+    if not inventory.is_file():
+        print("Error: pose_inventory.csv not found. Run 'ocdocker pipeline collect' first.")
+        return 2
+    frame = pd.read_csv(inventory)
+    pose_paths = [str(path) for path in frame["pose_path"].dropna().tolist()]
+    pose_engine_map = {str(row.pose_path): str(row.engine) for row in frame.itertuples(index=False)}
+    if not pose_paths:
+        print("Error: pose inventory contains no poses.")
+        return 2
+    mol2_dir = outdir / "poses_mol2"
+    mol2_list, mol2_map = _ensure_mol2_poses(pose_paths, mol2_dir, pose_engine_map)
+    mol2_engine_map = ocrmsd.build_pose_engine_map(mol2_list, pose_engine_map, mol2_map)
+    rmsd = ocmolproc.get_rmsd_matrix(mol2_list)
+    data = pd.DataFrame(rmsd).loc[mol2_list, mol2_list]
+    rmsd_matrix_file = outdir / "rmsd_matrix.csv"
+    data.to_csv(rmsd_matrix_file)
+    cluster_plot = outdir / "clustering_dendrogram.png"
+    clusters = ocrmsd.cluster_rmsd(data, min_distance_threshold=args.cluster_min, max_distance_threshold=args.cluster_max, threshold_step=args.cluster_step, outputPlot=str(cluster_plot), molecule_name=args.name or outdir.name, pose_engine_map=mol2_engine_map)
+    clustering_info: Dict[str, Any] = {"method": "rmsd_based_clustering", "total_poses": len(mol2_list)}
+    if isinstance(clusters, int) or getattr(clusters, "size", 0) == 0:
+        representative = mol2_list[0]
+        clustering_info.update({"representative_selection": "first_pose_fallback", "reason": "clustering_failed_or_no_labels"})
+    else:
+        assignments = pd.DataFrame({"pose_path": mol2_list, "cluster_id": clusters})
+        assignments.to_csv(outdir / "cluster_assignments.csv", index=False)
+        unique_clusters, counts = np.unique(clusters, return_counts=True)
+        cluster_sizes = {int(cluster_id): int(size) for cluster_id, size in zip(unique_clusters, counts)}
+        medoids = ocrmsd.get_medoids(data, clusters, onlyBiggest=True)
+        if not medoids:
+            representative = mol2_list[0]
+            clustering_info.update({"representative_selection": "first_pose_fallback", "reason": "no_medoid_found"})
+        else:
+            representative, representative_info = _select_pipeline_representative_medoid(data, clusters, medoids)
+            rep_index = mol2_list.index(representative)
+            rep_cluster_id = int(representative_info.get("selected_cluster_id", clusters[rep_index]))
+            clustering_info.update({"representative_selection": "medoid_of_largest_cluster", "representative_cluster_id": rep_cluster_id, "representative_cluster_size": cluster_sizes.get(rep_cluster_id, 0), "cluster_sizes": cluster_sizes, "medoids": [str(medoid) for medoid in medoids]})
+            clustering_info.update(representative_info)
+    representative_path = outdir / "representative.mol2"
+    shutil.copyfile(representative, representative_path)
+    clustering_info.update({"representative_pose": str(representative_path), "rmsd_matrix": str(rmsd_matrix_file)})
+    manifest_path = outdir / "cluster_manifest.json"
+    _write_json_atomic(manifest_path, {"stage": "cluster", "status": "complete", "clustering": clustering_info})
+    _write_done_marker(args.done_marker, {"stage": "cluster", "manifest": str(manifest_path)})
+    print(f"Cluster manifest written: {manifest_path}")
+    return 0
+
+
+def _extract_numeric_rescore_values(data: Dict[str, Any], prefix: str) -> Dict[str, float]:
+    '''Extract finite numeric rescoring values from a parser payload.
+
+    Parameters
+    ----------
+    data : Dict[str, Any]
+        Raw parser payload.
+    prefix : str
+        Prefix for normalized score keys.
+
+    Returns
+    -------
+    Dict[str, float]
+        Numeric scores.
+    '''
+
+    values: Dict[str, float] = {}
+    for key, raw_value in data.items():
+        numeric = _to_numeric(raw_value)
+        if numeric is None and isinstance(raw_value, (list, tuple)):
+            for item in raw_value:
+                numeric = _to_numeric(item)
+                if numeric is not None:
+                    break
+        if numeric is not None:
+            clean_key = str(key)
+            for token in ("rescoring_", "_rescoring"):
+                clean_key = clean_key.replace(token, "")
+            values[f"{prefix}_{clean_key}" if not clean_key.startswith(prefix) else clean_key] = float(numeric)
+    return values
+
+
+def _pipeline_rescore_stage(args: argparse.Namespace) -> int:
+    '''Rescore the clustered representative pose.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Pipeline CLI arguments.
+
+    Returns
+    -------
+    int
+        Exit code.
+    '''
+
+    _bootstrap_pipeline_stage(args)
+    try:
+        import OCDocker.Toolbox.Conversion as occonversion
+        from OCDocker.Config import get_config
+    except ModuleNotFoundError as exc:
+        extra = _suggest_extra_for_missing_module(getattr(exc, "name", ""))
+        return _print_optional_dependency_hint(feature="pipeline rescore stage", extra=extra, exc=exc)
+
+    outdir = Path(args.outdir).resolve()
+    cluster_manifest = outdir / "cluster_manifest.json"
+    if not cluster_manifest.is_file():
+        print("Error: cluster_manifest.json not found. Run 'ocdocker pipeline cluster' first.")
+        return 2
+    cluster_payload = _read_json(cluster_manifest)
+    representative_pose = cluster_payload.get("clustering", {}).get("representative_pose")
+    if not representative_pose or not Path(representative_pose).is_file():
+        print("Error: representative pose not found in cluster manifest.")
+        return 2
+
+    representative_mol2 = Path(representative_pose)
+    representative_pdbqt = outdir / "representative_for_rescoring.pdbqt"
+    if representative_mol2.suffix.lower() == ".pdbqt":
+        representative_pdbqt = representative_mol2
+    elif not representative_pdbqt.is_file() or args.overwrite:
+        occonversion.convert_mols(str(representative_mol2), str(representative_pdbqt), overwrite=True)
+
+    config = get_config()
+    dock_manifests = _load_dock_manifests(outdir)
+    manifest_by_engine = {str(item.get("engine")): item for item in dock_manifests if item.get("status") == "complete"}
+    rescoring_engines = _parse_engine_list(args.rescoring_engines or args.engines, rescoring=True)
+    if not rescoring_engines:
+        print("Error: no valid rescoring engines requested.")
+        return 2
+
+    rescoring: Dict[str, Dict[str, float]] = {}
+    warnings: List[str] = []
+
+    if "vina" in rescoring_engines and "vina" in manifest_by_engine and representative_pdbqt.is_file():
+        from OCDocker.Docking.Vina import get_rescore_log_paths, read_rescore_logs, run_rescore
+        manifest = manifest_by_engine["vina"]
+        scoring_functions = config.vina.scoring_functions if config.vina.scoring_functions else ["vina"]
+        for scoring_function in scoring_functions:
+            try:
+                run_rescore(manifest["config"], str(representative_pdbqt), manifest["engine_dir"], scoring_function, splitLigand=False, overwrite=True)
+            except Exception as exc:
+                warnings.append(f"vina:{scoring_function}: {exc}")
+        log_paths, data, _ = _wait_for_rescore_logs_ready(get_rescore_log_paths, read_rescore_logs, manifest["engine_dir"])
+        if log_paths and not data:
+            data = read_rescore_logs(log_paths, onlyBest=True)
+        values = _extract_numeric_rescore_values(data or {}, "vina")
+        if values:
+            rescoring["vina"] = values
+
+    if "smina" in rescoring_engines and "smina" in manifest_by_engine and representative_pdbqt.is_file():
+        from OCDocker.Docking.Smina import get_rescore_log_paths, read_rescore_logs, run_rescore
+        manifest = manifest_by_engine["smina"]
+        scoring_functions = config.smina.scoring_functions if config.smina.scoring_functions else ["vinardo"]
+        for scoring_function in scoring_functions:
+            try:
+                run_rescore(manifest["config"], str(representative_pdbqt), manifest["engine_dir"], scoring_function, splitLigand=False, overwrite=True)
+            except Exception as exc:
+                warnings.append(f"smina:{scoring_function}: {exc}")
+        log_paths, data, _ = _wait_for_rescore_logs_ready(get_rescore_log_paths, read_rescore_logs, manifest["engine_dir"])
+        if log_paths and not data:
+            data = read_rescore_logs(log_paths, onlyBest=True)
+        values = _extract_numeric_rescore_values(data or {}, "smina")
+        if values:
+            rescoring["smina"] = values
+
+    if "gnina" in rescoring_engines and "gnina" in manifest_by_engine and representative_pdbqt.is_file():
+        from OCDocker.Docking.Gnina import get_rescore_log_paths, read_rescore_logs, run_rescore
+        manifest = manifest_by_engine["gnina"]
+        scoring_functions = config.gnina.scoring_functions if isinstance(config.gnina.scoring_functions, list) and config.gnina.scoring_functions else [str(getattr(config.gnina, "scoring", "default") or "default")]
+        for scoring_function in scoring_functions:
+            try:
+                run_rescore(manifest["config"], str(representative_pdbqt), manifest["engine_dir"], scoring_function, splitLigand=False, overwrite=True, disable_cnn=True)
+            except Exception as exc:
+                warnings.append(f"gnina:{scoring_function}: {exc}")
+        log_paths, data, _ = _wait_for_rescore_logs_ready(get_rescore_log_paths, read_rescore_logs, manifest["engine_dir"])
+        if log_paths and not data:
+            data = read_rescore_logs(log_paths, onlyBest=True)
+        values = _extract_numeric_rescore_values(data or {}, "gnina")
+        if values:
+            rescoring["gnina"] = values
+
+    if "oddt" in rescoring_engines:
+        try:
+            from OCDocker.Rescoring.ODDT import df_to_dict, run_oddt
+            prepared_receptor = None
+            for candidate_engine in ("vina", "smina", "gnina", "plants"):
+                candidate = manifest_by_engine.get(candidate_engine, {}).get("prepared_receptor")
+                if candidate and Path(candidate).is_file():
+                    prepared_receptor = candidate
+                    break
+            if prepared_receptor:
+                oddt_dir = outdir / "oddt_rescoring"
+                oddt_dir.mkdir(parents=True, exist_ok=True)
+                dataframe = run_oddt(prepared_receptor, str(representative_mol2), args.name or outdir.name, str(oddt_dir), overwrite=True, returnData=True)
+                if not isinstance(dataframe, int) and dataframe is not None:
+                    oddt_dict = df_to_dict(dataframe)
+                    if isinstance(oddt_dict, dict) and oddt_dict:
+                        first_key = list(oddt_dict.keys())[0]
+                        values = _extract_numeric_rescore_values(oddt_dict[first_key], "oddt")
+                        if values:
+                            rescoring["oddt"] = values
+            else:
+                warnings.append("oddt: no prepared receptor available")
+        except Exception as exc:
+            warnings.append(f"oddt: {exc}")
+
+    status = "complete" if rescoring else "partial"
+    payload = {"stage": "rescore", "status": status, "representative_pose": str(representative_pose), "rescoring_engines": rescoring_engines, "rescoring": rescoring, "warnings": warnings}
+    manifest_path = outdir / "rescore_results.json"
+    _write_json_atomic(manifest_path, payload)
+    _write_done_marker(args.done_marker, {"stage": "rescore", "manifest": str(manifest_path), "status": status})
+    print(f"Rescore results written: {manifest_path}")
+    return 0 if rescoring or not args.strict_engines else 2
+
+
+def _pipeline_export_stage(args: argparse.Namespace) -> int:
+    '''Export a final summary from step-level pipeline artifacts.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Pipeline CLI arguments.
+
+    Returns
+    -------
+    int
+        Exit code.
+    '''
+
+    outdir = Path(args.outdir).resolve()
+    summary: Dict[str, Any] = {"stage": "export", "status": "complete", "outdir": str(outdir)}
+    for name, filename in (("prepare", "prepare_manifest.json"), ("dock", "dock_manifest.json"), ("collect", "collect_manifest.json"), ("cluster", "cluster_manifest.json"), ("rescore", "rescore_results.json")):
+        path = outdir / filename
+        if path.is_file():
+            summary[name] = _read_json(path)
+    if "cluster" in summary:
+        summary["representative_pose"] = summary["cluster"].get("clustering", {}).get("representative_pose")
+    if "rescore" in summary:
+        summary["rescoring"] = summary["rescore"].get("rescoring", {})
+    summary_path = outdir / "summary.json"
+    _write_json_atomic(summary_path, summary)
+    _write_done_marker(args.done_marker, {"stage": "export", "summary": str(summary_path)})
+    print(f"Step-level summary written: {summary_path}")
+    return 0
+
+
+def _cmd_pipeline_stage(args: argparse.Namespace) -> int:
+    '''Dispatch step-level pipeline commands.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Pipeline CLI arguments.
+
+    Returns
+    -------
+    int
+        Exit code.
+    '''
+
+    stage = getattr(args, "stage", None)
+    if stage == "prepare":
+        return _pipeline_prepare_stage(args)
+    if stage == "dock":
+        return _pipeline_dock_stage(args)
+    if stage == "collect":
+        return _pipeline_collect_stage(args)
+    if stage == "cluster":
+        return _pipeline_cluster_stage(args)
+    if stage == "rescore":
+        return _pipeline_rescore_stage(args)
+    if stage == "export":
+        return _pipeline_export_stage(args)
+    print(f"Error: unknown pipeline stage: {stage}")
+    return 2
+
+
 def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integration path assembling multiple engines
     '''Full multi-engine flow with clustering, rescoring and export.
 
@@ -57,6 +716,9 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
         Exit code (0 for success, 1 for failure).
     '''
 
+    if getattr(args, "stage", None):
+        return _cmd_pipeline_stage(args)
+
     if args.store_db:
         db_ok, db_exc = _db_dependencies_available()
         if not db_ok and db_exc is not None:
@@ -66,8 +728,24 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                 exc=db_exc,
             )
 
-    # Bootstrap env
+    # Bootstrap env. CLI calls still support scattered global options through
+    # pre-parsing; API calls can pass an explicit namespace with _api_call=True.
     globals_ns = _preparse_global_args(sys.argv[1:])
+    if bool(getattr(args, "_api_call", False)):
+        for attr in (
+            "config_file",
+            "multiprocess",
+            "update",
+            "output_level",
+            "overwrite",
+            "threads",
+            "tmp_dir",
+            "log_file",
+            "no_stdout_log",
+            "no_splash",
+        ):
+            if hasattr(args, attr):
+                setattr(globals_ns, attr, getattr(args, attr))
     store_db_requested = bool(getattr(args, "store_db", False))
     setattr(globals_ns, "_ocdocker_init_db", store_db_requested)
     setattr(globals_ns, "_ocdocker_create_db_if_missing", store_db_requested)
@@ -114,6 +792,10 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
 
     base_outdir = Path(args.outdir).resolve()
     name = args.name or Path(args.ligand).stem
+
+    if not args.receptor or not args.ligand or not args.box:
+        print("Error: --receptor, --ligand, and --box are required unless a step-level stage is selected.")
+        return 2
 
     # Validate input files
     receptor_path = _require_file(str(args.receptor), "--receptor")
@@ -322,6 +1004,9 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
             for eng, error_msg in engine_errors.items():
                 print(f"{eng.capitalize()}: {error_msg}")
             print("")
+            if args.strict_engines:
+                print("Strict engine mode enabled; failing because at least one requested docking engine failed.")
+                return 2
 
         if not all_poses:
             if engine_errors:
@@ -958,7 +1643,16 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
             "clustering": clustering_info,
             "rescoring": rescoring,
         }
-        (outdir / "summary.json").write_text(json.dumps(summ, indent=2))
+        summary_path = outdir / "summary.json"
+        _write_json_atomic(summary_path, summ)
+        if args.done_marker:
+            marker_payload = {
+                "status": "complete",
+                "summary": str(summary_path),
+                "outdir": str(outdir),
+                "job": name,
+            }
+            _write_json_atomic(Path(args.done_marker), marker_payload)
 
         if args.store_db:
             try:
@@ -995,8 +1689,8 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
         use_multi_boxes = len(boxes) > 1
         for box in boxes:
             box_id = box.stem
-            box_outdir = base_outdir / box_id if use_multi_boxes else base_outdir
-            rc = _run_pipeline_for_box(box, box_outdir, box_id if use_multi_boxes else None)
+            box_outdir = base_outdir / box_id
+            rc = _run_pipeline_for_box(box, box_outdir, box_id)
             if rc != 0:
                 overall_rc = rc
         return overall_rc
@@ -1028,18 +1722,21 @@ def register_subparser(sub: argparse._SubParsersAction, parent: argparse.Argumen
         parents=[parent]
     )
     p_pipe.add_argument(
+        "stage",
+        nargs="?",
+        choices=["prepare", "dock", "collect", "cluster", "rescore", "export"],
+        help="Optional step-level stage. Omit this argument to run the complete monolithic pipeline.",
+    )
+    p_pipe.add_argument(
         "--receptor",
-        required=True,
         help="Path to the receptor structure file (e.g., PDB format). The receptor will be prepared automatically if needed."
     )
     p_pipe.add_argument(
         "--ligand",
-        required=True,
         help="Path to the ligand file. Supported formats: SMILES (.smi), SDF (.sdf), MOL2 (.mol2), or PDBQT (.pdbqt). The ligand will be prepared automatically if needed."
     )
     p_pipe.add_argument(
         "--box",
-        required=True,
         help="Path to the binding site box definition file (PDB format with REMARK records containing center coordinates and size). This defines the search space for docking."
     )
     p_pipe.add_argument(
@@ -1085,6 +1782,16 @@ def register_subparser(sub: argparse._SubParsersAction, parent: argparse.Argumen
         type=float,
         default=0.1,
         help="Step size (in Angstroms) for searching the optimal clustering threshold between --cluster-min and --cluster-max. Smaller values provide finer search but take longer. Default: 0.1"
+    )
+    p_pipe.add_argument(
+        "--strict-engines",
+        action="store_true",
+        help="Fail the command if any requested docking engine fails instead of accepting partial engine results.",
+    )
+    p_pipe.add_argument(
+        "--done-marker",
+        default=None,
+        help="Optional JSON completion marker path for workflow managers. Written atomically after summary.json.",
     )
     p_pipe.add_argument(
         "--store-db",

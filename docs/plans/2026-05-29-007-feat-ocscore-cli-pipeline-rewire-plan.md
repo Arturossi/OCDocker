@@ -35,7 +35,7 @@ After the OCScore legacy hard-move (plan 005) and export tooling work (plans 001
 
 Users and agents discover `ocdocker shap` in `usage.rst` and `MANUAL.md`, yet staged exports require `examples/16_ocscore_exported_model_tools.py shap` and `ExportRunner`. Training and feature reduction have **no CLI surface** at all — only standalone example scripts. This split causes wrong-tool usage, poor discoverability, and duplicated argparse logic between examples and the main CLI.
 
-The product boundary is settled: **current OCScore = reduce → staged Optuna → export tools**; legacy training/SHAP lives under explicit `legacy/` imports and `examples/legacy/`. The CLI should mirror that boundary.
+The product boundary is settled: **current OCScore = reduce → staged Optuna → export tools**; legacy training/SHAP lives only under explicit `legacy/` implementation imports. The active CLI should mirror the maintained staged pipeline boundary.
 
 ---
 

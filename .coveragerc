@@ -20,8 +20,53 @@ omit =
     Docking/Future/**
     **/Docking/Future/*
     **/Docking/Future/**
+    # Omit archival legacy implementation now that legacy tests/examples are removed
+    OCDocker/**/legacy/*
+    OCDocker/**/legacy/**
+    **/OCDocker/**/legacy/*
+    **/OCDocker/**/legacy/**
+    # Omit future/reference implementation trees outside the active coverage target
+    OCDocker/**/future/*
+    OCDocker/**/future/**
+    **/OCDocker/**/future/*
+    **/OCDocker/**/future/**
+    # Omit boilerplate entrypoints / empty namespace stubs
+    OCDocker/Console/__main__.py
+    */OCDocker/Console/__main__.py
+    OCDocker/OCScore/Dimensionality/__init__.py
+    */OCDocker/OCScore/Dimensionality/__init__.py
+    OCDocker/Processing/Postprocessing/__init__.py
+    */OCDocker/Processing/Postprocessing/__init__.py
 
 [report]
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */setup.py
+    */conftest.py
+    OCDocker/Initialise.py
+    */OCDocker/Initialise.py
+    OCDocker/Docking/Future/*
+    OCDocker/Docking/Future/**
+    Docking/Future/*
+    Docking/Future/**
+    **/Docking/Future/*
+    **/Docking/Future/**
+    OCDocker/**/legacy/*
+    OCDocker/**/legacy/**
+    **/OCDocker/**/legacy/*
+    **/OCDocker/**/legacy/**
+    OCDocker/**/future/*
+    OCDocker/**/future/**
+    **/OCDocker/**/future/*
+    **/OCDocker/**/future/**
+    OCDocker/Console/__main__.py
+    */OCDocker/Console/__main__.py
+    OCDocker/OCScore/Dimensionality/__init__.py
+    */OCDocker/OCScore/Dimensionality/__init__.py
+    OCDocker/Processing/Postprocessing/__init__.py
+    */OCDocker/Processing/Postprocessing/__init__.py
 precision = 2
 show_missing = True
 skip_covered = False
