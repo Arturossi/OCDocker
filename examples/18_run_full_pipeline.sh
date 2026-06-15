@@ -25,12 +25,18 @@ OUT="${DATA}/output"
 # Protocol and analysis values below are intentionally script literals.
 # Edit this file or the generated protocol artifacts; do not override them via environment.
 TRAIN_SEED="42"
-REPLICAS="3"
+REPLICAS="5"
 # Runs independent replicas concurrently. Keep at 1 on memory-limited GPUs.
-REPLICA_JOBS="1"
+REPLICA_JOBS="2"
 # Reuse completed replica directories at module level when rerunning same output.
 RESUME_COMPLETED="true"
 DEVICE="cuda"                    # cuda | cpu
+
+# Runtime diagnostics/stability. These do not change the protocol search space.
+export PYTHONFAULTHANDLER="${PYTHONFAULTHANDLER:-1}"
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
+export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
 
 # --- Stage 2: Optuna train (PDBbind regression) ---
 PDBBIND_TRIALS="100"
@@ -179,19 +185,27 @@ for required_input in "$PDBBIND" "$DUDEZ"; do
 done
 
 # --- Build train protocol from parameters above ---
-PROTOCOL_ABLATION_VARIANTS=(ligand_only receptor_only sf_only ligand_sf receptor_sf)
+PROTOCOL_ABLATION_VARIANTS=(ligand_only sf_only ligand_sf receptor_sf)
 FEATURE_POLICY_ABLATIONS=(
   no_pmi
   no_shape_core
+  no_shape_core_no_receptor_length_pair
+  no_shape_core_no_receptor_surface_counts
+  no_shape_core_no_receptor_surface_size
   no_ligand_shape_size
   shape_only
   scoring_function_only
   ligand_plus_scoring_function
+  ligand_plus_scoring_function_no_shape_core
+  ligand_plus_scoring_function_no_shape_size
   no_scoring_function
   ligand_only
   receptor_plus_scoring_function
-  receptor_only
 )
+TOTAL_TRAIN_EXPERIMENTS=1
+if [ "$RUN_ABLATIONS" = true ]; then
+  TOTAL_TRAIN_EXPERIMENTS=$((TOTAL_TRAIN_EXPERIMENTS + ${#FEATURE_POLICY_ABLATIONS[@]}))
+fi
 
 generate_final_report_yaml=$([ "$GENERATE_FINAL_REPORT" = true ] && echo "true" || echo "false")
 run_leakage_audit_yaml=$([ "$RUN_LEAKAGE_AUDIT" = true ] && echo "true" || echo "false")
@@ -338,6 +352,18 @@ EOF
 
 write_analysis_protocol "$ANALYSIS_PROTOCOL"
 
+log_banner "CURRENT RUN | OCScore full pipeline" \
+  "output_root=${OUT}" \
+  "train_root=${TRAIN}" \
+  "export_root=${EXP}" \
+  "experiments=${TOTAL_TRAIN_EXPERIMENTS}" \
+  "replicas=${REPLICAS}" \
+  "replica_jobs=${REPLICA_JOBS}" \
+  "pdbbind=${PDBBIND_TRIALS} trials x ${PDBBIND_EPOCHS} epochs" \
+  "dudez=${DUDEZ_TRIALS} trials x ${DUDEZ_EPOCHS} epochs" \
+  "device=${DEVICE}" \
+  "resume_completed=${EFFECTIVE_RESUME_COMPLETED}"
+
 log_banner "CURRENT STEP | PROTOCOL | generated" "path=${PROTOCOL}" "analysis_protocol=${ANALYSIS_PROTOCOL}" "interleave_protocol_analysis=${INTERLEAVE_PROTOCOL_ANALYSIS}" "run_ablations=${RUN_ABLATIONS}"
 
 # --- Stage 1: merge raw pipeline tables (no global feature reduction) ---
@@ -377,8 +403,27 @@ run_train_stage() {
   local protocol_path="$2"
   local train_output_dir="${3:-$TRAIN}"
   local feature_policy="${4:-full_ocscore}"
+  local experiment_index="${5:-?}"
+  local experiment_total="${6:-$TOTAL_TRAIN_EXPERIMENTS}"
+  local experiment_kind="${7:-training}"
+  local resume_hint="will_run_or_resume"
+  if [ -f "${train_output_dir}/staged_optuna_protocol.json" ]; then
+    resume_hint="summary_exists_resume_expected"
+  elif [ -d "${train_output_dir}" ]; then
+    resume_hint="partial_output_may_be_cleaned"
+  fi
 
-  log_banner "CURRENT STEP | TRAIN | ${stage_label}" "protocol=${protocol_path}" "raw_input=${RAW}" "output=${train_output_dir}" "feature_policy=${feature_policy}" "replicas=${REPLICAS}" "replica_jobs=${REPLICA_JOBS}" "pdbbind_trials=${PDBBIND_TRIALS}" "dudez_trials=${DUDEZ_TRIALS}"
+  log_banner "CURRENT EXPERIMENT | ${experiment_index}/${experiment_total} | ${stage_label}" \
+    "kind=${experiment_kind}" \
+    "feature_policy=${feature_policy}" \
+    "output=${train_output_dir}" \
+    "resume_hint=${resume_hint}" \
+    "replicas=${REPLICAS}" \
+    "replica_jobs=${REPLICA_JOBS}" \
+    "pdbbind_trials=${PDBBIND_TRIALS}" \
+    "dudez_trials=${DUDEZ_TRIALS}" \
+    "device=${DEVICE}" \
+    "protocol=${protocol_path}"
   local train_cmd=(
     "${OCDOCKER[@]}"
     ocscore train
@@ -409,7 +454,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 marker = Path(os.environ["ANALYSIS_MARKER"])
-extra = json.loads(os.environ.get("ANALYSIS_EXTRA_JSON") or "{}")
+raw_extra = os.environ.get("ANALYSIS_EXTRA_JSON") or "{}"
+try:
+    extra = json.loads(raw_extra)
+except json.JSONDecodeError:
+    extra, end = json.JSONDecoder().raw_decode(raw_extra)
+    trailing = raw_extra[end:].strip()
+    if trailing:
+        print(
+            f"WARNING: ignored trailing marker JSON payload text for {marker}: {trailing[:160]}",
+            file=__import__("sys").stderr,
+        )
 analysis_protocol = Path(os.environ["ANALYSIS_PROTOCOL_PATH"])
 payload = {
     "protocol_label": os.environ["ANALYSIS_PROTOCOL_LABEL"],
@@ -829,31 +884,35 @@ run_ablation_analysis_block() {
 }
 
 if [ "$INTERLEAVE_PROTOCOL_ANALYSIS" = true ]; then
-  run_train_stage "full" "$PROTOCOL" "$TRAIN" full_ocscore
+  experiment_index=1
+  run_train_stage "full model" "$PROTOCOL" "$TRAIN" full_ocscore "$experiment_index" "$TOTAL_TRAIN_EXPERIMENTS" "baseline"
   require_protocol_artifacts "full" "$TRAIN"
   run_full_analysis_block
 
   if [ "$RUN_ABLATIONS" = true ]; then
     for ablation_variant in "${FEATURE_POLICY_ABLATIONS[@]}"; do
-      run_train_stage "ablation ${ablation_variant}" "$PROTOCOL" "${TRAIN}/ablations/${ablation_variant}" "$ablation_variant"
+      experiment_index=$((experiment_index + 1))
+      run_train_stage "ablation ${ablation_variant}" "$PROTOCOL" "${TRAIN}/ablations/${ablation_variant}" "$ablation_variant" "$experiment_index" "$TOTAL_TRAIN_EXPERIMENTS" "ablation"
       require_protocol_artifacts "ablation ${ablation_variant}" "${TRAIN}/ablations/${ablation_variant}"
       run_ablation_analysis_block "$ablation_variant"
     done
 
-    run_train_stage "full report refresh" "$PROTOCOL" "$TRAIN" full_ocscore
+    run_train_stage "full report refresh" "$PROTOCOL" "$TRAIN" full_ocscore "refresh" "$TOTAL_TRAIN_EXPERIMENTS" "summary_refresh"
     require_protocol_artifacts "full" "$TRAIN"
     write_combined_ablation_summary
   else
     log_banner "CURRENT STEP | ABLATIONS | skipped" "reason=RUN_ABLATIONS=false"
   fi
 else
-  run_train_stage "full" "$PROTOCOL" "$TRAIN" full_ocscore
+  experiment_index=1
+  run_train_stage "full model" "$PROTOCOL" "$TRAIN" full_ocscore "$experiment_index" "$TOTAL_TRAIN_EXPERIMENTS" "baseline"
   require_protocol_artifacts "full" "$TRAIN"
   run_full_analysis_block
 
   if [ "$RUN_ABLATIONS" = true ]; then
     for ablation_variant in "${FEATURE_POLICY_ABLATIONS[@]}"; do
-      run_train_stage "ablation ${ablation_variant}" "$PROTOCOL" "${TRAIN}/ablations/${ablation_variant}" "$ablation_variant"
+      experiment_index=$((experiment_index + 1))
+      run_train_stage "ablation ${ablation_variant}" "$PROTOCOL" "${TRAIN}/ablations/${ablation_variant}" "$ablation_variant" "$experiment_index" "$TOTAL_TRAIN_EXPERIMENTS" "ablation"
       require_protocol_artifacts "ablation ${ablation_variant}" "${TRAIN}/ablations/${ablation_variant}"
       run_ablation_analysis_block "$ablation_variant"
     done

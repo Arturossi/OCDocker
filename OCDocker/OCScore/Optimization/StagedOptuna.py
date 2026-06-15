@@ -819,6 +819,7 @@ class PDBbindOptunaStage:
             stage_label="pdbbind_optuna:optimize",
         )
 
+        _raise_if_no_completed_trials(study, "PDBbind")
         best_trial = study.best_trial
         best_model = self._best_payload["model"]
         best_model.eval()
@@ -1207,6 +1208,7 @@ class DUDEzOptunaStage:
             stage_label="dudez_optuna:optimize",
         )
 
+        _raise_if_no_completed_trials(study, "DUDEz")
         best_trial = study.best_trial
         best_model = self._best_payload["model"]
         best_model.eval()
@@ -1447,6 +1449,29 @@ class DUDEzOptunaStage:
 # Functions
 ###############################################################################
 ## Private ##
+
+def _completed_trial_count(study: optuna.study.Study) -> int:
+    '''Return the number of completed Optuna trials in a study.'''
+
+    return sum(1 for trial in study.trials if str(trial.state.name) == "COMPLETE")
+
+
+def _raise_if_no_completed_trials(study: optuna.study.Study, stage_label: str) -> None:
+    '''Raise a clear error when Optuna has no completed objective values.'''
+
+    if _completed_trial_count(study) > 0:
+        return
+    state_counts: dict[str, int] = {}
+    for trial in study.trials:
+        state_name = str(trial.state.name)
+        state_counts[state_name] = state_counts.get(state_name, 0) + 1
+    raise RuntimeError(
+        f"{stage_label} optimization finished without any completed trials. "
+        f"Trial states: {state_counts}. This usually means every trial was pruned "
+        "before producing a valid objective metric. Check whether the feature set "
+        "can produce non-constant validation scores for the selected objective."
+    )
+
 
 def _build_activation(name: str) -> nn.Module:
     '''Build one activation module from a centralized search-space name.

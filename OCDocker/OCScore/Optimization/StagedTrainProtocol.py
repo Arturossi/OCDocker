@@ -41,14 +41,12 @@ DUDEzScalingStrategy = Literal["pdbbind_scaler", "dudez_train_scaler", "none_pre
 PDBbindSearchPhase = Literal["full", "encoder_regression"]
 AblationVariantName = Literal[
     "ligand_only",
-    "receptor_only",
     "sf_only",
     "ligand_sf",
     "receptor_sf",
 ]
 DEFAULT_ABLATION_VARIANTS: tuple[AblationVariantName, ...] = (
     "ligand_only",
-    "receptor_only",
     "sf_only",
     "ligand_sf",
     "receptor_sf",
@@ -57,9 +55,6 @@ ABLATION_VARIANT_ALIASES: dict[str, AblationVariantName] = {
     "ligand": "ligand_only",
     "ligand-only": "ligand_only",
     "ligand_only": "ligand_only",
-    "receptor": "receptor_only",
-    "receptor-only": "receptor_only",
-    "receptor_only": "receptor_only",
     "sf": "sf_only",
     "sf-only": "sf_only",
     "sf_only": "sf_only",

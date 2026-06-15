@@ -29,9 +29,34 @@ SCORING_FEATURES = ["plants_plp", "vina_vina", "smina_vinardo", "gnina_ad4_scori
 FEATURES = [
     "receptor_countA",
     "receptor_countG",
+    "receptor_countR",
+    "receptor_countN",
+    "receptor_countD",
+    "receptor_countC",
+    "receptor_countQ",
+    "receptor_countE",
+    "receptor_countH",
+    "receptor_countI",
+    "receptor_countL",
+    "receptor_countK",
+    "receptor_countM",
+    "receptor_countF",
+    "receptor_countP",
+    "receptor_countS",
+    "receptor_countT",
+    "receptor_countW",
+    "receptor_countY",
+    "receptor_countV",
+    "receptor_TotalAALength",
+    "receptor_AvgAALength",
+    "receptor_countChain",
+    "receptor_SASA",
     *SHAPE_FEATURES,
     "ligand_MolWt",
     "ligand_BertzCT",
+    "ligand_TPSA",
+    "ligand_MolLogP",
+    "ligand_RingCount",
     *SCORING_FEATURES,
 ]
 
@@ -147,6 +172,48 @@ def test_no_shape_core_excludes_all_shape_core_features():
     assert all(feature not in final for feature in SHAPE_FEATURES)
 
 
+def test_no_shape_core_no_receptor_length_pair_excludes_chain_length_descriptors():
+    final = apply_feature_policy(
+        _policy("no_shape_core_no_receptor_length_pair"),
+        FEATURES,
+    ).final_candidate_features_before_reduction
+
+    assert all(feature not in final for feature in SHAPE_FEATURES)
+    assert "receptor_TotalAALength" not in final
+    assert "receptor_AvgAALength" not in final
+    assert "receptor_countChain" not in final
+    assert "receptor_countA" in final
+    assert "receptor_SASA" in final
+
+
+def test_no_shape_core_no_receptor_surface_counts_keeps_chain_length_descriptors():
+    final = apply_feature_policy(
+        _policy("no_shape_core_no_receptor_surface_counts"),
+        FEATURES,
+    ).final_candidate_features_before_reduction
+
+    assert all(feature not in final for feature in SHAPE_FEATURES)
+    assert all(feature not in final for feature in ["receptor_countA", "receptor_countG", "receptor_countV"])
+    assert "receptor_TotalAALength" in final
+    assert "receptor_AvgAALength" in final
+    assert "receptor_countChain" in final
+    assert "receptor_SASA" in final
+
+
+def test_no_shape_core_no_receptor_surface_size_excludes_surface_counts_and_sasa():
+    final = apply_feature_policy(
+        _policy("no_shape_core_no_receptor_surface_size"),
+        FEATURES,
+    ).final_candidate_features_before_reduction
+
+    assert all(feature not in final for feature in SHAPE_FEATURES)
+    assert all(feature not in final for feature in ["receptor_countA", "receptor_countG", "receptor_countV"])
+    assert "receptor_SASA" not in final
+    assert "receptor_TotalAALength" in final
+    assert "receptor_AvgAALength" in final
+    assert "receptor_countChain" in final
+
+
 def test_shape_only_includes_only_shape_descriptors():
     final = apply_feature_policy(_policy("shape_only"), FEATURES).final_candidate_features_before_reduction
     assert final == SHAPE_FEATURES
@@ -161,6 +228,35 @@ def test_ligand_plus_scoring_function_excludes_receptor_columns():
     final = apply_feature_policy(_policy("ligand_plus_scoring_function"), FEATURES).final_candidate_features_before_reduction
     assert all(not feature.startswith("receptor_") for feature in final)
     assert any(feature.startswith("ligand_") for feature in final)
+    assert any(feature in SCORING_FEATURES for feature in final)
+
+
+def test_ligand_plus_scoring_function_no_shape_core_excludes_shape_core_only():
+    final = apply_feature_policy(
+        _policy("ligand_plus_scoring_function_no_shape_core"),
+        FEATURES,
+    ).final_candidate_features_before_reduction
+
+    assert all(not feature.startswith("receptor_") for feature in final)
+    assert all(feature not in final for feature in SHAPE_FEATURES)
+    assert "ligand_MolWt" in final
+    assert "ligand_BertzCT" in final
+    assert any(feature in SCORING_FEATURES for feature in final)
+
+
+def test_ligand_plus_scoring_function_no_shape_size_excludes_shape_and_size_proxies():
+    final = apply_feature_policy(
+        _policy("ligand_plus_scoring_function_no_shape_size"),
+        FEATURES,
+    ).final_candidate_features_before_reduction
+
+    assert all(not feature.startswith("receptor_") for feature in final)
+    assert all(feature not in final for feature in SHAPE_FEATURES)
+    assert "ligand_MolWt" not in final
+    assert "ligand_BertzCT" not in final
+    assert "ligand_TPSA" not in final
+    assert "ligand_MolLogP" not in final
+    assert "ligand_RingCount" not in final
     assert any(feature in SCORING_FEATURES for feature in final)
 
 

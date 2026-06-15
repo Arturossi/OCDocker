@@ -124,7 +124,6 @@ NON_FEATURE_COLUMNS = list(ocstaged.OCSCORE_NON_FEATURE_COLUMNS)
 FULL_FEATURE_BLOCKS = ("ligand", "receptor", "scoring")
 ABLATION_FEATURE_BLOCKS = {
     "ligand_only": ("ligand",),
-    "receptor_only": ("receptor",),
     "sf_only": ("scoring",),
     "ligand_sf": ("ligand", "scoring"),
     "receptor_sf": ("receptor", "scoring"),
@@ -653,7 +652,11 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         help=(
             "Feature-ablation policy name to run. May be repeated. "
             "Bundled policies are discovered from OCDocker/OCScore/Protocols/Ablations/. "
-            "Defaults to full_ocscore when no feature policy is supplied."
+            "Defaults to full_ocscore when no feature policy is supplied. "
+            "Focused bundled policies include no_shape_core_no_receptor_length_pair, "
+            "no_shape_core_no_receptor_surface_counts, no_shape_core_no_receptor_surface_size, "
+            "ligand_plus_scoring_function_no_shape_core, and "
+            "ligand_plus_scoring_function_no_shape_size."
         ),
     )
     parser.add_argument(

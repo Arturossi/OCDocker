@@ -1,0 +1,20 @@
+name: ligand_plus_scoring_function_no_shape_core
+description: Use ligand descriptors plus classical scoring-function columns while removing core ligand 3D shape descriptors.
+include_patterns:
+  - "ligand_*"
+  - "plants_*"
+  - "vina_*"
+  - "smina_*"
+  - "gnina_*"
+  - "oddt_*"
+exclude_features:
+  - ligand_PMI1
+  - ligand_PMI2
+  - ligand_PMI3
+  - ligand_NPR1
+  - ligand_NPR2
+  - ligand_Asphericity
+  - ligand_Eccentricity
+  - ligand_InertialShapeFactor
+  - ligand_RadiusOfGyration
+  - ligand_SpherocityIndex

@@ -55,7 +55,6 @@ ablation:
   enabled: false
   variants:
     - ligand_only
-    - receptor_only
     - sf_only
     - ligand_sf
     - receptor_sf

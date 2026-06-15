@@ -1,4 +1,0 @@
-name: receptor_only
-description: Use only receptor descriptor columns.
-include_patterns:
-  - "receptor_*"

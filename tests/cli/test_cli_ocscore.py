@@ -89,6 +89,28 @@ def test_ocscore_train_parser_feature_policy_flags():
 
 
 @pytest.mark.order(453)
+def test_ocscore_train_parser_accepts_focused_ablation_policy_names():
+    parser = cli.build_parser()
+    args = parser.parse_args([
+        "ocscore",
+        "train",
+        "--protocol",
+        "production",
+        "--raw-input-dir",
+        "/tmp/raw_prepare",
+        "--output-dir",
+        "/tmp/ablations",
+        "--feature-policy",
+        "no_shape_core_no_receptor_length_pair",
+        "--feature-policy",
+        "ligand_plus_scoring_function_no_shape_core",
+    ])
+    assert args.feature_policy == [
+        "no_shape_core_no_receptor_length_pair",
+        "ligand_plus_scoring_function_no_shape_core",
+    ]
+
+
 def test_ocscore_train_parser_run_all_feature_policies_flag():
     parser = cli.build_parser()
     args = parser.parse_args([

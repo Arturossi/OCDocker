@@ -1,0 +1,41 @@
+name: ligand_plus_scoring_function_no_shape_size
+description: Use ligand descriptors plus classical scoring-function columns while removing ligand shape, size, and topology proxies.
+include_patterns:
+  - "ligand_*"
+  - "plants_*"
+  - "vina_*"
+  - "smina_*"
+  - "gnina_*"
+  - "oddt_*"
+exclude_features:
+  - ligand_PMI1
+  - ligand_PMI2
+  - ligand_PMI3
+  - ligand_NPR1
+  - ligand_NPR2
+  - ligand_Asphericity
+  - ligand_Eccentricity
+  - ligand_InertialShapeFactor
+  - ligand_RadiusOfGyration
+  - ligand_SpherocityIndex
+  - ligand_BertzCT
+  - ligand_MolWt
+  - ligand_ExactMolWt
+  - ligand_HeavyAtomCount
+  - ligand_NumValenceElectrons
+  - ligand_FpDensityMorgan1
+  - ligand_FpDensityMorgan2
+  - ligand_FpDensityMorgan3
+  - ligand_LabuteASA
+  - ligand_TPSA
+  - ligand_MolLogP
+  - ligand_MolMR
+  - ligand_HeavyAtomMolWt
+  - ligand_NHOHCount
+  - ligand_NOCount
+  - ligand_NumRotatableBonds
+  - ligand_RingCount
+  - ligand_NumAromaticRings
+  - ligand_NumAliphaticRings
+  - ligand_NumSaturatedRings
+  - ligand_FractionCSP3

@@ -1,0 +1,36 @@
+name: no_shape_core_no_receptor_surface_size
+description: Remove core ligand 3D shape descriptors plus receptor surface residue count and SASA size proxies.
+include_patterns:
+  - "*"
+exclude_features:
+  - ligand_PMI1
+  - ligand_PMI2
+  - ligand_PMI3
+  - ligand_NPR1
+  - ligand_NPR2
+  - ligand_Asphericity
+  - ligand_Eccentricity
+  - ligand_InertialShapeFactor
+  - ligand_RadiusOfGyration
+  - ligand_SpherocityIndex
+  - receptor_countA
+  - receptor_countR
+  - receptor_countN
+  - receptor_countD
+  - receptor_countC
+  - receptor_countQ
+  - receptor_countE
+  - receptor_countG
+  - receptor_countH
+  - receptor_countI
+  - receptor_countL
+  - receptor_countK
+  - receptor_countM
+  - receptor_countF
+  - receptor_countP
+  - receptor_countS
+  - receptor_countT
+  - receptor_countW
+  - receptor_countY
+  - receptor_countV
+  - receptor_SASA

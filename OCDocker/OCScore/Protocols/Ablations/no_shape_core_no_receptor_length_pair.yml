@@ -1,0 +1,18 @@
+name: no_shape_core_no_receptor_length_pair
+description: Remove core ligand 3D shape descriptors plus receptor whole-chain length descriptors.
+include_patterns:
+  - "*"
+exclude_features:
+  - ligand_PMI1
+  - ligand_PMI2
+  - ligand_PMI3
+  - ligand_NPR1
+  - ligand_NPR2
+  - ligand_Asphericity
+  - ligand_Eccentricity
+  - ligand_InertialShapeFactor
+  - ligand_RadiusOfGyration
+  - ligand_SpherocityIndex
+  - receptor_TotalAALength
+  - receptor_AvgAALength
+  - receptor_countChain

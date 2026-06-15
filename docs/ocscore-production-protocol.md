@@ -190,7 +190,6 @@ Interpretation table:
 | `no_scoring_function` | Tests whether the model depends on docking/scoring-function columns. |
 | `ligand_only` | Tests ligand descriptor bias alone. |
 | `receptor_plus_scoring_function` | Tests receptor descriptors plus scoring functions without ligand descriptors. |
-| `receptor_only` | Tests whether receptor descriptors alone contain split/task artifacts. |
 
 Compare full vs ablated policies only under the same split, replica count, trial budget, and reporting settings.
 
