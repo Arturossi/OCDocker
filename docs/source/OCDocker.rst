@@ -16,6 +16,7 @@ Subpackages
    OCDocker.Processing
    OCDocker.Rescoring
    OCDocker.Toolbox
+   OCDocker.Workbench
 
 Submodules
 ----------

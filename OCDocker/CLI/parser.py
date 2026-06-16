@@ -12,6 +12,7 @@ from OCDocker.CLI import manifest as cli_manifest
 from OCDocker.CLI import pipeline as cli_pipeline
 from OCDocker.CLI import script as cli_script
 from OCDocker.CLI import vs as cli_vs
+from OCDocker.CLI import workbench as cli_workbench
 from OCDocker.CLI.ocscore import register_ocscore_subparser
 
 
@@ -141,6 +142,7 @@ def build_parser() -> argparse.ArgumentParser:
     cli_manifest.register_subparsers(sub, parent)
     cli_vs.register_subparser(sub, parent)
     register_ocscore_subparser(sub)
+    cli_workbench.register_subparser(sub)
     cli_pipeline.register_subparser(sub, parent)
     cli_console.register_subparser(sub, parent)
     cli_script.register_subparser(sub, parent)

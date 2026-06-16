@@ -118,6 +118,31 @@ Commands
      # or:
      ocdocker init-config --conf OCDocker.yml
 
+- workbench: Validate specs, preflight specs, build run bundles, prepare launch plans, export publication scaffolds, emit starter templates and JSON Schemas, inventory manifests, index artifacts, build dashboard overviews, inspect run status, preview logs, rank result metrics, build metric matrices, build metric catalogs, Pareto fronts, plot-ready payloads, and composed analysis reports, summarize result artifacts, and plan commands without executing runs
+
+  .. code-block:: bash
+
+     ocdocker workbench template ocscore_study --output study.yml
+     ocdocker workbench validate study.yml
+     ocdocker workbench check study.yml
+     ocdocker workbench build study.yml runs/run-001 --run-id run-001
+     ocdocker workbench launch-plan runs/run-001 --script-output runs/run-001/run.sh
+     ocdocker workbench export runs/run-001/run_manifest.yml exports/run-001
+     ocdocker workbench inventory runs/ --max-depth 3
+     ocdocker workbench artifacts runs/ --kind csv --role metrics
+     ocdocker workbench overview runs/ --recent-limit 10
+     ocdocker workbench status runs/run-001
+     ocdocker workbench logs runs/run-001 --lines 80
+     ocdocker workbench leaderboard runs/ --metric auc --mode max
+     ocdocker workbench metrics-matrix runs/ --metric auc --metric validation.loss
+     ocdocker workbench metrics-catalog runs/
+     ocdocker workbench pareto runs/ --objective auc:max --objective validation.loss:min
+     ocdocker workbench plot runs/ --kind scatter --x-metric auc --y-metric validation.loss
+     ocdocker workbench report runs/ --leaderboard auc:max --objective auc:max --format markdown
+     ocdocker workbench results runs/run-001/result_manifest.yml
+     ocdocker workbench schema ocscore_study --output ocscore_study.schema.json
+     ocdocker workbench plan study.yml --run-id run-001 --output plan.json
+
 - manifest: Generate reproducibility manifest JSON with version metadata
 
   .. code-block:: bash
