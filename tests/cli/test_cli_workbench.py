@@ -25,12 +25,14 @@ from OCDocker.Workbench import OCScoreInputSpec
 from OCDocker.Workbench import OCScoreStudySpec
 from OCDocker.Workbench import ResultArtifact
 from OCDocker.Workbench import ResultManifest
+from OCDocker.Workbench import read_result_manifest
+from OCDocker.Workbench import read_run_manifest
 from OCDocker.Workbench import RunManifest
 from OCDocker.Workbench import write_model
 
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -43,7 +45,7 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
 
 # Functions
 ###############################################################################
@@ -73,6 +75,28 @@ def _write_study_spec(tmp_path) -> Path:
     return write_model(tmp_path / "study.yml", spec)
 
 
+def _write_existing_adoption_source(tmp_path) -> Path:
+    '''Write a synthetic existing output tree for CLI adoption tests.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+
+    Returns
+    -------
+    pathlib.Path
+        Existing output root.
+    '''
+
+    source = tmp_path / "existing-cli"
+    run_dir = source / "run one"
+    run_dir.mkdir(parents=True)
+    (run_dir / "metrics.csv").write_text("metric,value\nauc,0.88\n", encoding="utf-8")
+    (run_dir / "stdout.log").write_text("done\n", encoding="utf-8")
+    return source
+
+
 ## Public ##
 
 
@@ -88,25 +112,54 @@ def test_workbench_subcommands_registered(tmp_path) -> None:
 
     parser = cli.build_parser()
     spec_path = tmp_path / "study.yml"
-    args = parser.parse_args(
-        ["workbench", "validate", str(spec_path), "--output", "valid.json"]
-    )
+    args = parser.parse_args(["workbench", "validate", str(spec_path), "--output", "valid.json"])
 
     assert args.workbench_command == "validate"
     assert args.spec == str(spec_path)
     assert args.output == "valid.json"
     assert args.func is cli_workbench.cmd_validate
 
-    plan_args = parser.parse_args(
-        ["workbench", "plan", str(spec_path), "--run-id", "run-001"]
+    adopt_plan_args = parser.parse_args(
+        [
+            "workbench",
+            "adopt-plan",
+            str(tmp_path),
+            "--max-depth",
+            "2",
+            "--spec-type",
+            "ocscore_ablation",
+            "--run-id-prefix",
+            "adopted-",
+        ]
     )
+    assert adopt_plan_args.workbench_command == "adopt-plan"
+    assert adopt_plan_args.source == str(tmp_path)
+    assert adopt_plan_args.max_depth == 2
+    assert adopt_plan_args.spec_type == "ocscore_ablation"
+    assert adopt_plan_args.run_id_prefix == "adopted-"
+    assert adopt_plan_args.func is cli_workbench.cmd_adopt_plan
+
+    adopt_args = parser.parse_args(
+        [
+            "workbench",
+            "adopt",
+            str(tmp_path),
+            str(tmp_path / "workbench-runs"),
+            "--overwrite",
+        ]
+    )
+    assert adopt_args.workbench_command == "adopt"
+    assert adopt_args.source == str(tmp_path)
+    assert adopt_args.destination == str(tmp_path / "workbench-runs")
+    assert adopt_args.overwrite is True
+    assert adopt_args.func is cli_workbench.cmd_adopt
+
+    plan_args = parser.parse_args(["workbench", "plan", str(spec_path), "--run-id", "run-001"])
     assert plan_args.workbench_command == "plan"
     assert plan_args.run_id == "run-001"
     assert plan_args.func is cli_workbench.cmd_plan
 
-    artifacts_args = parser.parse_args(
-        ["workbench", "artifacts", str(tmp_path), "--kind", "csv", "--role", "metrics"]
-    )
+    artifacts_args = parser.parse_args(["workbench", "artifacts", str(tmp_path), "--kind", "csv", "--role", "metrics"])
     assert artifacts_args.workbench_command == "artifacts"
     assert artifacts_args.kinds == ["csv"]
     assert artifacts_args.roles == ["metrics"]
@@ -131,6 +184,25 @@ def test_workbench_subcommands_registered(tmp_path) -> None:
     assert check_args.spec == str(spec_path)
     assert check_args.func is cli_workbench.cmd_check
 
+    compare_args = parser.parse_args(
+        [
+            "workbench",
+            "compare",
+            str(tmp_path),
+            "--baseline",
+            "baseline",
+            "--candidate",
+            "candidate",
+            "--metric",
+            "auc:max",
+        ]
+    )
+    assert compare_args.workbench_command == "compare"
+    assert compare_args.baseline == "baseline"
+    assert compare_args.candidates == ["candidate"]
+    assert compare_args.metrics == ["auc:max"]
+    assert compare_args.func is cli_workbench.cmd_compare
+
     export_args = parser.parse_args(
         [
             "workbench",
@@ -142,16 +214,12 @@ def test_workbench_subcommands_registered(tmp_path) -> None:
     assert export_args.workbench_command == "export"
     assert export_args.func is cli_workbench.cmd_export
 
-    overview_args = parser.parse_args(
-        ["workbench", "overview", str(tmp_path), "--recent-limit", "3"]
-    )
+    overview_args = parser.parse_args(["workbench", "overview", str(tmp_path), "--recent-limit", "3"])
     assert overview_args.workbench_command == "overview"
     assert overview_args.recent_limit == 3
     assert overview_args.func is cli_workbench.cmd_overview
 
-    inventory_args = parser.parse_args(
-        ["workbench", "inventory", str(tmp_path), "--max-depth", "1"]
-    )
+    inventory_args = parser.parse_args(["workbench", "inventory", str(tmp_path), "--max-depth", "1"])
     assert inventory_args.workbench_command == "inventory"
     assert inventory_args.max_depth == 1
     assert inventory_args.func is cli_workbench.cmd_inventory
@@ -194,31 +262,23 @@ def test_workbench_subcommands_registered(tmp_path) -> None:
     assert pareto_args.objectives == ["auc:max", "loss:min"]
     assert pareto_args.func is cli_workbench.cmd_pareto
 
-    leaderboard_args = parser.parse_args(
-        ["workbench", "leaderboard", str(tmp_path), "--metric", "auc"]
-    )
+    leaderboard_args = parser.parse_args(["workbench", "leaderboard", str(tmp_path), "--metric", "auc"])
     assert leaderboard_args.workbench_command == "leaderboard"
     assert leaderboard_args.metric == "auc"
     assert leaderboard_args.func is cli_workbench.cmd_leaderboard
 
-    matrix_args = parser.parse_args(
-        ["workbench", "metrics-matrix", str(tmp_path), "--metric", "auc"]
-    )
+    matrix_args = parser.parse_args(["workbench", "metrics-matrix", str(tmp_path), "--metric", "auc"])
     assert matrix_args.workbench_command == "metrics-matrix"
     assert matrix_args.metrics == ["auc"]
     assert matrix_args.func is cli_workbench.cmd_metrics_matrix
 
-    logs_args = parser.parse_args(
-        ["workbench", "logs", str(tmp_path / "run"), "--lines", "5"]
-    )
+    logs_args = parser.parse_args(["workbench", "logs", str(tmp_path / "run"), "--lines", "5"])
     assert logs_args.workbench_command == "logs"
     assert logs_args.target == str(tmp_path / "run")
     assert logs_args.lines == 5
     assert logs_args.func is cli_workbench.cmd_logs
 
-    results_args = parser.parse_args(
-        ["workbench", "results", str(tmp_path / "result_manifest.yml")]
-    )
+    results_args = parser.parse_args(["workbench", "results", str(tmp_path / "result_manifest.yml")])
     assert results_args.workbench_command == "results"
     assert results_args.manifest == str(tmp_path / "result_manifest.yml")
     assert results_args.func is cli_workbench.cmd_results
@@ -261,18 +321,121 @@ def test_workbench_subcommands_registered(tmp_path) -> None:
     assert report_args.output_format == "markdown"
     assert report_args.func is cli_workbench.cmd_report
 
+    serve_args = parser.parse_args(
+        [
+            "workbench",
+            "serve",
+            str(tmp_path),
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "9000",
+            "--max-depth",
+            "2",
+        ]
+    )
+    assert serve_args.workbench_command == "serve"
+    assert serve_args.host == "127.0.0.1"
+    assert serve_args.port == 9000
+    assert serve_args.max_depth == 2
+    assert serve_args.func is cli_workbench.cmd_serve
+
     schema_args = parser.parse_args(["workbench", "schema", "ocscore_study"])
     assert schema_args.workbench_command == "schema"
     assert schema_args.names == ["ocscore_study"]
     assert schema_args.func is cli_workbench.cmd_schema
 
-    template_args = parser.parse_args(
-        ["workbench", "template", "ocscore_study", "--format", "json"]
-    )
+    template_args = parser.parse_args(["workbench", "template", "ocscore_study", "--format", "json"])
     assert template_args.workbench_command == "template"
     assert template_args.template_name == "ocscore_study"
     assert template_args.output_format == "json"
     assert template_args.func is cli_workbench.cmd_template
+
+
+def test_cmd_adopt_plan_prints_dry_run_payload(tmp_path, capsys) -> None:
+    '''Test Workbench adopt-plan output from the CLI layer.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    capsys : pytest.CaptureFixture
+        Pytest stdout/stderr capture fixture.
+    '''
+
+    source = _write_existing_adoption_source(tmp_path)
+
+    rc = cli_workbench.cmd_adopt_plan(
+        SimpleNamespace(
+            source=str(source),
+            max_depth=1,
+            spec_type="ocscore_ablation",
+            status=None,
+            run_id_prefix="",
+            max_metric_bytes=1048576,
+            output=None,
+        )
+    )
+
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["candidate_count"] == 1
+    assert payload["candidates"][0]["metrics"] == {"auc": 0.88}
+    assert not (source / "run one" / "run_manifest.yml").exists()
+
+
+def test_cmd_adopt_writes_destination_manifests(tmp_path, capsys) -> None:
+    '''Test Workbench adopt writes manifests outside the source tree.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    capsys : pytest.CaptureFixture
+        Pytest stdout/stderr capture fixture.
+    '''
+
+    source = _write_existing_adoption_source(tmp_path)
+    destination = tmp_path / "workbench-runs"
+
+    rc = cli_workbench.cmd_adopt(
+        SimpleNamespace(
+            source=str(source),
+            destination=str(destination),
+            max_depth=1,
+            spec_type="ocscore_ablation",
+            status=None,
+            run_id_prefix="",
+            max_metric_bytes=1048576,
+            overwrite=False,
+            output=None,
+        )
+    )
+
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["run_count"] == 1
+    run_manifest = read_run_manifest(destination / "run-one" / "run_manifest.yml")
+    result_manifest = read_result_manifest(destination / "run-one" / "result_manifest.yml")
+    assert run_manifest.workspace == (source / "run one").resolve(strict=False)
+    assert result_manifest.metrics == {"auc": 0.88}
+    assert not (source / "run one" / "run_manifest.yml").exists()
+
+    rc = cli_workbench.cmd_adopt(
+        SimpleNamespace(
+            source=str(source),
+            destination=str(destination),
+            max_depth=1,
+            spec_type="ocscore_ablation",
+            status=None,
+            run_id_prefix="",
+            max_metric_bytes=1048576,
+            overwrite=False,
+            output=None,
+        )
+    )
+    assert rc == 2
+    assert "could not adopt existing outputs" in capsys.readouterr().out
 
 
 def test_cmd_artifacts_prints_index_payload(tmp_path, capsys) -> None:
@@ -293,12 +456,8 @@ def test_cmd_artifacts_prints_index_payload(tmp_path, capsys) -> None:
             run_id="run-cli-artifacts",
             status="completed",
             artifacts=(
-                ResultArtifact(
-                    name="metrics", path="metrics.csv", kind="csv", role="metrics"
-                ),
-                ResultArtifact(
-                    name="plot", path="missing.png", kind="image", role="plot"
-                ),
+                ResultArtifact(name="metrics", path="metrics.csv", kind="csv", role="metrics"),
+                ResultArtifact(name="plot", path="missing.png", kind="image", role="plot"),
             ),
         ),
     )
@@ -512,9 +671,7 @@ def test_cmd_overview_prints_workspace_payload(tmp_path, capsys) -> None:
         ),
     )
 
-    rc = cli_workbench.cmd_overview(
-        SimpleNamespace(root=str(tmp_path), max_depth=1, recent_limit=5, output=None)
-    )
+    rc = cli_workbench.cmd_overview(SimpleNamespace(root=str(tmp_path), max_depth=1, recent_limit=5, output=None))
 
     assert rc == 0
     payload = json.loads(capsys.readouterr().out)
@@ -545,14 +702,46 @@ def test_cmd_inventory_prints_workspace_payload(tmp_path, capsys) -> None:
         ),
     )
 
-    rc = cli_workbench.cmd_inventory(
-        SimpleNamespace(root=str(tmp_path), max_depth=1, output=None)
-    )
+    rc = cli_workbench.cmd_inventory(SimpleNamespace(root=str(tmp_path), max_depth=1, output=None))
 
     assert rc == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["runs"][0]["run_id"] == "run-cli-inventory"
     assert payload["issues"] == []
+
+
+def test_cmd_serve_invokes_server(tmp_path, monkeypatch, capsys) -> None:
+    '''Test Workbench serve command wiring without starting a real server.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    monkeypatch : pytest.MonkeyPatch
+        Pytest monkeypatch fixture.
+    capsys : pytest.CaptureFixture
+        Pytest stdout/stderr capture fixture.
+    '''
+
+    calls = []
+
+    def fake_serve(root, *, host, port, max_depth):
+        calls.append((root, host, port, max_depth))
+
+    monkeypatch.setattr(cli_workbench, "serve_workbench_api", fake_serve)
+
+    rc = cli_workbench.cmd_serve(
+        SimpleNamespace(
+            root=str(tmp_path),
+            host="127.0.0.1",
+            port=8765,
+            max_depth=2,
+        )
+    )
+
+    assert rc == 0
+    assert calls == [(str(tmp_path), "127.0.0.1", 8765, 2)]
+    assert "read-only" in capsys.readouterr().out
 
 
 def test_cmd_schema_prints_selected_catalog(tmp_path, capsys) -> None:
@@ -566,9 +755,7 @@ def test_cmd_schema_prints_selected_catalog(tmp_path, capsys) -> None:
         Pytest stdout/stderr capture fixture.
     '''
 
-    rc = cli_workbench.cmd_schema(
-        SimpleNamespace(names=("ocscore_study",), output=None)
-    )
+    rc = cli_workbench.cmd_schema(SimpleNamespace(names=("ocscore_study",), output=None))
 
     assert rc == 0
     payload = json.loads(capsys.readouterr().out)
@@ -711,14 +898,10 @@ def test_cmd_metrics_catalog_prints_metric_coverage(tmp_path, capsys) -> None:
 
     write_model(
         tmp_path / "result_manifest.yml",
-        ResultManifest(
-            run_id="run-cli-catalog", status="completed", metrics={"auc": 0.91}
-        ),
+        ResultManifest(run_id="run-cli-catalog", status="completed", metrics={"auc": 0.91}),
     )
 
-    rc = cli_workbench.cmd_metrics_catalog(
-        SimpleNamespace(root=str(tmp_path), max_depth=1, output=None)
-    )
+    rc = cli_workbench.cmd_metrics_catalog(SimpleNamespace(root=str(tmp_path), max_depth=1, output=None))
 
     assert rc == 0
     payload = json.loads(capsys.readouterr().out)
@@ -761,9 +944,7 @@ def test_cmd_pareto_prints_front(tmp_path, capsys) -> None:
     assert rc == 0
     payload = json.loads(capsys.readouterr().out)
     assert [entry["run_id"] for entry in payload["front_entries"]] == ["run-front"]
-    assert [entry["run_id"] for entry in payload["dominated_entries"]] == [
-        "run-dominated"
-    ]
+    assert [entry["run_id"] for entry in payload["dominated_entries"]] == ["run-dominated"]
 
 
 def test_cmd_leaderboard_prints_metric_ranking(tmp_path, capsys) -> None:
@@ -779,9 +960,7 @@ def test_cmd_leaderboard_prints_metric_ranking(tmp_path, capsys) -> None:
 
     write_model(
         tmp_path / "result_manifest.yml",
-        ResultManifest(
-            run_id="run-cli-leader", status="completed", metrics={"auc": 0.91}
-        ),
+        ResultManifest(run_id="run-cli-leader", status="completed", metrics={"auc": 0.91}),
     )
 
     rc = cli_workbench.cmd_leaderboard(
@@ -814,9 +993,7 @@ def test_cmd_metrics_matrix_prints_metric_rows(tmp_path, capsys) -> None:
 
     write_model(
         tmp_path / "result_manifest.yml",
-        ResultManifest(
-            run_id="run-cli-matrix", status="completed", metrics={"auc": 0.91}
-        ),
+        ResultManifest(run_id="run-cli-matrix", status="completed", metrics={"auc": 0.91}),
     )
 
     rc = cli_workbench.cmd_metrics_matrix(
@@ -976,9 +1153,7 @@ def test_cmd_report_prints_markdown(tmp_path, capsys) -> None:
 
     write_model(
         tmp_path / "result_manifest.yml",
-        ResultManifest(
-            run_id="run-cli-report-md", status="completed", metrics={"auc": 0.91}
-        ),
+        ResultManifest(run_id="run-cli-report-md", status="completed", metrics={"auc": 0.91}),
     )
 
     rc = cli_workbench.cmd_report(
@@ -1062,9 +1237,7 @@ def test_cmd_results_prints_artifact_summary(tmp_path, capsys) -> None:
         ),
     )
 
-    rc = cli_workbench.cmd_results(
-        SimpleNamespace(manifest=str(manifest_path), output=None)
-    )
+    rc = cli_workbench.cmd_results(SimpleNamespace(manifest=str(manifest_path), output=None))
 
     assert rc == 0
     payload = json.loads(capsys.readouterr().out)
@@ -1073,6 +1246,51 @@ def test_cmd_results_prints_artifact_summary(tmp_path, capsys) -> None:
     assert payload["artifact_count"] == 1
     assert payload["existing_artifact_count"] == 1
     assert payload["artifacts"][0]["exists"] is True
+
+
+def test_cmd_compare_prints_payload(tmp_path, capsys) -> None:
+    '''Test Workbench comparison output from the CLI layer.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    capsys : pytest.CaptureFixture
+        Pytest stdout/stderr capture fixture.
+    '''
+
+    for run_id, metrics in {
+        "baseline": {"auc": 0.85, "loss": 0.2},
+        "candidate": {"auc": 0.9, "loss": 0.18},
+    }.items():
+        run_dir = tmp_path / run_id
+        run_dir.mkdir()
+        write_model(
+            run_dir / "result_manifest.yml",
+            ResultManifest(run_id=run_id, status="completed", metrics=metrics),
+        )
+
+    rc = cli_workbench.cmd_compare(
+        SimpleNamespace(
+            root=str(tmp_path),
+            baseline="baseline",
+            candidates=("candidate",),
+            metrics=("auc:max", "loss:min"),
+            max_depth=2,
+            output=None,
+        )
+    )
+
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["baseline_run_id"] == "baseline"
+    assert payload["candidate_count"] == 1
+    assert payload["best_candidate"]["run_id"] == "candidate"
+    assert payload["best_candidate"]["net_score"] == 2
+    assert [metric["direction"] for metric in payload["candidates"][0]["metrics"]] == [
+        "improved",
+        "improved",
+    ]
 
 
 def test_cmd_export_writes_publication_scaffold(tmp_path, capsys) -> None:

@@ -2,8 +2,8 @@ OCDocker.Workbench package
 ==========================
 
 The Workbench package defines declarative campaign, study, ablation, run, and
-result models used by future GUI and automation layers. Current helpers build prepared run bundles, export publication scaffolds, plan
-commands, serialize specs, emit starter templates and JSON Schemas, preflight specs, prepare launch plans, inventory workspaces, index artifacts, build dashboard overviews, inspect run status, preview logs, rank result metrics, build metric matrices, build metric catalogs, Pareto fronts, plot-ready payloads, and composed analysis reports, and summarize result artifacts; they do not execute Snakemake
+result models used by future GUI and automation layers. Current helpers build prepared run bundles, adopt existing output directories into separate Workbench manifest workspaces, export publication scaffolds, plan
+commands, serialize specs, emit starter templates and JSON Schemas, preflight specs, prepare launch plans, inventory workspaces, index artifacts, compare result runs, build dashboard overviews, inspect run status, preview logs, build aggregate run drill-downs, rank result metrics, build metric matrices, build metric catalogs, Pareto fronts, plot-ready payloads, and composed analysis reports, serve a local read-only API and embedded browser dashboard, and summarize result artifacts; they do not execute Snakemake
 or OCScore runs.
 
 Submodules
@@ -12,8 +12,10 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
+   OCDocker.Workbench.Adoption
    OCDocker.Workbench.Artifacts
    OCDocker.Workbench.Bundle
+   OCDocker.Workbench.Comparison
    OCDocker.Workbench.Decision
    OCDocker.Workbench.Export
    OCDocker.Workbench.IO
@@ -28,7 +30,10 @@ Submodules
    OCDocker.Workbench.Preflight
    OCDocker.Workbench.Report
    OCDocker.Workbench.Registry
+   OCDocker.Workbench.RunDetail
    OCDocker.Workbench.Results
    OCDocker.Workbench.Schema
+   OCDocker.Workbench.Server
    OCDocker.Workbench.Status
    OCDocker.Workbench.Templates
+   OCDocker.Workbench.Web

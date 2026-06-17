@@ -18,7 +18,7 @@ from OCDocker.Workbench import build_schema_catalog
 
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -31,7 +31,7 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
 
 # Functions
 ###############################################################################
@@ -47,12 +47,16 @@ def test_available_schema_names_include_gui_entrypoints() -> None:
     assert "vs_campaign" in names
     assert "run_manifest" in names
     assert "result_summary" in names
+    assert "run_detail" in names
     assert "metric_leaderboard" in names
     assert "metric_matrix" in names
     assert "pareto_front" in names
     assert "metric_catalog" in names
+    assert "workbench_adoption_plan" in names
+    assert "workbench_adoption_result" in names
     assert "workbench_analysis_report" in names
     assert "workbench_artifact_index" in names
+    assert "workbench_comparison" in names
     assert "workbench_plot" in names
     assert names == tuple(sorted(names))
 

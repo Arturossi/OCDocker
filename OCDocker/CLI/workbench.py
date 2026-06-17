@@ -19,8 +19,12 @@ from typing import Any
 
 import yaml
 
+from OCDocker.Workbench.Adoption import build_adoption_plan
+from OCDocker.Workbench.Adoption import write_adoption_workspace
 from OCDocker.Workbench.Artifacts import build_artifact_index
 from OCDocker.Workbench.Bundle import build_run_bundle
+from OCDocker.Workbench.Comparison import build_run_comparison
+from OCDocker.Workbench.Comparison import parse_comparison_metric
 from OCDocker.Workbench.Decision import build_metrics_catalog
 from OCDocker.Workbench.Decision import build_pareto_front
 from OCDocker.Workbench.Decision import parse_pareto_objective
@@ -49,13 +53,16 @@ from OCDocker.Workbench.Registry import scan_workspace
 from OCDocker.Workbench.Results import summarize_results
 from OCDocker.Workbench.Schema import available_schema_names
 from OCDocker.Workbench.Schema import build_schema_catalog
+from OCDocker.Workbench.Server import DEFAULT_WORKBENCH_API_HOST
+from OCDocker.Workbench.Server import DEFAULT_WORKBENCH_API_PORT
+from OCDocker.Workbench.Server import serve_workbench_api
 from OCDocker.Workbench.Status import inspect_run_status
 from OCDocker.Workbench.Templates import available_template_names
 from OCDocker.Workbench.Templates import build_template_payload
 
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -68,7 +75,7 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
 
 # Functions
 ###############################################################################
@@ -217,6 +224,70 @@ def _validation_payload(spec: WorkbenchSpec, spec_path: str | Path) -> dict[str,
 ## Public ##
 
 
+def cmd_adopt_plan(args: argparse.Namespace) -> int:
+    '''Build a dry-run adoption plan for existing output directories.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command-line arguments.
+
+    Returns
+    -------
+    int
+        Process-style exit code.
+    '''
+
+    try:
+        plan = build_adoption_plan(
+            args.source,
+            max_depth=args.max_depth,
+            spec_type=args.spec_type,
+            status=args.status,
+            run_id_prefix=args.run_id_prefix,
+            max_metric_file_bytes=args.max_metric_bytes,
+            require_metrics=getattr(args, "require_metrics", False),
+        )
+    except Exception as exc:
+        print(f"Error: could not build Workbench adoption plan: {exc}")
+        return 2
+    _write_json_payload(model_to_data(plan), args.output)
+    return 0
+
+
+def cmd_adopt(args: argparse.Namespace) -> int:
+    '''Write Workbench manifests for existing output directories.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command-line arguments.
+
+    Returns
+    -------
+    int
+        Process-style exit code.
+    '''
+
+    try:
+        result = write_adoption_workspace(
+            args.source,
+            args.destination,
+            max_depth=args.max_depth,
+            spec_type=args.spec_type,
+            status=args.status,
+            run_id_prefix=args.run_id_prefix,
+            max_metric_file_bytes=args.max_metric_bytes,
+            require_metrics=getattr(args, "require_metrics", False),
+            overwrite=args.overwrite,
+        )
+    except Exception as exc:
+        print(f"Error: could not adopt existing outputs into Workbench: {exc}")
+        return 2
+    _write_json_payload(model_to_data(result), args.output)
+    return 0
+
+
 def cmd_artifacts(args: argparse.Namespace) -> int:
     '''Build a read-only cross-run artifact index.
 
@@ -352,6 +423,36 @@ def cmd_validate(args: argparse.Namespace) -> int:
         print(f"Error: invalid Workbench spec: {exc}")
         return 2
     _write_json_payload(_validation_payload(spec, args.spec), args.output)
+    return 0
+
+
+def cmd_compare(args: argparse.Namespace) -> int:
+    '''Build a read-only run comparison against a baseline result manifest.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command-line arguments.
+
+    Returns
+    -------
+    int
+        Process-style exit code.
+    '''
+
+    try:
+        metrics = tuple(parse_comparison_metric(value) for value in (args.metrics or ()))
+        comparison = build_run_comparison(
+            args.root,
+            baseline_run_id=args.baseline,
+            candidates=tuple(args.candidates or ()),
+            metrics=metrics,
+            max_depth=args.max_depth,
+        )
+    except Exception as exc:
+        print(f"Error: could not build Workbench comparison: {exc}")
+        return 2
+    _write_json_payload(model_to_data(comparison), args.output)
     return 0
 
 
@@ -662,9 +763,7 @@ def cmd_plot(args: argparse.Namespace) -> int:
                 max_depth=args.max_depth,
             )
         elif args.kind == "pareto":
-            objectives = tuple(
-                parse_pareto_objective(value) for value in (args.objectives or ())
-            )
+            objectives = tuple(parse_pareto_objective(value) for value in (args.objectives or ()))
             plot = build_pareto_scatter_plot(
                 args.root,
                 objectives=objectives,
@@ -694,12 +793,8 @@ def cmd_report(args: argparse.Namespace) -> int:
     '''
 
     try:
-        leaderboards = tuple(
-            parse_report_metric(value) for value in (args.leaderboards or ())
-        )
-        objectives = tuple(
-            parse_pareto_objective(value) for value in (args.objectives or ())
-        )
+        leaderboards = tuple(parse_report_metric(value) for value in (args.leaderboards or ()))
+        objectives = tuple(parse_pareto_objective(value) for value in (args.objectives or ()))
         report = build_analysis_report(
             args.root,
             leaderboards=leaderboards,
@@ -743,6 +838,39 @@ def cmd_schema(args: argparse.Namespace) -> int:
         print(f"Error: could not build Workbench schema catalog: {exc}")
         return 2
     _write_json_payload(catalog, args.output)
+    return 0
+
+
+def cmd_serve(args: argparse.Namespace) -> int:
+    '''Serve the read-only local Workbench API.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command-line arguments.
+
+    Returns
+    -------
+    int
+        Process-style exit code.
+    '''
+
+    try:
+        base_url = f"http://{args.host}:{args.port}"
+        print(f"Workbench API serving {args.root} at {base_url} (read-only).")
+        print(f"Workbench browser dashboard: {base_url}/app")
+        serve_workbench_api(
+            args.root,
+            host=args.host,
+            port=args.port,
+            max_depth=args.max_depth,
+        )
+    except KeyboardInterrupt:
+        print("Workbench API stopped.")
+        return 0
+    except Exception as exc:
+        print(f"Error: could not serve Workbench API: {exc}")
+        return 2
     return 0
 
 
@@ -852,6 +980,108 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
     parser.set_defaults(func=cmd_workbench)
     workbench_sub = parser.add_subparsers(dest="workbench_command", required=True)
 
+    adopt_plan = workbench_sub.add_parser(
+        "adopt-plan",
+        help="Plan adoption of existing output folders without writing manifests",
+        description=(
+            "Scan an existing OCDocker output tree and report which folders can "
+            "be represented as Workbench run/result manifests. The source tree "
+            "is never modified."
+        ),
+    )
+    adopt_plan.add_argument("source", help="Existing output root to inspect.")
+    adopt_plan.add_argument(
+        "--max-depth",
+        type=int,
+        default=3,
+        help="Maximum directory depth below source to inspect. OCScore ablation policy folders are also discovered from reached train or ablations folders. Default: 3.",
+    )
+    adopt_plan.add_argument(
+        "--spec-type",
+        choices=("vs_campaign", "ocscore_study", "ocscore_ablation"),
+        default="ocscore_ablation",
+        help="Workbench spec type assigned to adopted runs. Default: ocscore_ablation.",
+    )
+    adopt_plan.add_argument(
+        "--status",
+        choices=("defined", "built", "dry_run", "running", "completed", "failed", "cancelled"),
+        default=None,
+        help="Optional status override. If omitted, completed is inferred when metrics are found.",
+    )
+    adopt_plan.add_argument(
+        "--run-id-prefix",
+        default="",
+        help="Optional prefix applied to generated run ids.",
+    )
+    adopt_plan.add_argument(
+        "--max-metric-bytes",
+        type=int,
+        default=1048576,
+        help="Maximum metric file size parsed during scanning. Default: 1048576.",
+    )
+    adopt_plan.add_argument(
+        "--require-metrics",
+        action="store_true",
+        default=False,
+        help="Only include adopted directories with at least one parsed metric.",
+    )
+    adopt_plan.add_argument("--output", default=None, help="Optional JSON output path.")
+    adopt_plan.set_defaults(func=cmd_adopt_plan)
+
+    adopt = workbench_sub.add_parser(
+        "adopt",
+        help="Write Workbench manifests for existing output folders",
+        description=(
+            "Scan an existing output tree and write Workbench run/result "
+            "manifests into a separate destination workspace. Original files "
+            "are not moved, copied, deleted, or modified."
+        ),
+    )
+    adopt.add_argument("source", help="Existing output root to inspect.")
+    adopt.add_argument("destination", help="Workbench destination root to write.")
+    adopt.add_argument(
+        "--max-depth",
+        type=int,
+        default=3,
+        help="Maximum directory depth below source to inspect. OCScore ablation policy folders are also discovered from reached train or ablations folders. Default: 3.",
+    )
+    adopt.add_argument(
+        "--spec-type",
+        choices=("vs_campaign", "ocscore_study", "ocscore_ablation"),
+        default="ocscore_ablation",
+        help="Workbench spec type assigned to adopted runs. Default: ocscore_ablation.",
+    )
+    adopt.add_argument(
+        "--status",
+        choices=("defined", "built", "dry_run", "running", "completed", "failed", "cancelled"),
+        default=None,
+        help="Optional status override. If omitted, completed is inferred when metrics are found.",
+    )
+    adopt.add_argument(
+        "--run-id-prefix",
+        default="",
+        help="Optional prefix applied to generated run ids.",
+    )
+    adopt.add_argument(
+        "--max-metric-bytes",
+        type=int,
+        default=1048576,
+        help="Maximum metric file size parsed during scanning. Default: 1048576.",
+    )
+    adopt.add_argument(
+        "--require-metrics",
+        action="store_true",
+        default=False,
+        help="Only include adopted directories with at least one parsed metric.",
+    )
+    adopt.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing destination Workbench manifests for adopted runs.",
+    )
+    adopt.add_argument("--output", default=None, help="Optional JSON output path.")
+    adopt.set_defaults(func=cmd_adopt)
+
     artifacts = workbench_sub.add_parser(
         "artifacts",
         help="Index declared Workbench artifacts across manifests",
@@ -909,9 +1139,7 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
         default=False,
         help="Overwrite existing bundle files if they already exist.",
     )
-    build.add_argument(
-        "--output", default=None, help="Optional JSON summary output path."
-    )
+    build.add_argument("--output", default=None, help="Optional JSON summary output path.")
     build.add_argument(
         "--ocdocker-executable",
         default="ocdocker",
@@ -979,6 +1207,44 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
     template.add_argument("--output", default=None, help="Optional output path.")
     template.set_defaults(func=cmd_template)
 
+    compare = workbench_sub.add_parser(
+        "compare",
+        help="Compare result manifests against a baseline run",
+        description=(
+            "Scan Workbench result manifests below a root path and compare one "
+            "baseline run against selected candidates across explicit or inferred "
+            "numeric metrics. No files are modified."
+        ),
+    )
+    compare.add_argument("root", help="Workspace root or result manifest to inspect.")
+    compare.add_argument(
+        "--baseline",
+        required=True,
+        help="Baseline run id used for comparison.",
+    )
+    compare.add_argument(
+        "--candidate",
+        dest="candidates",
+        action="append",
+        default=None,
+        help="Candidate run id to compare. May be repeated. If omitted, all non-baseline runs are compared.",
+    )
+    compare.add_argument(
+        "--metric",
+        dest="metrics",
+        action="append",
+        default=None,
+        help="Metric in metric or metric:min|max form. May be repeated. If omitted, numeric metrics are inferred.",
+    )
+    compare.add_argument(
+        "--max-depth",
+        type=int,
+        default=6,
+        help="Maximum directory depth below root to scan. Default: 6.",
+    )
+    compare.add_argument("--output", default=None, help="Optional JSON output path.")
+    compare.set_defaults(func=cmd_compare)
+
     export = workbench_sub.add_parser(
         "export",
         help="Build a publishable export scaffold without executing runs",
@@ -1002,9 +1268,7 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
         default=False,
         help="Overwrite existing export files and copied artifacts.",
     )
-    export.add_argument(
-        "--output", default=None, help="Optional JSON summary output path."
-    )
+    export.add_argument("--output", default=None, help="Optional JSON summary output path.")
     export.set_defaults(func=cmd_export)
 
     overview = workbench_sub.add_parser(
@@ -1057,9 +1321,7 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
             "a JSON status report. No run is launched or controlled."
         ),
     )
-    status.add_argument(
-        "target", help="Run manifest path or prepared bundle directory."
-    )
+    status.add_argument("target", help="Run manifest path or prepared bundle directory.")
     status.add_argument("--output", default=None, help="Optional JSON output path.")
     status.set_defaults(func=cmd_status)
 
@@ -1072,9 +1334,7 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
             "No run is launched."
         ),
     )
-    launch_plan.add_argument(
-        "target", help="Run manifest path or prepared bundle directory."
-    )
+    launch_plan.add_argument("target", help="Run manifest path or prepared bundle directory.")
     launch_plan.add_argument(
         "--log-dir",
         default="logs",
@@ -1091,9 +1351,7 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
         default=False,
         help="Overwrite an existing launch script when --script-output is supplied.",
     )
-    launch_plan.add_argument(
-        "--output", default=None, help="Optional JSON output path."
-    )
+    launch_plan.add_argument("--output", default=None, help="Optional JSON output path.")
     launch_plan.set_defaults(func=cmd_launch_plan)
 
     metrics_catalog = workbench_sub.add_parser(
@@ -1104,18 +1362,14 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
             "numeric ranges, means, and non-numeric values. No files are modified."
         ),
     )
-    metrics_catalog.add_argument(
-        "root", help="Workspace root or result manifest to inspect."
-    )
+    metrics_catalog.add_argument("root", help="Workspace root or result manifest to inspect.")
     metrics_catalog.add_argument(
         "--max-depth",
         type=int,
         default=6,
         help="Maximum directory depth below root to scan. Default: 6.",
     )
-    metrics_catalog.add_argument(
-        "--output", default=None, help="Optional JSON output path."
-    )
+    metrics_catalog.add_argument("--output", default=None, help="Optional JSON output path.")
     metrics_catalog.set_defaults(func=cmd_metrics_catalog)
 
     pareto = workbench_sub.add_parser(
@@ -1151,9 +1405,7 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
             "metric. No runs are launched and no result files are modified."
         ),
     )
-    leaderboard.add_argument(
-        "root", help="Workspace root or result manifest to inspect."
-    )
+    leaderboard.add_argument("root", help="Workspace root or result manifest to inspect.")
     leaderboard.add_argument(
         "--metric",
         required=True,
@@ -1171,9 +1423,7 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
         default=6,
         help="Maximum directory depth below root to scan. Default: 6.",
     )
-    leaderboard.add_argument(
-        "--output", default=None, help="Optional JSON output path."
-    )
+    leaderboard.add_argument("--output", default=None, help="Optional JSON output path.")
     leaderboard.set_defaults(func=cmd_leaderboard)
 
     metrics_matrix = workbench_sub.add_parser(
@@ -1184,9 +1434,7 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
             "metrics for GUI tables, plots, and exports. No files are modified."
         ),
     )
-    metrics_matrix.add_argument(
-        "root", help="Workspace root or result manifest to inspect."
-    )
+    metrics_matrix.add_argument("root", help="Workspace root or result manifest to inspect.")
     metrics_matrix.add_argument(
         "--metric",
         dest="metrics",
@@ -1200,9 +1448,7 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
         default=6,
         help="Maximum directory depth below root to scan. Default: 6.",
     )
-    metrics_matrix.add_argument(
-        "--output", default=None, help="Optional JSON output path."
-    )
+    metrics_matrix.add_argument("--output", default=None, help="Optional JSON output path.")
     metrics_matrix.set_defaults(func=cmd_metrics_matrix)
 
     logs = workbench_sub.add_parser(
@@ -1358,6 +1604,35 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
     report.add_argument("--output", default=None, help="Optional output path.")
     report.set_defaults(func=cmd_report)
 
+    serve = workbench_sub.add_parser(
+        "serve",
+        help="Serve a read-only local Workbench API for GUI development",
+        description=(
+            "Serve Workbench inspection payloads over a local HTTP API. The API "
+            "is read-only and does not launch, stop, or control runs. For SSH "
+            "workflows, bind to 127.0.0.1 and forward the selected port."
+        ),
+    )
+    serve.add_argument("root", help="Workspace root or run directory to serve.")
+    serve.add_argument(
+        "--host",
+        default=DEFAULT_WORKBENCH_API_HOST,
+        help="Host interface to bind. Default: 127.0.0.1.",
+    )
+    serve.add_argument(
+        "--port",
+        type=int,
+        default=DEFAULT_WORKBENCH_API_PORT,
+        help="TCP port to bind. Default: 8765.",
+    )
+    serve.add_argument(
+        "--max-depth",
+        type=int,
+        default=6,
+        help="Default directory depth used by scan endpoints. Default: 6.",
+    )
+    serve.set_defaults(func=cmd_serve)
+
     schema = workbench_sub.add_parser(
         "schema",
         help="Emit Workbench JSON Schemas for GUI form generation",
@@ -1379,15 +1654,10 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
     plan = workbench_sub.add_parser(
         "plan",
         help="Plan the command for a Workbench spec without executing it",
-        description=(
-            "Plan the command for a Workbench spec and emit the plan as JSON. "
-            "No run is launched."
-        ),
+        description=("Plan the command for a Workbench spec and emit the plan as JSON. No run is launched."),
     )
     plan.add_argument("spec", help="Workbench spec path (.yml, .yaml, or .json).")
-    plan.add_argument(
-        "--output", default=None, help="Optional JSON output path for the command plan."
-    )
+    plan.add_argument("--output", default=None, help="Optional JSON output path for the command plan.")
     plan.add_argument(
         "--run-id",
         default=None,
@@ -1412,9 +1682,12 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
 
 
 __all__ = [
+    "cmd_adopt",
+    "cmd_adopt_plan",
     "cmd_artifacts",
     "cmd_build",
     "cmd_check",
+    "cmd_compare",
     "cmd_export",
     "cmd_inventory",
     "cmd_launch_plan",
@@ -1429,6 +1702,7 @@ __all__ = [
     "cmd_report",
     "cmd_results",
     "cmd_schema",
+    "cmd_serve",
     "cmd_status",
     "cmd_template",
     "cmd_validate",

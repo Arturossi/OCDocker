@@ -25,7 +25,7 @@ from pydantic import model_validator
 
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -38,7 +38,7 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
 
 # Constants
 ###############################################################################
@@ -48,11 +48,15 @@ VALID_DOCKING_ENGINES = frozenset({"vina", "smina", "gnina", "plants"})
 VALID_RESCORING_ENGINES = VALID_DOCKING_ENGINES | {"oddt"}
 
 WorkbenchSpecType = Literal["vs_campaign", "ocscore_study", "ocscore_ablation"]
-RunStatus = Literal[
-    "defined", "built", "dry_run", "running", "completed", "failed", "cancelled"
-]
+RunStatus = Literal["defined", "built", "dry_run", "running", "completed", "failed", "cancelled"]
 PreflightSeverity = Literal["info", "warning", "error"]
 MetricSortMode = Literal["min", "max"]
+ComparisonDirection = Literal[
+    "improved",
+    "regressed",
+    "unchanged",
+    "incomplete",
+]
 WorkbenchPlotKind = Literal[
     "leaderboard_bar",
     "metric_scatter",
@@ -141,9 +145,7 @@ def _string_tuple(value: Any) -> tuple[str, ...]:
         items = value.split(",") if "," in value else [value]
     else:
         items = list(value)
-    return tuple(
-        _clean_string(str(item), "tuple item") for item in items if str(item).strip()
-    )
+    return tuple(_clean_string(str(item), "tuple item") for item in items if str(item).strip())
 
 
 def _path_tuple(value: Any) -> tuple[Path, ...]:
@@ -334,13 +336,9 @@ class VSInputSpec(WorkbenchModel):
         if invalid:
             raise ValueError(f"Unsupported docking engine(s): {invalid}")
         if self.rescoring_engines is not None:
-            invalid_rescoring = sorted(
-                set(self.rescoring_engines) - VALID_RESCORING_ENGINES
-            )
+            invalid_rescoring = sorted(set(self.rescoring_engines) - VALID_RESCORING_ENGINES)
             if invalid_rescoring:
-                raise ValueError(
-                    f"Unsupported rescoring engine(s): {invalid_rescoring}"
-                )
+                raise ValueError(f"Unsupported rescoring engine(s): {invalid_rescoring}")
         return self
 
 
@@ -487,8 +485,7 @@ class OCScoreInputSpec(WorkbenchModel):
         modes = sum(1 for enabled in (raw, merged, split_complete) if enabled)
         if modes != 1:
             raise ValueError(
-                "Select exactly one OCScore input mode: raw_input_dir, merged_input, "
-                "or pdbbind_input plus dudez_input."
+                "Select exactly one OCScore input mode: raw_input_dir, merged_input, or pdbbind_input plus dudez_input."
             )
         return self
 
@@ -562,9 +559,7 @@ class FeaturePolicySelection(WorkbenchModel):
         if len(set(self.names)) != len(self.names):
             raise ValueError("Feature-policy names must be unique.")
         if self.run_all and self.names:
-            raise ValueError(
-                "Use either run_all or explicit feature-policy names, not both."
-            )
+            raise ValueError("Use either run_all or explicit feature-policy names, not both.")
         return self
 
 
@@ -599,9 +594,7 @@ class OCScoreStudySpec(WorkbenchModel):
     protocol: str | Path
     inputs: OCScoreInputSpec
     output_dir: Path
-    feature_policies: FeaturePolicySelection = Field(
-        default_factory=FeaturePolicySelection
-    )
+    feature_policies: FeaturePolicySelection = Field(default_factory=FeaturePolicySelection)
     description: str = ""
     tags: tuple[str, ...] = ()
 
@@ -727,13 +720,9 @@ class OCScoreAblationSpec(WorkbenchModel):
         '''
 
         selection = self.feature_policies
-        has_named_scope = bool(
-            selection.names or selection.policy_ymls or selection.run_all
-        )
+        has_named_scope = bool(selection.names or selection.policy_ymls or selection.run_all)
         if not has_named_scope:
-            raise ValueError(
-                "An ablation spec requires named policies, explicit policy YAMLs, or run_all."
-            )
+            raise ValueError("An ablation spec requires named policies, explicit policy YAMLs, or run_all.")
         return self
 
 
@@ -1217,6 +1206,80 @@ class InventoryIssue(WorkbenchModel):
         return _clean_string(value, "message")
 
 
+class WorkbenchAdoptionCandidate(WorkbenchModel):
+    """One existing output directory that can be adopted into Workbench."""
+
+    source_path: Path
+    run_id: str
+    spec_type: WorkbenchSpecType
+    name: str
+    status: RunStatus
+    workspace: Path
+    metric_files: tuple[Path, ...] = ()
+    log_files: tuple[Path, ...] = ()
+    artifacts: tuple[ResultArtifact, ...] = ()
+    metrics: dict[str, Any] = Field(default_factory=dict)
+    issue_count: int = Field(default=0, ge=0)
+    issues: tuple[InventoryIssue, ...] = ()
+
+
+class WorkbenchAdoptionPlan(WorkbenchModel):
+    """Dry-run adoption plan for existing OCDocker output directories."""
+
+    source_root: Path
+    max_depth: int = Field(default=3, ge=0)
+    scanned_at: datetime = Field(default_factory=_utc_now)
+    spec_type: WorkbenchSpecType
+    status: RunStatus | None = None
+    run_id_prefix: str = ""
+    require_metrics: bool = False
+    candidate_count: int = Field(default=0, ge=0)
+    candidates: tuple[WorkbenchAdoptionCandidate, ...] = ()
+    issue_count: int = Field(default=0, ge=0)
+    issues: tuple[InventoryIssue, ...] = ()
+
+
+class WorkbenchAdoptedRun(WorkbenchModel):
+    """One run manifest pair written by an adoption operation."""
+
+    source_path: Path
+    run_id: str
+    workspace: Path
+    run_manifest_path: Path
+    result_manifest_path: Path
+    metric_count: int = Field(default=0, ge=0)
+    artifact_count: int = Field(default=0, ge=0)
+    log_count: int = Field(default=0, ge=0)
+
+
+class WorkbenchAdoptionResult(WorkbenchModel):
+    """Summary of manifests written for adopted existing runs."""
+
+    source_root: Path
+    destination_root: Path
+    created_at: datetime = Field(default_factory=_utc_now)
+    run_count: int = Field(default=0, ge=0)
+    runs: tuple[WorkbenchAdoptedRun, ...] = ()
+    issue_count: int = Field(default=0, ge=0)
+    issues: tuple[InventoryIssue, ...] = ()
+
+
+class RunDetail(WorkbenchModel):
+    """Aggregate read-only drill-down for one Workbench run."""
+
+    target: Path
+    manifest_path: Path
+    run_id: str
+    spec_type: WorkbenchSpecType
+    name: str
+    status: RunStatus
+    status_report: RunStatusReport
+    log_preview: RunLogPreview | None = None
+    result_summary: ResultSummary | None = None
+    issue_count: int = Field(default=0, ge=0)
+    issues: tuple[InventoryIssue, ...] = ()
+
+
 class MetricCatalogEntry(WorkbenchModel):
     """Coverage and numeric summary for one discovered metric."""
 
@@ -1332,6 +1395,60 @@ class RunInventoryItem(WorkbenchModel):
     updated_at: datetime
     artifact_count: int = Field(default=0, ge=0)
     missing_artifacts: tuple[Path, ...] = ()
+
+
+class WorkbenchComparisonMetric(WorkbenchModel):
+    """One metric delta between a baseline and candidate run."""
+
+    metric_name: str
+    mode: MetricSortMode = "max"
+    baseline_value: float | None = None
+    candidate_value: float | None = None
+    delta: float | None = None
+    percent_delta: float | None = None
+    direction: ComparisonDirection = "incomplete"
+    improved: bool = False
+    regressed: bool = False
+    baseline_missing: bool = False
+    candidate_missing: bool = False
+    baseline_non_numeric: bool = False
+    candidate_non_numeric: bool = False
+
+
+class WorkbenchComparisonCandidate(WorkbenchModel):
+    """Comparison summary for one candidate run against a baseline."""
+
+    run_id: str
+    status: RunStatus
+    manifest_path: Path
+    metrics: tuple[WorkbenchComparisonMetric, ...] = ()
+    improved_count: int = Field(default=0, ge=0)
+    regressed_count: int = Field(default=0, ge=0)
+    unchanged_count: int = Field(default=0, ge=0)
+    incomplete_count: int = Field(default=0, ge=0)
+    net_score: int = 0
+    artifact_count: int = Field(default=0, ge=0)
+    missing_artifact_count: int = Field(default=0, ge=0)
+
+
+class WorkbenchComparison(WorkbenchModel):
+    """Read-only comparison of candidate result manifests against a baseline."""
+
+    root: Path
+    max_depth: int = Field(default=6, ge=0)
+    scanned_at: datetime = Field(default_factory=_utc_now)
+    baseline_run_id: str
+    baseline_manifest_path: Path
+    baseline_status: RunStatus
+    baseline_artifact_count: int = Field(default=0, ge=0)
+    baseline_missing_artifact_count: int = Field(default=0, ge=0)
+    metrics: tuple[ParetoObjective, ...] = ()
+    result_manifest_count: int = Field(default=0, ge=0)
+    candidate_count: int = Field(default=0, ge=0)
+    candidates: tuple[WorkbenchComparisonCandidate, ...] = ()
+    best_candidate: WorkbenchComparisonCandidate | None = None
+    issue_count: int = Field(default=0, ge=0)
+    issues: tuple[InventoryIssue, ...] = ()
 
 
 class WorkbenchArtifactEntry(WorkbenchModel):
@@ -1454,6 +1571,7 @@ WorkbenchSpec = VSCampaignSpec | OCScoreStudySpec | OCScoreAblationSpec
 
 __all__ = [
     "ArtifactKind",
+    "ComparisonDirection",
     "ExportedArtifact",
     "FeaturePolicySelection",
     "InventoryIssue",
@@ -1497,6 +1615,9 @@ __all__ = [
     "WorkbenchAnalysisReport",
     "WorkbenchArtifactEntry",
     "WorkbenchArtifactIndex",
+    "WorkbenchComparison",
+    "WorkbenchComparisonCandidate",
+    "WorkbenchComparisonMetric",
     "WorkbenchPlot",
     "WorkbenchPlotKind",
     "WorkspaceInventory",

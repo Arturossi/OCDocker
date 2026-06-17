@@ -118,7 +118,7 @@ Commands
      # or:
      ocdocker init-config --conf OCDocker.yml
 
-- workbench: Validate specs, preflight specs, build run bundles, prepare launch plans, export publication scaffolds, emit starter templates and JSON Schemas, inventory manifests, index artifacts, build dashboard overviews, inspect run status, preview logs, rank result metrics, build metric matrices, build metric catalogs, Pareto fronts, plot-ready payloads, and composed analysis reports, summarize result artifacts, and plan commands without executing runs
+- workbench: Validate specs, preflight specs, build run bundles, prepare launch plans, export publication scaffolds, emit starter templates and JSON Schemas, inventory manifests, index artifacts, compare result runs, build dashboard overviews, inspect run status, preview logs, build aggregate run drill-downs, rank result metrics, build metric matrices, build metric catalogs, Pareto fronts, plot-ready payloads, and composed analysis reports, serve a local read-only API and embedded browser dashboard, summarize result artifacts, and plan commands without executing runs
 
   .. code-block:: bash
 
@@ -128,8 +128,13 @@ Commands
      ocdocker workbench build study.yml runs/run-001 --run-id run-001
      ocdocker workbench launch-plan runs/run-001 --script-output runs/run-001/run.sh
      ocdocker workbench export runs/run-001/run_manifest.yml exports/run-001
+     ocdocker workbench adopt-plan existing_outputs/ --max-depth 2 --require-metrics --output adoption_plan.json
+     ocdocker workbench adopt existing_outputs/ adopted-runs/ --max-depth 2 --require-metrics
+     # adopt writes manifests under adopted-runs/ and does not modify existing_outputs/.
+     # OCScore train/ablations/<policy> folders are promoted to separate runs.
      ocdocker workbench inventory runs/ --max-depth 3
      ocdocker workbench artifacts runs/ --kind csv --role metrics
+     ocdocker workbench compare runs/ --baseline baseline --metric auc:max --metric validation.loss:min
      ocdocker workbench overview runs/ --recent-limit 10
      ocdocker workbench status runs/run-001
      ocdocker workbench logs runs/run-001 --lines 80
@@ -139,6 +144,9 @@ Commands
      ocdocker workbench pareto runs/ --objective auc:max --objective validation.loss:min
      ocdocker workbench plot runs/ --kind scatter --x-metric auc --y-metric validation.loss
      ocdocker workbench report runs/ --leaderboard auc:max --objective auc:max --format markdown
+     ocdocker workbench serve runs/ --host 127.0.0.1 --port 8765
+     # Open http://127.0.0.1:8765/app after forwarding the port over SSH.
+     # Click a run in the dashboard to inspect status, metrics, artifacts, and logs.
      ocdocker workbench results runs/run-001/result_manifest.yml
      ocdocker workbench schema ocscore_study --output ocscore_study.schema.json
      ocdocker workbench plan study.yml --run-id run-001 --output plan.json

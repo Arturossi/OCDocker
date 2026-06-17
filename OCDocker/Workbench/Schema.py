@@ -36,6 +36,7 @@ from OCDocker.Workbench.Models import ResultArtifactStatus
 from OCDocker.Workbench.Models import ResultManifest
 from OCDocker.Workbench.Models import ResultSummary
 from OCDocker.Workbench.Models import RunBundle
+from OCDocker.Workbench.Models import RunDetail
 from OCDocker.Workbench.Models import RunInventoryItem
 from OCDocker.Workbench.Models import RunLaunchPlan
 from OCDocker.Workbench.Models import RunLogFilePreview
@@ -46,9 +47,16 @@ from OCDocker.Workbench.Models import RunStatusReport
 from OCDocker.Workbench.Models import SnakemakeWorkflowSpec
 from OCDocker.Workbench.Models import VSInputSpec
 from OCDocker.Workbench.Models import VSCampaignSpec
+from OCDocker.Workbench.Models import WorkbenchAdoptedRun
+from OCDocker.Workbench.Models import WorkbenchAdoptionCandidate
+from OCDocker.Workbench.Models import WorkbenchAdoptionPlan
+from OCDocker.Workbench.Models import WorkbenchAdoptionResult
 from OCDocker.Workbench.Models import WorkbenchAnalysisReport
 from OCDocker.Workbench.Models import WorkbenchArtifactEntry
 from OCDocker.Workbench.Models import WorkbenchArtifactIndex
+from OCDocker.Workbench.Models import WorkbenchComparison
+from OCDocker.Workbench.Models import WorkbenchComparisonCandidate
+from OCDocker.Workbench.Models import WorkbenchComparisonMetric
 from OCDocker.Workbench.Models import WorkbenchModel
 from OCDocker.Workbench.Models import WorkbenchPlot
 from OCDocker.Workbench.Models import WorkbenchReportFinding
@@ -57,7 +65,7 @@ from OCDocker.Workbench.Models import WorkspaceOverview
 
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -70,7 +78,7 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
 
 # Type aliases
 ###############################################################################
@@ -99,6 +107,7 @@ WorkbenchSchemaName = Literal[
     "result_manifest",
     "result_summary",
     "run_bundle",
+    "run_detail",
     "run_inventory_item",
     "run_launch_plan",
     "run_log_file_preview",
@@ -109,9 +118,16 @@ WorkbenchSchemaName = Literal[
     "snakemake_workflow",
     "vs_campaign",
     "vs_input",
+    "workbench_adopted_run",
+    "workbench_adoption_candidate",
+    "workbench_adoption_plan",
+    "workbench_adoption_result",
     "workbench_analysis_report",
     "workbench_artifact_entry",
     "workbench_artifact_index",
+    "workbench_comparison",
+    "workbench_comparison_candidate",
+    "workbench_comparison_metric",
     "workbench_plot",
     "workbench_report_finding",
     "workspace_inventory",
@@ -145,6 +161,7 @@ _SCHEMA_MODELS: dict[str, type[WorkbenchModel]] = {
     "result_manifest": ResultManifest,
     "result_summary": ResultSummary,
     "run_bundle": RunBundle,
+    "run_detail": RunDetail,
     "run_inventory_item": RunInventoryItem,
     "run_launch_plan": RunLaunchPlan,
     "run_log_file_preview": RunLogFilePreview,
@@ -155,9 +172,16 @@ _SCHEMA_MODELS: dict[str, type[WorkbenchModel]] = {
     "snakemake_workflow": SnakemakeWorkflowSpec,
     "vs_campaign": VSCampaignSpec,
     "vs_input": VSInputSpec,
+    "workbench_adopted_run": WorkbenchAdoptedRun,
+    "workbench_adoption_candidate": WorkbenchAdoptionCandidate,
+    "workbench_adoption_plan": WorkbenchAdoptionPlan,
+    "workbench_adoption_result": WorkbenchAdoptionResult,
     "workbench_analysis_report": WorkbenchAnalysisReport,
     "workbench_artifact_entry": WorkbenchArtifactEntry,
     "workbench_artifact_index": WorkbenchArtifactIndex,
+    "workbench_comparison": WorkbenchComparison,
+    "workbench_comparison_candidate": WorkbenchComparisonCandidate,
+    "workbench_comparison_metric": WorkbenchComparisonMetric,
     "workbench_plot": WorkbenchPlot,
     "workbench_report_finding": WorkbenchReportFinding,
     "workspace_inventory": WorkspaceInventory,
@@ -188,9 +212,7 @@ def _schema_model(name: str) -> type[WorkbenchModel]:
         return _SCHEMA_MODELS[normalized]
     except KeyError as exc:
         available = ", ".join(available_schema_names())
-        raise ValueError(
-            f"Unknown Workbench schema {normalized!r}. Expected one of: {available}."
-        ) from exc
+        raise ValueError(f"Unknown Workbench schema {normalized!r}. Expected one of: {available}.") from exc
 
 
 ## Public ##
