@@ -97,6 +97,92 @@ def _write_existing_adoption_source(tmp_path) -> Path:
     return source
 
 
+def _write_existing_evidence_workspace(tmp_path) -> Path:
+    '''Write adopted OCScore evidence manifests for CLI tests.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+
+    Returns
+    -------
+    pathlib.Path
+        Workspace root.
+    '''
+
+    source_root = tmp_path / "source" / "output"
+    train_source = source_root / "train"
+    train_source.mkdir(parents=True)
+    (train_source / "baselines_per_fold.csv").write_text(
+        "baseline,baseline_family,split,BEDROC\nvina,scoring_function,validation,0.30\n",
+        encoding="utf-8",
+    )
+    shap_dir = source_root / "export" / "dudez" / "shap"
+    shap_dir.mkdir(parents=True)
+    (shap_dir / "shap_values.csv").write_text("feature_a,feature_b\n1.0,-2.0\n", encoding="utf-8")
+    (shap_dir / "shap_feature_importance.png").write_bytes(b"png")
+
+    workspace = tmp_path / "evidence-runs"
+    run_dir = workspace / "train"
+    run_dir.mkdir(parents=True)
+    write_model(
+        run_dir / "run_manifest.yml",
+        RunManifest(
+            run_id="train",
+            spec_type="ocscore_study",
+            name="train",
+            status="completed",
+            workspace=train_source,
+            metadata={"adopted": True, "source_path": str(train_source)},
+        ),
+    )
+    write_model(
+        run_dir / "result_manifest.yml",
+        ResultManifest(run_id="train", status="completed", metrics={"auc": 0.9}),
+    )
+    return workspace
+
+
+def _write_existing_ablation_workspace(tmp_path) -> Path:
+    '''Write adopted ablation manifests for CLI tests.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+
+    Returns
+    -------
+    pathlib.Path
+        Workspace root.
+    '''
+
+    workspace = tmp_path / "ablation-runs"
+    for run_id, source_path, metrics in (
+        ("train", "/source/output/train", {"auc": 0.88}),
+        ("shape_only", "/source/output/train/ablations/shape_only", {"auc": 0.91}),
+    ):
+        run_dir = workspace / run_id
+        run_dir.mkdir(parents=True)
+        write_model(
+            run_dir / "run_manifest.yml",
+            RunManifest(
+                run_id=run_id,
+                spec_type="ocscore_ablation",
+                name=run_id,
+                status="completed",
+                workspace=source_path,
+                metadata={"adopted": True, "source_path": source_path},
+            ),
+        )
+        write_model(
+            run_dir / "result_manifest.yml",
+            ResultManifest(run_id=run_id, status="completed", metrics=metrics),
+        )
+    return workspace
+
+
 ## Public ##
 
 
@@ -118,6 +204,26 @@ def test_workbench_subcommands_registered(tmp_path) -> None:
     assert args.spec == str(spec_path)
     assert args.output == "valid.json"
     assert args.func is cli_workbench.cmd_validate
+
+    ablations_args = parser.parse_args(
+        [
+            "workbench",
+            "ablations",
+            str(tmp_path),
+            "--baseline",
+            "train",
+            "--candidate",
+            "shape_only",
+            "--metric",
+            "auc:max",
+        ]
+    )
+    assert ablations_args.workbench_command == "ablations"
+    assert ablations_args.root == str(tmp_path)
+    assert ablations_args.baseline == "train"
+    assert ablations_args.candidates == ["shape_only"]
+    assert ablations_args.metrics == ["auc:max"]
+    assert ablations_args.func is cli_workbench.cmd_ablations
 
     adopt_plan_args = parser.parse_args(
         [
@@ -164,6 +270,14 @@ def test_workbench_subcommands_registered(tmp_path) -> None:
     assert artifacts_args.kinds == ["csv"]
     assert artifacts_args.roles == ["metrics"]
     assert artifacts_args.func is cli_workbench.cmd_artifacts
+
+    evidence_args = parser.parse_args(
+        ["workbench", "evidence", str(tmp_path), "--source-depth", "5", "--max-entries", "20"]
+    )
+    assert evidence_args.workbench_command == "evidence"
+    assert evidence_args.source_depth == 5
+    assert evidence_args.max_entries == 20
+    assert evidence_args.func is cli_workbench.cmd_evidence
 
     build_args = parser.parse_args(
         [
@@ -352,6 +466,38 @@ def test_workbench_subcommands_registered(tmp_path) -> None:
     assert template_args.func is cli_workbench.cmd_template
 
 
+def test_cmd_ablations_prints_policy_deltas(tmp_path, capsys) -> None:
+    '''Test Workbench ablations output from the CLI layer.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    capsys : pytest.CaptureFixture
+        Pytest stdout/stderr capture fixture.
+    '''
+
+    workspace = _write_existing_ablation_workspace(tmp_path)
+
+    rc = cli_workbench.cmd_ablations(
+        SimpleNamespace(
+            root=str(workspace),
+            baseline=None,
+            candidates=None,
+            metrics=("auc:max",),
+            max_depth=2,
+            output=None,
+        )
+    )
+
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["baseline_run_id"] == "train"
+    assert payload["candidate_count"] == 1
+    assert payload["candidates"][0]["policy_name"] == "shape_only"
+    assert payload["candidates"][0]["metrics"][0]["direction"] == "improved"
+
+
 def test_cmd_adopt_plan_prints_dry_run_payload(tmp_path, capsys) -> None:
     '''Test Workbench adopt-plan output from the CLI layer.
 
@@ -479,6 +625,41 @@ def test_cmd_artifacts_prints_index_payload(tmp_path, capsys) -> None:
     assert payload["entries"][0]["name"] == "metrics"
     assert payload["entries"][0]["exists"] is True
     assert payload["kind_counts"] == {"csv": 1}
+
+
+def test_cmd_evidence_prints_index_payload(tmp_path, capsys) -> None:
+    '''Test Workbench evidence index output from the CLI layer.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    capsys : pytest.CaptureFixture
+        Pytest stdout/stderr capture fixture.
+    '''
+
+    workspace = _write_existing_evidence_workspace(tmp_path)
+
+    rc = cli_workbench.cmd_evidence(
+        SimpleNamespace(
+            root=str(workspace),
+            max_depth=2,
+            source_depth=4,
+            max_entries=20,
+            max_csv_rows=20,
+            max_series=4,
+            max_shap_features=8,
+            output=None,
+        )
+    )
+
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["evidence_count"] == 3
+    assert payload["kind_counts"]["performance"] == 1
+    assert payload["kind_counts"]["shap"] == 2
+    assert payload["performance_points"][0]["metric_name"] == "BEDROC"
+    assert payload["shap_features"][0]["feature"] == "feature_b"
 
 
 def test_cmd_template_prints_valid_yaml(tmp_path, capsys) -> None:

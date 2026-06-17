@@ -21,6 +21,8 @@ import yaml
 
 from OCDocker.Workbench.Adoption import build_adoption_plan
 from OCDocker.Workbench.Adoption import write_adoption_workspace
+from OCDocker.Workbench.Ablation import build_ablation_analysis
+from OCDocker.Workbench.Ablation import parse_ablation_metric
 from OCDocker.Workbench.Artifacts import build_artifact_index
 from OCDocker.Workbench.Bundle import build_run_bundle
 from OCDocker.Workbench.Comparison import build_run_comparison
@@ -28,6 +30,7 @@ from OCDocker.Workbench.Comparison import parse_comparison_metric
 from OCDocker.Workbench.Decision import build_metrics_catalog
 from OCDocker.Workbench.Decision import build_pareto_front
 from OCDocker.Workbench.Decision import parse_pareto_objective
+from OCDocker.Workbench.Evidence import build_evidence_index
 from OCDocker.Workbench.Export import build_publication_export
 from OCDocker.Workbench.IO import model_to_data
 from OCDocker.Workbench.IO import read_spec
@@ -288,6 +291,36 @@ def cmd_adopt(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ablations(args: argparse.Namespace) -> int:
+    '''Build a read-only ablation comparison against a reference run.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command-line arguments.
+
+    Returns
+    -------
+    int
+        Process-style exit code.
+    '''
+
+    try:
+        metrics = tuple(parse_ablation_metric(value) for value in (args.metrics or ()))
+        analysis = build_ablation_analysis(
+            args.root,
+            baseline_run_id=args.baseline,
+            candidates=tuple(args.candidates or ()),
+            metrics=metrics,
+            max_depth=args.max_depth,
+        )
+    except Exception as exc:
+        print(f"Error: could not build Workbench ablation analysis: {exc}")
+        return 2
+    _write_json_payload(model_to_data(analysis), args.output)
+    return 0
+
+
 def cmd_artifacts(args: argparse.Namespace) -> int:
     '''Build a read-only cross-run artifact index.
 
@@ -312,6 +345,37 @@ def cmd_artifacts(args: argparse.Namespace) -> int:
         )
     except Exception as exc:
         print(f"Error: could not build Workbench artifact index: {exc}")
+        return 2
+    _write_json_payload(model_to_data(index), args.output)
+    return 0
+
+
+def cmd_evidence(args: argparse.Namespace) -> int:
+    '''Build a read-only OCScore evidence index from adopted sources.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command-line arguments.
+
+    Returns
+    -------
+    int
+        Process-style exit code.
+    '''
+
+    try:
+        index = build_evidence_index(
+            args.root,
+            max_depth=args.max_depth,
+            source_depth=args.source_depth,
+            max_entries=args.max_entries,
+            max_csv_rows=args.max_csv_rows,
+            max_series=args.max_series,
+            max_shap_features=args.max_shap_features,
+        )
+    except Exception as exc:
+        print(f"Error: could not build Workbench evidence index: {exc}")
         return 2
     _write_json_payload(model_to_data(index), args.output)
     return 0
@@ -1121,6 +1185,55 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
     artifacts.add_argument("--output", default=None, help="Optional JSON output path.")
     artifacts.set_defaults(func=cmd_artifacts)
 
+    evidence = workbench_sub.add_parser(
+        "evidence",
+        help="Discover OCScore evidence files from adopted outputs",
+        description=(
+            "Scan adopted Workbench source paths and emit a read-only evidence "
+            "payload for OCScore performance tables, Optuna traces, SHAP exports, "
+            "and analysis figures. Source outputs are not modified."
+        ),
+    )
+    evidence.add_argument("root", help="Workspace root or result manifest to inspect.")
+    evidence.add_argument(
+        "--max-depth",
+        type=int,
+        default=6,
+        help="Maximum Workbench manifest scan depth. Default: 6.",
+    )
+    evidence.add_argument(
+        "--source-depth",
+        type=int,
+        default=6,
+        help="Maximum directory depth below each adopted source path. Default: 6.",
+    )
+    evidence.add_argument(
+        "--max-entries",
+        type=int,
+        default=400,
+        help="Maximum evidence file entries to return. Default: 400.",
+    )
+    evidence.add_argument(
+        "--max-csv-rows",
+        type=int,
+        default=1000,
+        help="Maximum CSV rows read per evidence file for previews. Default: 1000.",
+    )
+    evidence.add_argument(
+        "--max-series",
+        type=int,
+        default=8,
+        help="Maximum Optuna trial series to preview. Default: 8.",
+    )
+    evidence.add_argument(
+        "--max-shap-features",
+        type=int,
+        default=30,
+        help="Maximum SHAP features to preview. Default: 30.",
+    )
+    evidence.add_argument("--output", default=None, help="Optional JSON output path.")
+    evidence.set_defaults(func=cmd_evidence)
+
     build = workbench_sub.add_parser(
         "build",
         help="Build a prepared run bundle without executing it",
@@ -1206,6 +1319,44 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
     )
     template.add_argument("--output", default=None, help="Optional output path.")
     template.set_defaults(func=cmd_template)
+
+    ablations = workbench_sub.add_parser(
+        "ablations",
+        help="Compare adopted OCScore ablation runs against a reference",
+        description=(
+            "Scan Workbench result manifests, detect adopted OCScore "
+            "train/ablations/<policy> runs, and compare them against an "
+            "explicit or auto-selected reference run. No files are modified."
+        ),
+    )
+    ablations.add_argument("root", help="Workspace root or result manifest to inspect.")
+    ablations.add_argument(
+        "--baseline",
+        default=None,
+        help="Reference run id. If omitted, a non-ablation train/reference run is selected when available.",
+    )
+    ablations.add_argument(
+        "--candidate",
+        dest="candidates",
+        action="append",
+        default=None,
+        help="Ablation run id or policy name to compare. May be repeated. If omitted, all detected ablations are compared.",
+    )
+    ablations.add_argument(
+        "--metric",
+        dest="metrics",
+        action="append",
+        default=None,
+        help="Metric in metric or metric:min|max form. May be repeated. If omitted, numeric metrics are inferred.",
+    )
+    ablations.add_argument(
+        "--max-depth",
+        type=int,
+        default=6,
+        help="Maximum directory depth below root to scan. Default: 6.",
+    )
+    ablations.add_argument("--output", default=None, help="Optional JSON output path.")
+    ablations.set_defaults(func=cmd_ablations)
 
     compare = workbench_sub.add_parser(
         "compare",
@@ -1682,12 +1833,14 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
 
 
 __all__ = [
+    "cmd_ablations",
     "cmd_adopt",
     "cmd_adopt_plan",
     "cmd_artifacts",
     "cmd_build",
     "cmd_check",
     "cmd_compare",
+    "cmd_evidence",
     "cmd_export",
     "cmd_inventory",
     "cmd_launch_plan",

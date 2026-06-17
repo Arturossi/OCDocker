@@ -25,7 +25,7 @@ from pydantic import model_validator
 
 # License
 ###############################################################################
-"""
+'''
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -38,7 +38,7 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-"""
+'''
 
 # Constants
 ###############################################################################
@@ -82,6 +82,14 @@ ArtifactKind = Literal[
     "database",
     "log",
     "directory",
+    "other",
+]
+EvidenceKind = Literal[
+    "performance",
+    "optimization",
+    "shap",
+    "figure",
+    "prediction",
     "other",
 ]
 
@@ -1451,6 +1459,44 @@ class WorkbenchComparison(WorkbenchModel):
     issues: tuple[InventoryIssue, ...] = ()
 
 
+class WorkbenchAblationCandidate(WorkbenchModel):
+    """One ablation policy compared against a reference run."""
+
+    policy_name: str
+    run_id: str
+    status: RunStatus
+    manifest_path: Path
+    source_path: Path | None = None
+    metrics: tuple[WorkbenchComparisonMetric, ...] = ()
+    improved_count: int = Field(default=0, ge=0)
+    regressed_count: int = Field(default=0, ge=0)
+    unchanged_count: int = Field(default=0, ge=0)
+    incomplete_count: int = Field(default=0, ge=0)
+    net_score: int = 0
+    artifact_count: int = Field(default=0, ge=0)
+    missing_artifact_count: int = Field(default=0, ge=0)
+
+
+class WorkbenchAblationAnalysis(WorkbenchModel):
+    """Read-only OCScore ablation comparison against a reference run."""
+
+    root: Path
+    max_depth: int = Field(default=6, ge=0)
+    scanned_at: datetime = Field(default_factory=_utc_now)
+    baseline_run_id: str
+    baseline_policy_name: str
+    baseline_manifest_path: Path
+    baseline_source_path: Path | None = None
+    metrics: tuple[ParetoObjective, ...] = ()
+    result_manifest_count: int = Field(default=0, ge=0)
+    detected_ablation_count: int = Field(default=0, ge=0)
+    candidate_count: int = Field(default=0, ge=0)
+    candidates: tuple[WorkbenchAblationCandidate, ...] = ()
+    best_candidate: WorkbenchAblationCandidate | None = None
+    issue_count: int = Field(default=0, ge=0)
+    issues: tuple[InventoryIssue, ...] = ()
+
+
 class WorkbenchArtifactEntry(WorkbenchModel):
     """One artifact row in a cross-run Workbench artifact index."""
 
@@ -1486,6 +1532,47 @@ class WorkbenchArtifactIndex(WorkbenchModel):
     kind_counts: dict[str, int] = Field(default_factory=dict)
     role_counts: dict[str, int] = Field(default_factory=dict)
     entries: tuple[WorkbenchArtifactEntry, ...] = ()
+    issue_count: int = Field(default=0, ge=0)
+    issues: tuple[InventoryIssue, ...] = ()
+
+
+class WorkbenchEvidenceEntry(WorkbenchModel):
+    """One discovered OCScore evidence artifact or table."""
+
+    run_id: str
+    status: RunStatus
+    manifest_path: Path
+    source_path: Path | None = None
+    path: Path
+    kind: EvidenceKind = "other"
+    role: str = ""
+    dataset: str = ""
+    policy_name: str = ""
+    replica: str = ""
+    figure_name: str = ""
+    comparison_key: str = ""
+    suffix: str = ""
+    size_bytes: int | None = Field(default=None, ge=0)
+    modified_at: datetime | None = None
+    column_count: int | None = Field(default=None, ge=0)
+    metric_names: tuple[str, ...] = ()
+
+
+class WorkbenchEvidenceIndex(WorkbenchModel):
+    """Read-only index of OCScore evidence discovered from adopted sources."""
+
+    root: Path
+    max_depth: int = Field(default=6, ge=0)
+    source_depth: int = Field(default=6, ge=0)
+    scanned_at: datetime = Field(default_factory=_utc_now)
+    result_manifest_count: int = Field(default=0, ge=0)
+    evidence_count: int = Field(default=0, ge=0)
+    kind_counts: dict[str, int] = Field(default_factory=dict)
+    role_counts: dict[str, int] = Field(default_factory=dict)
+    entries: tuple[WorkbenchEvidenceEntry, ...] = ()
+    performance_points: tuple[dict[str, Any], ...] = ()
+    optimization_points: tuple[dict[str, Any], ...] = ()
+    shap_features: tuple[dict[str, Any], ...] = ()
     issue_count: int = Field(default=0, ge=0)
     issues: tuple[InventoryIssue, ...] = ()
 
@@ -1612,9 +1699,14 @@ __all__ = [
     "VALID_RESCORING_ENGINES",
     "VSInputSpec",
     "VSCampaignSpec",
+    "WorkbenchAblationAnalysis",
+    "WorkbenchAblationCandidate",
     "WorkbenchAnalysisReport",
+    "EvidenceKind",
     "WorkbenchArtifactEntry",
     "WorkbenchArtifactIndex",
+    "WorkbenchEvidenceEntry",
+    "WorkbenchEvidenceIndex",
     "WorkbenchComparison",
     "WorkbenchComparisonCandidate",
     "WorkbenchComparisonMetric",

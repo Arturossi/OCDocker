@@ -118,7 +118,7 @@ Commands
      # or:
      ocdocker init-config --conf OCDocker.yml
 
-- workbench: Validate specs, preflight specs, build run bundles, prepare launch plans, export publication scaffolds, emit starter templates and JSON Schemas, inventory manifests, index artifacts, compare result runs, build dashboard overviews, inspect run status, preview logs, build aggregate run drill-downs, rank result metrics, build metric matrices, build metric catalogs, Pareto fronts, plot-ready payloads, and composed analysis reports, serve a local read-only API and embedded browser dashboard, summarize result artifacts, and plan commands without executing runs
+- workbench: Validate specs, preflight specs, build run bundles, prepare launch plans, export publication scaffolds, emit starter templates and JSON Schemas, inventory manifests, index artifacts, discover OCScore evidence tables, Optuna traces, SHAP exports, and figures from adopted outputs, compare result runs, build dashboard overviews, inspect run status, preview logs, build aggregate run drill-downs, rank result metrics, build metric matrices, build metric catalogs, Pareto fronts, plot-ready payloads, and composed analysis reports, serve a local read-only API and embedded browser dashboard, summarize result artifacts, and plan commands without executing runs
 
   .. code-block:: bash
 
@@ -134,7 +134,9 @@ Commands
      # OCScore train/ablations/<policy> folders are promoted to separate runs.
      ocdocker workbench inventory runs/ --max-depth 3
      ocdocker workbench artifacts runs/ --kind csv --role metrics
+     ocdocker workbench evidence runs/ --source-depth 5
      ocdocker workbench compare runs/ --baseline baseline --metric auc:max --metric validation.loss:min
+     ocdocker workbench ablations runs/ --baseline train --metric auc:max --metric validation.loss:min
      ocdocker workbench overview runs/ --recent-limit 10
      ocdocker workbench status runs/run-001
      ocdocker workbench logs runs/run-001 --lines 80

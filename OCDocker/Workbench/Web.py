@@ -132,9 +132,49 @@ _INDEX_HTML: Final[str] = """<!doctype html>
           <div class="panel-head"><h2>Pareto Front</h2></div>
           <div id="pareto" class="table-wrap"></div>
         </section>
+        <section class="panel wide">
+          <div class="panel-head"><h2>Ablations</h2><span id="ablation-summary" class="muted"></span></div>
+          <div id="ablation-table" class="table-wrap"></div>
+          <div class="plot-split">
+            <div class="plot-block">
+              <div class="inline-head"><h3>Ablation Delta</h3><span id="ablation-delta-summary" class="muted"></span></div>
+              <div id="ablation-delta-plot" class="mini-plot"></div>
+            </div>
+            <div class="plot-block">
+              <div class="inline-head"><h3>Metric Direction Heatmap</h3><span id="ablation-heatmap-summary" class="muted"></span></div>
+              <div id="ablation-heatmap" class="mini-plot"></div>
+            </div>
+          </div>
+        </section>
         <section class="panel plot-panel">
           <div class="panel-head"><h2>Metric Scatter</h2></div>
           <div id="plot" class="plot-area"></div>
+        </section>
+        <section class="panel wide evidence-panel">
+          <div class="panel-head"><h2>Evidence Explorer</h2><span id="evidence-summary" class="muted"></span></div>
+          <div class="evidence-grid">
+            <div class="plot-block">
+              <div class="inline-head"><h3>Performance Profile</h3><span id="evidence-performance-summary" class="muted"></span></div>
+              <div id="evidence-performance-plot" class="mini-plot"></div>
+            </div>
+            <div class="plot-block">
+              <div class="inline-head"><h3>Optuna Trace</h3><span id="evidence-optuna-summary" class="muted"></span></div>
+              <div id="evidence-optuna-plot" class="mini-plot"></div>
+            </div>
+            <div class="plot-block">
+              <div class="inline-head"><h3>SHAP Importance</h3><span id="evidence-shap-summary" class="muted"></span></div>
+              <div id="evidence-shap-plot" class="mini-plot"></div>
+            </div>
+          </div>
+          <div class="evidence-gallery-wrap">
+            <div class="inline-head"><h3>Figure Comparison</h3><span id="evidence-gallery-summary" class="muted"></span></div>
+            <div class="evidence-controls">
+              <label class="field" for="evidence-gallery-group"><span>Figure Set</span><select id="evidence-gallery-group"></select></label>
+              <label class="field compact" for="evidence-gallery-limit"><span>Limit</span><input id="evidence-gallery-limit" type="number" min="2" max="80" value="24"></label>
+            </div>
+            <div id="evidence-gallery" class="evidence-gallery"></div>
+          </div>
+          <div id="evidence-files" class="table-wrap"></div>
         </section>
       </div>
     </section>
@@ -154,6 +194,19 @@ _INDEX_HTML: Final[str] = """<!doctype html>
     </section>
   </main>
 
+  <div id="evidence-lightbox" class="evidence-lightbox" hidden>
+    <div class="evidence-lightbox-shell" role="dialog" aria-modal="true" aria-labelledby="evidence-lightbox-title">
+      <div class="evidence-lightbox-head">
+        <div>
+          <strong id="evidence-lightbox-title"></strong>
+          <span id="evidence-lightbox-subtitle"></span>
+        </div>
+        <button id="evidence-lightbox-close" type="button">Close</button>
+      </div>
+      <img id="evidence-lightbox-image" alt="">
+      <dl id="evidence-lightbox-meta" class="evidence-lightbox-meta"></dl>
+    </div>
+  </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="/app.js" defer></script>
 </body>
@@ -557,11 +610,13 @@ tr.clickable-row:hover td {
 }
 
 .plot-area {
-  min-height: 360px;
+  min-height: 540px;
   padding: 14px;
+  overflow-x: auto;
 }
 
-.plot-area svg {
+.plot-area svg,
+.mini-plot svg {
   width: 100%;
   min-height: 320px;
   border: 1px solid var(--line);
@@ -569,10 +624,320 @@ tr.clickable-row:hover td {
   background: #fbfaf7;
 }
 
+.plot-area svg {
+  min-width: 980px;
+  min-height: 520px;
+}
+
+.plot-split,
+.evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(460px, 1fr));
+  gap: 14px;
+  padding: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.evidence-grid {
+  grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+}
+
+.evidence-gallery-wrap {
+  padding: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.evidence-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.evidence-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 720px), 1fr));
+  gap: 16px;
+}
+
+.evidence-thumb {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfaf7;
+}
+
+.evidence-thumb-head {
+  display: grid;
+  gap: 4px;
+}
+
+.evidence-thumb-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.evidence-thumb-title strong,
+.evidence-thumb span,
+.evidence-file-path {
+  overflow-wrap: anywhere;
+}
+
+.evidence-thumb-title strong {
+  font-size: 15px;
+}
+
+.evidence-thumb-title span,
+.evidence-thumb span,
+.evidence-file-path {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.evidence-open {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.evidence-open img {
+  width: 100%;
+  height: clamp(420px, 46vw, 680px);
+  border: 1px solid #ece7dc;
+  border-radius: 6px;
+  background: #ffffff;
+  object-fit: contain;
+}
+
+.evidence-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.evidence-meta div {
+  min-width: 0;
+}
+
+.evidence-meta dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.evidence-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.evidence-lightbox[hidden] {
+  display: none;
+}
+
+.evidence-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgb(31 41 51 / 72%);
+}
+
+.evidence-lightbox-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  width: min(96vw, 1600px);
+  max-height: 96vh;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.evidence-lightbox-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.evidence-lightbox-head div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.evidence-lightbox-head strong,
+.evidence-lightbox-head span {
+  overflow-wrap: anywhere;
+}
+
+.evidence-lightbox-head span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.evidence-lightbox img {
+  width: 100%;
+  max-height: 78vh;
+  border: 1px solid #ece7dc;
+  border-radius: 6px;
+  background: #ffffff;
+  object-fit: contain;
+}
+
+.evidence-lightbox-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 14px;
+  margin: 0;
+  max-height: 120px;
+  overflow: auto;
+}
+
+.evidence-lightbox-meta dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.evidence-lightbox-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.plot-block {
+  min-width: 0;
+}
+
+.inline-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 30px;
+  margin-bottom: 8px;
+}
+
+.inline-head h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.mini-plot {
+  min-height: 390px;
+  overflow-x: auto;
+}
+
+.mini-plot svg {
+  min-width: 960px;
+  min-height: 380px;
+}
+
 .plot-point {
   fill: var(--accent);
   stroke: #ffffff;
   stroke-width: 1.5;
+}
+
+.plot-point-label,
+.plot-tick-label,
+.plot-axis-label {
+  fill: #344054;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.plot-point-label {
+  paint-order: stroke;
+  stroke: #fbfaf7;
+  stroke-width: 3px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.plot-tick-label {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.plot-axis-label {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.plot-axis {
+  fill: none;
+  stroke: #667085;
+  stroke-width: 1.5;
+}
+
+.plot-grid-line {
+  stroke: #e6dfd2;
+  stroke-width: 1;
+}
+
+.plot-zero-line {
+  stroke: #667085;
+  stroke-dasharray: 4 4;
+  stroke-width: 1.2;
+}
+
+.plot-bar.performance {
+  fill: #0b7d7f;
+}
+
+.plot-bar.shap {
+  fill: #315c9c;
+}
+
+.plot-bar.improved,
+.heat-cell.improved {
+  fill: #1b8a5a;
+}
+
+.plot-bar.regressed,
+.heat-cell.regressed {
+  fill: #b54708;
+}
+
+.plot-bar.neutral,
+.heat-cell.neutral {
+  fill: #8a94a6;
+}
+
+.heat-cell.missing {
+  fill: #e6dfd2;
+}
+
+.heat-label {
+  fill: #101828;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.heat-value {
+  fill: #ffffff;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.heat-cell.missing + .heat-value {
+  fill: #344054;
 }
 
 .finding-list {
@@ -640,7 +1005,9 @@ tr.clickable-row:hover td {
   .stat-grid,
   .dashboard-grid,
   .decision-grid,
-  .detail-grid {
+  .detail-grid,
+  .plot-split,
+  .evidence-grid {
     grid-template-columns: 1fr;
   }
 
@@ -674,6 +1041,11 @@ _APP_JS: Final[str] = """(() => {
   };
   const valueText = (value) => value === null || value === undefined || value === "" ? "-" : String(value);
   const pathLeaf = (value) => valueText(value).split("/").filter(Boolean).pop() || valueText(value);
+  const pathSuffix = (value) => {
+    const leaf = pathLeaf(value).toLowerCase();
+    const index = leaf.lastIndexOf(".");
+    return index >= 0 ? leaf.slice(index) : "";
+  };
   const maxDepth = () => Number.parseInt(byId("depth-input").value || "6", 10);
 
   async function api(path, params = {}) {
@@ -691,6 +1063,14 @@ _APP_JS: Final[str] = """(() => {
       throw new Error(payload.error || response.statusText);
     }
     return payload;
+  }
+
+  function evidenceImageUrl(entry) {
+    const url = new URL("/api/evidence-asset", window.location.origin);
+    url.searchParams.set("path", entry.path);
+    url.searchParams.set("max_depth", maxDepth());
+    url.searchParams.set("source_depth", "5");
+    return url.toString();
   }
 
   function setBusy(isBusy) {
@@ -1069,49 +1449,137 @@ _APP_JS: Final[str] = """(() => {
     ], payload.front_entries || []);
   }
 
+  function svgNode(svg, tagName, attributes = {}) {
+    const node = document.createElementNS(svg.namespaceURI || "http://www.w3.org/2000/svg", tagName);
+    Object.entries(attributes).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        node.setAttribute(key, String(value));
+      }
+    });
+    return node;
+  }
+
+  function svgText(svg, value, attributes = {}) {
+    const node = svgNode(svg, "text", attributes);
+    node.textContent = valueText(value);
+    svg.appendChild(node);
+    return node;
+  }
+
+  function axisTitle(payload, axisName, fallback) {
+    const axis = payload.layout && payload.layout[axisName] ? payload.layout[axisName] : {};
+    const title = axis.title;
+    if (typeof title === "string" && title.trim()) {
+      return title;
+    }
+    if (title && typeof title.text === "string" && title.text.trim()) {
+      return title.text;
+    }
+    return fallback;
+  }
+
+  function shortLabel(value, maxLength = 18) {
+    const label = valueText(value);
+    if (label.length <= maxLength) {
+      return label;
+    }
+    return `${label.slice(0, Math.max(1, maxLength - 3))}...`;
+  }
+
+  function paddedDomain(values) {
+    const finite = values.map(Number).filter(Number.isFinite);
+    if (!finite.length) {
+      return [-1, 1];
+    }
+    const min = Math.min(...finite);
+    const max = Math.max(...finite);
+    if (min === max) {
+      const pad = Math.max(1, Math.abs(min) * 0.1);
+      return [min - pad, max + pad];
+    }
+    const pad = (max - min) * 0.08;
+    return [min - pad, max + pad];
+  }
+
+  function ticks(min, max, count = 5) {
+    if (!Number.isFinite(min) || !Number.isFinite(max) || count < 2) {
+      return [];
+    }
+    return Array.from({ length: count }, (_item, index) => min + ((max - min) * index) / (count - 1));
+  }
+
+  function shouldPlaceLabel(placed, x, y, minDistance = 72) {
+    return placed.every((point) => Math.hypot(point.x - x, point.y - y) >= minDistance);
+  }
+
   function renderSvgScatter(container, payload) {
     clearNode(container);
     const trace = (payload.data || [])[0] || {};
-    const xs = (trace.x || []).map(Number);
-    const ys = (trace.y || []).map(Number);
-    const labels = trace.text || [];
-    if (!xs.length || !ys.length) {
+    const rawXs = trace.x || [];
+    const rawYs = trace.y || [];
+    const points = rawXs.map((x, index) => ({
+      x: Number(x),
+      y: Number(rawYs[index]),
+      label: (trace.text || [])[index] || "run",
+    })).filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+    if (!points.length) {
       empty(container, "No scatter points found.");
       return;
     }
-    const width = 820;
-    const height = 320;
-    const pad = 44;
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
-    const spreadX = maxX - minX || 1;
-    const spreadY = maxY - minY || 1;
-    const sx = (value) => pad + ((value - minX) / spreadX) * (width - pad * 2);
-    const sy = (value) => height - pad - ((value - minY) / spreadY) * (height - pad * 2);
+
+    const metricNames = payload.metric_names || [];
+    const xLabel = axisTitle(payload, "xaxis", metricNames[0] || "X metric");
+    const yLabel = axisTitle(payload, "yaxis", metricNames[1] || "Y metric");
+    const width = 1200;
+    const height = 560;
+    const plot = { left: 112, right: 54, top: 82, bottom: 86 };
+    const xDomain = paddedDomain(points.map((point) => point.x));
+    const yDomain = paddedDomain(points.map((point) => point.y));
+    const xRange = width - plot.left - plot.right;
+    const yRange = height - plot.top - plot.bottom;
+    const sx = (value) => plot.left + ((value - xDomain[0]) / (xDomain[1] - xDomain[0])) * xRange;
+    const sy = (value) => height - plot.bottom - ((value - yDomain[0]) / (yDomain[1] - yDomain[0])) * yRange;
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", payload.title || "Metric scatter");
+    svg.setAttribute("aria-label", `${payload.title || "Metric scatter"}; x axis ${xLabel}; y axis ${yLabel}`);
 
-    const axis = document.createElementNS(svg.namespaceURI, "path");
-    axis.setAttribute("d", `M ${pad} ${pad} V ${height - pad} H ${width - pad}`);
-    axis.setAttribute("fill", "none");
-    axis.setAttribute("stroke", "#667085");
-    axis.setAttribute("stroke-width", "1.5");
-    svg.appendChild(axis);
+    svgText(svg, `Y: ${shortLabel(yLabel, 84)}`, { class: "plot-axis-label", x: plot.left, y: 30 });
+    svgText(svg, `X: ${shortLabel(xLabel, 92)}`, { class: "plot-axis-label", x: plot.left + xRange / 2, y: height - 24, "text-anchor": "middle" });
 
-    xs.forEach((x, index) => {
-      const point = document.createElementNS(svg.namespaceURI, "circle");
-      point.setAttribute("class", "plot-point");
-      point.setAttribute("cx", sx(x));
-      point.setAttribute("cy", sy(ys[index]));
-      point.setAttribute("r", "5");
-      const title = document.createElementNS(svg.namespaceURI, "title");
-      title.textContent = `${labels[index] || "run"}: ${numericText(x)}, ${numericText(ys[index])}`;
-      point.appendChild(title);
-      svg.appendChild(point);
+    ticks(xDomain[0], xDomain[1]).forEach((tick) => {
+      const x = sx(tick);
+      svg.appendChild(svgNode(svg, "line", { class: "plot-grid-line", x1: x, y1: plot.top, x2: x, y2: height - plot.bottom }));
+      svgText(svg, numericText(tick), { class: "plot-tick-label", x, y: height - plot.bottom + 24, "text-anchor": "middle" });
+    });
+    ticks(yDomain[0], yDomain[1]).forEach((tick) => {
+      const y = sy(tick);
+      svg.appendChild(svgNode(svg, "line", { class: "plot-grid-line", x1: plot.left, y1: y, x2: width - plot.right, y2: y }));
+      svgText(svg, numericText(tick), { class: "plot-tick-label", x: plot.left - 12, y: y + 4, "text-anchor": "end" });
+    });
+
+    svg.appendChild(svgNode(svg, "path", {
+      class: "plot-axis",
+      d: `M ${plot.left} ${plot.top} V ${height - plot.bottom} H ${width - plot.right}`,
+    }));
+
+    const placedLabels = [];
+    const labelBudget = Math.min(10, Math.max(3, Math.floor(points.length / 2)));
+    points.forEach((point) => {
+      const cx = sx(point.x);
+      const cy = sy(point.y);
+      const marker = svgNode(svg, "circle", { class: "plot-point", cx, cy, r: 7 });
+      const title = svgNode(svg, "title");
+      title.textContent = `${point.label}: ${xLabel} ${numericText(point.x)}, ${yLabel} ${numericText(point.y)}`;
+      marker.appendChild(title);
+      svg.appendChild(marker);
+      if (placedLabels.length < labelBudget && shouldPlaceLabel(placedLabels, cx, cy)) {
+        const anchor = cx > width - 260 ? "end" : "start";
+        const labelX = anchor === "end" ? cx - 10 : cx + 10;
+        const labelY = Math.max(plot.top + 16, Math.min(height - plot.bottom - 10, cy - 10));
+        svgText(svg, shortLabel(point.label, 26), { class: "plot-point-label", x: labelX, y: labelY, "text-anchor": anchor });
+        placedLabels.push({ x: labelX, y: labelY });
+      }
     });
     container.appendChild(svg);
   }
@@ -1125,6 +1593,437 @@ _APP_JS: Final[str] = """(() => {
     }
     const payload = await api("/api/plot", { kind: "scatter", x_metric: xMetric, y_metric: yMetric, max_depth: maxDepth() });
     renderSvgScatter(byId("plot"), payload);
+  }
+
+  function ablationMetric(row, metricName) {
+    return (row.metrics || []).find((item) => item.metric_name === metricName) || null;
+  }
+
+  function ablationMetricValue(row, metricName, key) {
+    const metric = ablationMetric(row, metricName);
+    return metric ? metric[key] : null;
+  }
+
+  function ablationMetricClass(metric) {
+    if (!metric || metric.direction === "incomplete") {
+      return "missing";
+    }
+    if (metric.improved) {
+      return "improved";
+    }
+    if (metric.regressed) {
+      return "regressed";
+    }
+    return "neutral";
+  }
+
+  function renderAblationDeltaPlot(container, payload, metricName) {
+    clearNode(container);
+    const rows = (payload.candidates || [])
+      .map((candidate) => ({ candidate, metric: ablationMetric(candidate, metricName) }))
+      .filter((row) => row.metric && Number.isFinite(Number(row.metric.delta)))
+      .slice(0, 14);
+    if (!rows.length) {
+      empty(container, "No numeric ablation deltas found.");
+      return;
+    }
+    const width = 1180;
+    const rowHeight = 34;
+    const height = Math.max(390, 104 + rows.length * rowHeight);
+    const plot = { left: 310, right: 132, top: 56, bottom: 54 };
+    const maxAbs = Math.max(...rows.map((row) => Math.abs(Number(row.metric.delta)))) || 1;
+    const zeroX = plot.left + (width - plot.left - plot.right) / 2;
+    const sx = (value) => zeroX + (Number(value) / maxAbs) * ((width - plot.left - plot.right) / 2);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", `Ablation delta for ${metricName} against ${payload.baseline_run_id || "baseline"}`);
+
+    [-maxAbs, 0, maxAbs].forEach((tick) => {
+      const x = sx(tick);
+      svg.appendChild(svgNode(svg, "line", { class: tick === 0 ? "plot-zero-line" : "plot-grid-line", x1: x, y1: plot.top - 18, x2: x, y2: height - plot.bottom + 8 }));
+      svgText(svg, numericText(tick), { class: "plot-tick-label", x, y: height - 18, "text-anchor": "middle" });
+    });
+    svgText(svg, `${shortLabel(metricName, 72)} delta vs ${payload.baseline_run_id || "baseline"}`, { class: "plot-axis-label", x: zeroX, y: 28, "text-anchor": "middle" });
+
+    rows.forEach((row, index) => {
+      const delta = Number(row.metric.delta);
+      const y = plot.top + index * rowHeight;
+      const x0 = sx(0);
+      const x1 = sx(delta);
+      const x = Math.min(x0, x1);
+      const widthValue = Math.max(2, Math.abs(x1 - x0));
+      svgText(svg, shortLabel(row.candidate.policy_name || row.candidate.run_id, 34), { class: "plot-tick-label", x: plot.left - 12, y: y + 17, "text-anchor": "end" });
+      const bar = svgNode(svg, "rect", {
+        class: `plot-bar ${ablationMetricClass(row.metric)}`,
+        x,
+        y,
+        width: widthValue,
+        height: 18,
+        rx: 3,
+      });
+      const title = svgNode(svg, "title");
+      title.textContent = `${row.candidate.policy_name}: baseline ${numericText(row.metric.baseline_value)}, candidate ${numericText(row.metric.candidate_value)}, delta ${numericText(row.metric.delta)}`;
+      bar.appendChild(title);
+      svg.appendChild(bar);
+      svgText(svg, numericText(delta), { class: "plot-tick-label", x: width - plot.right + 10, y: y + 17 });
+    });
+    container.appendChild(svg);
+  }
+
+  function renderAblationHeatmap(container, payload, metricNames) {
+    clearNode(container);
+    const rows = (payload.candidates || []).slice(0, 14);
+    const metrics = metricNames.filter(Boolean).slice(0, 4);
+    if (!rows.length || !metrics.length) {
+      empty(container, "No ablation metrics found.");
+      return;
+    }
+    const width = 1180;
+    const plot = { left: 280, right: 36, top: 62, bottom: 24 };
+    const rowHeight = 34;
+    const cellWidth = (width - plot.left - plot.right) / metrics.length;
+    const height = Math.max(280, plot.top + rows.length * rowHeight + plot.bottom);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", `Ablation metric direction heatmap for ${metrics.join(", ")}`);
+
+    metrics.forEach((metricName, index) => {
+      svgText(svg, shortLabel(metricName, 18), {
+        class: "heat-label",
+        x: plot.left + index * cellWidth + cellWidth / 2,
+        y: 34,
+        "text-anchor": "middle",
+      });
+    });
+
+    rows.forEach((candidate, rowIndex) => {
+      const y = plot.top + rowIndex * rowHeight;
+      svgText(svg, shortLabel(candidate.policy_name || candidate.run_id, 34), { class: "heat-label", x: plot.left - 12, y: y + 22, "text-anchor": "end" });
+      metrics.forEach((metricName, colIndex) => {
+        const metric = ablationMetric(candidate, metricName);
+        const x = plot.left + colIndex * cellWidth;
+        const cell = svgNode(svg, "rect", {
+          class: `heat-cell ${ablationMetricClass(metric)}`,
+          x: x + 3,
+          y: y + 3,
+          width: Math.max(8, cellWidth - 6),
+          height: rowHeight - 7,
+          rx: 4,
+        });
+        const title = svgNode(svg, "title");
+        title.textContent = metric
+          ? `${candidate.policy_name}: ${metricName}, baseline ${numericText(metric.baseline_value)}, candidate ${numericText(metric.candidate_value)}, delta ${numericText(metric.delta)}`
+          : `${candidate.policy_name}: ${metricName} missing`;
+        cell.appendChild(title);
+        svg.appendChild(cell);
+        svgText(svg, metric ? numericText(metric.delta) : "-", {
+          class: "heat-value",
+          x: x + cellWidth / 2,
+          y: y + 22,
+          "text-anchor": "middle",
+        });
+      });
+    });
+    container.appendChild(svg);
+  }
+
+  function clearAblationPlots(message) {
+    byId("ablation-delta-summary").textContent = "";
+    byId("ablation-heatmap-summary").textContent = "";
+    empty(byId("ablation-delta-plot"), message);
+    empty(byId("ablation-heatmap"), message);
+  }
+
+  async function renderAblations() {
+    const selected = [byId("metric-select").value, byId("x-select").value, byId("y-select").value]
+      .filter(Boolean)
+      .filter((value, index, array) => array.indexOf(value) === index)
+      .slice(0, 3);
+    if (!selected.length) {
+      byId("ablation-summary").textContent = "";
+      empty(byId("ablation-table"), "No numeric metrics found.");
+      clearAblationPlots("No numeric metrics found.");
+      return;
+    }
+    let payload;
+    try {
+      payload = await api("/api/ablations", {
+        metric: selected.map((name) => `${name}:${inferMode(name)}`),
+        max_depth: maxDepth(),
+      });
+    } catch (error) {
+      byId("ablation-summary").textContent = "";
+      empty(byId("ablation-table"), error.message || "No ablations found.");
+      clearAblationPlots(error.message || "No ablations found.");
+      return;
+    }
+    byId("ablation-summary").textContent = `${payload.candidate_count || 0} policies vs ${payload.baseline_run_id || "reference"}`;
+    const primary = selected[0];
+    table(byId("ablation-table"), [
+      { label: "Policy", key: "policy_name" },
+      { label: "Run", key: "run_id" },
+      { label: "Score", key: "net_score", numeric: true },
+      { label: "Improved", key: "improved_count", numeric: true },
+      { label: "Regressed", key: "regressed_count", numeric: true },
+      { label: primary, key: "metrics", numeric: true, render: (row) => numericText(ablationMetricValue(row, primary, "candidate_value")) },
+      { label: "Delta", key: "metrics", numeric: true, render: (row) => numericText(ablationMetricValue(row, primary, "delta")) },
+      { label: "%", key: "metrics", numeric: true, render: (row) => numericText(ablationMetricValue(row, primary, "percent_delta")) },
+    ], payload.candidates || []);
+    byId("ablation-delta-summary").textContent = primary;
+    byId("ablation-heatmap-summary").textContent = `${selected.length} metrics`;
+    renderAblationDeltaPlot(byId("ablation-delta-plot"), payload, primary);
+    renderAblationHeatmap(byId("ablation-heatmap"), payload, selected);
+  }
+
+  const plotColors = ["#0b7d7f", "#b54708", "#315c9c", "#1b8a5a", "#7a3ea1", "#6b7280"];
+
+  function evidenceMetricHint(metricName) {
+    const lowered = valueText(metricName).toLowerCase();
+    if (lowered.includes("bedroc")) {
+      return "bedroc";
+    }
+    if (lowered.includes("pr") && lowered.includes("auc")) {
+      return "pr-auc";
+    }
+    if (lowered.includes("roc") || lowered.includes("auc")) {
+      return "roc-auc";
+    }
+    if (lowered.includes("rmse")) {
+      return "rmse";
+    }
+    if (lowered.includes("mae")) {
+      return "mae";
+    }
+    if (lowered.includes("r2")) {
+      return "r2";
+    }
+    return "";
+  }
+
+  function pickEvidenceMetric(points, selectedMetric) {
+    const metricNames = [...new Set((points || []).map((point) => point.metric_name).filter(Boolean))];
+    if (!metricNames.length) {
+      return "";
+    }
+    const hint = evidenceMetricHint(selectedMetric);
+    if (hint) {
+      const match = metricNames.find((name) => name.toLowerCase().includes(hint));
+      if (match) {
+        return match;
+      }
+    }
+    return metricNames[0];
+  }
+
+  function renderEvidencePerformancePlot(container, points, selectedMetric) {
+    clearNode(container);
+    const metricName = pickEvidenceMetric(points, selectedMetric);
+    const rows = (points || [])
+      .filter((point) => point.metric_name === metricName && Number.isFinite(Number(point.value)))
+      .sort((left, right) => Number(right.value) - Number(left.value))
+      .slice(0, 16);
+    if (!rows.length) {
+      empty(container, "No performance table points found.");
+      return "";
+    }
+    const width = 1180;
+    const rowHeight = 34;
+    const height = Math.max(390, 106 + rows.length * rowHeight);
+    const plot = { left: 330, right: 96, top: 58, bottom: 48 };
+    const values = rows.map((row) => Number(row.value));
+    const maxValue = Math.max(...values, 1);
+    const minValue = Math.min(0, Math.min(...values));
+    const span = maxValue - minValue || 1;
+    const sx = (value) => plot.left + ((Number(value) - minValue) / span) * (width - plot.left - plot.right);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", `Performance profile for ${metricName}`);
+    svgText(svg, `${shortLabel(metricName, 76)} performance profile`, { class: "plot-axis-label", x: plot.left, y: 30 });
+    ticks(minValue, maxValue, 4).forEach((tick) => {
+      const x = sx(tick);
+      svg.appendChild(svgNode(svg, "line", { class: "plot-grid-line", x1: x, y1: plot.top - 12, x2: x, y2: height - plot.bottom }));
+      svgText(svg, numericText(tick), { class: "plot-tick-label", x, y: height - 18, "text-anchor": "middle" });
+    });
+    rows.forEach((row, index) => {
+      const y = plot.top + index * rowHeight;
+      const value = Number(row.value);
+      const label = `${row.policy_name || row.run_id} / ${row.label}`;
+      svgText(svg, shortLabel(label, 38), { class: "plot-tick-label", x: plot.left - 12, y: y + 20, "text-anchor": "end" });
+      const bar = svgNode(svg, "rect", {
+        class: "plot-bar performance",
+        x: sx(Math.min(0, value)),
+        y: y + 3,
+        width: Math.max(2, Math.abs(sx(value) - sx(0))),
+        height: 21,
+        rx: 4,
+      });
+      const title = svgNode(svg, "title");
+      title.textContent = `${label}: ${metricName} ${numericText(value)} from ${row.file_name || "evidence"}`;
+      bar.appendChild(title);
+      svg.appendChild(bar);
+      svgText(svg, numericText(value), { class: "plot-tick-label", x: width - plot.right + 10, y: y + 20 });
+    });
+    container.appendChild(svg);
+    return metricName;
+  }
+
+  function renderEvidenceTracePlot(container, points) {
+    clearNode(container);
+    const grouped = new Map();
+    (points || []).forEach((point) => {
+      if (!Number.isFinite(Number(point.trial)) || !Number.isFinite(Number(point.best_value))) {
+        return;
+      }
+      const series = point.series || point.run_id || "trace";
+      if (!grouped.has(series)) {
+        grouped.set(series, []);
+      }
+      grouped.get(series).push(point);
+    });
+    const seriesRows = [...grouped.entries()].slice(0, 6).map(([series, rows]) => [series, rows.sort((left, right) => Number(left.trial) - Number(right.trial))]);
+    if (!seriesRows.length) {
+      empty(container, "No Optuna trial traces found.");
+      return;
+    }
+    const all = seriesRows.flatMap(([_series, rows]) => rows);
+    const width = 1180;
+    const height = 390;
+    const plot = { left: 88, right: 42, top: 62, bottom: 60 };
+    const xDomain = paddedDomain(all.map((point) => Number(point.trial)));
+    const yDomain = paddedDomain(all.map((point) => Number(point.best_value)));
+    const sx = (value) => plot.left + ((Number(value) - xDomain[0]) / (xDomain[1] - xDomain[0])) * (width - plot.left - plot.right);
+    const sy = (value) => height - plot.bottom - ((Number(value) - yDomain[0]) / (yDomain[1] - yDomain[0])) * (height - plot.top - plot.bottom);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Optuna best-value trace");
+    svgText(svg, "Optuna best value by trial", { class: "plot-axis-label", x: plot.left, y: 30 });
+    ticks(xDomain[0], xDomain[1], 5).forEach((tick) => {
+      const x = sx(tick);
+      svg.appendChild(svgNode(svg, "line", { class: "plot-grid-line", x1: x, y1: plot.top, x2: x, y2: height - plot.bottom }));
+      svgText(svg, numericText(tick), { class: "plot-tick-label", x, y: height - 22, "text-anchor": "middle" });
+    });
+    ticks(yDomain[0], yDomain[1], 5).forEach((tick) => {
+      const y = sy(tick);
+      svg.appendChild(svgNode(svg, "line", { class: "plot-grid-line", x1: plot.left, y1: y, x2: width - plot.right, y2: y }));
+      svgText(svg, numericText(tick), { class: "plot-tick-label", x: plot.left - 12, y: y + 4, "text-anchor": "end" });
+    });
+    seriesRows.forEach(([series, rows], index) => {
+      const color = plotColors[index % plotColors.length];
+      const pathData = rows.map((point, pointIndex) => `${pointIndex === 0 ? "M" : "L"} ${sx(point.trial)} ${sy(point.best_value)}`).join(" ");
+      svg.appendChild(svgNode(svg, "path", { d: pathData, fill: "none", stroke: color, "stroke-width": 2.4 }));
+      svgText(svg, shortLabel(series, 30), { class: "plot-tick-label", x: plot.left + 170 * index, y: 50, fill: color });
+    });
+    svgText(svg, "Trial", { class: "plot-axis-label", x: plot.left + (width - plot.left - plot.right) / 2, y: height - 12, "text-anchor": "middle" });
+    container.appendChild(svg);
+  }
+
+  function renderShapFeaturePlot(container, features) {
+    clearNode(container);
+    const rows = (features || []).filter((row) => Number.isFinite(Number(row.mean_abs_shap))).slice(0, 16);
+    if (!rows.length) {
+      empty(container, "No SHAP values found.");
+      return;
+    }
+    const width = 1180;
+    const rowHeight = 34;
+    const height = Math.max(390, 104 + rows.length * rowHeight);
+    const plot = { left: 390, right: 96, top: 56, bottom: 48 };
+    const maxValue = Math.max(...rows.map((row) => Number(row.mean_abs_shap)), 1);
+    const sx = (value) => plot.left + (Number(value) / maxValue) * (width - plot.left - plot.right);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Mean absolute SHAP feature importance");
+    svgText(svg, "Mean absolute SHAP", { class: "plot-axis-label", x: plot.left, y: 28 });
+    ticks(0, maxValue, 4).forEach((tick) => {
+      const x = sx(tick);
+      svg.appendChild(svgNode(svg, "line", { class: "plot-grid-line", x1: x, y1: plot.top - 12, x2: x, y2: height - plot.bottom }));
+      svgText(svg, numericText(tick), { class: "plot-tick-label", x, y: height - 18, "text-anchor": "middle" });
+    });
+    rows.forEach((row, index) => {
+      const y = plot.top + index * rowHeight;
+      const value = Number(row.mean_abs_shap);
+      svgText(svg, shortLabel(row.feature, 44), { class: "plot-tick-label", x: plot.left - 12, y: y + 20, "text-anchor": "end" });
+      svg.appendChild(svgNode(svg, "rect", { class: "plot-bar shap", x: plot.left, y: y + 3, width: Math.max(2, sx(value) - plot.left), height: 21, rx: 4 }));
+      svgText(svg, numericText(value), { class: "plot-tick-label", x: width - plot.right + 10, y: y + 20 });
+    });
+    container.appendChild(svg);
+  }
+
+  function isEvidenceImage(entry) {
+    const kind = valueText(entry.kind);
+    const suffix = valueText(entry.suffix || pathSuffix(entry.path)).toLowerCase();
+    return (kind === "shap" || kind === "figure") && [".png", ".jpg", ".jpeg"].includes(suffix);
+  }
+
+  function renderEvidenceGallery(container, entries) {
+    clearNode(container);
+    const rows = (entries || []).filter(isEvidenceImage).slice(0, 24);
+    if (!rows.length) {
+      empty(container, "No previewable evidence figures found.");
+      return 0;
+    }
+    rows.forEach((entry) => {
+      const item = document.createElement("article");
+      item.className = "evidence-thumb";
+      const image = document.createElement("img");
+      image.loading = "lazy";
+      image.decoding = "async";
+      image.alt = `${entry.role || entry.kind} ${pathLeaf(entry.path)}`;
+      image.src = evidenceImageUrl(entry);
+      const title = document.createElement("strong");
+      title.textContent = pathLeaf(entry.path);
+      const detail = document.createElement("span");
+      detail.textContent = [entry.policy_name, entry.dataset, entry.role].filter(Boolean).join(" / ");
+      item.append(image, title, detail);
+      container.appendChild(item);
+    });
+    return rows.length;
+  }
+
+  async function renderEvidence() {
+    let payload;
+    try {
+      payload = await api("/api/evidence", {
+        max_depth: maxDepth(),
+        source_depth: 5,
+        max_entries: 240,
+        max_csv_rows: 400,
+        max_series: 6,
+        max_shap_features: 30,
+      });
+    } catch (error) {
+      byId("evidence-summary").textContent = "";
+      empty(byId("evidence-performance-plot"), error.message || "No evidence found.");
+      empty(byId("evidence-optuna-plot"), error.message || "No evidence found.");
+      empty(byId("evidence-shap-plot"), error.message || "No evidence found.");
+      byId("evidence-gallery-summary").textContent = "";
+      empty(byId("evidence-gallery"), error.message || "No evidence found.");
+      empty(byId("evidence-files"), error.message || "No evidence found.");
+      return;
+    }
+    byId("evidence-summary").textContent = `${payload.evidence_count || 0} files / ${payload.issue_count || 0} issues`;
+    const selectedMetric = byId("metric-select").value;
+    const performanceMetric = renderEvidencePerformancePlot(byId("evidence-performance-plot"), payload.performance_points || [], selectedMetric);
+    byId("evidence-performance-summary").textContent = performanceMetric || "";
+    byId("evidence-optuna-summary").textContent = `${(payload.optimization_points || []).length} points`;
+    renderEvidenceTracePlot(byId("evidence-optuna-plot"), payload.optimization_points || []);
+    byId("evidence-shap-summary").textContent = `${(payload.shap_features || []).length} features`;
+    renderShapFeaturePlot(byId("evidence-shap-plot"), payload.shap_features || []);
+    const galleryCount = renderEvidenceGallery(byId("evidence-gallery"), payload.entries || []);
+    byId("evidence-gallery-summary").textContent = `${galleryCount} preview images`;
+    table(byId("evidence-files"), [
+      { label: "Kind", key: "kind" },
+      { label: "Role", key: "role" },
+      { label: "Dataset", key: "dataset" },
+      { label: "Policy", key: "policy_name" },
+      { label: "File", key: "path", render: (row) => pathLeaf(row.path) },
+      { label: "Metrics", key: "metric_names", render: (row) => (row.metric_names || []).slice(0, 4).join(", ") },
+    ], (payload.entries || []).slice(0, 120));
   }
 
   async function renderReport() {
@@ -1161,7 +2060,7 @@ _APP_JS: Final[str] = """(() => {
   }
 
   async function renderDecisionViews() {
-    await Promise.all([renderLeaderboard(), renderPareto(), renderPlot(), renderReport()]);
+    await Promise.all([renderLeaderboard(), renderPareto(), renderPlot(), renderAblations(), renderEvidence(), renderReport()]);
   }
 
   async function refresh() {

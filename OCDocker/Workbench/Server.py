@@ -19,12 +19,16 @@ from typing import Any
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
+from OCDocker.Workbench.Ablation import build_ablation_analysis
+from OCDocker.Workbench.Ablation import parse_ablation_metric
 from OCDocker.Workbench.Artifacts import build_artifact_index
 from OCDocker.Workbench.Comparison import build_run_comparison
 from OCDocker.Workbench.Comparison import parse_comparison_metric
 from OCDocker.Workbench.Decision import build_metrics_catalog
 from OCDocker.Workbench.Decision import build_pareto_front
 from OCDocker.Workbench.Decision import parse_pareto_objective
+from OCDocker.Workbench.Evidence import build_evidence_index
+from OCDocker.Workbench.Evidence import resolve_evidence_asset
 from OCDocker.Workbench.IO import model_to_data
 from OCDocker.Workbench.Leaderboard import build_metric_leaderboard
 from OCDocker.Workbench.Logs import preview_run_logs
@@ -128,6 +132,9 @@ def _endpoint_index(root: Path, *, default_max_depth: int) -> dict[str, Any]:
             "/api/overview",
             "/api/inventory",
             "/api/artifacts",
+            "/api/ablations",
+            "/api/evidence",
+            "/api/evidence-asset",
             "/api/metrics-catalog",
             "/api/metrics-matrix",
             "/api/leaderboard",
@@ -390,6 +397,41 @@ def _plot_payload(root: Path, query: QueryMap, *, default_max_depth: int) -> dic
     return _model_payload(plot)
 
 
+def _evidence_asset_response(root: Path, query: QueryMap, *, default_max_depth: int) -> tuple[str, bytes]:
+    '''Build a constrained binary evidence asset response.
+
+    Parameters
+    ----------
+    root : pathlib.Path
+        Served Workbench root.
+    query : QueryMap
+        Parsed query string.
+    default_max_depth : int
+        Default manifest scan depth.
+
+    Returns
+    -------
+    tuple[str, bytes]
+        HTTP content type and asset bytes.
+    '''
+
+    try:
+        asset_path, content_type = resolve_evidence_asset(
+            root,
+            _required(query, "path"),
+            max_depth=_max_depth(query, default_max_depth),
+            source_depth=_int_query(query, "source_depth", 6),
+        )
+    except FileNotFoundError as exc:
+        raise WorkbenchAPIError(str(exc), status_code=404) from exc
+    except ValueError as exc:
+        raise WorkbenchAPIError(str(exc), status_code=403) from exc
+    try:
+        return content_type, asset_path.read_bytes()
+    except OSError as exc:
+        raise WorkbenchAPIError(f"Could not read evidence asset: {asset_path}", status_code=404) from exc
+
+
 def _json_bytes(payload: dict[str, Any]) -> bytes:
     '''Encode an API payload as JSON bytes.
 
@@ -471,6 +513,18 @@ def build_workbench_api_payload(
                 max_depth=max_depth,
             )
         )
+    if path == "/api/evidence":
+        return _model_payload(
+            build_evidence_index(
+                root_path,
+                max_depth=max_depth,
+                source_depth=_int_query(request_query, "source_depth", 6),
+                max_entries=_int_query(request_query, "max_entries", 400),
+                max_csv_rows=_int_query(request_query, "max_csv_rows", 1000),
+                max_series=_int_query(request_query, "max_series", 8),
+                max_shap_features=_int_query(request_query, "max_shap_features", 30),
+            )
+        )
     if path == "/api/metrics-catalog":
         return _model_payload(build_metrics_catalog(root_path, max_depth=max_depth))
     if path == "/api/metrics-matrix":
@@ -506,6 +560,18 @@ def build_workbench_api_payload(
                 max_depth=max_depth,
                 recent_limit=_int_query(request_query, "recent_limit", 20),
                 top_n=_int_query(request_query, "top_n", 5),
+            )
+        )
+
+    if path == "/api/ablations":
+        metrics = tuple(parse_ablation_metric(value) for value in _values(request_query, "metric"))
+        return _model_payload(
+            build_ablation_analysis(
+                root_path,
+                baseline_run_id=_first(request_query, "baseline"),
+                candidates=_values(request_query, "candidate"),
+                metrics=metrics,
+                max_depth=max_depth,
             )
         )
     if path == "/api/compare":
@@ -602,6 +668,25 @@ def build_workbench_api_handler(
                 return
 
             query = parse_qs(parsed.query, keep_blank_values=False)
+            if parsed.path == "/api/evidence-asset":
+                try:
+                    content_type, body = _evidence_asset_response(
+                        self.workbench_root,
+                        query,
+                        default_max_depth=self.workbench_default_max_depth,
+                    )
+                    self._send_bytes(body, content_type=content_type, status_code=200)
+                except WorkbenchAPIError as exc:
+                    self._send_json(
+                        {"ok": False, "error": str(exc)},
+                        status_code=exc.status_code,
+                    )
+                except Exception as exc:
+                    self._send_json(
+                        {"ok": False, "error": str(exc)},
+                        status_code=500,
+                    )
+                return
             try:
                 payload = build_workbench_api_payload(
                     self.workbench_root,

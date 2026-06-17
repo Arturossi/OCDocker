@@ -49,10 +49,39 @@ def test_build_workbench_web_asset_serves_browser_entrypoint() -> None:
     assert style_type == "text/css; charset=utf-8"
     assert b"Decision Console" in body
     assert b"Run Detail" in body
+    assert b"Ablations" in body
+    assert b"Ablation Delta" in body
+    assert b"Metric Direction Heatmap" in body
+    assert b"Evidence Explorer" in body
+    assert b"Performance Profile" in body
+    assert b"Optuna Trace" in body
+    assert b"SHAP Importance" in body
+    assert b"Figure Gallery" in body
+    assert b"ablation-delta-plot" in body
+    assert b"ablation-heatmap" in body
+    assert b"evidence-performance-plot" in body
+    assert b"evidence-gallery" in body
     assert b"/api/overview" in script
     assert b"/api/run-detail" in script
+    assert b"/api/ablations" in script
+    assert b"/api/evidence" in script
+    assert b"/api/evidence-asset" in script
+    assert b"renderAblationDeltaPlot" in script
+    assert b"renderAblationHeatmap" in script
+    assert b"renderEvidencePerformancePlot" in script
+    assert b"renderEvidenceTracePlot" in script
+    assert b"renderShapFeaturePlot" in script
+    assert b"renderEvidenceGallery" in script
+    assert b"plot-axis-label" in script
+    assert b"x axis" in script
     assert b".stat-grid" in style
     assert b".detail-grid" in style
+    assert b"decision-grid" in style
+    assert b".plot-split" in style
+    assert b".evidence-grid" in style
+    assert b".evidence-gallery" in style
+    assert b".heat-cell" in style
+    assert b".plot-zero-line" in style
 
 
 def test_is_workbench_web_asset_path_recognizes_known_routes() -> None:

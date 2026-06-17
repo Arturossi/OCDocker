@@ -13,6 +13,8 @@ from __future__ import annotations
 import http.client
 import threading
 
+from urllib.parse import urlencode
+
 import pytest
 
 from OCDocker.Workbench import ResultArtifact
@@ -108,6 +110,83 @@ def _write_api_run_bundle(tmp_path):
     return run_dir
 
 
+def _write_api_evidence_workspace(tmp_path) -> None:
+    '''Write a synthetic adopted evidence workspace for API tests.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    source_root = tmp_path / "source" / "output"
+    train_source = source_root / "train"
+    train_source.mkdir(parents=True)
+    (train_source / "baselines_per_fold.csv").write_text(
+        "baseline,baseline_family,split,BEDROC,replica\nvina,scoring_function,validation,0.30,replica_000\n",
+        encoding="utf-8",
+    )
+    optuna_dir = train_source / "replica_001" / "dudez"
+    optuna_dir.mkdir(parents=True)
+    (optuna_dir / "dudez_optuna_trials.csv").write_text(
+        "number,value,state\n0,0.50,COMPLETE\n1,0.60,COMPLETE\n",
+        encoding="utf-8",
+    )
+    shap_dir = source_root / "export" / "dudez" / "shap"
+    shap_dir.mkdir(parents=True)
+    (shap_dir / "shap_values.csv").write_text("feature_a,feature_b\n1.0,-2.0\n", encoding="utf-8")
+    (shap_dir / "shap_feature_importance.png").write_bytes(b"png")
+    run_dir = tmp_path / "train"
+    run_dir.mkdir()
+    write_model(
+        run_dir / "run_manifest.yml",
+        RunManifest(
+            run_id="train",
+            spec_type="ocscore_study",
+            name="train",
+            status="completed",
+            workspace=train_source,
+            metadata={"adopted": True, "source_path": str(train_source)},
+        ),
+    )
+    write_model(
+        run_dir / "result_manifest.yml",
+        ResultManifest(run_id="train", status="completed", metrics={"auc": 0.9}),
+    )
+
+
+def _write_api_ablation_workspace(tmp_path) -> None:
+    '''Write a synthetic adopted ablation workspace for API tests.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    for run_id, source_path, metrics in (
+        ("train", "/source/output/train", {"auc": 0.88, "loss": 0.20}),
+        ("shape_only", "/source/output/train/ablations/shape_only", {"auc": 0.91, "loss": 0.18}),
+    ):
+        run_dir = tmp_path / run_id
+        run_dir.mkdir()
+        write_model(
+            run_dir / "run_manifest.yml",
+            RunManifest(
+                run_id=run_id,
+                spec_type="ocscore_ablation",
+                name=run_id,
+                status="completed",
+                workspace=source_path,
+                metadata={"adopted": True, "source_path": source_path},
+            ),
+        )
+        write_model(
+            run_dir / "result_manifest.yml",
+            ResultManifest(run_id=run_id, status="completed", metrics=metrics),
+        )
+
+
 ## Public ##
 
 
@@ -166,6 +245,55 @@ def test_build_workbench_api_payload_serves_decision_endpoints(tmp_path) -> None
     assert leaderboard["best_entry"]["run_id"] == "candidate"
     assert comparison["best_candidate"]["run_id"] == "candidate"
     assert comparison["best_candidate"]["net_score"] == 2
+
+
+def test_build_workbench_api_payload_serves_evidence_endpoint(tmp_path) -> None:
+    '''Workbench API exposes read-only OCScore evidence discovery.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    _write_api_evidence_workspace(tmp_path)
+
+    payload = build_workbench_api_payload(
+        tmp_path,
+        "/api/evidence",
+        {"max_depth": ["2"], "source_depth": ["4"], "max_csv_rows": ["20"]},
+    )
+
+    assert payload["evidence_count"] == 4
+    assert payload["kind_counts"]["performance"] == 1
+    assert payload["kind_counts"]["optimization"] == 1
+    assert payload["kind_counts"]["shap"] == 2
+    assert payload["performance_points"][0]["metric_name"] == "BEDROC"
+    assert payload["optimization_points"][-1]["best_value"] == 0.6
+    assert payload["shap_features"][0]["feature"] == "feature_b"
+
+
+def test_build_workbench_api_payload_serves_ablation_endpoint(tmp_path) -> None:
+    '''Workbench API payloads expose ablation comparisons.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    _write_api_ablation_workspace(tmp_path)
+
+    payload = build_workbench_api_payload(
+        tmp_path,
+        "/api/ablations",
+        {"metric": ["auc:max", "loss:min"], "max_depth": ["2"]},
+    )
+
+    assert payload["baseline_run_id"] == "train"
+    assert payload["candidate_count"] == 1
+    assert payload["best_candidate"]["policy_name"] == "shape_only"
+    assert payload["best_candidate"]["net_score"] == 2
 
 
 def test_build_workbench_api_payload_serves_plot_endpoint(tmp_path) -> None:
@@ -277,3 +405,48 @@ def test_workbench_api_handler_serves_embedded_browser_assets(tmp_path) -> None:
     assert response.status == 200
     assert response.getheader("Content-Type") == "text/html; charset=utf-8"
     assert b"Decision Console" in body
+
+
+def test_workbench_api_handler_serves_constrained_evidence_assets(tmp_path) -> None:
+    '''Workbench API handlers serve discovered image evidence assets only.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    from http.server import ThreadingHTTPServer
+
+    _write_api_evidence_workspace(tmp_path)
+    image_path = tmp_path / "source" / "output" / "export" / "dudez" / "shap" / "shap_feature_importance.png"
+    outside_path = tmp_path / "outside.png"
+    outside_path.write_bytes(b"png")
+
+    handler = build_workbench_api_handler(tmp_path, default_max_depth=2)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        allowed_query = urlencode({"path": str(image_path), "max_depth": 2, "source_depth": 4})
+        connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+        connection.request("GET", f"/api/evidence-asset?{allowed_query}")
+        response = connection.getresponse()
+        body = response.read()
+        connection.close()
+
+        denied_query = urlencode({"path": str(outside_path), "max_depth": 2, "source_depth": 4})
+        connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+        connection.request("GET", f"/api/evidence-asset?{denied_query}")
+        denied_response = connection.getresponse()
+        denied_response.read()
+        connection.close()
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+    assert response.status == 200
+    assert response.getheader("Content-Type") == "image/png"
+    assert body == b"png"
+    assert denied_response.status == 403

@@ -10,6 +10,8 @@ Experiment workbench models and planners for OCDocker.
 ###############################################################################
 from OCDocker.Workbench.Adoption import build_adoption_plan
 from OCDocker.Workbench.Adoption import write_adoption_workspace
+from OCDocker.Workbench.Ablation import build_ablation_analysis
+from OCDocker.Workbench.Ablation import parse_ablation_metric
 from OCDocker.Workbench.Artifacts import build_artifact_index
 from OCDocker.Workbench.Bundle import build_run_bundle
 from OCDocker.Workbench.Comparison import build_run_comparison
@@ -17,6 +19,8 @@ from OCDocker.Workbench.Comparison import parse_comparison_metric
 from OCDocker.Workbench.Decision import build_metrics_catalog
 from OCDocker.Workbench.Decision import build_pareto_front
 from OCDocker.Workbench.Decision import parse_pareto_objective
+from OCDocker.Workbench.Evidence import build_evidence_index
+from OCDocker.Workbench.Evidence import resolve_evidence_asset
 from OCDocker.Workbench.Export import build_publication_export
 from OCDocker.Workbench.IO import model_to_data
 from OCDocker.Workbench.IO import read_result_manifest
@@ -31,6 +35,7 @@ from OCDocker.Workbench.MetricsMatrix import build_metric_matrix
 from OCDocker.Workbench.Logs import preview_run_logs
 from OCDocker.Workbench.Models import ComparisonDirection
 from OCDocker.Workbench.Models import FeaturePolicySelection
+from OCDocker.Workbench.Models import EvidenceKind
 from OCDocker.Workbench.Models import ExportedArtifact
 from OCDocker.Workbench.Models import InventoryIssue
 from OCDocker.Workbench.Models import MetricLeaderboardEntry
@@ -67,6 +72,8 @@ from OCDocker.Workbench.Models import RunStatusReport
 from OCDocker.Workbench.Models import SnakemakeWorkflowSpec
 from OCDocker.Workbench.Models import VSInputSpec
 from OCDocker.Workbench.Models import VSCampaignSpec
+from OCDocker.Workbench.Models import WorkbenchAblationAnalysis
+from OCDocker.Workbench.Models import WorkbenchAblationCandidate
 from OCDocker.Workbench.Models import WorkbenchAdoptedRun
 from OCDocker.Workbench.Models import WorkbenchAdoptionCandidate
 from OCDocker.Workbench.Models import WorkbenchAdoptionPlan
@@ -74,6 +81,8 @@ from OCDocker.Workbench.Models import WorkbenchAdoptionResult
 from OCDocker.Workbench.Models import WorkbenchAnalysisReport
 from OCDocker.Workbench.Models import WorkbenchArtifactEntry
 from OCDocker.Workbench.Models import WorkbenchArtifactIndex
+from OCDocker.Workbench.Models import WorkbenchEvidenceEntry
+from OCDocker.Workbench.Models import WorkbenchEvidenceIndex
 from OCDocker.Workbench.Models import WorkbenchComparison
 from OCDocker.Workbench.Models import WorkbenchComparisonCandidate
 from OCDocker.Workbench.Models import WorkbenchComparisonMetric
@@ -137,6 +146,7 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 __all__ = [
     "ComparisonDirection",
+    "EvidenceKind",
     "FeaturePolicySelection",
     "ExportedArtifact",
     "InventoryIssue",
@@ -175,6 +185,8 @@ __all__ = [
     "VSInputSpec",
     "VSCampaignSpec",
     "WorkbenchAPIError",
+    "WorkbenchAblationCandidate",
+    "WorkbenchAblationAnalysis",
     "WorkbenchAdoptionResult",
     "WorkbenchAdoptionPlan",
     "WorkbenchAdoptionCandidate",
@@ -182,6 +194,8 @@ __all__ = [
     "WorkbenchAnalysisReport",
     "WorkbenchArtifactEntry",
     "WorkbenchArtifactIndex",
+    "WorkbenchEvidenceEntry",
+    "WorkbenchEvidenceIndex",
     "WorkbenchComparison",
     "WorkbenchComparisonCandidate",
     "WorkbenchComparisonMetric",
@@ -193,10 +207,14 @@ __all__ = [
     "WorkspaceInventory",
     "WorkspaceOverview",
     "available_schema_names",
+    "parse_ablation_metric",
+    "build_ablation_analysis",
     "available_template_names",
     "write_adoption_workspace",
     "build_adoption_plan",
     "build_artifact_index",
+    "build_evidence_index",
+    "resolve_evidence_asset",
     "build_run_comparison",
     "build_json_schema",
     "write_launch_script",
