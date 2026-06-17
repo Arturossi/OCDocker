@@ -217,7 +217,6 @@ def _validation_payload(spec: WorkbenchSpec, spec_path: str | Path) -> dict[str,
 ## Public ##
 
 
-
 def cmd_artifacts(args: argparse.Namespace) -> int:
     '''Build a read-only cross-run artifact index.
 
@@ -245,6 +244,7 @@ def cmd_artifacts(args: argparse.Namespace) -> int:
         return 2
     _write_json_payload(model_to_data(index), args.output)
     return 0
+
 
 def cmd_check(args: argparse.Namespace) -> int:
     '''Build a read-only preflight report for a Workbench spec.

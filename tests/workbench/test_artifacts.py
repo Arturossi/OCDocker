@@ -118,8 +118,12 @@ def test_build_artifact_index_filters_kind_role_and_existing(tmp_path) -> None:
             run_id="run-a",
             status="completed",
             artifacts=(
-                ResultArtifact(name="figure", path="figure.png", kind="image", role="plot"),
-                ResultArtifact(name="table", path="table.csv", kind="csv", role="metrics"),
+                ResultArtifact(
+                    name="figure", path="figure.png", kind="image", role="plot"
+                ),
+                ResultArtifact(
+                    name="table", path="table.csv", kind="csv", role="metrics"
+                ),
             ),
         ),
     )

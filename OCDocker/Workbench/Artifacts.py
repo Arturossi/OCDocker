@@ -222,7 +222,9 @@ def _matches_filters(
     return True
 
 
-def _count_by(entries: tuple[WorkbenchArtifactEntry, ...], field_name: str) -> dict[str, int]:
+def _count_by(
+    entries: tuple[WorkbenchArtifactEntry, ...], field_name: str
+) -> dict[str, int]:
     '''Count artifact entries by a string field.
 
     Parameters

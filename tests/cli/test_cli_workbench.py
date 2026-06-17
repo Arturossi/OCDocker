@@ -104,7 +104,6 @@ def test_workbench_subcommands_registered(tmp_path) -> None:
     assert plan_args.run_id == "run-001"
     assert plan_args.func is cli_workbench.cmd_plan
 
-
     artifacts_args = parser.parse_args(
         ["workbench", "artifacts", str(tmp_path), "--kind", "csv", "--role", "metrics"]
     )
@@ -276,7 +275,6 @@ def test_workbench_subcommands_registered(tmp_path) -> None:
     assert template_args.func is cli_workbench.cmd_template
 
 
-
 def test_cmd_artifacts_prints_index_payload(tmp_path, capsys) -> None:
     '''Test Workbench artifact index output from the CLI layer.
 
@@ -295,8 +293,12 @@ def test_cmd_artifacts_prints_index_payload(tmp_path, capsys) -> None:
             run_id="run-cli-artifacts",
             status="completed",
             artifacts=(
-                ResultArtifact(name="metrics", path="metrics.csv", kind="csv", role="metrics"),
-                ResultArtifact(name="plot", path="missing.png", kind="image", role="plot"),
+                ResultArtifact(
+                    name="metrics", path="metrics.csv", kind="csv", role="metrics"
+                ),
+                ResultArtifact(
+                    name="plot", path="missing.png", kind="image", role="plot"
+                ),
             ),
         ),
     )
