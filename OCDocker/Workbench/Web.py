@@ -85,7 +85,9 @@ _INDEX_HTML: Final[str] = """<!doctype html>
       <span id="health-dot" class="dot pending"></span>
       <span id="health-label" class="run-context-health"></span>
       <span id="root-label" class="root-label run-context-root"></span>
-      <div id="run-context-items" class="run-context-items"></div>
+      <div id="run-context-scroll" class="run-context-scroll">
+        <div id="run-context-items" class="run-context-items"></div>
+      </div>
     </section>
     <nav class="app-tabs" role="tablist" aria-label="Dashboard sections">
       <button type="button" class="tab active" role="tab" id="tab-ablation" aria-selected="true" aria-controls="panel-ablation" data-tab="ablation">Ablation</button>
@@ -399,29 +401,37 @@ button:disabled { border-color: var(--line); background: var(--disabled-bg); col
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   font-size: 11px;
-  overflow-x: auto;
+  overflow: hidden;
 }
-.run-context-health { color: var(--muted); white-space: nowrap; }
+.run-context-health { color: var(--muted); white-space: nowrap; flex-shrink: 0; }
 .run-context-root {
   color: var(--muted);
   white-space: nowrap;
   max-width: 16ch;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 .run-context-root::before { content: "·"; margin-right: 8px; color: var(--line); }
+.run-context-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
 .run-context-items {
   display: flex;
   flex-wrap: nowrap;
   gap: 6px 12px;
   align-items: center;
-  min-width: 0;
+  width: max-content;
+  min-width: 100%;
+  will-change: transform;
 }
 .run-context-item {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  min-width: 0;
+  flex-shrink: 0;
   white-space: nowrap;
 }
 .run-context-item strong {
@@ -432,12 +442,9 @@ button:disabled { border-color: var(--line); background: var(--disabled-bg); col
   color: var(--muted);
 }
 .run-context-item span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 24ch;
 }
-.run-context-item.path-item span:last-child { max-width: 16ch; color: var(--muted); }
+.run-context-item.path-item span:last-child { color: var(--muted); }
 .app-tabs:has(.tab:only-child) { display: none; }
 .app-tabs {
   display: flex;
@@ -485,6 +492,7 @@ main { padding-top: 16px; padding-bottom: 32px; }
 .detail-panel .zone-block + .zone-block { margin-top: 12px; }
 .zone-block { display: grid; gap: 8px; }
 .zone-head { display: flex; align-items: center; }
+.zone-head-split { gap: 10px; flex-wrap: wrap; }
 .zone-toggle {
   display: inline-flex;
   align-items: center;
@@ -767,7 +775,20 @@ const RECOMMENDED_FIGURE_ROLES = new Set([
 const MODEL_COMPARISON_ROLES = new Set(["performance", "cv_mean_std", "cv_heatmap", "cv_fold_comparison", "per_target_validation", "optuna"]);
 const SELECTED_MODEL_ROLES = new Set(["shap", "shap_beeswarm", "shap_importance", "shap_dependence", "architecture"]);
 const UI_STATE_KEY = "ocscore-workbench-ui";
-const SPREAD_BAR_COLORS = ["#9ecae1", "#c6dbef", "#74c476", "#a1d99b", "#fd8d3c", "#fdae6b", "#bcbddc", "#9e9ac8"];
+const MODEL_CATEGORY_COLORS = {
+  full_ocscore: "#74c476",
+  ablation: "#9ecae1",
+  sf: "#f4b183",
+  consensus: "#c9b1d4",
+};
+const MODEL_CATEGORY_LABELS = {
+  full_ocscore: "full_ocscore",
+  ablation: "Ablation",
+  sf: "SF",
+  consensus: "Other consensus",
+};
+const RANK_BAR_COLORS = MODEL_CATEGORY_COLORS;
+const RANK_BAR_LABELS = MODEL_CATEGORY_LABELS;
 
 const state = {
   workspace: null,
@@ -1201,41 +1222,28 @@ function entryLegendCategory(item) {
   return "consensus";
 }
 
-function buildStudySpreadColorMap(metricName) {
-  const studyColorMap = new Map();
-  let colorIndex = 0;
-  comparisonEntries()
-    .filter((item) => !item.external)
-    .forEach((item) => {
-      const hasValue = (item.study?.replicas || []).some(
-        (replica) => replicaMetricValue(replica, metricName) !== null,
-      );
-      if (!hasValue) return;
-      if (!studyColorMap.has(item.id)) {
-        studyColorMap.set(item.id, SPREAD_BAR_COLORS[colorIndex % SPREAD_BAR_COLORS.length]);
-        colorIndex += 1;
-      }
-    });
-  return studyColorMap;
-}
-
-function entryPaletteColor(item, studyColorMap) {
+function entryModelCategory(item) {
   if (item.external) {
-    return RANK_BAR_COLORS[entryLegendCategory(item)] || RANK_BAR_COLORS.consensus;
+    return entryLegendCategory(item) === "sf" ? "sf" : "consensus";
   }
-  return studyColorMap.get(item.id) || RANK_BAR_COLORS.study;
+  if (item.isFullModel) return "full_ocscore";
+  return "ablation";
 }
 
-function entryPaletteStyle(item, studyColorMap) {
-  const fill = entryPaletteColor(item, studyColorMap);
+function entryPaletteColor(item) {
+  return MODEL_CATEGORY_COLORS[entryModelCategory(item)] || MODEL_CATEGORY_COLORS.ablation;
+}
+
+function entryPaletteStyle(item) {
+  const fill = entryPaletteColor(item);
   return `background:${fill};border-color:${fill};color:#202833`;
 }
 
-function modelCell(item, studyColorMap) {
+function modelCell(item) {
   const label = modelDisplayName(item);
   const refBadge = isReferenceEntry(item) ? '<span class="role-badge reference">Reference</span>' : "";
   const tip = escapeHtml(modelDescription(item));
-  const style = entryPaletteStyle(item, studyColorMap);
+  const style = entryPaletteStyle(item);
   return `<span class="model-cell" title="${tip}"><button type="button" class="model-pill" style="${style}" data-entry-id="${escapeHtml(item.id)}" title="${tip}">${escapeHtml(label)}</button>${refBadge}</span>`;
 }
 
@@ -1300,11 +1308,11 @@ function sortedComparisonEntries(entries, metricName) {
   });
 }
 
-function kindBadge(item, studyColorMap) {
+function kindBadge(item) {
   const tip = escapeHtml(modelDescription(item));
   const synthClass = item.synthesized ? " synthesized-baseline" : "";
   const label = item.synthesized ? `${item.kind} · approx` : item.kind;
-  const style = item.synthesized ? "" : ` style="${entryPaletteStyle(item, studyColorMap)}"`;
+  const style = item.synthesized ? "" : ` style="${entryPaletteStyle(item)}"`;
   return `<span class="kind-badge${synthClass}"${style} title="${tip}">${escapeHtml(label)}</span>`;
 }
 
@@ -1452,6 +1460,7 @@ function comparisonReferenceLabel() {
 function rankComparisonEntries() {
   const studies = allStudies().map((study) => ({
     study_name: study.study_name,
+    policy_name: study.policy_name,
     metric_summary: study.metric_summary || {},
     external: false,
     baseline_family: null,
@@ -1600,25 +1609,16 @@ function rankPlotLabelOffset(rows) {
   return Math.max((maxExtent - minExtent) * 0.012, maxExtent * 0.004, 1e-4);
 }
 
-const RANK_BAR_COLORS = {
-  study: "#9ecae1",
-  sf: "#f4b183",
-  consensus: "#c9b1d4",
-};
-const RANK_BAR_LABELS = {
-  study: "Study",
-  sf: "SF",
-  consensus: "Other consensus",
-};
-
 function rankBarCategory(row) {
-  if (!row.external) return "study";
+  if (!row.external) {
+    return isFullModelStudy(row) ? "full_ocscore" : "ablation";
+  }
   if (String(row.baseline_family || "") === "scoring_function") return "sf";
   return "consensus";
 }
 
 function rankBarFillColor(row) {
-  return RANK_BAR_COLORS[rankBarCategory(row)] || RANK_BAR_COLORS.study;
+  return MODEL_CATEGORY_COLORS[rankBarCategory(row)] || MODEL_CATEGORY_COLORS.ablation;
 }
 
 function rankBarHoverKind(row) {
@@ -1634,7 +1634,7 @@ function buildRankPlotlySpec(rows, metric) {
     const lines = String(row.barLabel || row.display || "").split("<br>");
     return Math.max(longest, ...lines.map((line) => line.length));
   }, 8);
-  const legendCategories = ["study", "sf", "consensus"].filter((category) => rows.some((row) => rankBarCategory(row) === category));
+  const legendCategories = ["full_ocscore", "ablation", "sf", "consensus"].filter((category) => rows.some((row) => rankBarCategory(row) === category));
   const mainTrace = {
     type: "bar",
     orientation: "h",
@@ -1948,32 +1948,28 @@ function comparisonColorLegendItem(label, color, options = {}) {
   return `<span class="legend-item color-legend-item"${title}><span class="legend-swatch" style="background:${color};border-color:${color};"></span><span>${escapeHtml(label)}</span></span>`;
 }
 
-function renderComparisonColorLegend(studyColorMap, entries) {
+function renderComparisonColorLegend(entries) {
   const node = $("comparison-color-legend");
   if (!node) return;
   if (!entries.length) {
     node.innerHTML = "";
     return;
   }
-  const hasExternalSf = entries.some((item) => item.external && entryLegendCategory(item) === "sf");
-  const hasExternalConsensus = entries.some((item) => item.external && entryLegendCategory(item) === "consensus");
-  const internal = entries.filter((item) => !item.external);
+  const categoriesPresent = new Set(entries.map((item) => entryModelCategory(item)));
   const items = [
-    '<span class="legend-intro">Model and Type pill colors match the Charts palette (replica spread + rank legend).</span>',
+    '<span class="legend-intro">Model and Type pill colors by category (same palette as Charts).</span>',
   ];
-  if (hasExternalSf) {
-    items.push(comparisonColorLegendItem("SF external baselines", RANK_BAR_COLORS.sf, {
-      title: "Scoring-function baselines from rank-chart legend",
+  ["full_ocscore", "ablation", "sf", "consensus"].forEach((category) => {
+    if (!categoriesPresent.has(category)) return;
+    items.push(comparisonColorLegendItem(MODEL_CATEGORY_LABELS[category], MODEL_CATEGORY_COLORS[category], {
+      title: category === "full_ocscore"
+        ? "Full OCScore baseline reference model"
+        : category === "ablation"
+          ? "Feature-policy ablation studies"
+          : category === "sf"
+            ? "Scoring-function external baselines"
+            : "Other consensus external baselines",
     }));
-  }
-  if (hasExternalConsensus) {
-    items.push(comparisonColorLegendItem("Other consensus baselines", RANK_BAR_COLORS.consensus, {
-      title: "Consensus baselines from rank-chart legend",
-    }));
-  }
-  internal.forEach((item) => {
-    const color = entryPaletteColor(item, studyColorMap);
-    items.push(comparisonColorLegendItem(modelDisplayName(item), color, { title: modelDescription(item) }));
   });
   node.innerHTML = `<div class="color-legend-grid">${items.join("")}</div>`;
 }
@@ -1990,7 +1986,6 @@ function renderComparisonTable() {
   );
   const sortedEntries = sortedComparisonEntries(entries, selectedMetric);
   const referenceLabel = comparisonReferenceLabel();
-  const studyColorMap = buildStudySpreadColorMap(selectedMetric);
   $("comparison-summary").textContent = `${sortedEntries.length} models · ${scopeLabel()} · vs ${referenceLabel}`;
   table(
     $("comparison-table"),
@@ -2007,8 +2002,8 @@ function renderComparisonTable() {
       })),
     ],
     sortedEntries.map((item) => [
-      modelCell(item, studyColorMap),
-      kindBadge(item, studyColorMap),
+      modelCell(item),
+      kindBadge(item),
       { value: item.study?.detected_replica_count ? `${item.study.detected_replica_count}/${item.study.expected_replica_count || item.study.detected_replica_count}` : "—", numeric: !!item.study?.detected_replica_count, title: modelDescription(item) },
       comparisonDeltaCell(item, selectedMetric),
       ...metricHeaders.map((metric) => comparisonMetricCell(item, metric.name, metricRanks[metric.name], metricRanks[metric.name].size)),
@@ -2018,7 +2013,7 @@ function renderComparisonTable() {
   );
   bindSortButtons($("comparison-table"), "comparisonSort");
   renderComparisonExportActions(metricHeaders, sortedEntries, selectedMetric);
-  renderComparisonColorLegend(studyColorMap, sortedEntries);
+  renderComparisonColorLegend(sortedEntries);
   $("comparison-table").querySelectorAll("button[data-entry-id]").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -2070,7 +2065,6 @@ function renderComparisonCharts() {
 function generatedReplicaSpreadPlot(metricName) {
   if (!metricName) return "";
   const metric = metricMeta(metricName);
-  const studyColorMap = buildStudySpreadColorMap(metricName);
   const rows = comparisonEntries()
     .filter((item) => !item.external)
     .flatMap((item) => (item.study?.replicas || [])
@@ -2084,7 +2078,7 @@ function generatedReplicaSpreadPlot(metricName) {
           scope: metricScope(metricName),
           study: item.id,
           metric: metricName,
-          color: studyColorMap.get(item.id) || RANK_BAR_COLORS.study,
+          color: entryPaletteColor(item),
         };
       })
       .filter(Boolean));
@@ -2095,9 +2089,9 @@ function generatedReplicaSpreadPlot(metricName) {
   const spec = buildSimpleBarPlotlySpec(rows, metric, {
     title,
     subtitle: "Each bar is one replica. Table cells show μ only when averaged over multiple replicas.",
-    colorForRow: (row) => row.color || "#9ecae1",
+    colorForRow: (row) => row.color || MODEL_CATEGORY_COLORS.ablation,
   });
-  return plotlyChartMarkup(key, title, "", "Internal models · per-replica bars", rows, spec);
+  return plotlyChartMarkup(key, title, "", "Green = full_ocscore · blue = ablation", rows, spec);
 }
 
 function generatedAllDeltasPlot(metricName) {
@@ -2570,6 +2564,8 @@ function generatedRankPlot(metricName) {
       display: row.display,
       barLabel: row.barLabel,
       hoverLabel: row.hoverLabel,
+      study_name: row.entry.study_name,
+      policy_name: row.entry.policy_name,
       baseline_family: row.entry.baseline_family || null,
       external: row.external,
       scope: metricScope(metricName),
@@ -2584,7 +2580,7 @@ function generatedRankPlot(metricName) {
   state.pendingPlotly.push({ key, divId, spec });
   return `
     <div class="generated-plot">
-      <div class="chart-head"><div><strong>${escapeHtml(title)}</strong><div class="scope-note">Pastel palette · Study / SF / Other consensus</div></div>${registerPlotExport(key, title, rows, "plotly")}</div>
+      <div class="chart-head"><div><strong>${escapeHtml(title)}</strong><div class="scope-note">full_ocscore / Ablation / SF / Other consensus</div></div>${registerPlotExport(key, title, rows, "plotly")}</div>
       <div id="${divId}" class="plotly-host" role="img" aria-label="${escapeHtml(title)}"></div>
     </div>
   `;
@@ -3073,6 +3069,7 @@ function renderRunContext(payload) {
   if (!strip) return;
   if (!context) {
     strip.innerHTML = "";
+    bindRunContextMarquee();
     return;
   }
   const splitShort = compactSplitSummary(context);
@@ -3092,6 +3089,54 @@ function renderRunContext(payload) {
       <span${title ? ` title="${escapeHtml(title)}"` : ""}>${escapeHtml(String(value))}</span>
     </div>
   `).join("");
+  bindRunContextMarquee();
+}
+
+let runContextMarqueeObserver = null;
+
+function resetRunContextMarqueeTrack() {
+  const track = $("run-context-items");
+  if (!track) return;
+  track.style.transition = "";
+  track.style.transform = "translateX(0)";
+}
+
+function bindRunContextMarquee() {
+  const viewport = $("run-context-scroll");
+  const track = $("run-context-items");
+  if (!viewport || !track) return;
+
+  resetRunContextMarqueeTrack();
+
+  const syncOverflow = () => {
+    resetRunContextMarqueeTrack();
+    viewport.classList.toggle("is-overflowing", track.scrollWidth > viewport.clientWidth + 1);
+  };
+
+  syncOverflow();
+
+  if (runContextMarqueeObserver) {
+    runContextMarqueeObserver.disconnect();
+    runContextMarqueeObserver = null;
+  }
+  if (typeof ResizeObserver !== "undefined") {
+    runContextMarqueeObserver = new ResizeObserver(syncOverflow);
+    runContextMarqueeObserver.observe(viewport);
+    runContextMarqueeObserver.observe(track);
+  }
+
+  viewport.onmouseenter = () => {
+    if (!viewport.classList.contains("is-overflowing")) return;
+    const distance = track.scrollWidth - viewport.clientWidth;
+    if (distance <= 0) return;
+    const seconds = Math.max(6, distance / 42);
+    track.style.transition = `transform ${seconds}s linear`;
+    track.style.transform = `translateX(-${distance}px)`;
+  };
+  viewport.onmouseleave = () => {
+    track.style.transition = "transform 0.35s ease-out";
+    track.style.transform = "translateX(0)";
+  };
 }
 
 function renderIssues(payload) {
