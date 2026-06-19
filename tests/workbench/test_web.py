@@ -54,9 +54,10 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b">Ablation</button>" in body
     assert b"setActiveTab" in script
     assert b"bindAppTabs" in script
-    assert b"bindCollapsiblePanels" in script
-    assert b"panel-collapsible" in style
-    assert b"Overview</h2>" in body
+    assert b"bindCollapsibleZones" in script
+    assert b"zone-collapsible" in style
+    assert b"data-zone=\"comparisonTable\"" in body
+    assert b"data-zone=\"comparisonCharts\"" in body
     assert b".app-tabs" in style
     assert b".tab-panel" in style
     assert b"Results</h2>" in body
@@ -145,7 +146,7 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
 
     parse_only = script.decode("utf-8").replace('$("refresh").addEventListener("click", refresh);', "")
     parse_only = parse_only.replace("bindAppTabs();", "")
-    parse_only = parse_only.replace("bindCollapsiblePanels();", "")
+    parse_only = parse_only.replace("bindCollapsibleZones();", "")
     parse_only = parse_only.replace('setActiveTab("ablation");', "")
     parse_only = parse_only.replace("refresh();", "")
     MiniRacer().eval(parse_only)

@@ -73,82 +73,102 @@ _INDEX_HTML: Final[str] = """<!doctype html>
   </div>
   <main>
     <section id="panel-ablation" class="tab-panel active" role="tabpanel" aria-labelledby="tab-ablation" data-tab-panel="ablation">
-    <section class="panel panel-collapsible overview-panel" data-panel="overview">
-      <div class="panel-head">
-        <button type="button" class="panel-toggle" aria-expanded="true" aria-controls="overview-panel-body">
-          <span class="panel-chevron" aria-hidden="true">▾</span>
-          <h2>Overview</h2>
-        </button>
-      </div>
-      <div id="overview-panel-body" class="panel-body">
-        <section class="stat-grid">
-          <article class="stat"><span>Studies</span><strong id="study-count">-</strong></article>
-          <article class="stat"><span>Completed</span><strong id="completed-count">-</strong></article>
-          <article class="stat"><span>Failed</span><strong id="failed-count">-</strong></article>
-          <article class="stat"><span>Missing</span><strong id="missing-count">-</strong></article>
-        </section>
-      </div>
+    <section class="stat-grid">
+      <article class="stat"><span>Studies</span><strong id="study-count">-</strong></article>
+      <article class="stat"><span>Completed</span><strong id="completed-count">-</strong></article>
+      <article class="stat"><span>Failed</span><strong id="failed-count">-</strong></article>
+      <article class="stat"><span>Missing</span><strong id="missing-count">-</strong></article>
     </section>
-    <section id="issue-panel" class="panel issue-panel panel-collapsible" data-panel="issues" hidden>
+    <section id="issue-panel" class="panel issue-panel" hidden>
       <div class="panel-head panel-head-split">
-        <button type="button" class="panel-toggle" aria-expanded="true" aria-controls="issue-panel-body">
-          <span class="panel-chevron" aria-hidden="true">▾</span>
-          <h2>Workspace Issues</h2>
-        </button>
+        <h2>Workspace Issues</h2>
         <span id="issue-summary" class="muted"></span>
       </div>
-      <div id="issue-panel-body" class="panel-body">
-        <div id="issue-list" class="issue-list"></div>
-      </div>
+      <div id="issue-list" class="issue-list"></div>
     </section>
 
-    <section class="panel comparison-panel panel-collapsible" data-panel="results">
+    <section class="panel comparison-panel">
       <div class="panel-head panel-head-split">
-        <button type="button" class="panel-toggle" aria-expanded="true" aria-controls="comparison-panel-body">
-          <span class="panel-chevron" aria-hidden="true">▾</span>
-          <h2>Results</h2>
-        </button>
+        <h2>Results</h2>
         <div class="panel-head-actions">
           <span id="comparison-summary" class="muted"></span>
           <div class="export-actions" id="comparison-export-actions"></div>
         </div>
       </div>
-      <div id="comparison-panel-body" class="panel-body">
-        <div id="comparison-table" class="table-wrap"></div>
-        <div id="comparison-legend" class="metric-legend" aria-label="Metric notation">
-          <span class="legend-item"><span class="legend-mark mean-mark">μ</span> replica mean (multi-replica cells only)</span>
-          <span class="legend-item"><span class="legend-mark std-mark">σ</span> std dev in those cells</span>
-          <span class="legend-item"><span class="legend-mark delta-mark">Δ</span> vs reference (column)</span>
+      <div class="zone-block zone-collapsible" data-zone="comparisonTable">
+        <div class="zone-head">
+          <button type="button" class="zone-toggle" aria-expanded="true" aria-controls="comparison-table-zone">
+            <span class="zone-chevron" aria-hidden="true">▾</span>
+            <span class="zone-title">Table</span>
+          </button>
         </div>
-        <div id="comparison-charts" class="decision-plots"></div>
+        <div id="comparison-table-zone" class="zone-body">
+          <div id="comparison-table" class="table-wrap"></div>
+          <div id="comparison-legend" class="metric-legend" aria-label="Metric notation">
+            <span class="legend-item"><span class="legend-mark mean-mark">μ</span> replica mean (multi-replica cells only)</span>
+            <span class="legend-item"><span class="legend-mark std-mark">σ</span> std dev in those cells</span>
+            <span class="legend-item"><span class="legend-mark delta-mark">Δ</span> vs reference (column)</span>
+          </div>
+        </div>
+      </div>
+      <div class="zone-block zone-collapsible" data-zone="comparisonCharts">
+        <div class="zone-head">
+          <button type="button" class="zone-toggle" aria-expanded="true" aria-controls="comparison-charts-zone">
+            <span class="zone-chevron" aria-hidden="true">▾</span>
+            <span class="zone-title">Charts</span>
+          </button>
+        </div>
+        <div id="comparison-charts-zone" class="zone-body">
+          <div id="comparison-charts" class="decision-plots"></div>
+        </div>
       </div>
     </section>
 
-    <section class="panel cv-panel panel-collapsible" id="cv-panel" data-panel="cv" hidden>
+    <section class="panel cv-panel" id="cv-panel" hidden>
       <div class="panel-head panel-head-split">
-        <button type="button" class="panel-toggle" aria-expanded="true" aria-controls="cv-panel-body">
-          <span class="panel-chevron" aria-hidden="true">▾</span>
-          <h2>Cross-validation</h2>
-        </button>
+        <h2>Cross-validation</h2>
         <span id="cv-summary" class="muted"></span>
       </div>
-      <div id="cv-panel-body" class="panel-body">
-        <div id="cv-table" class="table-wrap"></div>
-      </div>
+      <div id="cv-table" class="table-wrap"></div>
     </section>
 
-    <section class="panel detail-panel panel-collapsible" id="detail-panel" data-panel="details">
+    <section class="panel detail-panel" id="detail-panel">
       <div class="panel-head">
-        <button type="button" class="panel-toggle" aria-expanded="true" aria-controls="detail-panel-body">
-          <span class="panel-chevron" aria-hidden="true">▾</span>
-          <h2 id="detail-title">Details</h2>
-        </button>
+        <h2 id="detail-title">Details</h2>
       </div>
-      <div id="detail-panel-body" class="panel-body">
-        <div id="detail-replicas" class="table-wrap"></div>
-        <div id="figure-controls" class="filter-grid"></div>
-        <div id="detail-plots" class="decision-plots"></div>
-        <div id="figure-list" class="figure-list"></div>
+      <div class="zone-block zone-collapsible" data-zone="detailReplicas">
+        <div class="zone-head">
+          <button type="button" class="zone-toggle" aria-expanded="true" aria-controls="detail-replicas-zone">
+            <span class="zone-chevron" aria-hidden="true">▾</span>
+            <span class="zone-title">Replicas</span>
+          </button>
+        </div>
+        <div id="detail-replicas-zone" class="zone-body">
+          <div id="detail-replicas" class="table-wrap"></div>
+        </div>
+      </div>
+      <div class="zone-block zone-collapsible" data-zone="detailCharts">
+        <div class="zone-head">
+          <button type="button" class="zone-toggle" aria-expanded="true" aria-controls="detail-charts-zone">
+            <span class="zone-chevron" aria-hidden="true">▾</span>
+            <span class="zone-title">Charts</span>
+          </button>
+        </div>
+        <div id="detail-charts-zone" class="zone-body">
+          <div id="figure-controls" class="filter-grid"></div>
+          <div id="detail-plots" class="decision-plots"></div>
+        </div>
+      </div>
+      <div class="zone-block zone-collapsible" data-zone="detailFigures">
+        <div class="zone-head">
+          <button type="button" class="zone-toggle" aria-expanded="true" aria-controls="detail-figures-zone">
+            <span class="zone-chevron" aria-hidden="true">▾</span>
+            <span class="zone-title">Figures</span>
+          </button>
+        </div>
+        <div id="detail-figures-zone" class="zone-body">
+          <div id="figure-list" class="figure-list"></div>
+        </div>
       </div>
     </section>
     </section>
@@ -265,7 +285,46 @@ main { padding-top: 16px; padding-bottom: 32px; }
 .stat span { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 .stat strong { font-size: 28px; line-height: 1; }
 .panel { padding: 14px; }
-.comparison-panel .decision-plots { margin-top: 14px; }
+.comparison-panel .zone-block + .zone-block { margin-top: 12px; }
+.comparison-panel .decision-plots { margin-top: 0; }
+.detail-panel .zone-block + .zone-block { margin-top: 12px; }
+.zone-block { display: grid; gap: 8px; }
+.zone-head { display: flex; align-items: center; }
+.zone-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.zone-toggle:hover .zone-title, .zone-toggle:hover .zone-chevron { color: var(--accent); }
+.zone-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.zone-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+.zone-collapsible.is-collapsed .zone-chevron { transform: rotate(-90deg); }
+.zone-body { display: grid; gap: 10px; }
+.zone-collapsible.is-collapsed > .zone-body { display: none; }
+.zone-collapsible.is-collapsed > .zone-head { margin-bottom: 0; }
 .metric-legend {
   display: flex;
   flex-wrap: wrap;
@@ -308,38 +367,8 @@ main { padding-top: 16px; padding-bottom: 32px; }
 .cv-study-block:last-child { margin-bottom: 0; }
 .cv-study-block h3 { margin: 0; font-size: 14px; }
 .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-.panel-collapsible.is-collapsed > .panel-head { margin-bottom: 0; }
 .panel-head-split { align-items: center; flex-wrap: wrap; }
 .panel-head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
-.panel-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  margin: 0;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  text-align: left;
-}
-.panel-toggle h2 { margin: 0; pointer-events: none; }
-.panel-toggle:hover h2, .panel-toggle:hover .panel-chevron { color: var(--accent); }
-.panel-chevron {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1;
-  transition: transform 0.15s ease;
-}
-.panel-collapsible.is-collapsed .panel-chevron { transform: rotate(-90deg); }
-.panel-body { display: grid; gap: 14px; }
-.panel-collapsible.is-collapsed > .panel-body { display: none; }
-.overview-panel .stat-grid { margin: 0; }
 .detail-panel { border-color: #c5d4d3; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; min-width: 720px; }
@@ -444,12 +473,12 @@ const state = {
   figureFilters: { dataset: "all", role: "recommended", metric: "all", group: "comparison" },
   plotExports: {},
   pendingPlotly: [],
-  panelCollapsed: {
-    overview: false,
-    issues: false,
-    results: false,
-    cv: false,
-    details: false,
+  zoneCollapsed: {
+    comparisonTable: false,
+    comparisonCharts: false,
+    detailReplicas: false,
+    detailCharts: false,
+    detailFigures: false,
   },
   comparisonSort: { key: "delta", direction: "desc" },
   comparisonBaseline: "internal",
@@ -479,25 +508,25 @@ function bindAppTabs() {
   });
 }
 
-function setPanelCollapsed(panelId, collapsed) {
-  state.panelCollapsed[panelId] = collapsed;
-  const panel = document.querySelector(`[data-panel="${panelId}"]`);
-  if (!panel) return;
-  panel.classList.toggle("is-collapsed", collapsed);
-  const toggle = panel.querySelector(".panel-toggle");
+function setZoneCollapsed(zoneId, collapsed) {
+  state.zoneCollapsed[zoneId] = collapsed;
+  const zone = document.querySelector(`[data-zone="${zoneId}"]`);
+  if (!zone) return;
+  zone.classList.toggle("is-collapsed", collapsed);
+  const toggle = zone.querySelector(".zone-toggle");
   if (toggle) toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
 }
 
-function bindCollapsiblePanels() {
-  document.querySelectorAll(".panel-collapsible[data-panel]").forEach((panel) => {
-    const panelId = panel.dataset.panel;
-    if (!panelId) return;
-    setPanelCollapsed(panelId, Boolean(state.panelCollapsed[panelId]));
-    const toggle = panel.querySelector(".panel-toggle");
+function bindCollapsibleZones() {
+  document.querySelectorAll(".zone-collapsible[data-zone]").forEach((zone) => {
+    const zoneId = zone.dataset.zone;
+    if (!zoneId) return;
+    setZoneCollapsed(zoneId, Boolean(state.zoneCollapsed[zoneId]));
+    const toggle = zone.querySelector(".zone-toggle");
     if (!toggle || toggle.dataset.bound === "true") return;
     toggle.dataset.bound = "true";
     toggle.addEventListener("click", () => {
-      setPanelCollapsed(panelId, !state.panelCollapsed[panelId]);
+      setZoneCollapsed(zoneId, !state.zoneCollapsed[zoneId]);
     });
   });
 }
@@ -2152,7 +2181,7 @@ async function refresh() {
 
 $("refresh").addEventListener("click", refresh);
 bindAppTabs();
-bindCollapsiblePanels();
+bindCollapsibleZones();
 setActiveTab("ablation");
 refresh();
 """
