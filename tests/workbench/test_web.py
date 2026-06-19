@@ -88,8 +88,10 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b".app-tabs" in style
     assert b".tab-panel" in style
     assert b"Results</h2>" in body
-    assert b"comparison-legend" in body
-    assert b"comparison-color-legend" in body
+    assert b"comparison-legend-top" in body
+    assert b"comparison-legend-bottom" in body
+    assert b"comparison-color-legend-top" in body
+    assert b"comparison-color-legend-bottom" in body
     assert b"renderComparisonColorLegend" in script
     assert b"color-legend-grid" in style
     assert b"metric-legend" in style

@@ -30,7 +30,36 @@
         <label class="field" for="result-scope-select"><span>Scope</span><select id="result-scope-select"></select></label>
         <label class="field" for="comparison-baseline-select"><span>Reference</span><select id="comparison-baseline-select"></select></label>
         <label class="field" for="decision-metric-select"><span>Metric</span><select id="decision-metric-select"></select></label>
-        <button id="theme-toggle" type="button" class="ghost-button theme-toggle" aria-pressed="true" title="Toggle light/dark appearance">Theme</button>
+        <button
+          id="theme-toggle"
+          type="button"
+          class="theme-toggle theme-toggle--dark"
+          role="switch"
+          aria-checked="true"
+          aria-label="Dark mode on"
+          title="Switch to light appearance"
+        >
+          <span class="theme-toggle-track" aria-hidden="true">
+            <span class="theme-toggle-thumb">
+              <svg class="theme-toggle-icon theme-toggle-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="4.5" fill="currentColor"></circle>
+                <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <line x1="12" y1="2.5" x2="12" y2="5.5"></line>
+                  <line x1="12" y1="18.5" x2="12" y2="21.5"></line>
+                  <line x1="2.5" y1="12" x2="5.5" y2="12"></line>
+                  <line x1="18.5" y1="12" x2="21.5" y2="12"></line>
+                  <line x1="5.3" y1="5.3" x2="7.4" y2="7.4"></line>
+                  <line x1="16.6" y1="16.6" x2="18.7" y2="18.7"></line>
+                  <line x1="5.3" y1="18.7" x2="7.4" y2="16.6"></line>
+                  <line x1="16.6" y1="7.4" x2="18.7" y2="5.3"></line>
+                </g>
+              </svg>
+              <svg class="theme-toggle-icon theme-toggle-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M20.5 14.9A8.4 8.4 0 0 1 9.1 3.5 8.5 8.5 0 1 0 20.5 14.9Z"></path>
+              </svg>
+            </span>
+          </span>
+        </button>
         <button id="refresh" type="button">Refresh</button>
       </div>
     </header>
@@ -92,14 +121,26 @@
             <span id="comparison-summary" class="muted"></span>
             <div class="export-actions" id="comparison-export-actions"></div>
           </div>
+          <div class="comparison-table-legends comparison-table-legends-top" aria-label="Table legend">
+            <div id="comparison-color-legend-top" class="metric-legend color-legend" aria-label="Model color key"></div>
+            <div id="comparison-legend-top" class="metric-legend" aria-label="Metric notation">
+              <span class="legend-item"><span class="legend-mark mean-mark">μ</span> replica mean (multi-replica cells only)</span>
+              <span class="legend-item"><span class="legend-mark std-mark">σ</span> std dev in those cells</span>
+              <span class="legend-item"><span class="legend-mark delta-mark">Δ</span> vs reference (column)</span>
+              <span class="legend-item"><span class="legend-mark noise-mark">~</span> |Δ| &lt; σ (within replica noise)</span>
+              <span class="legend-item"><span class="legend-mark synth-mark">≈</span> synthesized SF consensus (approximate)</span>
+            </div>
+          </div>
           <div id="comparison-table" class="table-wrap"></div>
-          <div id="comparison-color-legend" class="metric-legend color-legend" aria-label="Model color key"></div>
-          <div id="comparison-legend" class="metric-legend" aria-label="Metric notation">
-            <span class="legend-item"><span class="legend-mark mean-mark">μ</span> replica mean (multi-replica cells only)</span>
-            <span class="legend-item"><span class="legend-mark std-mark">σ</span> std dev in those cells</span>
-            <span class="legend-item"><span class="legend-mark delta-mark">Δ</span> vs reference (column)</span>
-            <span class="legend-item"><span class="legend-mark noise-mark">~</span> |Δ| &lt; σ (within replica noise)</span>
-            <span class="legend-item"><span class="legend-mark synth-mark">≈</span> synthesized SF consensus (approximate)</span>
+          <div class="comparison-table-legends comparison-table-legends-bottom" aria-label="Table legend">
+            <div id="comparison-color-legend-bottom" class="metric-legend color-legend" aria-label="Model color key"></div>
+            <div id="comparison-legend-bottom" class="metric-legend" aria-label="Metric notation">
+              <span class="legend-item"><span class="legend-mark mean-mark">μ</span> replica mean (multi-replica cells only)</span>
+              <span class="legend-item"><span class="legend-mark std-mark">σ</span> std dev in those cells</span>
+              <span class="legend-item"><span class="legend-mark delta-mark">Δ</span> vs reference (column)</span>
+              <span class="legend-item"><span class="legend-mark noise-mark">~</span> |Δ| &lt; σ (within replica noise)</span>
+              <span class="legend-item"><span class="legend-mark synth-mark">≈</span> synthesized SF consensus (approximate)</span>
+            </div>
           </div>
         </div>
       </div>

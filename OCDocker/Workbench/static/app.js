@@ -39,6 +39,7 @@ const state = {
     detailCharts: false,
     detailFigures: false,
   },
+  plotCollapsed: {},
   comparisonSort: { key: "delta", direction: "desc" },
   detailReplicaSort: { key: "replica", direction: "asc" },
   comparisonBaseline: "internal",
@@ -55,6 +56,9 @@ function loadPersistedUiState() {
     const saved = JSON.parse(raw);
     if (saved.zoneCollapsed && typeof saved.zoneCollapsed === "object") {
       state.zoneCollapsed = { ...state.zoneCollapsed, ...saved.zoneCollapsed };
+    }
+    if (saved.plotCollapsed && typeof saved.plotCollapsed === "object") {
+      state.plotCollapsed = { ...state.plotCollapsed, ...saved.plotCollapsed };
     }
     if (saved.resultScope) state.resultScope = saved.resultScope;
     if (saved.comparisonBaseline) state.comparisonBaseline = saved.comparisonBaseline;
@@ -77,6 +81,7 @@ function persistUiState() {
   try {
     sessionStorage.setItem(UI_STATE_KEY, JSON.stringify({
       zoneCollapsed: state.zoneCollapsed,
+      plotCollapsed: state.plotCollapsed,
       selectedStudyName: state.selectedStudy?.study_name || null,
       resultScope: state.resultScope,
       comparisonBaseline: state.comparisonBaseline,
@@ -99,9 +104,11 @@ function applyTheme(theme) {
   }
   const toggle = $("theme-toggle");
   if (toggle) {
-    toggle.textContent = normalized === "dark" ? "Light" : "Dark";
-    toggle.setAttribute("aria-pressed", normalized === "dark" ? "true" : "false");
+    toggle.classList.toggle("theme-toggle--light", normalized === "light");
+    toggle.classList.toggle("theme-toggle--dark", normalized === "dark");
+    toggle.setAttribute("aria-checked", normalized === "dark" ? "true" : "false");
     toggle.title = normalized === "dark" ? "Switch to light appearance" : "Switch to dark appearance";
+    toggle.setAttribute("aria-label", normalized === "dark" ? "Dark mode on" : "Light mode on");
   }
 }
 
@@ -478,7 +485,7 @@ function modelCell(item) {
   const refBadge = isReferenceEntry(item) ? '<span class="role-badge reference">Reference</span>' : "";
   const tip = escapeHtml(modelDescription(item));
   const style = entryPaletteStyle(item);
-  return `<span class="model-cell" title="${tip}"><button type="button" class="model-pill" style="${style}" data-entry-id="${escapeHtml(item.id)}" title="${tip}">${escapeHtml(label)}</button>${refBadge}</span>`;
+  return `<span class="model-cell" title="${tip}"><span class="model-pill" style="${style}" data-entry-id="${escapeHtml(item.id)}" title="${tip}">${escapeHtml(label)}</span>${refBadge}</span>`;
 }
 
 function entryMetricStd(entry, metricName) {
@@ -554,6 +561,24 @@ function comparisonRowClass(item) {
   const classes = ["selectable"];
   if (isReferenceEntry(item)) classes.push("reference-row");
   return classes.join(" ");
+}
+
+function handleComparisonEntryClick(item) {
+  if (!item) return;
+  if (item.external) {
+    state.comparisonBaseline = item.id;
+    renderWorkspace(state.workspace);
+    return;
+  }
+  if (item.isFullModel && state.comparisonBaseline !== "internal") {
+    state.comparisonBaseline = "internal";
+    renderDetail(item.study);
+    renderGlobalControls();
+    renderComparisonTable();
+    renderComparisonCharts();
+    return;
+  }
+  renderDetail(item.study);
 }
 
 function bindSortButtons(target, sortStateKey = "comparisonSort") {
@@ -869,12 +894,17 @@ function buildRankPlotlySpec(rows, metric) {
     return Math.max(longest, ...lines.map((line) => line.length));
   }, 8);
   const legendCategories = ["full_ocscore", "ablation", "sf", "consensus"].filter((category) => rows.some((row) => rankBarCategory(row) === category));
+  const plotRows = rows.map((row) => ({
+    ...row,
+    plotLabel: compactPlotLabel(row.label, 42),
+  }));
+  const maxYLabelLen = plotRows.reduce((longest, row) => Math.max(longest, String(row.plotLabel || "").length), 8);
   const mainTrace = {
     type: "bar",
     orientation: "h",
-    y: rows.map((row) => row.label),
-    x: rows.map((row) => row.value),
-    customdata: rows.map((row) => [row.std, row.count, row.hoverLabel || row.display, rankBarHoverKind(row)]),
+    y: plotRows.map((row) => row.plotLabel),
+    x: plotRows.map((row) => row.value),
+    customdata: plotRows.map((row) => [row.std, row.count, row.hoverLabel || row.display, rankBarHoverKind(row), row.label]),
     error_x: {
       type: "data",
       array: rows.map((row) => row.std),
@@ -887,7 +917,7 @@ function buildRankPlotlySpec(rows, metric) {
       line: { color: "#ffffff", width: 1 },
     },
     showlegend: false,
-    hovertemplate: "<b>%{y}</b><br>%{customdata[2]}<br><span style='color:#667085'>%{customdata[3]}</span><extra></extra>",
+    hovertemplate: "<b>%{customdata[4]}</b><br>%{customdata[2]}<br><span style='color:#667085'>%{customdata[3]}</span><extra></extra>",
   };
   const legendTraces = legendCategories.map((category) => ({
     type: "bar",
@@ -906,10 +936,15 @@ function buildRankPlotlySpec(rows, metric) {
       paper_bgcolor: "#ffffff",
       plot_bgcolor: "#ffffff",
       autosize: true,
-      margin: { l: 16, r: Math.max(88, maxLabelLen * 7), t: 56, b: 44 },
-      annotations: rows.map((row) => ({
+      margin: {
+        l: plotYAxisLeftMargin(maxYLabelLen),
+        r: Math.max(120, maxLabelLen * 7),
+        t: 56,
+        b: 44,
+      },
+      annotations: plotRows.map((row) => ({
         x: row.value + (Number(row.std) || 0) + labelOffset,
-        y: row.label,
+        y: row.plotLabel,
         text: row.barLabel || row.display,
         showarrow: false,
         xanchor: "left",
@@ -937,11 +972,11 @@ function buildRankPlotlySpec(rows, metric) {
         zeroline: true,
       },
       yaxis: {
-        automargin: true,
+        automargin: false,
         autorange: "reversed",
         tickfont: { color: "#202833", size: 12 },
       },
-      height: Math.max(280, rows.length * 40 + 120),
+      height: plotLayoutHeight(rows.length, 40, 120, 280),
     },
     config: {
       responsive: true,
@@ -966,6 +1001,7 @@ async function mountPendingPlotlyCharts() {
     }
     if (host.data) Plotly.purge(host);
     await Plotly.newPlot(host, item.spec.data, item.spec.layout, item.spec.config);
+    syncPlotlyHostHeight(host, item.spec.layout);
     payload.plotlyDivId = item.divId;
   }
   requestAnimationFrame(() => {
@@ -987,23 +1023,54 @@ function resizePlotlyHosts(root = document) {
   });
 }
 
+function compactPlotLabel(label, maxLen = 30) {
+  const text = String(label || "");
+  if (text.length <= maxLen) return text;
+  return `${text.slice(0, maxLen - 1)}…`;
+}
+
+function plotYAxisLeftMargin(maxLabelLen, options = {}) {
+  const compact = Boolean(options.compact);
+  const cap = compact ? 156 : 360;
+  const floor = compact ? 72 : 96;
+  return Math.min(cap, Math.max(floor, maxLabelLen * 5.6));
+}
+
+function plotLayoutHeight(rowCount, rowStep = 28, base = 120, minimum = 280) {
+  return Math.max(minimum, rowCount * rowStep + base);
+}
+
+function syncPlotlyHostHeight(host, layout) {
+  if (!host || !layout) return;
+  const height = Number(layout.height);
+  if (Number.isFinite(height) && height > 0) {
+    host.style.height = `${height}px`;
+  }
+}
+
 function buildSimpleBarPlotlySpec(rows, metric, options = {}) {
   const title = options.title || plotMetricLabel(metric);
   const subtitle = options.subtitle || "";
   const zeroCentered = Boolean(options.zeroCentered);
+  const compact = Boolean(options.compact);
   const colorForRow = options.colorForRow || (() => "#9ecae1");
-  const maxLabelLen = rows.reduce((longest, row) => Math.max(longest, String(row.label || "").length), 8);
+  const plotRows = rows.map((row) => ({
+    ...row,
+    plotLabel: compact ? compactPlotLabel(row.label) : String(row.label || ""),
+    hoverLabel: String(row.label || ""),
+  }));
+  const maxLabelLen = plotRows.reduce((longest, row) => Math.max(longest, String(row.plotLabel || "").length), 8);
   const trace = {
     type: "bar",
     orientation: "h",
-    y: rows.map((row) => row.label),
-    x: rows.map((row) => row.value),
-    customdata: rows.map((row) => row.display || row.value),
+    y: plotRows.map((row) => row.plotLabel),
+    x: plotRows.map((row) => row.value),
+    customdata: plotRows.map((row) => [row.display || row.value, row.hoverLabel]),
     marker: {
-      color: rows.map((row) => colorForRow(row)),
+      color: plotRows.map((row) => colorForRow(row)),
       line: { color: "#ffffff", width: 1 },
     },
-    hovertemplate: "<b>%{y}</b><br>%{customdata}<extra></extra>",
+    hovertemplate: "<b>%{customdata[1]}</b><br>%{customdata[0]}<extra></extra>",
   };
   return {
     data: [trace],
@@ -1015,7 +1082,12 @@ function buildSimpleBarPlotlySpec(rows, metric, options = {}) {
       title: subtitle
         ? { text: `${title}<br><sup>${subtitle}</sup>`, x: 0, xanchor: "left", font: { size: 16, color: "#202833" } }
         : { text: title, x: 0, xanchor: "left", font: { size: 16, color: "#202833" } },
-      margin: { l: 16, r: 24, t: subtitle ? 88 : 64, b: 36 },
+      margin: {
+        l: plotYAxisLeftMargin(maxLabelLen, { compact }),
+        r: 24,
+        t: subtitle ? 88 : 64,
+        b: 36,
+      },
       xaxis: {
         title: options.xTitle || plotMetricLabel(metric),
         titlefont: { color: "#667085" },
@@ -1026,11 +1098,11 @@ function buildSimpleBarPlotlySpec(rows, metric, options = {}) {
         rangemode: !zeroCentered && metric.direction !== "min" ? "tozero" : "normal",
       },
       yaxis: {
-        automargin: true,
+        automargin: false,
         autorange: "reversed",
         tickfont: { color: "#202833", size: Math.max(10, 12 - Math.floor(maxLabelLen / 28)) },
       },
-      height: Math.max(280, rows.length * 28 + 120),
+      height: plotLayoutHeight(rows.length, 28, 120, 280),
     },
     config: {
       responsive: true,
@@ -1181,13 +1253,8 @@ function comparisonColorLegendItem(label, color, options = {}) {
   return `<span class="legend-item color-legend-item"${title}><span class="legend-swatch" style="background:${color};border-color:${color};"></span><span>${escapeHtml(label)}</span></span>`;
 }
 
-function renderComparisonColorLegend(entries) {
-  const node = $("comparison-color-legend");
-  if (!node) return;
-  if (!entries.length) {
-    node.innerHTML = "";
-    return;
-  }
+function buildComparisonColorLegendHtml(entries) {
+  if (!entries.length) return "";
   const categoriesPresent = new Set(entries.map((item) => entryModelCategory(item)));
   const items = [
     '<span class="legend-intro">Model and Type pill colors by category (same palette as Charts).</span>',
@@ -1204,7 +1271,15 @@ function renderComparisonColorLegend(entries) {
             : "Other consensus external baselines",
     }));
   });
-  node.innerHTML = `<div class="color-legend-grid">${items.join("")}</div>`;
+  return `<div class="color-legend-grid">${items.join("")}</div>`;
+}
+
+function renderComparisonColorLegend(entries) {
+  const html = buildComparisonColorLegendHtml(entries);
+  ["comparison-color-legend-top", "comparison-color-legend-bottom"].forEach((id) => {
+    const node = $(id);
+    if (node) node.innerHTML = html;
+  });
 }
 
 function renderComparisonTable() {
@@ -1247,25 +1322,12 @@ function renderComparisonTable() {
   bindSortButtons($("comparison-table"), "comparisonSort");
   renderComparisonExportActions(metricHeaders, sortedEntries, selectedMetric);
   renderComparisonColorLegend(sortedEntries);
-  $("comparison-table").querySelectorAll("button[data-entry-id]").forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const item = entries.find((entry) => entry.id === button.dataset.entryId);
-      if (!item) return;
-      if (item.external) {
-        state.comparisonBaseline = item.id;
-        renderWorkspace(state.workspace);
-        return;
-      }
-      if (item.isFullModel && state.comparisonBaseline !== "internal") {
-        state.comparisonBaseline = "internal";
-        renderDetail(item.study);
-        renderGlobalControls();
-        renderComparisonTable();
-        renderComparisonCharts();
-        return;
-      }
-      renderDetail(item.study);
+  $("comparison-table").querySelectorAll("tbody tr.selectable").forEach((row, index) => {
+    const item = sortedEntries[index];
+    if (!item) return;
+    row.dataset.entryId = item.id;
+    row.addEventListener("click", () => {
+      handleComparisonEntryClick(item);
     });
   });
 }
@@ -1274,16 +1336,18 @@ function renderComparisonCharts() {
   const selectedMetric = ensureSelectedMetric();
   state.plotExports = {};
   state.pendingPlotly = [];
+  const spreadRows = collectReplicaSpreadRows(selectedMetric);
+  const deltaRows = collectDeltaPlotRows(selectedMetric);
   const rankPlot = generatedRankPlot(selectedMetric);
-  const spreadPlot = generatedReplicaSpreadPlot(selectedMetric);
-  const deltaPlot = generatedAllDeltasPlot(selectedMetric);
+  const spreadPlot = generatedReplicaSpreadPlot(selectedMetric, spreadRows);
+  const deltaPlot = generatedAllDeltasPlot(selectedMetric, deltaRows);
   const container = $("comparison-charts");
   container.className = "decision-plots";
   const parts = [];
   if (rankPlot) parts.push(applyPlotSpan(rankPlot, "full"));
   if (spreadPlot && deltaPlot) {
-    parts.push(applyPlotSpan(spreadPlot, "half"));
-    parts.push(applyPlotSpan(deltaPlot, "half"));
+    parts.push(applyPlotSpan(spreadPlot, "full"));
+    parts.push(applyPlotSpan(deltaPlot, "full"));
   } else if (spreadPlot) {
     parts.push(applyPlotSpan(spreadPlot, "full"));
   } else if (deltaPlot) {
@@ -1295,10 +1359,9 @@ function renderComparisonCharts() {
   bindPlotExportButtons();
 }
 
-function generatedReplicaSpreadPlot(metricName) {
-  if (!metricName) return "";
-  const metric = metricMeta(metricName);
-  const rows = comparisonEntries()
+function collectReplicaSpreadRows(metricName) {
+  if (!metricName) return [];
+  return comparisonEntries()
     .filter((item) => !item.external)
     .flatMap((item) => (item.study?.replicas || [])
       .map((replica) => {
@@ -1314,26 +1377,16 @@ function generatedReplicaSpreadPlot(metricName) {
           color: entryPaletteColor(item),
         };
       })
-      .filter(Boolean));
-  if (rows.length < 2) return "";
-  rows.sort((left, right) => right.value - left.value);
-  const title = `${plotMetricLabel(metric)} · replica values`;
-  const key = `replica_spread_${slug(metricName)}_${state.resultScope}`;
-  const spec = buildSimpleBarPlotlySpec(rows, metric, {
-    title,
-    subtitle: "Each bar is one replica. Table cells show μ only when averaged over multiple replicas.",
-    colorForRow: (row) => row.color || MODEL_CATEGORY_COLORS.ablation,
-  });
-  return plotlyChartMarkup(key, title, "", "Green = full_ocscore · blue = ablation", rows, spec);
+      .filter(Boolean))
+    .sort((left, right) => right.value - left.value);
 }
 
-function generatedAllDeltasPlot(metricName) {
-  if (!metricName) return "";
-  const metric = metricMeta(metricName);
+function collectDeltaPlotRows(metricName) {
+  if (!metricName) return [];
   const reference = comparisonReferenceSummary();
   const referenceMetric = metricSummaryLookup(reference, metricName);
-  if (!referenceMetric) return "";
-  const rows = comparisonEntries()
+  if (!referenceMetric) return [];
+  return comparisonEntries()
     .filter((item) => !isReferenceEntry(item))
     .map((item) => {
       const delta = metricDecisionDelta(item.entry, metricName);
@@ -1353,10 +1406,32 @@ function generatedAllDeltasPlot(metricName) {
     })
     .filter(Boolean)
     .sort((left, right) => right.value - left.value);
-  if (!rows.length) return "";
+}
+
+function generatedReplicaSpreadPlot(metricName, rows = null, options = {}) {
+  if (!metricName) return "";
+  const metric = metricMeta(metricName);
+  const plotRows = rows || collectReplicaSpreadRows(metricName);
+  if (plotRows.length < 2) return "";
+  const title = `${plotMetricLabel(metric)} · replica values`;
+  const key = `replica_spread_${slug(metricName)}_${state.resultScope}`;
+  const spec = buildSimpleBarPlotlySpec(plotRows, metric, {
+    title,
+    subtitle: "Each bar is one replica. Table cells show μ only when averaged over multiple replicas.",
+    colorForRow: (row) => row.color || MODEL_CATEGORY_COLORS.ablation,
+    compact: Boolean(options.compact),
+  });
+  return plotlyChartMarkup(key, title, "", "Green = full_ocscore · blue = ablation", plotRows, spec);
+}
+
+function generatedAllDeltasPlot(metricName, rows = null, options = {}) {
+  if (!metricName) return "";
+  const metric = metricMeta(metricName);
+  const plotRows = rows || collectDeltaPlotRows(metricName);
+  if (!plotRows.length) return "";
   const title = `${plotMetricLabel(metric)} vs ${comparisonReferenceLabel()}`;
   const key = `all_delta_${slug(metricName)}_${state.resultScope}_${slug(state.comparisonBaseline)}`;
-  const spec = buildSimpleBarPlotlySpec(rows, metric, {
+  const spec = buildSimpleBarPlotlySpec(plotRows, metric, {
     title,
     subtitle: "Positive = improvement vs reference under metric direction",
     zeroCentered: true,
@@ -1365,8 +1440,9 @@ function generatedAllDeltasPlot(metricName) {
       if (row.withinNoise) return "#c5cad1";
       return row.value > 0 ? "#16703f" : row.value < 0 ? "#b42318" : "#667085";
     },
+    compact: Boolean(options.compact),
   });
-  return plotlyChartMarkup(key, title, "", "Green/red = directionally better/worse · grey = within replica σ", rows, spec);
+  return plotlyChartMarkup(key, title, "", "Green/red = directionally better/worse · grey = within replica σ", plotRows, spec);
 }
 
 function cvMetricMatchesScope(metricName) {

@@ -132,6 +132,7 @@ def test_plot_mean_std_bars_returns_axes():
     )
     fig, ax = occvplot.plot_mean_std_bars(mean_std, "BEDROC", top_n=10)
     assert ax.get_title().startswith("Cross-validation")
+    assert ax.get_xlim()[0] == 0.0
     plt.close(fig)
 
 

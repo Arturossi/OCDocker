@@ -796,6 +796,7 @@ def plot_per_target_ocscore_wins(
     ax.set_xlabel(f"Receptors where {reference_scorer} wins on {metric}")
     title_split = f" ({split})" if split else ""
     ax.set_title(f"OCScore per-receptor wins{title_split}")
+    ax.set_xlim(left=0.0)
     return fig, ax
 
 
@@ -972,12 +973,17 @@ def plot_mean_std_bars(
     ax.set_xlabel(metric)
     ax.set_title(f"Cross-validation: {metric} (mean ± std)")
     ax.invert_yaxis()
-    if subset["mean"].astype(float).notna().any():
-        xmin = float(subset["mean"].astype(float).min())
-        xmax = float((subset["mean"].astype(float) + subset["std"].astype(float)).max())
-        if np.isfinite(xmin) and np.isfinite(xmax) and xmax > xmin:
-            span = xmax - xmin
-            ax.set_xlim(xmin - 0.08 * span, xmax + 0.08 * span)
+    means = subset["mean"].astype(float)
+    stds = subset["std"].astype(float)
+    if means.notna().any():
+        xmax = float((means + stds).max())
+        if np.isfinite(xmax):
+            upper = xmax * 1.08 if xmax > 0 else 1.0
+            ax.set_xlim(0.0, upper)
+        else:
+            ax.set_xlim(left=0.0)
+    else:
+        ax.set_xlim(left=0.0)
     return fig, ax
 
 
@@ -1209,6 +1215,7 @@ def plot_fold_metric_bars(
     ax.set_xlabel("Fold / mean ± std")
     ax.set_ylabel(metric)
     ax.set_title(f"Fold comparison: {metric}")
+    ax.set_ylim(bottom=0.0)
     ax.legend(
         loc="center left",
         bbox_to_anchor=(1.02, 0.5),
@@ -1271,6 +1278,7 @@ def plot_ocscore_wins(
     ax.plot(metrics, compared, color=SF_COLOR, marker="o", linestyle="--", label="Folds compared")
     ax.set_ylabel("Fold count")
     ax.set_title("OCScore top rank per fold")
+    ax.set_ylim(bottom=0.0)
     ax.legend(
         loc="center left",
         bbox_to_anchor=(1.02, 0.5),
@@ -1475,6 +1483,7 @@ def save_baseline_comparison_figures(
         ax.set_xlabel(metric)
         ax.set_title(f"DUDEz baseline comparison ({split})")
         ax.invert_yaxis()
+        ax.set_xlim(left=0.0)
         key = f"baseline_{split}_{metric}"
         written[key] = _save_figure(
             fig,
