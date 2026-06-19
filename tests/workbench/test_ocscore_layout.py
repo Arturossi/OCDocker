@@ -10,7 +10,10 @@ Tests for strict OCScore Workbench layout discovery.
 ###############################################################################
 from __future__ import annotations
 
+import json
+
 from OCDocker.Workbench import build_ocscore_workspace
+from OCDocker.Workbench.OCScoreLayout import resolve_optuna_dashboard_slot_count
 
 # License
 ###############################################################################
@@ -285,7 +288,9 @@ def test_build_ocscore_workspace_synthesizes_sf_consensus_from_individual_sfs(tm
     sf_mean = next(item for item in workspace.external_baselines if item.baseline_name == "sf_mean")
     assert sf_mean.baseline_family == "sf_consensus"
     assert round(sf_mean.metric_summary["test_bedroc"]["mean"], 2) == 0.28
+    assert sf_mean.synthesized is True
     sf_max = next(item for item in workspace.external_baselines if item.baseline_name == "sf_max")
+    assert sf_max.synthesized is True
     assert round(sf_max.metric_summary["test_bedroc"]["mean"], 2) == 0.31
 
 
@@ -304,6 +309,7 @@ def test_build_ocscore_workspace_keeps_csv_sf_consensus_over_synthesis(tmp_path)
     sf_mean = next(item for item in workspace.external_baselines if item.baseline_name == "sf_mean")
 
     assert round(sf_mean.metric_summary["test_bedroc"]["mean"], 2) == 0.99
+    assert sf_mean.synthesized is False
 
 
 def test_build_ocscore_workspace_loads_dudez_baseline_comparison_csv(tmp_path) -> None:
@@ -330,6 +336,118 @@ def test_build_ocscore_workspace_loads_dudez_baseline_comparison_csv(tmp_path) -
         "vina_vina",
     }
     assert next(item for item in workspace.external_baselines if item.baseline_name == "vina_vina").baseline_family == "scoring_function"
+
+
+def test_build_ocscore_workspace_loads_protocol_summary(tmp_path) -> None:
+    '''Strict workspace discovery exposes curated protocol metadata for the dashboard.'''
+
+    _write_strict_ocscore_root(tmp_path)
+    (tmp_path / "replicas_protocol.json").write_text(
+        json.dumps(
+            {
+                "n_replicas": 3,
+                "base_seed": 42,
+                "replica_jobs": 2,
+                "replica_names": ["replica_000", "replica_001", "replica_002"],
+                "stage_list": [
+                    {
+                        "name": "pdbbind_optuna",
+                        "config": {
+                            "objective_metric": "RMSE",
+                            "n_trials": 100,
+                            "epochs": 100,
+                            "split_config": {
+                                "strategy": "receptor_heldout",
+                                "train_size": 0.6,
+                                "validation_size": 0.2,
+                                "test_size": 0.2,
+                            },
+                        },
+                    },
+                    {
+                        "name": "dudez_optuna",
+                        "config": {
+                            "primary_metric": "BEDROC",
+                            "bedroc_alpha": 20.0,
+                            "dudez_scaling_config": {"strategy": "pdbbind_scaler"},
+                            "n_trials": 100,
+                            "epochs": 100,
+                        },
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    ablation_container = tmp_path / "ablations"
+    ablation_container.mkdir()
+    (ablation_container / "ablation_summary.json").write_text(
+        json.dumps(
+            {
+                "protocol": "test-ablation-campaign",
+                "variants": [
+                    {"feature_policy_name": "full_ocscore"},
+                    {"feature_policy_name": "no_shape"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    workspace = build_ocscore_workspace(tmp_path, max_depth=4)
+
+    assert workspace.protocol is not None
+    assert workspace.protocol.protocol_name == "test-ablation-campaign"
+    assert workspace.protocol.n_replicas == 3
+    assert workspace.protocol.pdbbind_split_strategy == "receptor_heldout"
+    assert workspace.protocol.dudez_bedroc_alpha == 20.0
+    assert workspace.protocol.ablation_variants == ("full_ocscore", "no_shape")
+    assert workspace.baseline_study.protocol is not None
+    assert workspace.baseline_study.protocol.stage_names == ("pdbbind_optuna", "dudez_optuna")
+    assert workspace.ablation_studies[0].protocol is None
+
+
+def test_build_ocscore_workspace_exposes_run_context(tmp_path) -> None:
+    '''Strict workspace discovery exposes always-visible run context metadata.'''
+
+    _write_strict_ocscore_root(tmp_path)
+    (tmp_path / "replicas_protocol.json").write_text(
+        json.dumps(
+            {
+                "n_replicas": 3,
+                "stage_list": [
+                    {
+                        "name": "pdbbind_optuna",
+                        "config": {
+                            "split_config": {
+                                "strategy": "receptor_heldout",
+                                "train_size": 0.6,
+                                "validation_size": 0.2,
+                                "test_size": 0.2,
+                            },
+                        },
+                    },
+                    {"name": "dudez_optuna", "config": {"bedroc_alpha": 20.0}},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "baselines_summary.csv").write_text(
+        "baseline,baseline_family,split,BEDROC,ROC-AUC,PR-AUC,EF1%,EF5%,n_replicas\n"
+        "vina_vina,scoring_function,test,0.25,0.68,0.02,8.0,3.8,5\n",
+        encoding="utf-8",
+    )
+
+    workspace = build_ocscore_workspace(tmp_path, max_depth=4)
+
+    assert workspace.run_context is not None
+    assert workspace.run_context.planned_replica_count == 3
+    assert workspace.run_context.detected_replica_count == 3
+    assert workspace.run_context.pdbbind_split_strategy == "receptor_heldout"
+    assert workspace.run_context.dudez_bedroc_alpha == 20.0
+    assert len(workspace.run_context.baseline_sources) == 1
+    assert workspace.run_context.baseline_sources[0].path.name == "baselines_summary.csv"
 
 
 def test_build_ocscore_workspace_infers_replica_count_from_protocol(tmp_path) -> None:
@@ -403,4 +521,38 @@ def test_build_ocscore_workspace_reports_unsupported_manifest_layout(tmp_path) -
     assert "Unsupported generic Workbench manifest layout" in workspace.issues[0].message
     assert workspace.baseline_study.detected_replica_count == 0
     assert workspace.ablation_studies == ()
+
+
+def test_resolve_optuna_dashboard_slot_count_uses_replica_directories(tmp_path) -> None:
+    '''Optuna slot count follows detected replica directories.'''
+
+    _write_strict_ocscore_root(tmp_path)
+
+    assert resolve_optuna_dashboard_slot_count(tmp_path) == 3
+
+
+def test_resolve_optuna_dashboard_slot_count_uses_protocol_n_replicas(tmp_path) -> None:
+    '''Optuna slot count follows protocol n_replicas when larger than detected dirs.'''
+
+    _write_strict_ocscore_root(tmp_path)
+    (tmp_path / "replicas_protocol.json").write_text(
+        json.dumps({"n_replicas": 8}),
+        encoding="utf-8",
+    )
+
+    assert resolve_optuna_dashboard_slot_count(tmp_path) == 8
+
+
+def test_resolve_optuna_dashboard_slot_count_is_clamped(tmp_path) -> None:
+    '''Optuna slot count stays within 1 and 50.'''
+
+    assert resolve_optuna_dashboard_slot_count(tmp_path) == 1
+    (tmp_path / "replicas_protocol.json").write_text(
+        json.dumps({"n_replicas": 100}),
+        encoding="utf-8",
+    )
+
+    assert resolve_optuna_dashboard_slot_count(tmp_path) == 50
+    assert resolve_optuna_dashboard_slot_count(tmp_path, override=12) == 12
+    assert resolve_optuna_dashboard_slot_count(tmp_path, override=80) == 50
 

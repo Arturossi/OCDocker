@@ -58,6 +58,7 @@ from OCDocker.Workbench.Schema import available_schema_names
 from OCDocker.Workbench.Schema import build_schema_catalog
 from OCDocker.Workbench.Server import DEFAULT_WORKBENCH_API_HOST
 from OCDocker.Workbench.Server import DEFAULT_WORKBENCH_API_PORT
+from OCDocker.Workbench.OCScoreLayout import MAX_OPTUNA_DASHBOARD_SLOT_COUNT
 from OCDocker.Workbench.Server import serve_workbench_api
 from OCDocker.Workbench.Status import inspect_run_status
 from OCDocker.Workbench.Templates import available_template_names
@@ -925,6 +926,10 @@ def cmd_serve(args: argparse.Namespace) -> int:
             host=args.host,
             port=args.port,
             max_depth=args.max_depth,
+            optuna_dashboard_port_start=args.optuna_port_start,
+            optuna_dashboard_port_end=args.optuna_port_end,
+            optuna_dashboard_slots=args.optuna_slots,
+            verbose=args.verbose,
         )
     except KeyboardInterrupt:
         print("Workbench API stopped.")
@@ -1754,11 +1759,11 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
 
     serve = workbench_sub.add_parser(
         "serve",
-        help="Serve a read-only local Workbench API for GUI development",
+        help="Serve a local Workbench API for GUI development",
         description=(
             "Serve Workbench inspection payloads over a local HTTP API. The API "
-            "is read-only and does not launch, stop, or control runs. For SSH "
-            "workflows, bind to 127.0.0.1 and forward the selected port."
+            "is read-only except for local Optuna dashboard launch/stop helpers. "
+            "For SSH workflows, bind to 127.0.0.1 and forward the selected port."
         ),
     )
     serve.add_argument("root", help="Workspace root or run directory to serve.")
@@ -1778,6 +1783,32 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
         type=int,
         default=6,
         help="Default directory depth used by scan endpoints. Default: 6.",
+    )
+    serve.add_argument(
+        "--optuna-port-start",
+        type=int,
+        default=None,
+        help="Explicit first Optuna dashboard port. Default: first free port after --port.",
+    )
+    serve.add_argument(
+        "--optuna-port-end",
+        type=int,
+        default=None,
+        help="Explicit last Optuna dashboard port. Requires --optuna-port-start.",
+    )
+    serve.add_argument(
+        "--optuna-slots",
+        type=int,
+        default=None,
+        help=(
+            "Override Optuna dashboard slot count when ports are auto-selected. "
+            f"Default: baseline replica count, clamped to 1-{MAX_OPTUNA_DASHBOARD_SLOT_COUNT}."
+        ),
+    )
+    serve.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Log each HTTP request to stderr.",
     )
     serve.set_defaults(func=cmd_serve)
 

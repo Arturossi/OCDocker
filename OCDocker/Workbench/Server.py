@@ -23,6 +23,12 @@ from OCDocker.Workbench.IO import model_to_data
 from OCDocker.Workbench.OCScoreLayout import DEFAULT_OCSCORE_MAX_METRIC_FILE_BYTES
 from OCDocker.Workbench.OCScoreLayout import DEFAULT_OCSCORE_SCAN_DEPTH
 from OCDocker.Workbench.OCScoreLayout import build_ocscore_workspace
+from OCDocker.Workbench.OCScoreLayout import MAX_OPTUNA_DASHBOARD_SLOT_COUNT
+from OCDocker.Workbench.OCScoreLayout import MIN_OPTUNA_DASHBOARD_SLOT_COUNT
+from OCDocker.Workbench.OCScoreLayout import resolve_optuna_dashboard_slot_count
+from OCDocker.Workbench.OptunaDashboard import DEFAULT_OPTUNA_DASHBOARD_HOST
+from OCDocker.Workbench.OptunaDashboard import OptunaDashboardError
+from OCDocker.Workbench.OptunaDashboard import OptunaDashboardManager
 from OCDocker.Workbench.Schema import build_schema_catalog
 from OCDocker.Workbench.Templates import build_template_payload
 from OCDocker.Workbench.Web import build_workbench_web_asset
@@ -116,9 +122,20 @@ def _endpoint_index(root: Path) -> dict[str, Any]:
             "/health",
             "/api/ocscore-workspace",
             "/api/figure-asset?path=...",
+            "/api/optuna-dashboard",
             "/api/schema",
             "/api/template",
         ],
+        "optuna_dashboard": {
+            "available": OptunaDashboardManager.is_available(),
+            "host": DEFAULT_OPTUNA_DASHBOARD_HOST,
+            "auto_ports": True,
+            "slot_count": resolve_optuna_dashboard_slot_count(root),
+            "slot_count_source": "replica_count",
+            "min_slot_count": MIN_OPTUNA_DASHBOARD_SLOT_COUNT,
+            "max_slot_count": MAX_OPTUNA_DASHBOARD_SLOT_COUNT,
+            "scan_start_offset": 1,
+        },
     }
 
 
@@ -405,10 +422,90 @@ def build_workbench_api_payload(
     raise WorkbenchAPIError(f"Unknown Workbench API endpoint: {endpoint}", status_code=404)
 
 
+def _read_json_body(handler: BaseHTTPRequestHandler) -> dict[str, Any]:
+    '''Parse a JSON request body from one HTTP handler.
+
+    Parameters
+    ----------
+    handler : http.server.BaseHTTPRequestHandler
+        Active request handler.
+
+    Returns
+    -------
+    dict[str, Any]
+        Parsed JSON object.
+    '''
+
+    length = int(handler.headers.get("Content-Length", "0") or "0")
+    if length <= 0:
+        raise WorkbenchAPIError("Expected a JSON request body.", status_code=400)
+    raw = handler.rfile.read(length)
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except json.JSONDecodeError as exc:
+        raise WorkbenchAPIError("Request body must be valid JSON.") from exc
+    if not isinstance(payload, dict):
+        raise WorkbenchAPIError("Request body must be a JSON object.", status_code=400)
+    return payload
+
+
+def _optuna_dashboard_payload(
+    manager: OptunaDashboardManager,
+    endpoint: str,
+    query: QueryMap,
+    body: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    '''Build one Optuna dashboard control payload.
+
+    Parameters
+    ----------
+    manager : OptunaDashboardManager
+        Dashboard manager bound to the served root.
+    endpoint : str
+        Request path.
+    query : QueryMap
+        Parsed query string.
+    body : dict[str, Any] or None
+        Parsed JSON body for POST requests.
+
+    Returns
+    -------
+    dict[str, Any]
+        JSON-safe payload.
+    '''
+
+    replica_path = _first(query, "replica_path")
+    if replica_path is None and body is not None:
+        replica_path = body.get("replica_path")
+    if endpoint.endswith("/status") or endpoint == "/api/optuna-dashboard/status":
+        if replica_path is None:
+            return manager.status()
+        return manager.status(replica_path)
+    if endpoint == "/api/optuna-dashboard" and body is not None:
+        if replica_path is None:
+            raise WorkbenchAPIError("Missing required field: replica_path")
+        try:
+            return manager.start(replica_path)
+        except OptunaDashboardError as exc:
+            raise WorkbenchAPIError(str(exc), status_code=exc.status_code) from exc
+    if replica_path is None:
+        raise WorkbenchAPIError("Missing required query parameter: replica_path")
+    try:
+        return manager.stop(replica_path)
+    except OptunaDashboardError as exc:
+        raise WorkbenchAPIError(str(exc), status_code=exc.status_code) from exc
+
+
 def build_workbench_api_handler(
     root: str | Path,
     *,
     max_depth: int = DEFAULT_OCSCORE_SCAN_DEPTH,
+    server_port: int = DEFAULT_WORKBENCH_API_PORT,
+    optuna_dashboard_host: str = DEFAULT_OPTUNA_DASHBOARD_HOST,
+    optuna_dashboard_port_start: int | None = None,
+    optuna_dashboard_port_end: int | None = None,
+    optuna_dashboard_slots: int | None = None,
+    verbose: bool = False,
 ) -> type[BaseHTTPRequestHandler]:
     '''Build an HTTP handler bound to one OCScore root.
 
@@ -426,12 +523,26 @@ def build_workbench_api_handler(
     '''
 
     root_path = Path(root)
+    resolved_optuna_slots = resolve_optuna_dashboard_slot_count(
+        root_path,
+        override=optuna_dashboard_slots,
+    )
+    optuna_manager = OptunaDashboardManager(
+        root_path,
+        host=optuna_dashboard_host,
+        server_port=server_port,
+        port_start=optuna_dashboard_port_start,
+        port_end=optuna_dashboard_port_end,
+        slot_count=resolved_optuna_slots,
+    )
 
     class WorkbenchRequestHandler(BaseHTTPRequestHandler):
         """Request handler for one strict OCScore Workbench root."""
 
         workbench_root = root_path
         workbench_default_max_depth = max_depth
+        workbench_optuna_manager = optuna_manager
+        workbench_verbose = verbose
 
         def do_OPTIONS(self) -> None:
             '''Return local CORS headers for browser-based GUI development.'''
@@ -454,6 +565,10 @@ def build_workbench_api_handler(
                     body, content_type = _figure_asset(self.workbench_root, query)
                     self._send_bytes(body, content_type=content_type, status_code=200)
                     return
+                if parsed.path in {"/api/optuna-dashboard", "/api/optuna-dashboard/status"}:
+                    payload = _optuna_dashboard_payload(self.workbench_optuna_manager, parsed.path, query)
+                    self._send_json(payload, status_code=200)
+                    return
                 payload = build_workbench_api_payload(
                     self.workbench_root,
                     parsed.path,
@@ -466,16 +581,49 @@ def build_workbench_api_handler(
             except Exception as exc:
                 self._send_json({"ok": False, "error": str(exc)}, status_code=500)
 
-        def log_message(self, format: str, *args: Any) -> None:
-            '''Suppress default per-request stderr logging.'''
+        def do_POST(self) -> None:
+            '''Handle local Optuna dashboard launch requests.'''
 
-            return
+            parsed = urlparse(self.path)
+            if parsed.path != "/api/optuna-dashboard":
+                self._send_json({"ok": False, "error": "Unknown Workbench API endpoint."}, status_code=404)
+                return
+            try:
+                body = _read_json_body(self)
+                payload = _optuna_dashboard_payload(self.workbench_optuna_manager, parsed.path, {}, body)
+                self._send_json(payload, status_code=200)
+            except WorkbenchAPIError as exc:
+                self._send_json({"ok": False, "error": str(exc)}, status_code=exc.status_code)
+            except Exception as exc:
+                self._send_json({"ok": False, "error": str(exc)}, status_code=500)
+
+        def do_DELETE(self) -> None:
+            '''Handle local Optuna dashboard stop requests.'''
+
+            parsed = urlparse(self.path)
+            if parsed.path != "/api/optuna-dashboard":
+                self._send_json({"ok": False, "error": "Unknown Workbench API endpoint."}, status_code=404)
+                return
+            query = parse_qs(parsed.query, keep_blank_values=False)
+            try:
+                payload = _optuna_dashboard_payload(self.workbench_optuna_manager, parsed.path, query)
+                self._send_json(payload, status_code=200)
+            except WorkbenchAPIError as exc:
+                self._send_json({"ok": False, "error": str(exc)}, status_code=exc.status_code)
+            except Exception as exc:
+                self._send_json({"ok": False, "error": str(exc)}, status_code=500)
+
+        def log_message(self, format: str, *args: Any) -> None:
+            '''Log HTTP requests when verbose mode is enabled.'''
+
+            if self.workbench_verbose:
+                super().log_message(format, *args)
 
         def _send_common_headers(self) -> None:
             '''Send headers shared by all API responses.'''
 
             self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "Content-Type")
             self.send_header("Cache-Control", "no-store")
 
@@ -522,6 +670,11 @@ def serve_workbench_api(
     host: str = DEFAULT_WORKBENCH_API_HOST,
     port: int = DEFAULT_WORKBENCH_API_PORT,
     max_depth: int = DEFAULT_OCSCORE_SCAN_DEPTH,
+    optuna_dashboard_host: str = DEFAULT_OPTUNA_DASHBOARD_HOST,
+    optuna_dashboard_port_start: int | None = None,
+    optuna_dashboard_port_end: int | None = None,
+    optuna_dashboard_slots: int | None = None,
+    verbose: bool = False,
 ) -> None:
     '''Serve the strict OCScore Workbench API until interrupted.
 
@@ -537,15 +690,43 @@ def serve_workbench_api(
         Maximum recursive depth inside each replica.
     '''
 
-    handler = build_workbench_api_handler(root, max_depth=max_depth)
+    handler = build_workbench_api_handler(
+        root,
+        max_depth=max_depth,
+        server_port=port,
+        optuna_dashboard_host=optuna_dashboard_host,
+        optuna_dashboard_port_start=optuna_dashboard_port_start,
+        optuna_dashboard_port_end=optuna_dashboard_port_end,
+        optuna_dashboard_slots=optuna_dashboard_slots,
+        verbose=verbose,
+    )
     server = ThreadingHTTPServer((host, port), handler)
+    optuna_manager = handler.workbench_optuna_manager
     try:
         print(f"Workbench API serving {root} at http://{host}:{port} (read-only).")
         print(f"Workbench browser dashboard: http://{host}:{port}/app")
+        if OptunaDashboardManager.is_available():
+            pool = optuna_manager.port_pool
+            pool_label = ", ".join(str(item) for item in pool)
+            if optuna_manager.auto_ports:
+                print(
+                    "Optuna dashboards: "
+                    f"ports {pool_label} "
+                    f"({optuna_manager.max_sessions} slots from replica count, auto from server port {port})."
+                )
+            else:
+                print(
+                    "Optuna dashboards: "
+                    f"ports {pool[0]}-{pool[-1]} "
+                    "(explicit range, launched from the UI)."
+                )
+        else:
+            print('Optuna dashboards unavailable: install with pip install "ocdocker[ml]"')
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nWorkbench API stopped.")
     finally:
+        optuna_manager.stop_all()
         server.server_close()
 
 

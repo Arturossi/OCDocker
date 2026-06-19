@@ -10,6 +10,7 @@ Embedded browser assets for the strict OCScore Workbench dashboard.
 ###############################################################################
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Final
 
 # License
@@ -33,11 +34,15 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ###############################################################################
 
 WORKBENCH_WEB_INDEX_ROUTE: Final[str] = "/app"
+WORKBENCH_WEB_FAVICON_ROUTE: Final[str] = "/app-favicon.png"
+WORKBENCH_WEB_BRAND_LOGO_ROUTE: Final[str] = "/app-brand-logo.png"
 WORKBENCH_WEB_ROUTES: Final[tuple[str, ...]] = (
     "/app",
     "/app/",
     "/app.css",
     "/app.js",
+    WORKBENCH_WEB_FAVICON_ROUTE,
+    WORKBENCH_WEB_BRAND_LOGO_ROUTE,
 )
 
 _INDEX_HTML: Final[str] = """<!doctype html>
@@ -46,14 +51,17 @@ _INDEX_HTML: Final[str] = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OCDocker Workbench</title>
+  <link rel="icon" type="image/png" href="/app-favicon.png">
   <link rel="stylesheet" href="/app.css">
 </head>
 <body>
   <div class="app-header">
     <header class="topbar">
       <div class="brand">
-        <span class="product">OCDocker Workbench</span>
-        <h1>OCScore Control Dashboard</h1>
+        <img class="brand-logo" src="/app-brand-logo.png" height="28" alt="OCDocker">
+        <div class="brand-text">
+          <h1>OCScore Control Dashboard</h1>
+        </div>
       </div>
       <div class="toolbar" data-tab-toolbar="ablation">
         <label class="field" for="result-scope-select"><span>Scope</span><select id="result-scope-select"></select></label>
@@ -62,10 +70,11 @@ _INDEX_HTML: Final[str] = """<!doctype html>
         <button id="refresh" type="button">Refresh</button>
       </div>
     </header>
-    <section class="connection">
+    <section class="run-context" id="run-context" aria-label="Run context">
       <span id="health-dot" class="dot pending"></span>
-      <span id="health-label">Connecting</span>
-      <span id="root-label" class="root-label"></span>
+      <span id="health-label" class="run-context-health"></span>
+      <span id="root-label" class="root-label run-context-root"></span>
+      <div id="run-context-items" class="run-context-items"></div>
     </section>
     <nav class="app-tabs" role="tablist" aria-label="Dashboard sections">
       <button type="button" class="tab active" role="tab" id="tab-ablation" aria-selected="true" aria-controls="panel-ablation" data-tab="ablation">Ablation</button>
@@ -79,6 +88,20 @@ _INDEX_HTML: Final[str] = """<!doctype html>
       <article class="stat"><span>Failed</span><strong id="failed-count">-</strong></article>
       <article class="stat"><span>Missing</span><strong id="missing-count">-</strong></article>
     </section>
+    <section class="panel protocol-panel">
+      <div class="zone-block zone-collapsible" data-zone="protocol">
+        <div class="zone-head zone-head-split">
+          <button type="button" class="zone-toggle" aria-expanded="true" aria-controls="protocol-zone">
+            <span class="zone-chevron" aria-hidden="true">▾</span>
+            <span class="zone-title">Ablation protocol</span>
+          </button>
+          <span id="protocol-summary" class="muted"></span>
+        </div>
+        <div id="protocol-zone" class="zone-body">
+          <div id="protocol-content" class="protocol-grid"></div>
+        </div>
+      </div>
+    </section>
     <section id="issue-panel" class="panel issue-panel" hidden>
       <div class="panel-head panel-head-split">
         <h2>Workspace Issues</h2>
@@ -88,12 +111,8 @@ _INDEX_HTML: Final[str] = """<!doctype html>
     </section>
 
     <section class="panel comparison-panel">
-      <div class="panel-head panel-head-split">
+      <div class="panel-head">
         <h2>Results</h2>
-        <div class="panel-head-actions">
-          <span id="comparison-summary" class="muted"></span>
-          <div class="export-actions" id="comparison-export-actions"></div>
-        </div>
       </div>
       <div class="zone-block zone-collapsible" data-zone="comparisonTable">
         <div class="zone-head">
@@ -103,11 +122,18 @@ _INDEX_HTML: Final[str] = """<!doctype html>
           </button>
         </div>
         <div id="comparison-table-zone" class="zone-body">
+          <div class="zone-toolbar">
+            <span id="comparison-summary" class="muted"></span>
+            <div class="export-actions" id="comparison-export-actions"></div>
+          </div>
           <div id="comparison-table" class="table-wrap"></div>
+          <div id="comparison-color-legend" class="metric-legend color-legend" aria-label="Model color key"></div>
           <div id="comparison-legend" class="metric-legend" aria-label="Metric notation">
             <span class="legend-item"><span class="legend-mark mean-mark">μ</span> replica mean (multi-replica cells only)</span>
             <span class="legend-item"><span class="legend-mark std-mark">σ</span> std dev in those cells</span>
             <span class="legend-item"><span class="legend-mark delta-mark">Δ</span> vs reference (column)</span>
+            <span class="legend-item"><span class="legend-mark noise-mark">~</span> |Δ| &lt; σ (within replica noise)</span>
+            <span class="legend-item"><span class="legend-mark synth-mark">≈</span> synthesized SF consensus (approximate)</span>
           </div>
         </div>
       </div>
@@ -125,11 +151,21 @@ _INDEX_HTML: Final[str] = """<!doctype html>
     </section>
 
     <section class="panel cv-panel" id="cv-panel" hidden>
-      <div class="panel-head panel-head-split">
+      <div class="panel-head">
         <h2>Cross-validation</h2>
-        <span id="cv-summary" class="muted"></span>
       </div>
-      <div id="cv-table" class="table-wrap"></div>
+      <div class="zone-block zone-collapsible" data-zone="cvTable">
+        <div class="zone-head zone-head-split">
+          <button type="button" class="zone-toggle" aria-expanded="true" aria-controls="cv-table-zone">
+            <span class="zone-chevron" aria-hidden="true">▾</span>
+            <span class="zone-title">Table</span>
+          </button>
+          <span id="cv-summary" class="muted"></span>
+        </div>
+        <div id="cv-table-zone" class="zone-body">
+          <div id="cv-table" class="table-wrap"></div>
+        </div>
+      </div>
     </section>
 
     <section class="panel detail-panel" id="detail-panel">
@@ -173,6 +209,11 @@ _INDEX_HTML: Final[str] = """<!doctype html>
     </section>
     </section>
   </main>
+  <div id="figure-lightbox" class="figure-lightbox" hidden>
+    <button type="button" class="figure-lightbox-close" aria-label="Close expanded figure">×</button>
+    <img id="figure-lightbox-image" class="figure-lightbox-image" alt="">
+    <p id="figure-lightbox-caption" class="figure-lightbox-caption"></p>
+  </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
   <script src="/app.js" defer></script>
@@ -210,40 +251,83 @@ body {
   box-shadow: 0 2px 10px rgba(32, 40, 51, 0.06);
 }
 .topbar {
-  min-height: 52px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--line);
+  gap: 10px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  border-bottom: none;
   background: #fbfaf7;
 }
-.brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
-h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: 0; line-height: 1.2; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-logo { height: 28px; width: auto; max-width: min(168px, 38vw); object-fit: contain; object-position: left center; flex-shrink: 0; display: block; filter: brightness(0); opacity: 0.9; }
+.brand-text { min-width: 0; }
+.brand-text h1 { margin: 0; }
+h1 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0; line-height: 1.2; }
 h2 { margin: 0; font-size: 16px; letter-spacing: 0; }
 h3 { margin: 0; font-size: 14px; letter-spacing: 0; }
 .product { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; white-space: nowrap; }
 .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .topbar .field { display: flex; flex-direction: row; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; font-weight: 700; white-space: nowrap; }
 .topbar input, .topbar select { width: auto; min-width: 108px; padding: 5px 8px; font-size: 13px; }
-.topbar button { padding: 6px 11px; font-size: 13px; }
+.topbar button { padding: 5px 10px; font-size: 12px; }
 .field, .filter-field { display: grid; gap: 4px; color: var(--muted); font-size: 12px; font-weight: 700; }
 input, select { width: 92px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 9px; background: white; color: var(--ink); }
 select { width: 100%; min-width: 132px; }
 button { border: 1px solid var(--accent); border-radius: 6px; padding: 9px 13px; background: var(--accent); color: white; font-weight: 700; cursor: pointer; }
 button:disabled { border-color: var(--line); background: #ece8df; color: var(--muted); cursor: not-allowed; }
-.connection {
+.connection { display: none; }
+.run-context {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 28px;
-  padding: 4px clamp(16px, 4vw, 40px);
-  border-bottom: none;
-  background: #fffdf8;
-  font-size: 12px;
+  padding: 4px clamp(16px, 4vw, 40px) 5px;
+  background: #f3f8f7;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  overflow-x: auto;
 }
+.run-context-health { color: var(--muted); white-space: nowrap; }
+.run-context-root {
+  color: var(--muted);
+  white-space: nowrap;
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.run-context-root::before { content: "·"; margin-right: 8px; color: var(--line); }
+.run-context-items {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px 12px;
+  align-items: center;
+  min-width: 0;
+}
+.run-context-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.run-context-item strong {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.run-context-item span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 24ch;
+}
+.run-context-item.path-item span:last-child { max-width: 16ch; color: var(--muted); }
+.app-tabs:has(.tab:only-child) { display: none; }
 .app-tabs {
   display: flex;
   align-items: stretch;
@@ -258,10 +342,10 @@ button:disabled { border-color: var(--line); background: #ece8df; color: var(--m
   border-bottom: 2px solid transparent;
   border-radius: 0;
   margin-bottom: -1px;
-  padding: 8px 14px;
+  padding: 6px 12px;
   background: transparent;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
@@ -325,6 +409,26 @@ main { padding-top: 16px; padding-bottom: 32px; }
 .zone-body { display: grid; gap: 10px; }
 .zone-collapsible.is-collapsed > .zone-body { display: none; }
 .zone-collapsible.is-collapsed > .zone-head { margin-bottom: 0; }
+.zone-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.zone-toolbar .export-actions { margin-left: auto; }
+.protocol-panel { border-color: #d4dbe8; }
+.protocol-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.protocol-card { border: 1px solid #ebe5dc; border-radius: 6px; padding: 10px; display: grid; gap: 6px; align-content: start; }
+.protocol-card h3 { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.protocol-card-full { grid-column: 1 / -1; }
+.protocol-facts { display: grid; gap: 4px; margin: 0; }
+.protocol-facts div { display: grid; gap: 1px; }
+.protocol-facts dt { margin: 0; font-size: 11px; color: var(--muted); }
+.protocol-facts dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.protocol-variants { display: flex; flex-wrap: wrap; gap: 6px; }
+.protocol-variant { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #eef1f4; color: var(--ink); }
+.protocol-variant.active { background: #e8f4f3; color: var(--accent); border: 1px solid #9ec5c3; }
 .metric-legend {
   display: flex;
   flex-wrap: wrap;
@@ -348,6 +452,24 @@ main { padding-top: 16px; padding-bottom: 32px; }
 .legend-mark.mean-mark { background: #eef4f4; color: var(--accent); }
 .legend-mark.std-mark { background: #f3f4f6; color: #5f6b7a; }
 .legend-mark.delta-mark { background: #edf7f1; color: var(--ok); }
+.legend-mark.noise-mark { background: #f3f4f6; color: #5f6b7a; }
+.legend-mark.synth-mark { background: #fff1d8; color: var(--warn); }
+.color-legend { margin-top: 8px; }
+.color-legend-grid { display: flex; flex-wrap: wrap; gap: 6px 10px; max-height: 132px; overflow-y: auto; padding: 2px 0; }
+.legend-intro { flex: 1 1 100%; font-size: 11px; color: var(--muted); }
+.legend-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+}
+.color-legend-item { max-width: min(28ch, 100%); }
+.color-legend-item > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.metric-delta.delta-within-noise { color: var(--muted); text-decoration: underline dotted; text-underline-offset: 2px; }
+.kind-badge.synthesized-baseline { background: #fff6e8; color: #8a5a00; border: 1px dashed #e8c178; }
+.cv-panel .zone-block { margin-top: 0; }
 .metric-stat { display: inline-grid; gap: 1px; justify-items: end; line-height: 1.15; text-align: right; }
 .metric-stat-value { font-weight: 600; font-variant-numeric: tabular-nums; }
 .metric-stat-aggregate { gap: 2px; }
@@ -357,10 +479,10 @@ main { padding-top: 16px; padding-bottom: 32px; }
 .metric-std { font-size: 10px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
 .decision-plots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; align-items: start; }
 .decision-plots.layout-single { grid-template-columns: 1fr; }
-.generated-plot.plot-span-full { grid-column: 1 / -1; }
-.generated-plot.plot-span-half { grid-column: span 1; }
+.generated-plot.plot-span-full { grid-column: 1 / -1; width: 100%; min-width: 0; }
+.generated-plot.plot-span-half { grid-column: span 1; width: 100%; min-width: 0; }
 .generated-plot .decision-svg { width: 100%; height: auto; display: block; }
-.plotly-host { width: 100%; min-height: 280px; }
+.plotly-host { width: 100%; min-height: 280px; min-width: 0; }
 .plotly-host .main-svg { border-radius: 5px; }
 .cv-panel { border-color: #d4dbe8; }
 .cv-study-block { display: grid; gap: 8px; margin-bottom: 14px; }
@@ -374,7 +496,8 @@ main { padding-top: 16px; padding-bottom: 32px; }
 table { width: 100%; border-collapse: collapse; min-width: 720px; }
 th, td { padding: 9px 10px; border-bottom: 1px solid #ebe5dc; text-align: left; vertical-align: top; }
 th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
-th.numeric, td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
+th.numeric, td.numeric { text-align: right; font-variant-numeric: tabular-nums; vertical-align: middle; }
+th.delta-col, td.delta-col { width: 1%; white-space: nowrap; }
 td.rank-top { background: #edf7f1; box-shadow: inset 3px 0 0 var(--ok); font-weight: 700; }
 td.rank-second { background: #f4faf8; box-shadow: inset 3px 0 0 var(--accent); }
 td.rank-third { background: #f8fbfa; box-shadow: inset 3px 0 0 #8eb6b3; }
@@ -385,16 +508,28 @@ tr.selectable { cursor: pointer; }
 tr.selectable:hover { background: #f4faf8; }
 tr.reference-row { background: #f8fbfa; box-shadow: inset 3px 0 0 var(--accent); }
 tr.reference-row:hover { background: #f4faf8; }
-.metric-delta { display: block; font-size: 11px; font-weight: 700; margin-top: 2px; }
+.metric-delta { display: inline-block; font-weight: 700; line-height: 1.35; font-variant-numeric: tabular-nums; }
 .delta-positive { color: var(--ok); }
 .delta-negative { color: var(--danger); }
 .delta-neutral { color: var(--muted); }
-.kind-badge { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #eef1f4; color: var(--ink); white-space: nowrap; }
-.kind-badge.full-model { background: #e8f5ee; color: var(--ok); }
-.kind-badge.ablation { background: #eaf2ff; color: #315c9c; }
-.kind-badge.external { background: #fff1d8; color: var(--warn); }
+.kind-badge { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; border: 1px solid transparent; color: #202833; white-space: nowrap; }
+.model-cell { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; max-width: min(40ch, 100%); }
+button.model-pill {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 3px 9px;
+  color: #202833;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  cursor: pointer;
+}
+button.model-pill:hover { filter: brightness(0.96); border-color: var(--accent) !important; }
 .role-badge { display: inline-block; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; padding: 2px 6px; border-radius: 999px; background: #e8f4f3; color: var(--accent); border: 1px solid #9ec5c3; vertical-align: middle; }
-.model-cell { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .toolbar select { width: auto; min-width: 120px; }
 .badge { display: inline-block; min-width: 74px; padding: 3px 7px; border-radius: 999px; font-size: 12px; font-weight: 700; text-align: center; background: #eef1f4; color: var(--ink); }
 .badge.completed { background: #e8f5ee; color: var(--ok); }
@@ -405,7 +540,7 @@ tr.reference-row:hover { background: #f4faf8; }
 .split-panel > div { min-width: 0; }
 .filter-grid { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; }
 .figure-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 12px; align-items: start; }
-.figure-item, .generated-plot { border: 1px solid #ebe5dc; border-radius: 6px; padding: 10px; display: grid; gap: 7px; }
+.figure-item, .generated-plot { border: 1px solid #ebe5dc; border-radius: 6px; padding: 10px; display: grid; gap: 7px; min-width: 0; width: 100%; }
 .chart-head { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
 .export-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .ghost-button, .asset-link { border: 1px solid var(--line); border-radius: 5px; padding: 5px 8px; background: #fffdf8; color: var(--ink); font-size: 12px; font-weight: 700; text-decoration: none; }
@@ -415,7 +550,61 @@ tr.reference-row:hover { background: #f4faf8; }
 .figure-section { grid-column: 1 / -1; display: grid; gap: 10px; }
 .figure-section h3 { margin: 4px 0 0; font-size: 14px; letter-spacing: 0; }
 .figure-section-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 12px; align-items: start; }
+.shap-section { grid-column: 1 / -1; }
+.shap-figure-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
 .figure-preview { width: 100%; max-height: 620px; object-fit: contain; border: 1px solid #ebe5dc; border-radius: 5px; background: #ffffff; }
+.figure-preview-button { border: 0; padding: 0; background: transparent; cursor: zoom-in; display: block; width: 100%; }
+.figure-preview-expandable { cursor: zoom-in; }
+.figure-preview-button:hover .figure-preview { border-color: var(--accent); }
+.figure-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(32, 40, 51, 0.92);
+}
+.figure-lightbox[hidden] { display: none !important; }
+.figure-lightbox-image {
+  max-width: min(96vw, 100%);
+  max-height: calc(100vh - 96px);
+  object-fit: contain;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+}
+.figure-lightbox-caption {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  max-width: min(920px, calc(100vw - 48px));
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  font-size: 12px;
+  text-align: center;
+}
+.figure-lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.figure-lightbox-close:hover { background: #ffffff; color: var(--accent); }
+body.figure-lightbox-open { overflow: hidden; }
+.shap-preview { max-height: 480px; height: auto; }
 .generated-plot .figure-preview { max-height: 520px; }
 .figure-meta { display: flex; gap: 6px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
 .plot-row { display: grid; grid-template-columns: minmax(180px, .34fr) minmax(220px, 1fr) minmax(82px, max-content); gap: 10px; align-items: center; }
@@ -444,6 +633,7 @@ tr.reference-row:hover { background: #f4faf8; }
   .filter-grid { grid-template-columns: 1fr; }
   .plot-row { grid-template-columns: 1fr; gap: 4px; }
   table { min-width: 640px; }
+  .shap-figure-grid { grid-template-columns: 1fr; }
 }
 """
 
@@ -463,6 +653,8 @@ const RECOMMENDED_FIGURE_ROLES = new Set([
 ]);
 const MODEL_COMPARISON_ROLES = new Set(["performance", "cv_mean_std", "cv_heatmap", "per_target_validation", "optuna"]);
 const SELECTED_MODEL_ROLES = new Set(["shap", "shap_beeswarm", "shap_importance", "shap_dependence", "architecture"]);
+const UI_STATE_KEY = "ocscore-workbench-ui";
+const SPREAD_BAR_COLORS = ["#9ecae1", "#c6dbef", "#74c476", "#a1d99b", "#fd8d3c", "#fdae6b", "#bcbddc", "#9e9ac8"];
 
 const state = {
   workspace: null,
@@ -474,16 +666,66 @@ const state = {
   plotExports: {},
   pendingPlotly: [],
   zoneCollapsed: {
+    protocol: false,
     comparisonTable: false,
     comparisonCharts: false,
+    cvTable: false,
     detailReplicas: false,
     detailCharts: false,
     detailFigures: false,
   },
   comparisonSort: { key: "delta", direction: "desc" },
+  detailReplicaSort: { key: "replica", direction: "asc" },
   comparisonBaseline: "internal",
+  _persistedSelectedStudyName: null,
 };
+let uiStateHydrated = false;
 const $ = (id) => document.getElementById(id);
+
+function loadPersistedUiState() {
+  try {
+    const raw = sessionStorage.getItem(UI_STATE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (saved.zoneCollapsed && typeof saved.zoneCollapsed === "object") {
+      state.zoneCollapsed = { ...state.zoneCollapsed, ...saved.zoneCollapsed };
+    }
+    if (saved.resultScope) state.resultScope = saved.resultScope;
+    if (saved.comparisonBaseline) state.comparisonBaseline = saved.comparisonBaseline;
+    if (saved.selectedMetric) state.selectedMetric = saved.selectedMetric;
+    if (saved.comparisonSort) state.comparisonSort = saved.comparisonSort;
+    if (saved.detailReplicaSort) state.detailReplicaSort = saved.detailReplicaSort;
+    if (saved.figureFilters) state.figureFilters = { ...state.figureFilters, ...saved.figureFilters };
+    state._persistedSelectedStudyName = saved.selectedStudyName || null;
+  } catch (_) {
+    /* ignore corrupt session state */
+  }
+}
+
+function persistUiState() {
+  if (!uiStateHydrated) return;
+  try {
+    sessionStorage.setItem(UI_STATE_KEY, JSON.stringify({
+      zoneCollapsed: state.zoneCollapsed,
+      selectedStudyName: state.selectedStudy?.study_name || null,
+      resultScope: state.resultScope,
+      comparisonBaseline: state.comparisonBaseline,
+      selectedMetric: state.selectedMetric,
+      comparisonSort: state.comparisonSort,
+      detailReplicaSort: state.detailReplicaSort,
+      figureFilters: state.figureFilters,
+    }));
+  } catch (_) {
+    /* ignore quota errors */
+  }
+}
+
+function restoreSelectedStudyFromPersisted() {
+  const name = state._persistedSelectedStudyName;
+  if (!name || state.selectedStudy) return;
+  const study = allStudies().find((item) => item.study_name === name);
+  if (study) state.selectedStudy = study;
+}
 
 function setActiveTab(tabId) {
   state.activeTab = tabId;
@@ -515,6 +757,10 @@ function setZoneCollapsed(zoneId, collapsed) {
   zone.classList.toggle("is-collapsed", collapsed);
   const toggle = zone.querySelector(".zone-toggle");
   if (toggle) toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  persistUiState();
+  if (!collapsed && (zoneId === "comparisonCharts" || zoneId === "detailCharts")) {
+    requestAnimationFrame(() => resizePlotlyHosts(zone));
+  }
 }
 
 function bindCollapsibleZones() {
@@ -546,6 +792,17 @@ async function api(path, params = {}) {
     else url.searchParams.set(key, value);
   });
   const response = await fetch(url);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || response.statusText);
+  return data;
+}
+
+async function apiPost(path, body = {}) {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || response.statusText);
   return data;
@@ -747,7 +1004,12 @@ function modelDescription(item) {
   if (name.startsWith("desc_")) return aggregateDescription("desc_", name) || `Descriptor aggregate baseline (${name}).`;
   if (family === "scoring_function") return scoringFunctionDescription(name);
   if (/^(vina|gnina|smina|plants|oddt)_/.test(name)) return scoringFunctionDescription(name);
-  if (family === "sf_consensus") return aggregateDescription("sf_", name) || `Consensus across scoring functions (${name}).`;
+  if (family === "sf_consensus") {
+    const base = aggregateDescription("sf_", name) || `Consensus across scoring functions (${name}).`;
+    return item.synthesized || item.entry?.synthesized
+      ? `${base} Approximate aggregate synthesized from individual SF rows when absent from baseline CSV.`
+      : base;
+  }
   if (family === "descriptor_aggregate") return aggregateDescription("desc_", name) || `Aggregate over model input features (${name}).`;
   if (family === "learned_sf") return `Learned classifier on docking-score columns (${name}).`;
   return `External baseline (${externalBaselineFamilyLabel(family)}).`;
@@ -779,6 +1041,8 @@ function comparisonEntries() {
       study: item,
       external: true,
       isFullModel: false,
+      synthesized: Boolean(item.synthesized),
+      baseline_family: item.baseline_family,
     });
   });
   return entries;
@@ -791,11 +1055,54 @@ function isReferenceEntry(item) {
   return item.id === state.comparisonBaseline;
 }
 
-function modelCell(item) {
+function entryLegendCategory(item) {
+  const family = item.baseline_family || item.entry?.baseline_family || "";
+  if (family === "scoring_function") return "sf";
+  return "consensus";
+}
+
+function buildStudySpreadColorMap(metricName) {
+  const studyColorMap = new Map();
+  let colorIndex = 0;
+  comparisonEntries()
+    .filter((item) => !item.external)
+    .forEach((item) => {
+      const hasValue = (item.study?.replicas || []).some(
+        (replica) => replicaMetricValue(replica, metricName) !== null,
+      );
+      if (!hasValue) return;
+      if (!studyColorMap.has(item.id)) {
+        studyColorMap.set(item.id, SPREAD_BAR_COLORS[colorIndex % SPREAD_BAR_COLORS.length]);
+        colorIndex += 1;
+      }
+    });
+  return studyColorMap;
+}
+
+function entryPaletteColor(item, studyColorMap) {
+  if (item.external) {
+    return RANK_BAR_COLORS[entryLegendCategory(item)] || RANK_BAR_COLORS.consensus;
+  }
+  return studyColorMap.get(item.id) || RANK_BAR_COLORS.study;
+}
+
+function entryPaletteStyle(item, studyColorMap) {
+  const fill = entryPaletteColor(item, studyColorMap);
+  return `background:${fill};border-color:${fill};color:#202833`;
+}
+
+function modelCell(item, studyColorMap) {
   const label = modelDisplayName(item);
   const refBadge = isReferenceEntry(item) ? '<span class="role-badge reference">Reference</span>' : "";
   const tip = escapeHtml(modelDescription(item));
-  return `<span class="model-cell" title="${tip}"><button type="button" data-entry-id="${escapeHtml(item.id)}" title="${tip}">${escapeHtml(label)}</button>${refBadge}</span>`;
+  const style = entryPaletteStyle(item, studyColorMap);
+  return `<span class="model-cell" title="${tip}"><button type="button" class="model-pill" style="${style}" data-entry-id="${escapeHtml(item.id)}" title="${tip}">${escapeHtml(label)}</button>${refBadge}</span>`;
+}
+
+function entryMetricStd(entry, metricName) {
+  const metric = metricSummaryLookup(entry?.metric_summary, metricName);
+  if (!metric || Number(metric.count) <= 1 || !Number.isFinite(Number(metric.std))) return null;
+  return Number(metric.std);
 }
 
 function metricDecisionDelta(entry, metricName) {
@@ -853,9 +1160,12 @@ function sortedComparisonEntries(entries, metricName) {
   });
 }
 
-function kindBadge(item) {
+function kindBadge(item, studyColorMap) {
   const tip = escapeHtml(modelDescription(item));
-  return `<span class="kind-badge ${item.kindClass}" title="${tip}">${escapeHtml(item.kind)}</span>`;
+  const synthClass = item.synthesized ? " synthesized-baseline" : "";
+  const label = item.synthesized ? `${item.kind} · approx` : item.kind;
+  const style = item.synthesized ? "" : ` style="${entryPaletteStyle(item, studyColorMap)}"`;
+  return `<span class="kind-badge${synthClass}"${style} title="${tip}">${escapeHtml(label)}</span>`;
 }
 
 function comparisonRowClass(item) {
@@ -1011,6 +1321,7 @@ function rankComparisonEntries() {
     metric_summary: baseline.metric_summary || {},
     external: true,
     baseline_family: baseline.baseline_family || "",
+    synthesized: Boolean(baseline.synthesized),
   }));
   return [...studies, ...externals];
 }
@@ -1220,8 +1531,8 @@ function buildRankPlotlySpec(rows, metric) {
       template: "plotly_white",
       paper_bgcolor: "#ffffff",
       plot_bgcolor: "#ffffff",
-      title: { text: `${title}<br><sup>${subtitle}</sup>`, x: 0, xanchor: "left", font: { size: 16, color: "#202833" } },
-      margin: { l: 16, r: Math.max(88, maxLabelLen * 7), t: 96, b: 44 },
+      autosize: true,
+      margin: { l: 16, r: Math.max(88, maxLabelLen * 7), t: 56, b: 44 },
       annotations: rows.map((row) => ({
         x: row.value + (Number(row.std) || 0) + labelOffset,
         y: row.label,
@@ -1283,6 +1594,88 @@ async function mountPendingPlotlyCharts() {
     await Plotly.newPlot(host, item.spec.data, item.spec.layout, item.spec.config);
     payload.plotlyDivId = item.divId;
   }
+  requestAnimationFrame(() => {
+    resizePlotlyHosts();
+    requestAnimationFrame(resizePlotlyHosts);
+  });
+}
+
+function resizePlotlyHosts(root = document) {
+  if (!window.Plotly) return;
+  const scope = root instanceof Element ? root : document;
+  scope.querySelectorAll(".plotly-host").forEach((host) => {
+    if (!host.data) return;
+    try {
+      Plotly.Plots.resize(host);
+    } catch (_error) {
+      /* ignore resize races while charts mount */
+    }
+  });
+}
+
+function buildSimpleBarPlotlySpec(rows, metric, options = {}) {
+  const title = options.title || plotMetricLabel(metric);
+  const subtitle = options.subtitle || "";
+  const zeroCentered = Boolean(options.zeroCentered);
+  const colorForRow = options.colorForRow || (() => "#9ecae1");
+  const maxLabelLen = rows.reduce((longest, row) => Math.max(longest, String(row.label || "").length), 8);
+  const trace = {
+    type: "bar",
+    orientation: "h",
+    y: rows.map((row) => row.label),
+    x: rows.map((row) => row.value),
+    customdata: rows.map((row) => row.display || row.value),
+    marker: {
+      color: rows.map((row) => colorForRow(row)),
+      line: { color: "#ffffff", width: 1 },
+    },
+    hovertemplate: "<b>%{y}</b><br>%{customdata}<extra></extra>",
+  };
+  return {
+    data: [trace],
+    layout: {
+      template: "plotly_white",
+      paper_bgcolor: "#ffffff",
+      plot_bgcolor: "#ffffff",
+      autosize: true,
+      title: subtitle
+        ? { text: `${title}<br><sup>${subtitle}</sup>`, x: 0, xanchor: "left", font: { size: 16, color: "#202833" } }
+        : { text: title, x: 0, xanchor: "left", font: { size: 16, color: "#202833" } },
+      margin: { l: 16, r: 24, t: subtitle ? 88 : 64, b: 36 },
+      xaxis: {
+        title: options.xTitle || plotMetricLabel(metric),
+        titlefont: { color: "#667085" },
+        tickfont: { color: "#667085" },
+        gridcolor: "#ebe5dc",
+        zeroline: true,
+        zerolinecolor: zeroCentered ? "#8a93a0" : "#d8d1c5",
+        rangemode: !zeroCentered && metric.direction !== "min" ? "tozero" : "normal",
+      },
+      yaxis: {
+        automargin: true,
+        autorange: "reversed",
+        tickfont: { color: "#202833", size: Math.max(10, 12 - Math.floor(maxLabelLen / 28)) },
+      },
+      height: Math.max(280, rows.length * 28 + 120),
+    },
+    config: {
+      responsive: true,
+      displaylogo: false,
+      modeBarButtonsToRemove: ["lasso2d", "select2d"],
+      toImageButtonOptions: { format: "png", filename: slug(title), scale: 2 },
+    },
+  };
+}
+
+function plotlyChartMarkup(key, title, subtitle, note, rows, spec) {
+  const divId = `plot-${slug(key)}`;
+  state.pendingPlotly.push({ key, divId, spec });
+  return `
+    <div class="generated-plot">
+      <div class="chart-head"><div><strong>${escapeHtml(title)}</strong>${note ? `<div class="scope-note">${escapeHtml(note)}</div>` : ""}</div>${registerPlotExport(key, title, rows, "plotly")}</div>
+      <div id="${divId}" class="plotly-host" role="img" aria-label="${escapeHtml(title)}"></div>
+    </div>
+  `;
 }
 
 function applyPlotSpan(html, span) {
@@ -1393,12 +1786,56 @@ function renderGlobalControls() {
 }
 
 function comparisonDeltaCell(item, metricName) {
-  if (isReferenceEntry(item)) return { value: "—", numeric: true };
+  if (isReferenceEntry(item)) return { value: "—", numeric: true, className: "delta-col" };
   const delta = metricDecisionDelta(item.entry, metricName);
-  if (delta === null) return { value: "-", numeric: true };
+  if (delta === null) return { value: "-", numeric: true, className: "delta-col" };
   const deltaClass = delta > 0 ? "delta-positive" : delta < 0 ? "delta-negative" : "delta-neutral";
+  const std = item.external ? null : entryMetricStd(item.entry, metricName);
+  const withinNoise = std !== null && Math.abs(delta) < std;
+  const spanClass = ["metric-delta", deltaClass, withinNoise ? "delta-within-noise" : ""].filter(Boolean).join(" ");
   const deltaText = delta === 0 ? "±0" : `${delta > 0 ? "+" : ""}${numeric(delta)}`;
-  return { value: deltaText, numeric: true, className: deltaClass };
+  const title = withinNoise ? `|Δ| < σ (${numeric(std)}) — within replica noise` : undefined;
+  return {
+    value: `<span class="${spanClass}">${escapeHtml(deltaText)}</span>`,
+    numeric: true,
+    className: "delta-col",
+    title,
+  };
+}
+
+function comparisonColorLegendItem(label, color, options = {}) {
+  const title = options.title ? ` title="${escapeHtml(options.title)}"` : "";
+  return `<span class="legend-item color-legend-item"${title}><span class="legend-swatch" style="background:${color};border-color:${color};"></span><span>${escapeHtml(label)}</span></span>`;
+}
+
+function renderComparisonColorLegend(studyColorMap, entries) {
+  const node = $("comparison-color-legend");
+  if (!node) return;
+  if (!entries.length) {
+    node.innerHTML = "";
+    return;
+  }
+  const hasExternalSf = entries.some((item) => item.external && entryLegendCategory(item) === "sf");
+  const hasExternalConsensus = entries.some((item) => item.external && entryLegendCategory(item) === "consensus");
+  const internal = entries.filter((item) => !item.external);
+  const items = [
+    '<span class="legend-intro">Model and Type pill colors match the Charts palette (replica spread + rank legend).</span>',
+  ];
+  if (hasExternalSf) {
+    items.push(comparisonColorLegendItem("SF external baselines", RANK_BAR_COLORS.sf, {
+      title: "Scoring-function baselines from rank-chart legend",
+    }));
+  }
+  if (hasExternalConsensus) {
+    items.push(comparisonColorLegendItem("Other consensus baselines", RANK_BAR_COLORS.consensus, {
+      title: "Consensus baselines from rank-chart legend",
+    }));
+  }
+  internal.forEach((item) => {
+    const color = entryPaletteColor(item, studyColorMap);
+    items.push(comparisonColorLegendItem(modelDisplayName(item), color, { title: modelDescription(item) }));
+  });
+  node.innerHTML = `<div class="color-legend-grid">${items.join("")}</div>`;
 }
 
 function renderComparisonTable() {
@@ -1413,6 +1850,7 @@ function renderComparisonTable() {
   );
   const sortedEntries = sortedComparisonEntries(entries, selectedMetric);
   const referenceLabel = comparisonReferenceLabel();
+  const studyColorMap = buildStudySpreadColorMap(selectedMetric);
   $("comparison-summary").textContent = `${sortedEntries.length} models · ${scopeLabel()} · vs ${referenceLabel}`;
   table(
     $("comparison-table"),
@@ -1420,7 +1858,7 @@ function renderComparisonTable() {
       { label: "Model", sortKey: "model", defaultDirection: "asc" },
       { label: "Type", sortKey: "kind", defaultDirection: "asc" },
       { label: "Replicas", sortKey: "replicas", defaultDirection: "desc", numeric: true },
-      { label: `Δ ${selectedMetric ? metricMeta(selectedMetric).label : "Metric"}`, sortKey: "delta", defaultDirection: "desc", numeric: true },
+      { label: `Δ ${selectedMetric ? metricMeta(selectedMetric).label : "Metric"}`, sortKey: "delta", defaultDirection: "desc", numeric: true, headerClass: "delta-col" },
       ...metricHeaders.map((metric) => ({
         label: metric.label,
         sortKey: `metric:${metric.name}`,
@@ -1429,8 +1867,8 @@ function renderComparisonTable() {
       })),
     ],
     sortedEntries.map((item) => [
-      modelCell(item),
-      kindBadge(item),
+      modelCell(item, studyColorMap),
+      kindBadge(item, studyColorMap),
       { value: item.study?.detected_replica_count ? `${item.study.detected_replica_count}/${item.study.expected_replica_count || item.study.detected_replica_count}` : "—", numeric: !!item.study?.detected_replica_count, title: modelDescription(item) },
       comparisonDeltaCell(item, selectedMetric),
       ...metricHeaders.map((metric) => comparisonMetricCell(item, metric.name, metricRanks[metric.name], metricRanks[metric.name].size)),
@@ -1440,6 +1878,7 @@ function renderComparisonTable() {
   );
   bindSortButtons($("comparison-table"), "comparisonSort");
   renderComparisonExportActions(metricHeaders, sortedEntries, selectedMetric);
+  renderComparisonColorLegend(studyColorMap, sortedEntries);
   $("comparison-table").querySelectorAll("button[data-entry-id]").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -1491,6 +1930,7 @@ function renderComparisonCharts() {
 function generatedReplicaSpreadPlot(metricName) {
   if (!metricName) return "";
   const metric = metricMeta(metricName);
+  const studyColorMap = buildStudySpreadColorMap(metricName);
   const rows = comparisonEntries()
     .filter((item) => !item.external)
     .flatMap((item) => (item.study?.replicas || [])
@@ -1504,25 +1944,62 @@ function generatedReplicaSpreadPlot(metricName) {
           scope: metricScope(metricName),
           study: item.id,
           metric: metricName,
+          color: studyColorMap.get(item.id) || RANK_BAR_COLORS.study,
         };
       })
       .filter(Boolean));
   if (rows.length < 2) return "";
   rows.sort((left, right) => right.value - left.value);
   const title = `${plotMetricLabel(metric)} · replica values`;
-  const svg = chartSvg(title, rows, {
-    subtitle: "Each bar is one replica. Table cells show μ only when averaged over multiple replicas.",
-    labelWidth: 520,
-    scaleFromZero: metric.direction !== "min",
-    hideTitle: true,
-  });
   const key = `replica_spread_${slug(metricName)}_${state.resultScope}`;
-  return `
-    <div class="generated-plot">
-      <div class="chart-head"><div><strong>${escapeHtml(title)}</strong><div class="scope-note">Internal models · per-replica bars</div></div>${registerPlotExport(key, title, rows, svg)}</div>
-      ${svg}
-    </div>
-  `;
+  const spec = buildSimpleBarPlotlySpec(rows, metric, {
+    title,
+    subtitle: "Each bar is one replica. Table cells show μ only when averaged over multiple replicas.",
+    colorForRow: (row) => row.color || "#9ecae1",
+  });
+  return plotlyChartMarkup(key, title, "", "Internal models · per-replica bars", rows, spec);
+}
+
+function generatedAllDeltasPlot(metricName) {
+  if (!metricName) return "";
+  const metric = metricMeta(metricName);
+  const reference = comparisonReferenceSummary();
+  const referenceMetric = metricSummaryLookup(reference, metricName);
+  if (!referenceMetric) return "";
+  const rows = comparisonEntries()
+    .filter((item) => !isReferenceEntry(item))
+    .map((item) => {
+      const delta = metricDecisionDelta(item.entry, metricName);
+      if (delta === null) return null;
+      const std = item.external ? null : entryMetricStd(item.entry, metricName);
+      const withinNoise = std !== null && Math.abs(delta) < std;
+      const label = modelDisplayName(item) + (item.synthesized ? " (approx)" : "") + (withinNoise ? " · ~noise" : "");
+      return {
+        label,
+        value: delta,
+        display: `${delta > 0 ? "+" : ""}${numeric(delta)}${withinNoise ? " (< σ)" : ""}`,
+        scope: metricScope(metricName),
+        study: item.id,
+        metric: metricName,
+        withinNoise,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => right.value - left.value);
+  if (!rows.length) return "";
+  const title = `${plotMetricLabel(metric)} vs ${comparisonReferenceLabel()}`;
+  const key = `all_delta_${slug(metricName)}_${state.resultScope}_${slug(state.comparisonBaseline)}`;
+  const spec = buildSimpleBarPlotlySpec(rows, metric, {
+    title,
+    subtitle: "Positive = improvement vs reference under metric direction",
+    zeroCentered: true,
+    xTitle: "Δ vs reference",
+    colorForRow: (row) => {
+      if (row.withinNoise) return "#c5cad1";
+      return row.value > 0 ? "#16703f" : row.value < 0 ? "#b42318" : "#667085";
+    },
+  });
+  return plotlyChartMarkup(key, title, "", "Green/red = directionally better/worse · grey = within replica σ", rows, spec);
 }
 
 function cvMetricMatchesScope(metricName) {
@@ -1579,40 +2056,6 @@ function renderCrossValidationPanel() {
     `;
   }).join("");
   $("cv-table").innerHTML = blocks;
-}
-
-function generatedAllDeltasPlot(metricName) {
-  if (!metricName) return "";
-  const metric = metricMeta(metricName);
-  const reference = comparisonReferenceSummary();
-  const referenceMetric = metricSummaryLookup(reference, metricName);
-  if (!referenceMetric) return "";
-  const rows = comparisonEntries()
-    .filter((item) => !isReferenceEntry(item))
-    .map((item) => {
-      const delta = metricDecisionDelta(item.entry, metricName);
-      if (delta === null) return null;
-      return {
-        label: modelDisplayName(item),
-        value: delta,
-        display: numeric(delta),
-        scope: metricScope(metricName),
-        study: item.id,
-        metric: metricName,
-      };
-    })
-    .filter(Boolean)
-    .sort((left, right) => right.value - left.value);
-  if (!rows.length) return "";
-  const title = `${plotMetricLabel(metric)} vs ${comparisonReferenceLabel()}`;
-  const svg = chartSvg(title, rows, { zeroCentered: true, hideTitle: true });
-  const key = `all_delta_${slug(metricName)}_${state.resultScope}_${slug(state.comparisonBaseline)}`;
-  return `
-    <div class="generated-plot">
-      <div class="chart-head"><div><strong>${escapeHtml(title)}</strong></div>${registerPlotExport(key, title, rows, svg)}</div>
-      ${svg}
-    </div>
-  `;
 }
 
 function renderFigureControls(study, figures) {
@@ -1971,7 +2414,7 @@ function generatedRankPlot(metricName) {
     .filter(Boolean)
     .sort((left, right) => metric.direction === "min" ? left.value - right.value : right.value - left.value)
     .map((row) => ({
-      label: studyDisplayName(row.entry),
+      label: studyDisplayName(row.entry) + (row.entry.synthesized ? " (approx)" : ""),
       value: row.value,
       std: row.std,
       count: row.count,
@@ -2034,7 +2477,102 @@ function generatedStabilityPlot(study, metricName) {
 }
 
 
-function figureCard(item) {
+function isShapFigure(figure) {
+  return String(figure.role || "").startsWith("shap");
+}
+
+function shapFigureRoleClass(role) {
+  const normalized = String(role || "");
+  if (normalized === "shap_beeswarm") return "shap-beeswarm";
+  if (normalized === "shap_importance") return "shap-importance";
+  if (normalized === "shap_dependence") return "shap-dependence";
+  return "shap-other";
+}
+
+function sortShapFigures(items) {
+  const order = { shap_beeswarm: 0, shap_importance: 1, shap_dependence: 2, shap: 3 };
+  return [...items].sort((left, right) => {
+    const leftOrder = order[left.figure.role] ?? 99;
+    const rightOrder = order[right.figure.role] ?? 99;
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+    const leftDataset = left.figure.dataset || "";
+    const rightDataset = right.figure.dataset || "";
+    if (leftDataset !== rightDataset) return leftDataset.localeCompare(rightDataset);
+    return String(left.figure.path || "").localeCompare(String(right.figure.path || ""));
+  });
+}
+
+function collectShapFigures(study) {
+  return sortShapFigures(collectStudyFigures(study).filter((item) => isShapFigure(item.figure) && figureGroup(item.figure) === "selected"));
+}
+
+function shapFigureMatchesFilters(item) {
+  const figure = item.figure;
+  const filters = state.figureFilters;
+  if (filters.dataset !== "all" && (figure.dataset || "") !== filters.dataset) return false;
+  if (filters.metric !== "all" && (figure.metric_name || "") !== filters.metric) return false;
+  if (filters.role === "recommended") return RECOMMENDED_FIGURE_ROLES.has(figure.role || "figure");
+  if (filters.role !== "all" && (figure.role || "figure") !== filters.role) return false;
+  return true;
+}
+
+function figurePreviewMarkup(figure, item, expandable = false) {
+  if (!isPreviewableFigure(figure)) return "";
+  const src = figureAssetUrl(figure);
+  const alt = `${figure.role || "figure"} ${item.study.study_name}`;
+  const caption = `${titleCase(figure.role || "figure")} · ${item.study.study_name}${figure.dataset ? ` · ${figure.dataset}` : ""}`;
+  if (!expandable) {
+    return `<img class="figure-preview" src="${src}" alt="${escapeHtml(alt)}" loading="lazy">`;
+  }
+  return `<button type="button" class="figure-preview-button" data-figure-src="${escapeHtml(src)}" data-figure-caption="${escapeHtml(caption)}" aria-label="Expand ${escapeHtml(caption)}"><img class="figure-preview figure-preview-expandable" src="${src}" alt="${escapeHtml(alt)}" loading="lazy"></button>`;
+}
+
+let figureLightboxBound = false;
+
+function openFigureLightbox(src, caption) {
+  const overlay = $("figure-lightbox");
+  const image = $("figure-lightbox-image");
+  const cap = $("figure-lightbox-caption");
+  if (!overlay || !image || !cap || !src) return;
+  image.src = src;
+  image.alt = caption || "";
+  cap.textContent = caption || "";
+  overlay.hidden = false;
+  document.body.classList.add("figure-lightbox-open");
+}
+
+function closeFigureLightbox() {
+  const overlay = $("figure-lightbox");
+  const image = $("figure-lightbox-image");
+  if (!overlay || !image) return;
+  overlay.hidden = true;
+  image.removeAttribute("src");
+  $("figure-lightbox-caption").textContent = "";
+  document.body.classList.remove("figure-lightbox-open");
+}
+
+function bindFigureLightbox() {
+  const overlay = $("figure-lightbox");
+  if (!overlay) return;
+  $("figure-list").querySelectorAll(".figure-preview-button").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+      openFigureLightbox(button.dataset.figureSrc, button.dataset.figureCaption);
+    });
+  });
+  if (figureLightboxBound) return;
+  figureLightboxBound = true;
+  overlay.querySelector(".figure-lightbox-close")?.addEventListener("click", closeFigureLightbox);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) closeFigureLightbox();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !overlay.hidden) closeFigureLightbox();
+  });
+}
+
+function figureCard(item, options = {}) {
   const figure = item.figure;
   const metric = figure.metric_name ? metricMeta(figure.metric_name).label : "unscored";
   const group = figureGroup(figure) === "selected" ? "Selected model" : figureGroup(figure) === "comparison" ? "Model comparison" : "Other artifact";
@@ -2043,40 +2581,51 @@ function figureCard(item) {
       <strong>${escapeHtml(titleCase(figure.role || "figure"))}</strong>
       <span>${escapeHtml(item.study.study_name)} / ${escapeHtml(item.label)}${figure.dataset ? ` / ${escapeHtml(figure.dataset)}` : ""}</span>
       <span class="figure-meta"><span>${escapeHtml(group)}</span><span>${escapeHtml(metric)}</span><span>${escapeHtml(figure.suffix || "file")}</span></span>
-      ${isPreviewableFigure(figure) ? `<img class="figure-preview" src="${figureAssetUrl(figure)}" alt="${escapeHtml(figure.role)} ${escapeHtml(item.study.study_name)}" loading="lazy">` : ""}
+      ${figurePreviewMarkup(figure, item, Boolean(options.expandable))}
       <a class="asset-link" href="${figureAssetUrl(figure)}" download>Export source file</a>
       <span class="path">${escapeHtml(figure.path)}</span>
     </div>
   `;
 }
 
-function shapComparisonGallery(study) {
-  const items = collectComparisonFigures(study).filter((item) => {
-    const role = item.figure.role || "";
-    if (!role.startsWith("shap")) return false;
-    if (figureGroup(item.figure) !== "selected") return false;
-    if (state.figureFilters.dataset !== "all" && (item.figure.dataset || "") !== state.figureFilters.dataset) return false;
-    if (state.figureFilters.metric !== "all" && (item.figure.metric_name || "") !== state.figureFilters.metric) return false;
-    return true;
-  });
-  const visible = items.slice(0, SHAP_RENDER_LIMIT);
+function figureCardShap(item) {
+  const figure = item.figure;
+  const roleClass = shapFigureRoleClass(figure.role);
+  const metric = figure.metric_name ? metricMeta(figure.metric_name).label : "unscored";
+  const subtitle = [figure.dataset, item.label, metric].filter(Boolean).join(" · ");
   return `
-    <div class="generated-plot">
-      <div class="chart-head"><strong>Selected Model SHAP Gallery</strong></div>
-      ${visible.length ? visible.map(figureCard).join("") : '<span class="path">No selected-model SHAP figures match the selected dataset and metric filters.</span>'}
-      ${items.length > visible.length ? `<span class="path">Showing ${visible.length} of ${items.length} matching SHAP figures.</span>` : ""}
+    <div class="figure-item shap-figure ${roleClass}">
+      <strong>${escapeHtml(titleCase(figure.role || "shap"))}</strong>
+      <span class="scope-note">${escapeHtml(subtitle)}</span>
+      ${isPreviewableFigure(figure) ? `<img class="figure-preview shap-preview" src="${figureAssetUrl(figure)}" alt="${escapeHtml(figure.role)}" loading="lazy">` : ""}
+      <a class="asset-link" href="${figureAssetUrl(figure)}" download>Download</a>
     </div>
   `;
 }
 
-function figureSection(title, items) {
+function shapFigureSection(study) {
+  const items = collectShapFigures(study).filter(shapFigureMatchesFilters);
+  if (!items.length) return "";
+  const visible = items.slice(0, SHAP_RENDER_LIMIT);
+  return `
+    <section class="figure-section shap-section">
+      <h3>SHAP (selected model)</h3>
+      <p class="scope-note">Recommended: one beeswarm (feature impact by value) and one importance plot (mean |SHAP|) per dataset and replica. Dependence plots explore individual features. Use the dataset, metric, and role filters above to narrow.</p>
+      ${items.length > visible.length ? `<div class="gallery-note">Showing ${visible.length} of ${items.length} SHAP figures.</div>` : ""}
+      <div class="shap-figure-grid">${visible.map(figureCardShap).join("")}</div>
+    </section>
+  `;
+}
+
+function figureSection(title, items, options = {}) {
   const visible = items.slice(0, FIGURE_RENDER_LIMIT);
   if (!items.length) return "";
   return `
     <section class="figure-section">
       <h3>${escapeHtml(title)}</h3>
       ${items.length > visible.length ? `<div class="gallery-note">Showing ${visible.length} of ${items.length} matching figures. Narrow the dataset, role, or metric filter to inspect more precisely.</div>` : ""}
-      <div class="figure-section-grid">${visible.map(figureCard).join("")}</div>
+      ${options.expandable ? '<p class="scope-note">Click a figure to expand it.</p>' : ""}
+      <div class="figure-section-grid">${visible.map((item) => figureCard(item, options)).join("")}</div>
     </section>
   `;
 }
@@ -2087,24 +2636,123 @@ function renderDetailPlots(study) {
   const selectedMetric = ensureSelectedMetric();
   const filtered = figures.filter(figureMatchesFilters);
   const comparisonFigures = filtered.filter((item) => figureGroup(item.figure) === "comparison");
-  const selectedFigures = filtered.filter((item) => figureGroup(item.figure) === "selected");
+  const selectedFigures = filtered.filter((item) => figureGroup(item.figure) === "selected" && !isShapFigure(item.figure));
   const otherFigures = filtered.filter((item) => figureGroup(item.figure) === "other");
-  $("detail-plots").innerHTML = [
-    generatedStabilityPlot(study, selectedMetric),
-    shapComparisonGallery(study),
-  ].join("");
+  $("detail-plots").innerHTML = generatedStabilityPlot(study, selectedMetric);
   bindPlotExportButtons();
   const detected = [
-    figureSection("Model Comparison Figures", comparisonFigures),
+    shapFigureSection(study),
+    figureSection("Model Comparison Figures", comparisonFigures, { expandable: true }),
     figureSection("Selected Model Figures", selectedFigures),
     figureSection("Other Matching Figures", otherFigures),
   ].join("");
   $("figure-list").innerHTML = detected || '<div class="path">No figures match the current filters.</div>';
+  bindFigureLightbox();
+}
+
+function replicaMetricColumns(replicas) {
+  const names = new Set();
+  replicas.forEach((replica) => {
+    (replica.metrics || []).forEach((metric) => names.add(metric.name));
+  });
+  return Array.from(names)
+    .filter((name) => state.resultScope === COMBINED_SCOPE || metricAllowedByScope(name))
+    .map((name) => metricMeta(name))
+    .sort((left, right) => left.label.localeCompare(right.label));
+}
+
+function detailReplicaSortValue(replica, key) {
+  if (key === "replica") return replica.replica_name || "";
+  if (key === "status") return replica.status || "";
+  if (key === "logs") return (replica.log_files || []).length;
+  if (key === "path") return replica.path || "";
+  if (key === "optuna") return replica.optuna_storage_path ? 1 : 0;
+  if (key.startsWith("metric:")) return replicaMetricValue(replica, key.slice(7));
+  return "";
+}
+
+function sortedDetailReplicas(replicas) {
+  const sort = state.detailReplicaSort;
+  return [...replicas].sort((left, right) => {
+    const compared = compareValues(
+      detailReplicaSortValue(left, sort.key),
+      detailReplicaSortValue(right, sort.key),
+      sort.direction,
+    );
+    return compared || String(left.replica_name || "").localeCompare(String(right.replica_name || ""));
+  });
+}
+
+function replicaOptunaCell(replica) {
+  if (!replica.exists) return { value: "—" };
+  if (!replica.optuna_storage_path) {
+    return { value: '<span class="path">no db</span>', title: "No optuna.db found in this replica directory" };
+  }
+  return {
+    value: `<button type="button" class="ghost-button optuna-open" data-replica-path="${escapeHtml(String(replica.path))}">Open</button>`,
+    title: `Launch Optuna dashboard for ${replica.optuna_storage_path}`,
+  };
+}
+
+function bindOptunaDashboardButtons() {
+  $("detail-replicas").querySelectorAll("button.optuna-open").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      const replicaPath = button.dataset.replicaPath;
+      if (!replicaPath) return;
+      button.disabled = true;
+      try {
+        const payload = await apiPost("/api/optuna-dashboard", { replica_path: replicaPath });
+        window.open(payload.url, "_blank", "noopener,noreferrer");
+        toast(payload.reused ? `Optuna dashboard already running on port ${payload.port}` : `Optuna dashboard started on port ${payload.port}`);
+      } catch (error) {
+        toast(error.message || String(error));
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+}
+
+function renderDetailReplicaTable(replicas) {
+  const metricHeaders = replicaMetricColumns(replicas);
+  const headers = [
+    { label: "Replica", sortKey: "replica", defaultDirection: "asc" },
+    { label: "Status", sortKey: "status", defaultDirection: "asc" },
+    ...metricHeaders.map((metric) => ({
+      label: metric.label,
+      sortKey: `metric:${metric.name}`,
+      defaultDirection: metric.direction === "min" ? "asc" : "desc",
+      numeric: true,
+    })),
+    { label: "Optuna", sortKey: "optuna", defaultDirection: "asc" },
+    { label: "Logs", sortKey: "logs", defaultDirection: "desc", numeric: true },
+    { label: "Path", sortKey: "path", defaultDirection: "asc" },
+  ];
+  const rows = sortedDetailReplicas(replicas).map((replica) => [
+    replica.replica_name,
+    statusBadge(replica.status),
+    ...metricHeaders.map((metric) => {
+      const value = replicaMetricValue(replica, metric.name);
+      if (value === null) return { value: "-", numeric: true };
+      return { value: numeric(value), numeric: true, title: metric.label };
+    }),
+    replicaOptunaCell(replica),
+    { value: (replica.log_files || []).length, numeric: true },
+    { value: `<span class="path">${replica.exists ? replica.path : "missing"}</span>` },
+  ]);
+  table($("detail-replicas"), headers, rows, () => "", state.detailReplicaSort);
+  bindSortButtons($("detail-replicas"), "detailReplicaSort");
+  bindOptunaDashboardButtons();
 }
 
 function renderDetail(study) {
   if (!study) {
     $("detail-panel").hidden = true;
+    state.selectedStudy = null;
+    renderProtocolPanel();
     return;
   }
   $("detail-panel").hidden = false;
@@ -2114,20 +2762,187 @@ function renderDetail(study) {
   if (!replicas.length) {
     $("detail-replicas").innerHTML = '<div class="path">No replica records.</div>';
   } else {
-    const selectedMetric = ensureSelectedMetric();
-    table(
-      $("detail-replicas"),
-      ["Replica", "Status", "Metrics", "Logs", "Path"],
-      replicas.map((replica) => [
-        replica.replica_name,
-        statusBadge(replica.status),
-        (replica.metrics || []).map((metric) => `${metric.label}: ${numeric(metric.value)}`).join(" | ") || "-",
-        (replica.log_files || []).length,
-        `<span class="path">${replica.exists ? replica.path : "missing"}</span>`,
-      ]),
-    );
+    renderDetailReplicaTable(replicas);
   }
   renderDetailPlots(study);
+  renderProtocolPanel();
+}
+
+function protocolFact(label, value) {
+  if (value === null || value === undefined || value === "") return "";
+  return `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(String(value))}</dd></div>`;
+}
+
+function protocolCard(title, factsHtml, fullWidth = false) {
+  if (!factsHtml) return "";
+  return `
+    <section class="protocol-card${fullWidth ? " protocol-card-full" : ""}">
+      <h3>${escapeHtml(title)}</h3>
+      <dl class="protocol-facts">${factsHtml}</dl>
+    </section>
+  `;
+}
+
+function formatSplitSizes(protocol) {
+  const parts = [
+    protocol.pdbbind_train_size,
+    protocol.pdbbind_validation_size,
+    protocol.pdbbind_test_size,
+  ].filter((value) => value !== null && value !== undefined && value !== "");
+  if (!parts.length) return "";
+  return parts.map((value) => `${Math.round(Number(value) * 100)}%`).join(" / ");
+}
+
+function activeProtocolSummary() {
+  if (state.selectedStudy?.protocol) return state.selectedStudy.protocol;
+  return state.workspace?.protocol || null;
+}
+
+function renderProtocolPanel() {
+  const protocol = activeProtocolSummary();
+  const summary = $("protocol-summary");
+  const content = $("protocol-content");
+  if (!protocol) {
+    summary.textContent = "No protocol artifacts found";
+    content.innerHTML = '<div class="path">Expected replicas_protocol.json, staged_optuna_protocol.json, or protocol.generated.yml under the workspace or study root.</div>';
+    return;
+  }
+
+  const viewingStudy = state.selectedStudy?.protocol ? modelDisplayName(state.selectedStudy) : "";
+  const titleParts = [
+    protocol.protocol_name,
+    protocol.feature_policy && protocol.feature_policy !== "baseline" ? protocol.feature_policy : "",
+    viewingStudy ? `viewing ${viewingStudy}` : "",
+  ].filter(Boolean);
+  summary.textContent = titleParts.join(" · ") || protocol.source_kind || "Protocol";
+
+  const replicaList = (protocol.replica_names || []).length
+    ? protocol.replica_names.join(", ")
+    : protocol.n_replicas ? `${protocol.n_replicas} replicas` : "";
+
+  const overviewFacts = [
+    protocolFact("Protocol", protocol.protocol_name),
+    protocolFact("Feature policy", protocol.feature_policy),
+    protocolFact("Source", protocol.source_path),
+    protocolFact("Primary claim", protocol.primary_claim),
+    protocolFact("Calibration mode", protocol.calibration_report_mode),
+  ].join("");
+
+  const replicationFacts = [
+    protocolFact("Replicas", protocol.n_replicas || replicaList),
+    protocolFact("Base seed", protocol.base_seed),
+    protocolFact("Replica jobs", protocol.replica_jobs),
+    protocolFact("Resume completed", protocol.resume_completed === null ? "" : protocol.resume_completed ? "yes" : "no"),
+    protocolFact("Replica names", replicaList),
+  ].join("");
+
+  const pdbbindFacts = [
+    protocolFact("Split strategy", protocol.pdbbind_split_strategy),
+    protocolFact("Train / val / test", formatSplitSizes(protocol)),
+    protocolFact("Objective", protocol.pdbbind_objective_metric),
+    protocolFact("Optuna trials", protocol.pdbbind_trials),
+    protocolFact("Epochs", protocol.pdbbind_epochs),
+  ].join("");
+
+  const dudezFacts = [
+    protocolFact("Primary metric", protocol.dudez_primary_metric),
+    protocolFact("BEDROC α", protocol.dudez_bedroc_alpha),
+    protocolFact("Scaling", protocol.dudez_scaling_strategy),
+    protocolFact("Optuna trials", protocol.dudez_trials),
+    protocolFact("Epochs", protocol.dudez_epochs),
+  ].join("");
+
+  const stageFacts = (protocol.stage_names || []).length
+    ? protocol.stage_names.map((name) => protocolFact("Stage", name)).join("")
+    : protocolFact("Stages", "—");
+
+  const activePolicy = state.selectedStudy?.policy_name || state.selectedStudy?.study_name || "";
+  const variants = (protocol.ablation_variants || []).map((variant) => `
+    <span class="protocol-variant${variant === activePolicy ? " active" : ""}">${escapeHtml(variant)}</span>
+  `).join("");
+
+  const variantCard = variants
+    ? `
+      <section class="protocol-card protocol-card-full">
+        <h3>Ablation variants</h3>
+        <div class="protocol-variants">${variants}</div>
+      </section>
+    `
+    : "";
+
+  const noteFacts = (protocol.notes || []).map((note) => protocolFact("Note", note)).join("");
+  const noteCard = noteFacts ? protocolCard("Artifacts", noteFacts, true) : "";
+
+  content.innerHTML = [
+    protocolCard("Overview", overviewFacts),
+    protocolCard("Replication", replicationFacts),
+    protocolCard("PDBbind", pdbbindFacts),
+    protocolCard("DUDEz", dudezFacts),
+    protocolCard("Pipeline", stageFacts),
+    variantCard,
+    noteCard,
+  ].join("");
+}
+
+function pathBasename(path) {
+  let text = String(path || "");
+  while (text.length > 0) {
+    const last = text.charAt(text.length - 1);
+    if (last !== "/" && last !== "\\\\") break;
+    text = text.slice(0, -1);
+  }
+  const slash = text.lastIndexOf("/");
+  const backslash = text.lastIndexOf("\\\\");
+  const index = slash > backslash ? slash : backslash;
+  return index >= 0 ? text.slice(index + 1) : text;
+}
+
+function compactSplitSummary(context) {
+  const summary = context.pdbbind_split_summary || context.pdbbind_split_strategy || "—";
+  const strategy = summary.split("·")[0].trim().replace(/_/g, " ");
+  const sizes = summary.match(/(\\d+)%/g);
+  if (!sizes || sizes.length < 3) {
+    return summary.length > 32 ? `${summary.slice(0, 29)}…` : summary;
+  }
+  return `${strategy} ${sizes.map((part) => part.replace("%", "")).join("/")}`;
+}
+
+function summarizeBaselineSources(sources) {
+  if (!sources.length) return null;
+  const names = sources.map((source) => pathBasename(source.path));
+  const label = names.length > 1 ? `${names[0]} (+${names.length - 1})` : names[0];
+  const title = sources.map((source) => {
+    const stamp = source.modified_at ? new Date(source.modified_at).toLocaleString() : "";
+    return stamp ? `${source.path} · ${stamp}` : String(source.path);
+  }).join("\\n");
+  return { label, title };
+}
+
+function renderRunContext(payload) {
+  const context = payload.run_context;
+  const strip = $("run-context-items");
+  if (!strip) return;
+  if (!context) {
+    strip.innerHTML = "";
+    return;
+  }
+  const splitShort = compactSplitSummary(context);
+  const baseline = summarizeBaselineSources(context.baseline_sources || []);
+  const items = [
+    ["Repl", `${context.detected_replica_count}/${context.planned_replica_count}`],
+    ["Split", splitShort],
+    ["Rank", "DUDEz test"],
+    ["Reg", "PDBbind val/test"],
+    ["BEDROC", context.dudez_bedroc_alpha != null ? `α=${numeric(context.dudez_bedroc_alpha)}` : "—"],
+    ["EF", "1%, 5%"],
+  ];
+  if (baseline) items.push(["CSV", baseline.label, baseline.title]);
+  strip.innerHTML = items.map(([label, value, title]) => `
+    <div class="run-context-item${label === "CSV" ? " path-item" : ""}">
+      <strong>${escapeHtml(label)}</strong>
+      <span${title ? ` title="${escapeHtml(title)}"` : ""}>${escapeHtml(String(value))}</span>
+    </div>
+  `).join("");
 }
 
 function renderIssues(payload) {
@@ -2145,12 +2960,19 @@ function renderIssues(payload) {
 
 function renderWorkspace(payload) {
   state.workspace = payload;
-  $("root-label").textContent = payload.root;
+  restoreSelectedStudyFromPersisted();
+  const rootNode = $("root-label");
+  if (rootNode) {
+    rootNode.textContent = pathBasename(payload.root);
+    rootNode.title = payload.root || "";
+  }
   $("study-count").textContent = payload.study_count;
   $("completed-count").textContent = payload.completed_count;
   $("failed-count").textContent = payload.failed_count;
   $("missing-count").textContent = payload.missing_count;
+  renderRunContext(payload);
   renderIssues(payload);
+  renderProtocolPanel();
   renderGlobalControls();
   renderComparisonTable();
   renderComparisonCharts();
@@ -2161,6 +2983,7 @@ function renderWorkspace(payload) {
   } else {
     renderDetail(null);
   }
+  persistUiState();
 }
 
 async function refresh() {
@@ -2180,8 +3003,10 @@ async function refresh() {
 }
 
 $("refresh").addEventListener("click", refresh);
+loadPersistedUiState();
 bindAppTabs();
 bindCollapsibleZones();
+uiStateHydrated = true;
 setActiveTab("ablation");
 refresh();
 """
@@ -2208,6 +3033,30 @@ def is_workbench_web_asset_path(path: str) -> bool:
     return path in WORKBENCH_WEB_ROUTES
 
 
+def _workbench_repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _workbench_favicon_path() -> Path | None:
+    '''Return the browser tab icon path when available beside the package root.'''
+
+    candidate = _workbench_repo_root() / "ocdocker_small_logo.png"
+    return candidate if candidate.is_file() else None
+
+
+def _workbench_brand_logo_path() -> Path | None:
+    '''Return the in-page OCDocker wordmark path when available beside the package root.'''
+
+    candidates = (
+        _workbench_repo_root() / "OCDocker.png",
+        Path(__file__).resolve().parent / "assets" / "OCDocker.png",
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def build_workbench_web_asset(path: str) -> tuple[str, bytes]:
     '''Build one embedded Workbench browser asset.
 
@@ -2229,11 +3078,23 @@ def build_workbench_web_asset(path: str) -> tuple[str, bytes]:
         return "text/css; charset=utf-8", _STYLE_CSS.encode("utf-8")
     if route == "/app.js":
         return "text/javascript; charset=utf-8", _SCRIPT_JS.encode("utf-8")
+    if route == WORKBENCH_WEB_FAVICON_ROUTE:
+        favicon_path = _workbench_favicon_path()
+        if favicon_path is None:
+            raise KeyError(f"Unknown Workbench web asset: {path}")
+        return "image/png", favicon_path.read_bytes()
+    if route == WORKBENCH_WEB_BRAND_LOGO_ROUTE:
+        brand_logo_path = _workbench_brand_logo_path()
+        if brand_logo_path is None:
+            raise KeyError(f"Unknown Workbench web asset: {path}")
+        return "image/png", brand_logo_path.read_bytes()
     raise KeyError(f"Unknown Workbench web asset: {path}")
 
 
 __all__ = [
     "WORKBENCH_WEB_INDEX_ROUTE",
+    "WORKBENCH_WEB_FAVICON_ROUTE",
+    "WORKBENCH_WEB_BRAND_LOGO_ROUTE",
     "WORKBENCH_WEB_ROUTES",
     "build_workbench_web_asset",
     "is_workbench_web_asset_path",

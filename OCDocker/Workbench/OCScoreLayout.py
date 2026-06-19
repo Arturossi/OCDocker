@@ -17,7 +17,9 @@ import re
 
 from collections import defaultdict
 from datetime import datetime
+from datetime import timezone
 from pathlib import Path
+from OCDocker.OCScore.Optimization.OptunaStorage import DEFAULT_OPTUNA_DB_FILENAME
 from statistics import fmean
 from statistics import median
 from statistics import stdev
@@ -31,7 +33,10 @@ from OCDocker.Workbench.Models import WorkbenchOCScoreCrossValidationMetric
 from OCDocker.Workbench.Models import WorkbenchOCScoreExternalBaseline
 from OCDocker.Workbench.Models import WorkbenchOCScoreFigure
 from OCDocker.Workbench.Models import WorkbenchOCScoreMetric
+from OCDocker.Workbench.Models import WorkbenchOCScoreBaselineSource
+from OCDocker.Workbench.Models import WorkbenchOCScoreProtocolSummary
 from OCDocker.Workbench.Models import WorkbenchOCScoreReplica
+from OCDocker.Workbench.Models import WorkbenchOCScoreRunContext
 from OCDocker.Workbench.Models import WorkbenchOCScoreStudy
 from OCDocker.Workbench.Models import WorkbenchOCScoreWorkspace
 
@@ -57,6 +62,8 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 
 DEFAULT_OCSCORE_REPLICA_COUNT = 5
 DEFAULT_OCSCORE_SCAN_DEPTH = 6
+MIN_OPTUNA_DASHBOARD_SLOT_COUNT = 1
+MAX_OPTUNA_DASHBOARD_SLOT_COUNT = 50
 DEFAULT_OCSCORE_MAX_METRIC_FILE_BYTES = 1_048_576
 REPLICA_PATTERN = re.compile(r"^replica[_ -]?(?P<index>\d+)$", re.IGNORECASE)
 METRIC_SUFFIXES = frozenset({".csv", ".json", ".yaml", ".yml"})
@@ -1046,6 +1053,8 @@ def _build_replica(
         max_metric_file_bytes=max_metric_file_bytes,
     )
     figures = _build_figures(replica_path, policy_name=policy_name, replica_name=replica_path.name, max_depth=max_depth)
+    optuna_db = replica_path / DEFAULT_OPTUNA_DB_FILENAME
+    optuna_storage_path = optuna_db.resolve() if optuna_db.is_file() else None
     if any(_log_has_failure(path, max_bytes=max_metric_file_bytes) for path in log_files):
         status = "failed"
     elif metrics:
@@ -1065,6 +1074,7 @@ def _build_replica(
         path=replica_path,
         exists=True,
         status=status,
+        optuna_storage_path=optuna_storage_path,
         metrics=metrics,
         figures=figures,
         log_files=log_files,
@@ -1156,6 +1166,7 @@ def _merge_external_baseline_rows(
         path=incoming.path,
         metric_summary=merged_summary,
         n_replicas=max(existing.n_replicas, incoming.n_replicas),
+        synthesized=existing.synthesized or incoming.synthesized,
     )
 
 
@@ -1199,6 +1210,7 @@ def _external_baseline_row(
     source_path: Path,
     metric_summary: dict[str, dict[str, Any]],
     n_replicas: int = 0,
+    synthesized: bool = False,
 ) -> WorkbenchOCScoreExternalBaseline | None:
     '''Build one external baseline row when metrics are present.'''
 
@@ -1211,6 +1223,7 @@ def _external_baseline_row(
         path=source_path,
         metric_summary=metric_summary,
         n_replicas=max(0, int(n_replicas)),
+        synthesized=bool(synthesized),
     )
 
 
@@ -1374,6 +1387,7 @@ def _synthesize_sf_consensus_baselines(
                 source_path=sf_rows[0].path,
                 metric_summary=metric_summary,
                 n_replicas=0,
+                synthesized=True,
             )
             if item is not None:
                 synthesized.append(item)
@@ -1409,6 +1423,208 @@ def _load_external_baselines(study_path: Path) -> tuple[WorkbenchOCScoreExternal
                 merged[key] = item
     loaded = tuple(sorted(merged.values(), key=lambda item: (item.split, item.baseline_family, item.baseline_name)))
     return loaded + _synthesize_sf_consensus_baselines(loaded)
+
+
+def _protocol_int(value: Any) -> int | None:
+    '''Return an integer protocol field when present.'''
+
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return None
+
+
+def _protocol_float(value: Any) -> float | None:
+    '''Return a float protocol field when present.'''
+
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    return None
+
+
+def _protocol_stage_config(payload: dict[str, Any], stage_name: str) -> dict[str, Any]:
+    '''Return one stage config block from a protocol JSON payload.'''
+
+    for stage in payload.get("stage_list") or []:
+        if not isinstance(stage, dict) or stage.get("name") != stage_name:
+            continue
+        config = stage.get("config")
+        return config if isinstance(config, dict) else {}
+    return {}
+
+
+def _load_ablation_campaign(layout_root: Path) -> tuple[str, tuple[str, ...]]:
+    '''Return ablation campaign metadata from ablation_summary.json when present.'''
+
+    for container in _ablation_containers(layout_root):
+        summary_path = container / "ablation_summary.json"
+        if not summary_path.is_file():
+            continue
+        try:
+            payload = json.loads(summary_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            continue
+        if not isinstance(payload, dict):
+            continue
+        protocol_name = str(payload.get("protocol") or "")
+        variants: list[str] = []
+        for item in payload.get("variants") or []:
+            if not isinstance(item, dict):
+                continue
+            name = item.get("feature_policy_name") or item.get("variant") or item.get("study_name")
+            if name:
+                variants.append(str(name))
+        return protocol_name, tuple(dict.fromkeys(variants))
+    return "", ()
+
+
+def _load_protocol_summary(
+    study_path: Path,
+    *,
+    feature_policy: str = "",
+    ablation_variants: tuple[str, ...] = (),
+) -> WorkbenchOCScoreProtocolSummary | None:
+    '''Load curated protocol metadata for one OCScore study root.'''
+
+    if not study_path.is_dir():
+        return None
+
+    json_payload: dict[str, Any] = {}
+    yaml_payload: dict[str, Any] = {}
+    source_path: Path | None = None
+    source_kind = ""
+    markdown_path: Path | None = None
+
+    for name, kind in (
+        ("replicas_protocol.json", "replicas_protocol"),
+        ("staged_optuna_protocol.json", "staged_optuna_protocol"),
+    ):
+        candidate = study_path / name
+        if not candidate.is_file():
+            continue
+        try:
+            loaded = json.loads(candidate.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            continue
+        if not isinstance(loaded, dict):
+            continue
+        json_payload = {**json_payload, **loaded}
+        if source_path is None:
+            source_path = candidate
+            source_kind = kind
+
+    markdown_candidate = study_path / "staged_optuna_protocol.md"
+    if markdown_candidate.is_file():
+        markdown_path = markdown_candidate
+
+    yaml_candidate = study_path / "protocol.generated.yml"
+    if yaml_candidate.is_file():
+        try:
+            loaded = yaml.safe_load(yaml_candidate.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError, TypeError, ValueError):
+            loaded = None
+        if isinstance(loaded, dict):
+            yaml_payload = loaded
+            if source_path is None:
+                source_path = yaml_candidate
+                source_kind = "protocol_generated"
+
+    if not json_payload and not yaml_payload:
+        return None
+
+    pdbbind = _protocol_stage_config(json_payload, "pdbbind_optuna")
+    dudez = _protocol_stage_config(json_payload, "dudez_optuna")
+    split_cfg = pdbbind.get("split_config")
+    if not isinstance(split_cfg, dict):
+        split_cfg = pdbbind.get("split") if isinstance(pdbbind.get("split"), dict) else {}
+
+    yaml_pdbbind = yaml_payload.get("pdbbind") if isinstance(yaml_payload.get("pdbbind"), dict) else {}
+    yaml_dudez = yaml_payload.get("dudez") if isinstance(yaml_payload.get("dudez"), dict) else {}
+    yaml_runtime = yaml_payload.get("runtime") if isinstance(yaml_payload.get("runtime"), dict) else {}
+    yaml_reporting = yaml_payload.get("reporting") if isinstance(yaml_payload.get("reporting"), dict) else {}
+    yaml_split = yaml_pdbbind.get("split")
+    yaml_split_cfg = yaml_split if isinstance(yaml_split, dict) else {}
+    dudez_scaling = dudez.get("dudez_scaling_config")
+    if not isinstance(dudez_scaling, dict):
+        dudez_scaling = {}
+
+    aggregate_summary = json_payload.get("aggregate_summary")
+    reporting_policy = (
+        aggregate_summary.get("reporting_policy")
+        if isinstance(aggregate_summary, dict) and isinstance(aggregate_summary.get("reporting_policy"), dict)
+        else {}
+    )
+
+    stage_names = tuple(
+        str(stage.get("name"))
+        for stage in (json_payload.get("stage_list") or [])
+        if isinstance(stage, dict) and stage.get("name")
+    )
+    replica_names = tuple(
+        str(name)
+        for name in (json_payload.get("replica_names") or [])
+        if name
+    )
+
+    protocol_name = str(yaml_payload.get("name") or json_payload.get("protocol") or "")
+    notes: list[str] = []
+    if markdown_path is not None:
+        notes.append(f"Markdown report: {markdown_path}")
+
+    return WorkbenchOCScoreProtocolSummary(
+        source_path=source_path,
+        source_kind=source_kind,
+        protocol_name=protocol_name,
+        feature_policy=feature_policy,
+        n_replicas=_protocol_int(json_payload.get("n_replicas") or yaml_payload.get("replicas")) or 0,
+        base_seed=_protocol_int(json_payload.get("base_seed") or yaml_payload.get("seed")),
+        replica_jobs=_protocol_int(json_payload.get("replica_jobs") or yaml_runtime.get("replica_jobs")),
+        resume_completed=(
+            bool(json_payload.get("resume_completed"))
+            if "resume_completed" in json_payload
+            else bool(yaml_runtime.get("resume_completed"))
+            if "resume_completed" in yaml_runtime
+            else None
+        ),
+        replica_names=replica_names,
+        pdbbind_split_strategy=str(split_cfg.get("strategy") or yaml_split_cfg.get("strategy") or ""),
+        pdbbind_train_size=_protocol_float(split_cfg.get("train_size") or yaml_split_cfg.get("train_size")),
+        pdbbind_validation_size=_protocol_float(split_cfg.get("validation_size") or yaml_split_cfg.get("validation_size")),
+        pdbbind_test_size=_protocol_float(split_cfg.get("test_size") or yaml_split_cfg.get("test_size")),
+        pdbbind_objective_metric=str(pdbbind.get("objective_metric") or yaml_pdbbind.get("objective_metric") or "RMSE"),
+        pdbbind_trials=_protocol_int(pdbbind.get("n_trials") or yaml_pdbbind.get("trials")),
+        pdbbind_epochs=_protocol_int(pdbbind.get("epochs") or yaml_pdbbind.get("epochs")),
+        dudez_primary_metric=str(
+            dudez.get("primary_metric")
+            or json_payload.get("dudez_primary_metric")
+            or yaml_dudez.get("primary_metric")
+            or "BEDROC"
+        ),
+        dudez_bedroc_alpha=_protocol_float(dudez.get("bedroc_alpha") or yaml_dudez.get("bedroc_alpha")),
+        dudez_scaling_strategy=str(dudez_scaling.get("strategy") or yaml_dudez.get("scaling_strategy") or ""),
+        dudez_trials=_protocol_int(dudez.get("n_trials") or yaml_dudez.get("trials")),
+        dudez_epochs=_protocol_int(dudez.get("epochs") or yaml_dudez.get("epochs")),
+        calibration_report_mode=str(
+            json_payload.get("calibration_report_mode")
+            or yaml_reporting.get("calibration_report_mode")
+            or dudez.get("calibration_report_mode")
+            or ""
+        ),
+        primary_claim=str(
+            json_payload.get("primary_claim")
+            or reporting_policy.get("primary_claim")
+            or ""
+        ),
+        stage_names=stage_names,
+        ablation_variants=ablation_variants,
+        markdown_path=markdown_path,
+        notes=tuple(notes),
+    )
 
 
 def _read_replica_count_from_protocol(path: Path) -> int | None:
@@ -1615,6 +1831,7 @@ def _build_study(
         cross_validation=_load_cross_validation(
             _cross_validation_dir(layout_root, role=role, study_name=study_name),
         ),
+        protocol=_load_protocol_summary(path, feature_policy=policy_name),
     )
 
 
@@ -1718,6 +1935,95 @@ def _requested_metrics(metric_names: tuple[str, ...]) -> set[str] | None:
 
 
 ## Public ##
+
+
+def _baseline_source_entries(layout_root: Path, *, max_depth: int) -> tuple[WorkbenchOCScoreBaselineSource, ...]:
+    '''Return discovered external baseline CSV sources with modification times.'''
+
+    sources: list[WorkbenchOCScoreBaselineSource] = []
+    for path in _external_baseline_search_paths(layout_root, max_depth=max_depth):
+        modified_at: datetime | None = None
+        try:
+            modified_at = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+        except OSError:
+            modified_at = None
+        sources.append(WorkbenchOCScoreBaselineSource(path=path, modified_at=modified_at))
+    return tuple(sources)
+
+
+def _build_run_context(
+    baseline_study: WorkbenchOCScoreStudy,
+    protocol: WorkbenchOCScoreProtocolSummary | None,
+    baseline_sources: tuple[WorkbenchOCScoreBaselineSource, ...],
+) -> WorkbenchOCScoreRunContext:
+    '''Build always-visible dashboard run context from study and protocol metadata.'''
+
+    split_parts: list[str] = []
+    if protocol is not None:
+        if protocol.pdbbind_train_size is not None:
+            split_parts.append(f"train {protocol.pdbbind_train_size:.0%}")
+        if protocol.pdbbind_validation_size is not None:
+            split_parts.append(f"val {protocol.pdbbind_validation_size:.0%}")
+        if protocol.pdbbind_test_size is not None:
+            split_parts.append(f"test {protocol.pdbbind_test_size:.0%}")
+    split_summary = protocol.pdbbind_split_strategy if protocol is not None else ""
+    if split_parts:
+        split_summary = " · ".join(part for part in (split_summary, " / ".join(split_parts)) if part)
+
+    return WorkbenchOCScoreRunContext(
+        planned_replica_count=baseline_study.expected_replica_count,
+        detected_replica_count=baseline_study.detected_replica_count,
+        pdbbind_split_strategy=protocol.pdbbind_split_strategy if protocol is not None else "",
+        pdbbind_split_summary=split_summary,
+        dudez_bedroc_alpha=protocol.dudez_bedroc_alpha if protocol is not None else None,
+        baseline_sources=baseline_sources,
+    )
+
+
+def resolve_optuna_dashboard_slot_count(
+    root: str | Path,
+    *,
+    override: int | None = None,
+) -> int:
+    '''Return the Optuna dashboard slot count for one served OCScore root.
+
+    When ``override`` is omitted, the count follows the baseline replica layout:
+    the greater of detected ``replica_*`` directories and ``n_replicas`` from
+    protocol artifacts, clamped to ``MIN_OPTUNA_DASHBOARD_SLOT_COUNT`` through
+    ``MAX_OPTUNA_DASHBOARD_SLOT_COUNT``.
+
+    Parameters
+    ----------
+    root : str or pathlib.Path
+        Served OCScore root.
+    override : int or None
+        Optional explicit slot count from CLI or API configuration.
+
+    Returns
+    -------
+    int
+        Resolved Optuna dashboard slot count.
+    '''
+
+    if override is not None:
+        if override < MIN_OPTUNA_DASHBOARD_SLOT_COUNT:
+            raise ValueError("optuna dashboard slot override must be >= 1")
+        return min(override, MAX_OPTUNA_DASHBOARD_SLOT_COUNT)
+
+    root_path = Path(root)
+    layout_root = _resolve_layout_root(root_path)
+    if not layout_root.is_dir():
+        return MIN_OPTUNA_DASHBOARD_SLOT_COUNT
+
+    replica_paths = _collect_replica_paths(layout_root)
+    from_dirs = max(replica_paths.keys(), default=0)
+    from_protocol = 0
+    for candidate in (layout_root, root_path):
+        count = _read_replica_count_from_protocol(candidate)
+        if count is not None:
+            from_protocol = max(from_protocol, count)
+    count = max(from_dirs, from_protocol, MIN_OPTUNA_DASHBOARD_SLOT_COUNT)
+    return min(count, MAX_OPTUNA_DASHBOARD_SLOT_COUNT)
 
 
 def build_ocscore_workspace(
@@ -1825,6 +2131,16 @@ def build_ocscore_workspace(
             )
     studies = (baseline_study, *ablation_studies)
     external_baselines = _load_external_baselines(layout_root)
+    campaign_name, ablation_variants = _load_ablation_campaign(layout_root)
+    workspace_protocol = _load_protocol_summary(
+        layout_root,
+        feature_policy=baseline_study.policy_name,
+        ablation_variants=ablation_variants,
+    )
+    if workspace_protocol is not None and campaign_name and not workspace_protocol.protocol_name:
+        workspace_protocol = workspace_protocol.model_copy(update={"protocol_name": campaign_name})
+    baseline_sources = _baseline_source_entries(layout_root, max_depth=max_depth)
+    run_context = _build_run_context(baseline_study, workspace_protocol, baseline_sources)
     metric_names_seen = tuple(sorted({
         name for study in studies for name in study.metric_summary
     } | {
@@ -1850,6 +2166,8 @@ def build_ocscore_workspace(
         metric_names=metric_names_seen,
         issue_count=len(issues),
         issues=tuple(issues),
+        protocol=workspace_protocol,
+        run_context=run_context,
     )
 
 
@@ -1858,5 +2176,8 @@ __all__ = [
     "DEFAULT_OCSCORE_MAX_METRIC_FILE_BYTES",
     "DEFAULT_OCSCORE_REPLICA_COUNT",
     "DEFAULT_OCSCORE_SCAN_DEPTH",
+    "MAX_OPTUNA_DASHBOARD_SLOT_COUNT",
+    "MIN_OPTUNA_DASHBOARD_SLOT_COUNT",
     "build_ocscore_workspace",
+    "resolve_optuna_dashboard_slot_count",
 ]

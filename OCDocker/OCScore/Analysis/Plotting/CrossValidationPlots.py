@@ -22,7 +22,6 @@ from pathlib import Path
 from typing import Any, Iterable, Optional, Sequence
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import FixedLocator
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -32,6 +31,10 @@ from OCDocker.OCScore.Analysis.Metrics.Ranking import (
     SCREENING_CONFUSION_METRICS,
 )
 from OCDocker.OCScore.Optimization.ModelCrossValidation import OCSCORE_MODEL_SCORER_NAME
+from OCDocker.OCScore.Utils.DescriptorAggregateBaselines import (
+    DESCRIPTOR_AGGREGATE_NAME_PREFIX,
+    DESCRIPTOR_AGGREGATE_SCORER_TYPE,
+)
 
 from .Core import apply_basic_style, new_fig
 
@@ -63,6 +66,8 @@ PER_TARGET_CSV_NAME = "cross_validation_per_target_metrics.csv"
 OCSCORE_COLOR = "#c0392b"
 SF_COLOR = "#7f8c8d"
 
+PINNED_FOLD_COMPARISON_SCORERS = ("sf_max",)
+
 DEFAULT_CV_PLOT_METRICS = DEFAULT_SCREENING_RANKING_METRICS
 NON_VISUAL_COMPARISON_METRICS = frozenset(SCREENING_CONFUSION_METRICS)
 
@@ -78,6 +83,41 @@ def _safe_filename(metric: str) -> str:
     return metric.replace("%", "pct").replace("/", "_").replace(" ", "_")
 
 
+def _is_descriptor_aggregate_scorer(scorer: str, scorer_type: Optional[str] = None) -> bool:
+    if scorer_type == DESCRIPTOR_AGGREGATE_SCORER_TYPE:
+        return True
+    return str(scorer).startswith(DESCRIPTOR_AGGREGATE_NAME_PREFIX)
+
+
+def _fold_comparison_plot_pool(fold_comparison: pd.DataFrame) -> pd.DataFrame:
+    '''Drop descriptor-row aggregates (``desc_*``) from fold-comparison plots.'''
+
+    if fold_comparison.empty:
+        return fold_comparison
+    if "scorer_type" in fold_comparison.columns:
+        mask = (
+            fold_comparison["scorer_type"].astype(str) != DESCRIPTOR_AGGREGATE_SCORER_TYPE
+        )
+        return fold_comparison.loc[mask]
+    return fold_comparison.loc[
+        ~fold_comparison["scorer"].astype(str).str.startswith(DESCRIPTOR_AGGREGATE_NAME_PREFIX)
+    ]
+
+
+def _pin_fold_comparison_scorers(
+        scorers: Sequence[str],
+        available_scorers: Iterable[str],
+        *,
+        pinned: Sequence[str] = PINNED_FOLD_COMPARISON_SCORERS,
+    ) -> list[str]:
+    available = {str(scorer) for scorer in available_scorers}
+    ordered = list(scorers)
+    for scorer in pinned:
+        if scorer in available and scorer not in ordered:
+            ordered.append(scorer)
+    return ordered
+
+
 def _select_scorers_for_plot(
         mean_std: pd.DataFrame,
         metric: str,
@@ -90,13 +130,18 @@ def _select_scorers_for_plot(
         return []
     subset = subset[np.isfinite(subset["mean"].astype(float))]
     subset = subset.sort_values("mean", ascending=False)
-    scorers = subset["scorer"].astype(str).tolist()
+    scorers = [
+        scorer
+        for scorer in subset["scorer"].astype(str).tolist()
+        if not _is_descriptor_aggregate_scorer(scorer)
+    ]
     if reference_scorer in scorers:
         scorers.remove(reference_scorer)
     if top_n is None or top_n <= 0 or len(scorers) <= top_n:
         ordered = scorers
     else:
         ordered = scorers[: max(0, top_n - 1)]
+    ordered = _pin_fold_comparison_scorers(ordered, scorers)
     if reference_scorer in mean_std["scorer"].astype(str).values:
         return [reference_scorer, *ordered]
     return ordered
@@ -960,22 +1005,17 @@ def plot_fold_metric_heatmap(
         raise ValueError(f"Column {value_col!r} missing from fold comparison table.")
 
     apply_basic_style()
-    pivot_source = fold_comparison[["scorer", "fold_index", value_col]].dropna()
+    pool = _fold_comparison_plot_pool(fold_comparison)
+    pivot_source = pool[["scorer", "fold_index", value_col]].dropna()
     if pivot_source.empty:
         raise ValueError(f"No fold values for metric {metric!r}.")
 
-    mean_by_scorer = (
-        pivot_source.groupby("scorer", as_index=False)[value_col]
-        .mean()
-        .sort_values(value_col, ascending=False)
+    scorers = _select_fold_comparison_scorers(
+        pool,
+        value_col,
+        top_n=top_n,
+        reference_scorer=reference_scorer,
     )
-    scorers = mean_by_scorer["scorer"].astype(str).tolist()
-    if reference_scorer in scorers:
-        scorers.remove(reference_scorer)
-    if top_n is not None and top_n > 0 and len(scorers) > max(0, top_n - 1):
-        scorers = scorers[: max(0, top_n - 1)]
-    if reference_scorer in pivot_source["scorer"].astype(str).unique():
-        scorers = [reference_scorer, *scorers]
 
     filtered = pivot_source[pivot_source["scorer"].astype(str).isin(scorers)]
     table = filtered.pivot(index="scorer", columns="fold_index", values=value_col)
@@ -997,7 +1037,44 @@ def plot_fold_metric_heatmap(
     return fig, ax
 
 
-def plot_fold_metric_lines(
+_CROSS_FOLD_MEAN_LABEL = "Mean"
+
+
+def _select_fold_comparison_scorers(
+        fold_comparison: pd.DataFrame,
+        value_col: str,
+        *,
+        scorers: Optional[Sequence[str]] = None,
+        top_n: Optional[int] = 15,
+        reference_scorer: str = OCSCORE_MODEL_SCORER_NAME,
+    ) -> list[str]:
+    pool = _fold_comparison_plot_pool(fold_comparison)
+    available_scorers = pool["scorer"].astype(str).unique()
+    if scorers is not None:
+        return [
+            str(scorer)
+            for scorer in scorers
+            if str(scorer) in available_scorers
+            and not _is_descriptor_aggregate_scorer(str(scorer))
+        ]
+
+    ranked = (
+        pool.groupby("scorer", as_index=False)[value_col]
+        .mean()
+        .sort_values(value_col, ascending=False)
+    )
+    scorer_list = ranked["scorer"].astype(str).tolist()
+    if reference_scorer in scorer_list:
+        scorer_list.remove(reference_scorer)
+    if top_n is not None and top_n > 0 and len(scorer_list) > max(0, top_n - 1):
+        scorer_list = scorer_list[: max(0, top_n - 1)]
+    scorer_list = _pin_fold_comparison_scorers(scorer_list, available_scorers)
+    if reference_scorer in available_scorers:
+        return [reference_scorer, *scorer_list]
+    return scorer_list
+
+
+def plot_fold_metric_bars(
         fold_comparison: pd.DataFrame,
         metric: str,
         *,
@@ -1006,7 +1083,10 @@ def plot_fold_metric_lines(
         reference_scorer: str = OCSCORE_MODEL_SCORER_NAME,
         size: tuple[float, float] = (8, 5),
     ) -> tuple[plt.Figure, plt.Axes]:
-    '''Line plot of a metric across folds for selected scorers.
+    '''Grouped bar chart of per-fold metric values plus cross-fold mean ± std.
+
+    Each x-axis group is one CV fold, except the final group which shows the
+    mean across folds per scorer with standard-deviation error bars.
 
     Parameters
     ----------
@@ -1033,52 +1113,94 @@ def plot_fold_metric_lines(
         raise ValueError(f"Column {value_col!r} missing from fold comparison table.")
 
     apply_basic_style()
-    if scorers is None:
-        ranked = (
-            fold_comparison.groupby("scorer", as_index=False)[value_col]
-            .mean()
-            .sort_values(value_col, ascending=False)
-        )
-        scorer_list = ranked["scorer"].astype(str).tolist()
-        if reference_scorer in scorer_list:
-            scorer_list.remove(reference_scorer)
-        if top_n is not None and top_n > 0 and len(scorer_list) > max(0, top_n - 1):
-            scorer_list = scorer_list[: max(0, top_n - 1)]
-        if reference_scorer in fold_comparison["scorer"].astype(str).unique():
-            scorers = [reference_scorer, *scorer_list]
-        else:
-            scorers = scorer_list
+    pool = _fold_comparison_plot_pool(fold_comparison)
+    scorers = _select_fold_comparison_scorers(
+        pool,
+        value_col,
+        scorers=scorers,
+        top_n=top_n,
+        reference_scorer=reference_scorer,
+    )
+    if not scorers:
+        raise ValueError(f"No scorers available for metric {metric!r}.")
 
-    fig, ax = new_fig((max(size[0], 8.0 + 0.06 * len(scorers)), size[1]))
-    fold_ticks: set[int] = set()
+    fold_indices = sorted(fold_comparison["fold_index"].astype(int).unique())
+    group_labels = [str(fold) for fold in fold_indices] + [_CROSS_FOLD_MEAN_LABEL]
+    n_folds = len(fold_indices)
+    n_groups = len(group_labels)
+    n_scorers = len(scorers)
+    mean_group_x = float(n_folds)
+
+    fold_values_by_scorer: dict[str, list[float]] = {}
+    mean_by_scorer: dict[str, float] = {}
+    std_by_scorer: dict[str, float] = {}
     for scorer in scorers:
-        rows = fold_comparison[fold_comparison["scorer"].astype(str) == scorer].sort_values(
+        rows = pool[pool["scorer"].astype(str) == scorer].sort_values(
             "fold_index"
         )
-        if rows.empty:
-            continue
-        x_values = rows["fold_index"].astype(int).tolist()
-        fold_ticks.update(x_values)
-        color = OCSCORE_COLOR if scorer == reference_scorer else None
-        linewidth = 2.5 if scorer == reference_scorer else 1.2
-        ax.plot(
-            x_values,
-            rows[value_col],
-            marker="o",
+        fold_values = rows.set_index(rows["fold_index"].astype(int))[value_col].astype(float)
+        per_fold = [float(fold_values.get(fold, np.nan)) for fold in fold_indices]
+        fold_values_by_scorer[scorer] = per_fold
+        finite = np.asarray([value for value in per_fold if np.isfinite(value)], dtype=float)
+        if finite.size:
+            mean_by_scorer[scorer] = float(np.mean(finite))
+            std_by_scorer[scorer] = float(np.std(finite, ddof=1)) if finite.size > 1 else 0.0
+        else:
+            mean_by_scorer[scorer] = np.nan
+            std_by_scorer[scorer] = 0.0
+
+    fig_width = max(size[0], 9.0 + 0.55 * n_groups + 0.04 * n_scorers)
+    fig, ax = new_fig((fig_width, size[1]))
+    x = np.arange(n_groups, dtype=float)
+    group_width = min(0.88, max(0.45, 0.94 - 0.012 * n_scorers))
+    bar_width = group_width / n_scorers
+    cmap = plt.get_cmap("tab20")
+
+    for index, scorer in enumerate(scorers):
+        offset = (index - (n_scorers - 1) / 2) * bar_width
+        is_reference = scorer == reference_scorer
+        color = OCSCORE_COLOR if is_reference else cmap(index % 20)
+        alpha = 0.95 if is_reference else 0.78
+        edgecolor = "#922b21" if is_reference else "white"
+        linewidth = 0.8 if is_reference else 0.25
+        ax.bar(
+            x[:n_folds] + offset,
+            fold_values_by_scorer[scorer],
+            bar_width,
             label=scorer,
             color=color,
+            alpha=alpha,
+            edgecolor=edgecolor,
             linewidth=linewidth,
         )
-    if fold_ticks:
-        ordered_folds = sorted(fold_ticks)
-        ax.set_xticks(ordered_folds)
-        ax.xaxis.set_major_locator(FixedLocator(ordered_folds))
-        pad = 0.35
-        ax.set_xlim(ordered_folds[0] - pad, ordered_folds[-1] + pad)
-    ax.set_xlabel("Fold")
+        ax.bar(
+            mean_group_x + offset,
+            mean_by_scorer[scorer],
+            bar_width,
+            color=color,
+            alpha=alpha,
+            edgecolor=edgecolor,
+            linewidth=linewidth,
+        )
+        ax.errorbar(
+            mean_group_x + offset,
+            mean_by_scorer[scorer],
+            yerr=std_by_scorer[scorer],
+            fmt="none",
+            ecolor=edgecolor if is_reference else "#566573",
+            elinewidth=1.4 if is_reference else 1.0,
+            capsize=3.0,
+            capthick=1.2 if is_reference else 0.9,
+        )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(group_labels)
+    if fold_indices:
+        ax.axvline(n_folds - 0.5, color="#bdc3c7", linestyle="--", linewidth=1.0)
+    ax.set_xlabel("Fold / mean ± std")
     ax.set_ylabel(metric)
-    ax.set_title(f"{metric} across folds")
-    legend = ax.legend(
+    ax.set_title(f"Fold comparison: {metric}")
+    ax.legend(
         loc="center left",
         bbox_to_anchor=(1.02, 0.5),
         fontsize=8,
@@ -1088,6 +1210,27 @@ def plot_fold_metric_lines(
     max_label_len = max((len(str(scorer)) for scorer in scorers), default=10)
     fig.subplots_adjust(right=min(0.78, max(0.52, 0.96 - 0.013 * max_label_len)))
     return fig, ax
+
+
+def plot_fold_metric_lines(
+        fold_comparison: pd.DataFrame,
+        metric: str,
+        *,
+        scorers: Optional[Sequence[str]] = None,
+        top_n: Optional[int] = 15,
+        reference_scorer: str = OCSCORE_MODEL_SCORER_NAME,
+        size: tuple[float, float] = (8, 5),
+    ) -> tuple[plt.Figure, plt.Axes]:
+    '''Backward-compatible alias for :func:`plot_fold_metric_bars`.'''
+
+    return plot_fold_metric_bars(
+        fold_comparison,
+        metric,
+        scorers=scorers,
+        top_n=top_n,
+        reference_scorer=reference_scorer,
+        size=size,
+    )
 
 
 def plot_ocscore_wins(
@@ -1119,8 +1262,14 @@ def plot_ocscore_wins(
     ax.plot(metrics, compared, color=SF_COLOR, marker="o", linestyle="--", label="Folds compared")
     ax.set_ylabel("Fold count")
     ax.set_title("OCScore top rank per fold")
-    ax.legend()
+    ax.legend(
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        frameon=True,
+        borderaxespad=0.0,
+    )
     plt.setp(ax.get_xticklabels(), rotation=25, ha="right")
+    fig.subplots_adjust(right=0.82)
     return fig, ax
 
 
@@ -1195,7 +1344,7 @@ def save_cross_validation_figures(
                 output_path / f"cv_heatmap_{_safe_filename(metric)}.png",
                 dpi=dpi,
             )
-            fig, _ = plot_fold_metric_lines(fold_comparison, metric, top_n=min(15, top_n or 15))
+            fig, _ = plot_fold_metric_bars(fold_comparison, metric, top_n=min(15, top_n or 15))
             written[f"fold_lines_{metric}"] = _save_figure(
                 fig,
                 output_path / f"cv_fold_lines_{_safe_filename(metric)}.png",
@@ -1391,6 +1540,7 @@ __all__ = [
     "aggregate_cv_per_target_metrics",
     "load_cross_validation_artifacts",
     "plot_fold_metric_heatmap",
+    "plot_fold_metric_bars",
     "plot_fold_metric_lines",
     "plot_mean_std_bars",
     "plot_ocscore_wins",

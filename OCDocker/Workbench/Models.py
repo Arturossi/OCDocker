@@ -1623,6 +1623,7 @@ class WorkbenchOCScoreReplica(WorkbenchModel):
     path: Path
     exists: bool = False
     status: OCScoreReplicaStatus = "missing"
+    optuna_storage_path: Path | None = None
     metrics: tuple[WorkbenchOCScoreMetric, ...] = ()
     figures: tuple[WorkbenchOCScoreFigure, ...] = ()
     log_files: tuple[Path, ...] = ()
@@ -1648,6 +1649,39 @@ class WorkbenchOCScoreCrossValidation(WorkbenchModel):
     metrics: tuple[WorkbenchOCScoreCrossValidationMetric, ...] = ()
 
 
+class WorkbenchOCScoreProtocolSummary(WorkbenchModel):
+    """Curated OCScore protocol metadata for dashboard display."""
+
+    source_path: Path | None = None
+    source_kind: str = ""
+    protocol_name: str = ""
+    feature_policy: str = ""
+    n_replicas: int = Field(default=0, ge=0)
+    n_selected_features: int | None = None
+    base_seed: int | None = None
+    replica_jobs: int | None = None
+    resume_completed: bool | None = None
+    replica_names: tuple[str, ...] = ()
+    pdbbind_split_strategy: str = ""
+    pdbbind_train_size: float | None = None
+    pdbbind_validation_size: float | None = None
+    pdbbind_test_size: float | None = None
+    pdbbind_objective_metric: str = ""
+    pdbbind_trials: int | None = None
+    pdbbind_epochs: int | None = None
+    dudez_primary_metric: str = ""
+    dudez_bedroc_alpha: float | None = None
+    dudez_scaling_strategy: str = ""
+    dudez_trials: int | None = None
+    dudez_epochs: int | None = None
+    calibration_report_mode: str = ""
+    primary_claim: str = ""
+    stage_names: tuple[str, ...] = ()
+    ablation_variants: tuple[str, ...] = ()
+    markdown_path: Path | None = None
+    notes: tuple[str, ...] = ()
+
+
 class WorkbenchOCScoreStudy(WorkbenchModel):
     """A strict OCScore baseline or ablation study summary."""
 
@@ -1664,6 +1698,28 @@ class WorkbenchOCScoreStudy(WorkbenchModel):
     figures: tuple[WorkbenchOCScoreFigure, ...] = ()
     metric_summary: dict[str, dict[str, Any]] = Field(default_factory=dict)
     cross_validation: WorkbenchOCScoreCrossValidation | None = None
+    protocol: WorkbenchOCScoreProtocolSummary | None = None
+
+
+class WorkbenchOCScoreBaselineSource(WorkbenchModel):
+    """One external baseline CSV discovered for the workspace."""
+
+    path: Path
+    modified_at: datetime | None = None
+
+
+class WorkbenchOCScoreRunContext(WorkbenchModel):
+    """Always-visible run context for strict OCScore dashboard comparison."""
+
+    planned_replica_count: int = Field(default=0, ge=0)
+    detected_replica_count: int = Field(default=0, ge=0)
+    pdbbind_split_strategy: str = ""
+    pdbbind_split_summary: str = ""
+    dudez_bedroc_alpha: float | None = None
+    ef_definition: str = "EF1% and EF5% enrichment factors on the DUDEz test set"
+    ranking_eval_scope: str = "DUDEz test (BEDROC, ROC-AUC, PR-AUC, EF, NDCG)"
+    regression_eval_scope: str = "PDBbind validation and test (RMSE, MAE, R², correlation)"
+    baseline_sources: tuple[WorkbenchOCScoreBaselineSource, ...] = ()
 
 
 class WorkbenchOCScoreExternalBaseline(WorkbenchModel):
@@ -1675,6 +1731,7 @@ class WorkbenchOCScoreExternalBaseline(WorkbenchModel):
     path: Path
     metric_summary: dict[str, dict[str, Any]] = Field(default_factory=dict)
     n_replicas: int = Field(default=0, ge=0)
+    synthesized: bool = False
 
 
 class WorkbenchOCScoreWorkspace(WorkbenchModel):
@@ -1695,6 +1752,8 @@ class WorkbenchOCScoreWorkspace(WorkbenchModel):
     metric_names: tuple[str, ...] = ()
     issue_count: int = Field(default=0, ge=0)
     issues: tuple[InventoryIssue, ...] = ()
+    protocol: WorkbenchOCScoreProtocolSummary | None = None
+    run_context: WorkbenchOCScoreRunContext | None = None
 
 
 class WorkspaceInventory(WorkbenchModel):

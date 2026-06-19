@@ -446,12 +446,14 @@ def test_workbench_subcommands_registered(tmp_path) -> None:
             "9000",
             "--max-depth",
             "2",
+            "--verbose",
         ]
     )
     assert serve_args.workbench_command == "serve"
     assert serve_args.host == "127.0.0.1"
     assert serve_args.port == 9000
     assert serve_args.max_depth == 2
+    assert serve_args.verbose is True
     assert serve_args.func is cli_workbench.cmd_serve
 
     schema_args = parser.parse_args(["workbench", "schema", "ocscore_study"])
@@ -906,8 +908,29 @@ def test_cmd_serve_invokes_server(tmp_path, monkeypatch, capsys) -> None:
 
     calls = []
 
-    def fake_serve(root, *, host, port, max_depth):
-        calls.append((root, host, port, max_depth))
+    def fake_serve(
+        root,
+        *,
+        host,
+        port,
+        max_depth,
+        optuna_dashboard_port_start,
+        optuna_dashboard_port_end,
+        optuna_dashboard_slots,
+        verbose,
+    ):
+        calls.append(
+            (
+                root,
+                host,
+                port,
+                max_depth,
+                optuna_dashboard_port_start,
+                optuna_dashboard_port_end,
+                optuna_dashboard_slots,
+                verbose,
+            )
+        )
 
     monkeypatch.setattr(cli_workbench, "serve_workbench_api", fake_serve)
 
@@ -917,12 +940,15 @@ def test_cmd_serve_invokes_server(tmp_path, monkeypatch, capsys) -> None:
             host="127.0.0.1",
             port=8765,
             max_depth=2,
+            optuna_port_start=8790,
+            optuna_port_end=8819,
+            optuna_slots=None,
+            verbose=True,
         )
     )
 
     assert rc == 0
-    assert calls == [(str(tmp_path), "127.0.0.1", 8765, 2)]
-    assert "read-only" in capsys.readouterr().out
+    assert calls == [(str(tmp_path), "127.0.0.1", 8765, 2, 8790, 8819, None, True)]
 
 
 def test_cmd_schema_prints_selected_catalog(tmp_path, capsys) -> None:

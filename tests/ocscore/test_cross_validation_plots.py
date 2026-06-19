@@ -372,7 +372,7 @@ def test_large_per_target_heatmap_uses_scaled_typography():
 
 
 @pytest.mark.order(289)
-def test_plot_fold_metric_lines_uses_integer_fold_ticks_and_external_legend():
+def test_plot_fold_metric_bars_groups_folds_and_summaries_with_external_legend():
     fold_comparison = pd.DataFrame(
         [
             {"scorer": "OCScore", "fold_index": 0, "validation_BEDROC": 0.5},
@@ -383,9 +383,53 @@ def test_plot_fold_metric_lines_uses_integer_fold_ticks_and_external_legend():
             {"scorer": "vina_vina", "fold_index": 2, "validation_BEDROC": 0.22},
         ]
     )
-    fig, ax = occvplot.plot_fold_metric_lines(fold_comparison, "BEDROC", top_n=2)
-    tick_values = [int(round(value)) for value in ax.get_xticks()]
-    assert tick_values == [0, 1, 2]
+    fig, ax = occvplot.plot_fold_metric_bars(fold_comparison, "BEDROC", top_n=2)
+    tick_labels = [label.get_text() for label in ax.get_xticklabels()]
+    assert tick_labels == ["0", "1", "2", "Mean"]
+    legend = ax.get_legend()
+    assert legend is not None
+    assert legend.get_bbox_to_anchor().x0 > 1.0
+    assert len(ax.patches) == 2 * 4
+    assert len(ax.lines) >= 2
+    plt.close(fig)
+
+
+@pytest.mark.order(290)
+def test_fold_comparison_scorer_selection_excludes_desc_and_pins_sf_max():
+    fold_comparison = pd.DataFrame(
+        [
+            {"scorer": "OCScore", "scorer_type": "model", "fold_index": 0, "validation_BEDROC": 0.9},
+            {"scorer": "OCScore", "scorer_type": "model", "fold_index": 1, "validation_BEDROC": 0.8},
+            {"scorer": "desc_min", "scorer_type": "descriptor_aggregate", "fold_index": 0, "validation_BEDROC": 0.85},
+            {"scorer": "desc_min", "scorer_type": "descriptor_aggregate", "fold_index": 1, "validation_BEDROC": 0.84},
+            {"scorer": "desc_max", "scorer_type": "descriptor_aggregate", "fold_index": 0, "validation_BEDROC": 0.83},
+            {"scorer": "desc_max", "scorer_type": "descriptor_aggregate", "fold_index": 1, "validation_BEDROC": 0.82},
+            {"scorer": "vina_vina", "scorer_type": "sf", "fold_index": 0, "validation_BEDROC": 0.4},
+            {"scorer": "vina_vina", "scorer_type": "sf", "fold_index": 1, "validation_BEDROC": 0.35},
+            {"scorer": "plants_plp", "scorer_type": "sf", "fold_index": 0, "validation_BEDROC": 0.3},
+            {"scorer": "plants_plp", "scorer_type": "sf", "fold_index": 1, "validation_BEDROC": 0.25},
+            {"scorer": "sf_max", "scorer_type": "sf_consensus", "fold_index": 0, "validation_BEDROC": 0.05},
+            {"scorer": "sf_max", "scorer_type": "sf_consensus", "fold_index": 1, "validation_BEDROC": 0.06},
+        ]
+    )
+    fig, ax = occvplot.plot_fold_metric_bars(fold_comparison, "BEDROC", top_n=3)
+    legend_labels = [text.get_text() for text in ax.get_legend().get_texts()]
+    assert "desc_min" not in legend_labels
+    assert "desc_max" not in legend_labels
+    assert "sf_max" in legend_labels
+    plt.close(fig)
+
+
+@pytest.mark.order(291)
+def test_plot_ocscore_wins_uses_external_legend():
+    ocscore_wins = pd.DataFrame(
+        {
+            "metric": ["BEDROC", "ROC-AUC", "TN", "FN"],
+            "n_folds_won": [5, 5, 3, 0],
+            "n_folds_compared": [5, 5, 5, 5],
+        }
+    )
+    fig, ax = occvplot.plot_ocscore_wins(ocscore_wins)
     legend = ax.get_legend()
     assert legend is not None
     assert legend.get_bbox_to_anchor().x0 > 1.0

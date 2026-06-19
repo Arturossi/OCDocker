@@ -10,6 +10,8 @@ Tests for embedded Workbench browser assets.
 ###############################################################################
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from OCDocker.Workbench import build_workbench_web_asset
@@ -48,6 +50,10 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert script_type == "text/javascript; charset=utf-8"
     assert style_type == "text/css; charset=utf-8"
     assert b"OCScore Control Dashboard" in body
+    assert b"/app-favicon.png" in body
+    assert b"/app-brand-logo.png" in body
+    assert b'class="brand-logo"' in body
+    assert b".brand-logo" in style
     assert b'role="tablist"' in body
     assert b"tab-ablation" in body
     assert b"panel-ablation" in body
@@ -56,12 +62,30 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b"bindAppTabs" in script
     assert b"bindCollapsibleZones" in script
     assert b"zone-collapsible" in style
-    assert b"data-zone=\"comparisonTable\"" in body
-    assert b"data-zone=\"comparisonCharts\"" in body
+    assert b"Ablation protocol</span>" in body
+    assert b"renderProtocolPanel" in script
+    assert b"protocol-grid" in style
+    assert b"renderRunContext" in script
+    assert b"run-context" in style
+    assert b"loadPersistedUiState" in script
+    assert b"sessionStorage" in script
+    assert b"buildSimpleBarPlotlySpec" in script
+    assert b"synthesized-baseline" in style
+    assert b"delta-within-noise" in style
+    assert b"data-zone=\"cvTable\"" in body
+    assert b"detailReplicaSort" in script
+    assert b"renderDetailReplicaTable" in script
+    assert b"bindOptunaDashboardButtons" in script
+    assert b"apiPost" in script
+    assert b"optuna-open" in script
+    assert b"replicaMetricColumns" in script
     assert b".app-tabs" in style
     assert b".tab-panel" in style
     assert b"Results</h2>" in body
     assert b"comparison-legend" in body
+    assert b"comparison-color-legend" in body
+    assert b"renderComparisonColorLegend" in script
+    assert b"color-legend-grid" in style
     assert b"metric-legend" in style
     assert b"metricStatMarkup" in script
     assert b"metric-stat" in style
@@ -120,7 +144,8 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b".rank-third" in style
     assert b"generatedRankPlot" in script
     assert b"generatedStabilityPlot" in script
-    assert b"shapComparisonGallery" in script
+    assert b"shapFigureSection" in script
+    assert b"shap-figure-grid" in style
     assert b"renderFigureControls" in script
     assert b"FIGURE_RENDER_LIMIT" in script
     assert b"figureFilters" in script
@@ -147,6 +172,8 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     parse_only = script.decode("utf-8").replace('$("refresh").addEventListener("click", refresh);', "")
     parse_only = parse_only.replace("bindAppTabs();", "")
     parse_only = parse_only.replace("bindCollapsibleZones();", "")
+    parse_only = parse_only.replace("loadPersistedUiState();", "")
+    parse_only = parse_only.replace("uiStateHydrated = true;", "")
     parse_only = parse_only.replace('setActiveTab("ablation");', "")
     parse_only = parse_only.replace("refresh();", "")
     MiniRacer().eval(parse_only)
@@ -165,7 +192,10 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b".generated-plot" in style
     assert b".decision-svg" in style
     assert b".export-actions" in style
-    assert b".figure-section" in style
+    assert b"figure-lightbox" in body
+    assert b"bindFigureLightbox" in script
+    assert b"figure-preview-button" in script
+    assert b".figure-lightbox" in style
     assert b".gallery-note" in style
 
 
@@ -176,6 +206,8 @@ def test_is_workbench_web_asset_path_recognizes_known_routes() -> None:
     assert is_workbench_web_asset_path("/app/") is True
     assert is_workbench_web_asset_path("/app.css") is True
     assert is_workbench_web_asset_path("/app.js") is True
+    assert is_workbench_web_asset_path("/app-favicon.png") is True
+    assert is_workbench_web_asset_path("/app-brand-logo.png") is True
     assert is_workbench_web_asset_path("/") is False
     assert is_workbench_web_asset_path("/api/health") is False
 
@@ -185,3 +217,28 @@ def test_build_workbench_web_asset_rejects_unknown_route() -> None:
 
     with pytest.raises(KeyError, match="Unknown Workbench web asset"):
         build_workbench_web_asset("/missing.js")
+
+
+def test_build_workbench_web_asset_serves_favicon_png() -> None:
+    '''Workbench serves the small browser tab icon.'''
+
+    content_type, body = build_workbench_web_asset("/app-favicon.png")
+
+    assert content_type == "image/png"
+    assert body.startswith(b"\x89PNG\r\n\x1a\n")
+    favicon_path = Path(__file__).resolve().parents[2] / "ocdocker_small_logo.png"
+    if favicon_path.is_file():
+        assert body == favicon_path.read_bytes()
+
+
+def test_build_workbench_web_asset_serves_brand_logo_png() -> None:
+    '''Workbench serves the in-page OCDocker wordmark.'''
+
+    content_type, body = build_workbench_web_asset("/app-brand-logo.png")
+
+    assert content_type == "image/png"
+    assert body.startswith(b"\x89PNG\r\n\x1a\n")
+    assert len(body) > 1024
+    brand_path = Path(__file__).resolve().parents[2] / "OCDocker.png"
+    if brand_path.is_file():
+        assert body == brand_path.read_bytes()
