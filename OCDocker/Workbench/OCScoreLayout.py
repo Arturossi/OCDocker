@@ -2028,6 +2028,41 @@ def resolve_optuna_dashboard_slot_count(
     return min(count, MAX_OPTUNA_DASHBOARD_SLOT_COUNT)
 
 
+def resolve_ocscore_layout_root(root: str | Path) -> Path:
+    '''Resolve the directory that actually contains OCScore replicas.
+
+    Parameters
+    ----------
+    root : str or pathlib.Path
+        User-provided output root.
+
+    Returns
+    -------
+    pathlib.Path
+        Layout root used by strict discovery.
+    '''
+
+    return _resolve_layout_root(Path(root).expanduser().resolve())
+
+
+def ablation_container_paths(root: str | Path) -> tuple[Path, ...]:
+    '''Return supported ablation container directories under one OCScore layout root.
+
+    Parameters
+    ----------
+    root : str or pathlib.Path
+        User-provided OCScore output root.
+
+    Returns
+    -------
+    tuple[pathlib.Path, ...]
+        Existing ``ablation/`` and ``ablations/`` directories when present.
+    '''
+
+    layout_root = resolve_ocscore_layout_root(root)
+    return _ablation_containers(layout_root)
+
+
 def build_ocscore_workspace(
     root: str | Path,
     *,
@@ -2180,6 +2215,8 @@ __all__ = [
     "DEFAULT_OCSCORE_SCAN_DEPTH",
     "MAX_OPTUNA_DASHBOARD_SLOT_COUNT",
     "MIN_OPTUNA_DASHBOARD_SLOT_COUNT",
+    "ablation_container_paths",
     "build_ocscore_workspace",
+    "resolve_ocscore_layout_root",
     "resolve_optuna_dashboard_slot_count",
 ]

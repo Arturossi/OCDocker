@@ -30,6 +30,8 @@ from OCDocker.Workbench.OptunaDashboard import DEFAULT_OPTUNA_DASHBOARD_HOST
 from OCDocker.Workbench.OptunaDashboard import OptunaDashboardError
 from OCDocker.Workbench.OptunaDashboard import OptunaDashboardManager
 from OCDocker.Workbench.Schema import build_schema_catalog
+from OCDocker.Workbench.AblationDesign import build_ablation_design_context
+from OCDocker.Workbench.AblationDesign import handle_ablation_design_post
 from OCDocker.Workbench.Templates import build_template_payload
 from OCDocker.Workbench.Web import build_workbench_web_asset
 from OCDocker.Workbench.Web import is_workbench_web_asset_path
@@ -123,6 +125,9 @@ def _endpoint_index(root: Path) -> dict[str, Any]:
             "/api/ocscore-workspace",
             "/api/figure-asset?path=...",
             "/api/optuna-dashboard",
+            "/api/ablation-design",
+            "/api/ablation-design/preview",
+            "/api/ablation-design/plan",
             "/api/schema",
             "/api/template",
         ],
@@ -414,6 +419,8 @@ def build_workbench_api_payload(
                 metric_names=_values(request_query, "metric"),
             )
         )
+    if path == "/api/ablation-design":
+        return build_ablation_design_context(root_path)
     if path == "/api/schema":
         names = _values(request_query, "name")
         return build_schema_catalog(names or None)
@@ -582,18 +589,25 @@ def build_workbench_api_handler(
                 self._send_json({"ok": False, "error": str(exc)}, status_code=500)
 
         def do_POST(self) -> None:
-            '''Handle local Optuna dashboard launch requests.'''
+            '''Handle local Optuna dashboard and ablation-design requests.'''
 
             parsed = urlparse(self.path)
-            if parsed.path != "/api/optuna-dashboard":
-                self._send_json({"ok": False, "error": "Unknown Workbench API endpoint."}, status_code=404)
-                return
             try:
+                if parsed.path in {"/api/ablation-design/preview", "/api/ablation-design/plan"}:
+                    body = _read_json_body(self)
+                    payload = handle_ablation_design_post(self.workbench_root, parsed.path, body)
+                    self._send_json(payload, status_code=200)
+                    return
+                if parsed.path != "/api/optuna-dashboard":
+                    self._send_json({"ok": False, "error": "Unknown Workbench API endpoint."}, status_code=404)
+                    return
                 body = _read_json_body(self)
                 payload = _optuna_dashboard_payload(self.workbench_optuna_manager, parsed.path, {}, body)
                 self._send_json(payload, status_code=200)
             except WorkbenchAPIError as exc:
                 self._send_json({"ok": False, "error": str(exc)}, status_code=exc.status_code)
+            except ValueError as exc:
+                self._send_json({"ok": False, "error": str(exc)}, status_code=400)
             except Exception as exc:
                 self._send_json({"ok": False, "error": str(exc)}, status_code=500)
 

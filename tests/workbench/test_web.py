@@ -57,8 +57,13 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b".brand-logo" in style
     assert b'role="tablist"' in body
     assert b"tab-ablation" in body
-    assert b"panel-ablation" in body
-    assert b">Ablation</button>" in body
+    assert b"tab-design" in body
+    assert b"panel-design" in body
+    assert b">Design</button>" in body
+    assert b"Design ablation" in body
+    assert b"bindAblationDesignPanel" in script
+    assert b"/api/ablation-design" in script
+    assert b"ablation-design-panel" in style
     assert b"setActiveTab" in script
     assert b"bindAppTabs" in script
     assert b"bindCollapsibleZones" in script
@@ -180,6 +185,7 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
 
     parse_only = script.decode("utf-8").replace('$("refresh").addEventListener("click", refresh);', "")
     parse_only = parse_only.replace("bindAppTabs();", "")
+    parse_only = parse_only.replace("bindAblationDesignPanel();", "")
     parse_only = parse_only.replace("bindCollapsibleZones();", "")
     parse_only = parse_only.replace("bindThemeToggle();", "")
     parse_only = parse_only.replace("loadPersistedUiState();", "")

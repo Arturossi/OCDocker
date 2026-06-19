@@ -154,6 +154,8 @@ h3 { margin: 0; font-size: 14px; letter-spacing: 0; }
 input, select { width: 92px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 9px; background: var(--surface-input); color: var(--ink); }
 select { width: 100%; min-width: 132px; }
 button { border: 1px solid var(--accent); border-radius: 6px; padding: 9px 13px; background: var(--accent); color: #ffffff; font-weight: 700; cursor: pointer; }
+button.button-secondary { border-color: var(--line); background: transparent; color: var(--text); }
+button.button-secondary:disabled { opacity: 0.55; }
 button:disabled { border-color: var(--line); background: var(--disabled-bg); color: var(--disabled-fg); cursor: not-allowed; }
 .connection { display: none; }
 .run-context {
@@ -210,6 +212,84 @@ button:disabled { border-color: var(--line); background: var(--disabled-bg); col
 }
 .run-context-item.path-item span:last-child { color: var(--muted); }
 .run-context-item-selection span:last-child { color: var(--text); font-weight: 600; }
+
+.ablation-design-panel .panel-head-split { align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.ablation-design-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.ablation-design-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--panel);
+}
+.ablation-design-card-wide { grid-column: 1 / -1; }
+.ablation-design-card h3 { margin: 0 0 10px; font-size: 13px; }
+.ablation-design-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 10px;
+}
+.ablation-design-span-2 { grid-column: 1 / -1; }
+.ablation-design-checkbox {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.ablation-design-checkbox input { width: auto; min-width: 0; }
+.ablation-design-note { margin: 8px 0 0; font-size: 12px; line-height: 1.45; }
+.ablation-design-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.ablation-design-preview { margin-bottom: 10px; }
+.ablation-design-preview-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+.ablation-design-preview-details div {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  background: var(--bg);
+}
+.ablation-design-preview-details strong { display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.ablation-design-code {
+  margin: 10px 0 0;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: auto;
+  max-height: 280px;
+}
+.ablation-design-preflight { margin-top: 10px; display: grid; gap: 6px; }
+.ablation-design-check {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  background: var(--bg);
+}
+.ablation-design-check.error { border-color: #d9534f; }
+.ablation-design-check.warning { border-color: #d4a017; }
+.ablation-design-check.ok { border-color: #5cb85c; }
+textarea {
+  width: 100%;
+  min-height: 72px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
 .app-tabs:has(.tab:only-child) { display: none; }
 .app-tabs {
   display: flex;

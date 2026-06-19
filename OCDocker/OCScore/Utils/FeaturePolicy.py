@@ -475,6 +475,58 @@ def apply_feature_policy(
     )
 
 
+def feature_policy_from_mapping(
+        data: Mapping[str, Any],
+        *,
+        source_kind: str = "draft",
+        source_path: str | Path | None = None,
+    ) -> FeaturePolicy:
+    """Build a feature policy from an in-memory mapping (Workbench draft UI)."""
+
+    if source_kind not in VALID_SOURCE_KINDS and source_kind != "draft":
+        raise ValueError(f"Unknown feature policy source kind: {source_kind!r}.")
+    name = str(data.get("name", "")).strip()
+    if not name:
+        raise ValueError("Feature policy draft is missing required field 'name'.")
+    resolved_path = Path(source_path).expanduser().resolve() if source_path is not None else Path()
+    return FeaturePolicy(
+        name=name,
+        description=str(data.get("description", "") or "").strip(),
+        include_features=_as_str_tuple(data.get("include_features"), "include_features"),
+        include_patterns=_as_str_tuple(data.get("include_patterns"), "include_patterns"),
+        exclude_features=_as_str_tuple(data.get("exclude_features"), "exclude_features"),
+        exclude_patterns=_as_str_tuple(data.get("exclude_patterns"), "exclude_patterns"),
+        allow_missing_exclude_features=bool(data.get("allow_missing_exclude_features", True)),
+        allow_empty_policy=bool(data.get("allow_empty_policy", False)),
+        source_path=resolved_path,
+        source_kind=source_kind,
+        source_hash="",
+    )
+
+
+def feature_policy_to_yaml_text(data: Mapping[str, Any]) -> str:
+    """Serialize one feature-policy mapping to YAML text."""
+
+    payload: dict[str, Any] = {
+        "name": str(data.get("name", "")).strip(),
+        "description": str(data.get("description", "") or "").strip(),
+    }
+    for field in (
+        "include_features",
+        "include_patterns",
+        "exclude_features",
+        "exclude_patterns",
+    ):
+        values = _as_str_tuple(data.get(field), field)
+        if values:
+            payload[field] = list(values)
+    if not bool(data.get("allow_missing_exclude_features", True)):
+        payload["allow_missing_exclude_features"] = False
+    if bool(data.get("allow_empty_policy", False)):
+        payload["allow_empty_policy"] = True
+    return yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
+
+
 def write_feature_policy_metadata(output_dir: str | Path, metadata: Mapping[str, Any]) -> Path:
     """Write feature-policy provenance metadata."""
 
@@ -496,6 +548,8 @@ __all__ = [
     "apply_feature_policy",
     "discover_candidate_model_features",
     "discover_feature_policies",
+    "feature_policy_from_mapping",
+    "feature_policy_to_yaml_text",
     "load_feature_policy",
     "resolve_requested_feature_policies",
     "write_feature_policy_metadata",

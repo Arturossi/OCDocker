@@ -77,6 +77,7 @@
     </section>
     <nav class="app-tabs" role="tablist" aria-label="Dashboard sections">
       <button type="button" class="tab active" role="tab" id="tab-ablation" aria-selected="true" aria-controls="panel-ablation" data-tab="ablation">Ablation</button>
+      <button type="button" class="tab" role="tab" id="tab-design" aria-selected="false" aria-controls="panel-design" data-tab="design">Design</button>
     </nav>
   </div>
   <main>
@@ -222,6 +223,80 @@
         </div>
       </div>
     </section>
+    </section>
+    <section id="panel-design" class="tab-panel" role="tabpanel" aria-labelledby="tab-design" data-tab-panel="design" hidden>
+      <section class="panel ablation-design-panel">
+        <div class="panel-head panel-head-split">
+          <h2>Design ablation</h2>
+          <span id="ablation-design-summary" class="muted">Compose a feature-policy YAML and training command without leaving the dashboard.</span>
+        </div>
+        <div class="ablation-design-grid">
+          <section class="ablation-design-card">
+            <h3>Start from template</h3>
+            <label class="field" for="ablation-design-template"><span>Bundled policy</span>
+              <select id="ablation-design-template"></select>
+            </label>
+            <p id="ablation-design-template-description" class="muted ablation-design-note"></p>
+          </section>
+          <section class="ablation-design-card ablation-design-card-wide">
+            <h3>Feature policy</h3>
+            <div class="ablation-design-fields">
+              <label class="field" for="ablation-design-name"><span>Policy name</span>
+                <input id="ablation-design-name" type="text" autocomplete="off" spellcheck="false" placeholder="my_custom_ablation">
+              </label>
+              <label class="field ablation-design-span-2" for="ablation-design-description"><span>Description</span>
+                <input id="ablation-design-description" type="text" placeholder="What this ablation removes or keeps">
+              </label>
+              <label class="field ablation-design-span-2" for="ablation-design-include-patterns"><span>Include patterns</span>
+                <textarea id="ablation-design-include-patterns" rows="3" placeholder="* or ligand_* (one per line)"></textarea>
+              </label>
+              <label class="field ablation-design-span-2" for="ablation-design-exclude-features"><span>Exclude features</span>
+                <textarea id="ablation-design-exclude-features" rows="4" placeholder="ligand_PMI1 (one per line)"></textarea>
+              </label>
+              <label class="field ablation-design-span-2" for="ablation-design-exclude-patterns"><span>Exclude patterns</span>
+                <textarea id="ablation-design-exclude-patterns" rows="3" placeholder="receptor_* (one per line)"></textarea>
+              </label>
+              <label class="field ablation-design-checkbox" for="ablation-design-allow-missing-excludes">
+                <input id="ablation-design-allow-missing-excludes" type="checkbox" checked>
+                <span>Allow missing exclude features</span>
+              </label>
+            </div>
+          </section>
+          <section class="ablation-design-card ablation-design-card-wide">
+            <h3>Run settings</h3>
+            <div class="ablation-design-fields">
+              <label class="field ablation-design-span-2" for="ablation-design-protocol"><span>Protocol path</span>
+                <input id="ablation-design-protocol" type="text" spellcheck="false" placeholder="/path/to/production.yml">
+              </label>
+              <label class="field ablation-design-span-2" for="ablation-design-raw-input"><span>Raw input dir</span>
+                <input id="ablation-design-raw-input" type="text" spellcheck="false" placeholder="/path/to/raw_prepare">
+              </label>
+              <label class="field ablation-design-span-2" for="ablation-design-output-dir"><span>Output dir</span>
+                <input id="ablation-design-output-dir" type="text" spellcheck="false" placeholder="ablations/my_custom_ablation">
+              </label>
+              <label class="field ablation-design-span-2" for="ablation-design-policy-path"><span>Policy YAML path</span>
+                <input id="ablation-design-policy-path" type="text" spellcheck="false" placeholder="Ablations/my_custom_ablation.yml">
+              </label>
+            </div>
+            <p class="muted ablation-design-note">The dashboard stays read-only: save the generated YAML locally, then run the planned command in your shell.</p>
+          </section>
+          <section class="ablation-design-card ablation-design-card-wide">
+            <div class="ablation-design-actions">
+              <button id="ablation-design-preview" type="button">Preview policy</button>
+              <button id="ablation-design-plan" type="button">Generate plan</button>
+              <button id="ablation-design-download-yaml" type="button" class="button-secondary">Download YAML</button>
+              <button id="ablation-design-copy-command" type="button" class="button-secondary" disabled>Copy command</button>
+            </div>
+            <div id="ablation-design-preview-panel" class="ablation-design-preview" hidden>
+              <div id="ablation-design-preview-summary" class="muted"></div>
+              <div id="ablation-design-preview-details" class="ablation-design-preview-details"></div>
+            </div>
+            <pre id="ablation-design-yaml" class="ablation-design-code" hidden></pre>
+            <div id="ablation-design-preflight" class="ablation-design-preflight" hidden></div>
+            <pre id="ablation-design-command" class="ablation-design-code" hidden></pre>
+          </section>
+        </div>
+      </section>
     </section>
   </main>
   <div id="figure-lightbox" class="figure-lightbox" hidden>

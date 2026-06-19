@@ -44,6 +44,10 @@ const state = {
   detailReplicaSort: { key: "replica", direction: "asc" },
   comparisonBaseline: "internal",
   theme: "dark",
+  ablationDesign: null,
+  ablationDesignContext: null,
+  ablationDesignPreview: null,
+  ablationDesignPlan: null,
   _persistedSelectedStudyName: null,
 };
 let uiStateHydrated = false;
@@ -93,6 +97,9 @@ function loadPersistedUiState() {
     }
     if (saved.resultScope) state.resultScope = saved.resultScope;
     if (saved.comparisonBaseline) state.comparisonBaseline = saved.comparisonBaseline;
+    if (saved.ablationDesign && typeof saved.ablationDesign === "object") {
+      state.ablationDesign = { ...defaultAblationDesign(), ...saved.ablationDesign };
+    }
     if (saved.selectedMetric) state.selectedMetric = saved.selectedMetric;
     if (saved.comparisonSort) state.comparisonSort = saved.comparisonSort;
     if (saved.detailReplicaSort) state.detailReplicaSort = saved.detailReplicaSort;
@@ -116,6 +123,7 @@ function persistUiState() {
     selectedStudyName: state.selectedStudy?.study_name || null,
     resultScope: state.resultScope,
     comparisonBaseline: state.comparisonBaseline,
+    ablationDesign: readAblationDesignDraft(),
     selectedMetric: state.selectedMetric,
     comparisonSort: state.comparisonSort,
     detailReplicaSort: state.detailReplicaSort,
@@ -173,6 +181,7 @@ function setActiveTab(tabId) {
   document.querySelectorAll("[data-tab-toolbar]").forEach((toolbar) => {
     toolbar.hidden = toolbar.dataset.tabToolbar !== tabId;
   });
+  if (tabId === "design") ensureAblationDesignContext();
   persistUiState();
 }
 
@@ -2524,6 +2533,366 @@ function renderProtocolPanel() {
   ].join("");
 }
 
+function defaultAblationDesign() {
+  return {
+    templateName: "",
+    name: "",
+    description: "",
+    include_patterns: "*",
+    exclude_features: "",
+    exclude_patterns: "",
+    allow_missing_exclude_features: true,
+    protocol: "",
+    raw_input_dir: "",
+    output_dir: "",
+    policy_yml_path: "",
+  };
+}
+
+function ensureAblationDesignDraft() {
+  if (!state.ablationDesign) state.ablationDesign = defaultAblationDesign();
+  return state.ablationDesign;
+}
+
+function readAblationDesignDraft() {
+  const draft = ensureAblationDesignDraft();
+  return {
+    templateName: draft.templateName || "",
+    name: draft.name || "",
+    description: draft.description || "",
+    include_patterns: draft.include_patterns || "",
+    exclude_features: draft.exclude_features || "",
+    exclude_patterns: draft.exclude_patterns || "",
+    allow_missing_exclude_features: draft.allow_missing_exclude_features !== false,
+    protocol: draft.protocol || "",
+    raw_input_dir: draft.raw_input_dir || "",
+    output_dir: draft.output_dir || "",
+    policy_yml_path: draft.policy_yml_path || "",
+  };
+}
+
+function writeAblationDesignDraftFromForm() {
+  const draft = ensureAblationDesignDraft();
+  draft.templateName = $("ablation-design-template")?.value || "";
+  draft.name = $("ablation-design-name")?.value.trim() || "";
+  draft.description = $("ablation-design-description")?.value.trim() || "";
+  draft.include_patterns = $("ablation-design-include-patterns")?.value || "";
+  draft.exclude_features = $("ablation-design-exclude-features")?.value || "";
+  draft.exclude_patterns = $("ablation-design-exclude-patterns")?.value || "";
+  draft.allow_missing_exclude_features = Boolean($("ablation-design-allow-missing-excludes")?.checked);
+  draft.protocol = $("ablation-design-protocol")?.value.trim() || "";
+  draft.raw_input_dir = $("ablation-design-raw-input")?.value.trim() || "";
+  draft.output_dir = $("ablation-design-output-dir")?.value.trim() || "";
+  draft.policy_yml_path = $("ablation-design-policy-path")?.value.trim() || "";
+  persistUiState();
+  return draft;
+}
+
+function ablationDesignLines(value) {
+  return String(value || "")
+    .split(/\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function ablationDesignPolicyPayload(draft = readAblationDesignDraft()) {
+  const payload = {
+    name: draft.name,
+    description: draft.description,
+    allow_missing_exclude_features: draft.allow_missing_exclude_features !== false,
+  };
+  const includePatterns = ablationDesignLines(draft.include_patterns);
+  const excludeFeatures = ablationDesignLines(draft.exclude_features);
+  const excludePatterns = ablationDesignLines(draft.exclude_patterns);
+  if (includePatterns.length) payload.include_patterns = includePatterns;
+  if (excludeFeatures.length) payload.exclude_features = excludeFeatures;
+  if (excludePatterns.length) payload.exclude_patterns = excludePatterns;
+  return payload;
+}
+
+function ablationDesignRequestPayload(draft = readAblationDesignDraft()) {
+  return {
+    policy: ablationDesignPolicyPayload(draft),
+    protocol: draft.protocol,
+    raw_input_dir: draft.raw_input_dir,
+    output_dir: draft.output_dir,
+    policy_yml_path: draft.policy_yml_path,
+    description: draft.description,
+    name: draft.name ? `ablation-${draft.name}` : "",
+  };
+}
+
+function syncAblationDesignOutputPaths(draft = readAblationDesignDraft(), context = state.ablationDesignContext) {
+  if (!draft.name || !context) return draft;
+  const container = context.ablation_container || "ablations";
+  if (!draft.output_dir) draft.output_dir = `${container}/${draft.name}`;
+  if (!draft.policy_yml_path) draft.policy_yml_path = `Ablations/${draft.name}.yml`;
+  return draft;
+}
+
+function renderAblationDesignForm(context = state.ablationDesignContext) {
+  const draft = ensureAblationDesignDraft();
+  if (context?.protocol_path && !draft.protocol) draft.protocol = context.protocol_path;
+  syncAblationDesignOutputPaths(draft, context);
+
+  const templateSelect = $("ablation-design-template");
+  if (templateSelect && context?.catalog) {
+    const options = ['<option value="">Custom (blank)</option>']
+      .concat(context.catalog.map((item) => `<option value="${escapeHtml(item.name)}">${escapeHtml(item.name)}</option>`));
+    templateSelect.innerHTML = options.join("");
+    templateSelect.value = draft.templateName || "";
+  }
+
+  $("ablation-design-name").value = draft.name || "";
+  $("ablation-design-description").value = draft.description || "";
+  $("ablation-design-include-patterns").value = draft.include_patterns || "";
+  $("ablation-design-exclude-features").value = draft.exclude_features || "";
+  $("ablation-design-exclude-patterns").value = draft.exclude_patterns || "";
+  $("ablation-design-allow-missing-excludes").checked = draft.allow_missing_exclude_features !== false;
+  $("ablation-design-protocol").value = draft.protocol || "";
+  $("ablation-design-raw-input").value = draft.raw_input_dir || "";
+  $("ablation-design-output-dir").value = draft.output_dir || "";
+  $("ablation-design-policy-path").value = draft.policy_yml_path || "";
+
+  const existing = (context?.existing_ablation_names || []);
+  const summary = context?.candidate_source
+    ? `Candidate features from ${pathBasename(context.candidate_source)} · ${existing.length} existing ablations`
+    : `${existing.length} existing ablations · preview uses workspace metadata when available`;
+  $("ablation-design-summary").textContent = summary;
+
+  updateAblationDesignTemplateDescription();
+}
+
+function updateAblationDesignTemplateDescription() {
+  const node = $("ablation-design-template-description");
+  const templateName = $("ablation-design-template")?.value || "";
+  if (!node) return;
+  if (!templateName) {
+    node.textContent = "Start from scratch or clone a bundled feature policy.";
+    return;
+  }
+  const entry = (state.ablationDesignContext?.catalog || []).find((item) => item.name === templateName);
+  node.textContent = entry?.description || "";
+}
+
+function applyAblationDesignTemplate(templateName) {
+  const entry = (state.ablationDesignContext?.catalog || []).find((item) => item.name === templateName);
+  const draft = ensureAblationDesignDraft();
+  draft.templateName = templateName || "";
+  if (!entry) {
+    renderAblationDesignForm();
+    persistUiState();
+    return;
+  }
+  const request = entry.request || {};
+  draft.name = templateName.startsWith("custom_") ? templateName : `custom_${templateName}`;
+  draft.description = entry.description || request.description || "";
+  draft.include_patterns = (request.include_patterns || []).join("\n") || "*";
+  draft.exclude_features = (request.exclude_features || []).join("\n");
+  draft.exclude_patterns = (request.exclude_patterns || []).join("\n");
+  draft.allow_missing_exclude_features = request.allow_missing_exclude_features !== false;
+  syncAblationDesignOutputPaths(draft, state.ablationDesignContext);
+  renderAblationDesignForm();
+  persistUiState();
+}
+
+function renderAblationDesignPreview(payload) {
+  state.ablationDesignPreview = payload;
+  const panel = $("ablation-design-preview-panel");
+  const yamlNode = $("ablation-design-yaml");
+  if (!panel || !yamlNode) return;
+
+  if (!payload?.ok) {
+    panel.hidden = false;
+    $("ablation-design-preview-summary").textContent = payload?.error || "Preview failed.";
+    $("ablation-design-preview-details").innerHTML = "";
+    yamlNode.hidden = true;
+    return;
+  }
+
+  panel.hidden = false;
+  yamlNode.hidden = false;
+  yamlNode.textContent = payload.policy_yaml || "";
+
+  if (!payload.preview_available) {
+    $("ablation-design-preview-summary").textContent = payload.message || "Preview unavailable.";
+    $("ablation-design-preview-details").innerHTML = "";
+    return;
+  }
+
+  $("ablation-design-preview-summary").textContent =
+    `${payload.kept_feature_count} kept · ${payload.excluded_feature_count} excluded · ${payload.candidate_feature_count} candidates`;
+  const details = [
+    ["Kept (sample)", (payload.kept_features_sample || []).join(", ") || "—"],
+    ["Excluded (sample)", (payload.excluded_features_sample || []).join(", ") || "—"],
+    ["Missing excludes", (payload.missing_exclude_features || []).join(", ") || "—"],
+    ["Unused patterns", (payload.patterns_with_no_matches || []).join(", ") || "—"],
+  ];
+  $("ablation-design-preview-details").innerHTML = details.map(([label, value]) => `
+    <div><strong>${escapeHtml(label)}</strong>${escapeHtml(value)}</div>
+  `).join("");
+}
+
+function renderAblationDesignPlan(payload) {
+  state.ablationDesignPlan = payload;
+  const commandNode = $("ablation-design-command");
+  const preflightNode = $("ablation-design-preflight");
+  const copyButton = $("ablation-design-copy-command");
+  if (!commandNode || !preflightNode) return;
+
+  if (!payload?.ok) {
+    commandNode.hidden = false;
+    commandNode.textContent = payload?.error || "Plan failed.";
+    preflightNode.hidden = true;
+    if (copyButton) copyButton.disabled = true;
+    return;
+  }
+
+  if (payload.policy_yaml) {
+    $("ablation-design-yaml").hidden = false;
+    $("ablation-design-yaml").textContent = payload.policy_yaml;
+  }
+  commandNode.hidden = false;
+  commandNode.textContent = payload.planned_command || "";
+  if (copyButton) copyButton.disabled = !payload.planned_command;
+
+  const checks = payload.preflight?.checks || [];
+  preflightNode.hidden = !checks.length;
+  preflightNode.innerHTML = checks.map((check) => {
+    const status = check.passed ? "ok" : check.severity === "warning" ? "warning" : "error";
+    return `
+      <div class="ablation-design-check ${status}">
+        <strong>${escapeHtml(check.subject || check.code || "check")}</strong>
+        ${escapeHtml(check.message || "")}
+      </div>
+    `;
+  }).join("");
+}
+
+async function ensureAblationDesignContext(force = false) {
+  if (state.ablationDesignContext && !force) {
+    renderAblationDesignForm();
+    return state.ablationDesignContext;
+  }
+  try {
+    const context = await api("/api/ablation-design");
+    state.ablationDesignContext = context;
+    renderAblationDesignForm();
+    return context;
+  } catch (error) {
+    toast(error.message || String(error));
+    return null;
+  }
+}
+
+async function previewAblationDesign() {
+  writeAblationDesignDraftFromForm();
+  const draft = readAblationDesignDraft();
+  if (!draft.name) {
+    toast("Policy name is required.");
+    return;
+  }
+  try {
+    const payload = await apiPost("/api/ablation-design/preview", ablationDesignRequestPayload(draft));
+    renderAblationDesignPreview(payload);
+  } catch (error) {
+    renderAblationDesignPreview({ ok: false, error: error.message || String(error) });
+  }
+}
+
+async function planAblationDesign() {
+  writeAblationDesignDraftFromForm();
+  const draft = readAblationDesignDraft();
+  if (!draft.name) {
+    toast("Policy name is required.");
+    return;
+  }
+  if (!draft.protocol || !draft.raw_input_dir) {
+    toast("Protocol path and raw input dir are required to generate a plan.");
+    return;
+  }
+  try {
+    const payload = await apiPost("/api/ablation-design/plan", ablationDesignRequestPayload(draft));
+    renderAblationDesignPlan(payload);
+    if (payload.policy_yaml) renderAblationDesignPreview(payload);
+  } catch (error) {
+    renderAblationDesignPlan({ ok: false, error: error.message || String(error) });
+  }
+}
+
+function downloadAblationDesignYaml() {
+  writeAblationDesignDraftFromForm();
+  const yamlText = state.ablationDesignPlan?.policy_yaml
+    || state.ablationDesignPreview?.policy_yaml
+    || "";
+  if (!yamlText) {
+    toast("Generate a preview or plan first.");
+    return;
+  }
+  const draft = readAblationDesignDraft();
+  const filename = `${draft.name || "feature_policy"}.yml`;
+  const blob = new Blob([yamlText], { type: "text/yaml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function copyAblationDesignCommand() {
+  const command = state.ablationDesignPlan?.planned_command || "";
+  if (!command) {
+    toast("Generate a plan first.");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(command);
+    toast("Command copied.");
+  } catch (_error) {
+    toast(command);
+  }
+}
+
+function bindAblationDesignPanel() {
+  const templateSelect = $("ablation-design-template");
+  if (templateSelect && templateSelect.dataset.bound !== "true") {
+    templateSelect.dataset.bound = "true";
+    templateSelect.addEventListener("change", (event) => {
+      applyAblationDesignTemplate(event.target.value || "");
+    });
+  }
+  const bindInput = (id, handler) => {
+    const node = $(id);
+    if (!node || node.dataset.bound === "true") return;
+    node.dataset.bound = "true";
+    node.addEventListener("input", handler);
+    node.addEventListener("change", handler);
+  };
+  bindInput("ablation-design-name", () => {
+    writeAblationDesignDraftFromForm();
+    syncAblationDesignOutputPaths();
+    $("ablation-design-output-dir").value = state.ablationDesign.output_dir || "";
+    $("ablation-design-policy-path").value = state.ablationDesign.policy_yml_path || "";
+  });
+  [
+    "ablation-design-description",
+    "ablation-design-include-patterns",
+    "ablation-design-exclude-features",
+    "ablation-design-exclude-patterns",
+    "ablation-design-allow-missing-excludes",
+    "ablation-design-protocol",
+    "ablation-design-raw-input",
+    "ablation-design-output-dir",
+    "ablation-design-policy-path",
+  ].forEach((id) => bindInput(id, writeAblationDesignDraftFromForm));
+
+  $("ablation-design-preview")?.addEventListener("click", previewAblationDesign);
+  $("ablation-design-plan")?.addEventListener("click", planAblationDesign);
+  $("ablation-design-download-yaml")?.addEventListener("click", downloadAblationDesignYaml);
+  $("ablation-design-copy-command")?.addEventListener("click", copyAblationDesignCommand);
+}
+
 function pathBasename(path) {
   let text = String(path || "");
   while (text.length > 0) {
@@ -2707,6 +3076,7 @@ async function refresh() {
     $("health-dot").className = "dot ok";
     $("health-label").textContent = dashboardModelLabel(health.dashboard_model);
     renderWorkspace(payload);
+    if (state.activeTab === "design") ensureAblationDesignContext(true);
   } catch (error) {
     $("health-dot").className = "dot error";
     $("health-label").textContent = "Error";
@@ -2717,6 +3087,7 @@ async function refresh() {
 $("refresh").addEventListener("click", refresh);
 loadPersistedUiState();
 bindThemeToggle();
+bindAblationDesignPanel();
 bindAppTabs();
 bindCollapsibleZones();
 uiStateHydrated = true;
