@@ -1172,22 +1172,18 @@ function buildSimpleBarPlotlySpec(rows, metric, options = {}) {
 function plotlyChartMarkup(key, title, subtitle, note, rows, spec) {
   const divId = `plot-${slug(key)}`;
   state.pendingPlotly.push({ key, divId, spec });
-  return `
-    <div class="generated-plot">
-      <div class="chart-head"><div><strong>${escapeHtml(title)}</strong>${note ? `<div class="scope-note">${escapeHtml(note)}</div>` : ""}</div>${registerPlotExport(key, title, rows, "plotly")}</div>
-      <div id="${divId}" class="plotly-host" role="img" aria-label="${escapeHtml(title)}"></div>
-    </div>
-  `;
+  const bodyHtml = `<div id="${divId}" class="plotly-host" role="img" aria-label="${escapeHtml(title)}"></div>`;
+  return collapsiblePlotMarkup(key, title, bodyHtml, {
+    subtitle: note || subtitle || "",
+    headActions: registerPlotExport(key, title, rows, "plotly"),
+  });
 }
 
 function applyPlotSpan(html, span) {
   if (!html) return html;
-  const cls = span === "full"
-    ? "generated-plot plot-span-full"
-    : span === "half"
-      ? "generated-plot plot-span-half"
-      : "generated-plot";
-  return html.replace(/class="generated-plot(?: plot-span-(?:full|half))?"/, `class="${cls}"`);
+  const spanClass = span === "full" ? "plot-span-full" : span === "half" ? "plot-span-half" : "";
+  if (!spanClass) return html;
+  return html.replace(/class="(generated-plot[^"]*)"/, (_, classes) => `class="${classes} ${spanClass}"`);
 }
 
 function metricValue(study, name) {
@@ -1413,6 +1409,7 @@ function renderComparisonCharts() {
   container.innerHTML = parts.join("");
   void mountPendingPlotlyCharts();
   bindPlotExportButtons();
+  bindCollapsiblePlots(container);
 }
 
 function collectReplicaSpreadRows(metricName) {
@@ -1965,12 +1962,10 @@ function generatedRankPlot(metricName) {
   const divId = `plot-${slug(key)}`;
   const spec = buildRankPlotlySpec(rows, metric);
   state.pendingPlotly.push({ key, divId, spec });
-  return `
-    <div class="generated-plot">
-      <div class="chart-head"><div><strong>${escapeHtml(title)}</strong><div class="scope-note">full_ocscore / Ablation / SF / Other consensus</div></div>${registerPlotExport(key, title, rows, "plotly")}</div>
-      <div id="${divId}" class="plotly-host" role="img" aria-label="${escapeHtml(title)}"></div>
-    </div>
-  `;
+  return collapsiblePlotMarkup(key, title, `<div id="${divId}" class="plotly-host" role="img" aria-label="${escapeHtml(title)}"></div>`, {
+    subtitle: "full_ocscore / Ablation / SF / Other consensus",
+    headActions: registerPlotExport(key, title, rows, "plotly"),
+  });
 }
 
 function generatedStabilityPlot(study, metricName) {
@@ -1988,24 +1983,17 @@ function generatedStabilityPlot(study, metricName) {
       metric: metricName,
     }));
   const title = `${scopeLabel()} ${metric.label} Replica Stability`;
+  const key = `stability_${slug(study.study_name)}_${slug(metricName)}_${state.resultScope}`;
   if (!rows.length) {
-    return `
-      <div class="generated-plot">
-        <div class="chart-head"><strong>${escapeHtml(title)}</strong></div>
-        <span class="path">No replica-level values detected for this metric.</span>
-      </div>
-    `;
+    return collapsiblePlotMarkup(key, title, '<span class="path">No replica-level values detected for this metric.</span>');
   }
   const values = rows.map((row) => row.value);
   const mean = values.reduce((total, value) => total + value, 0) / values.length;
   const svg = chartSvg(title, rows, { dot: true, subtitle: `Mean ${numeric(mean)} | each dot is one replica.` });
-  const key = `stability_${slug(study.study_name)}_${slug(metricName)}_${state.resultScope}`;
-  return `
-    <div class="generated-plot">
-      <div class="chart-head"><div><strong>${escapeHtml(title)}</strong><div class="scope-note">Selected model replica spread</div></div>${registerPlotExport(key, title, rows, svg)}</div>
-      ${svg}
-    </div>
-  `;
+  return collapsiblePlotMarkup(key, title, svg, {
+    subtitle: "Selected model replica spread",
+    headActions: registerPlotExport(key, title, rows, svg),
+  });
 }
 
 
@@ -2171,6 +2159,7 @@ function renderDetailPlots(study) {
   const otherFigures = filtered.filter((item) => figureGroup(item.figure) === "other");
   $("detail-plots").innerHTML = generatedStabilityPlot(study, selectedMetric);
   bindPlotExportButtons();
+  bindCollapsiblePlots($("detail-plots"));
   const detected = [
     shapFigureSection(study),
     figureSection("Model Comparison Figures", comparisonFigures, { expandable: true }),

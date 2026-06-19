@@ -380,6 +380,12 @@ main { padding-top: 16px; padding-bottom: 32px; }
 .decision-plots.layout-single { grid-template-columns: 1fr; }
 .generated-plot.plot-span-full { grid-column: 1 / -1; width: 100%; min-width: 0; }
 .generated-plot.plot-span-half { grid-column: span 1; width: 100%; min-width: 0; }
+.plot-collapsible.generated-plot { gap: 0; }
+.plot-collapsible .zone-head.chart-head { width: 100%; padding: 10px 10px 8px; margin: 0; }
+.plot-collapsible.is-collapsed .zone-head.chart-head { padding-bottom: 10px; }
+.plot-collapsible .plot-zone-body { gap: 7px; }
+.plot-zone-title { font-size: 14px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.chart-head .export-actions { margin-left: auto; flex-shrink: 0; }
 .generated-plot .decision-svg { width: 100%; height: auto; display: block; }
 .plotly-host { width: 100%; min-width: 0; min-height: 280px; height: auto; background: var(--plot-bg); border: 1px solid var(--plot-border); border-radius: 5px; }
 .plotly-host .main-svg { border-radius: 5px; }
