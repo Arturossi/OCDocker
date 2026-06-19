@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 
-"""CLI to merge raw PDBbind and DUDEz pipeline tables for OCScore modeling."""
+# Description
+###############################################################################
+'''
+CLI to merge raw PDBbind and DUDEz pipeline tables for OCScore modeling.
+'''
 
+# Imports
+###############################################################################
 from __future__ import annotations
 
 import argparse

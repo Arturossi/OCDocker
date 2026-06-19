@@ -36,6 +36,7 @@ Submodules
    OCDocker.Workbench.Logs
    OCDocker.Workbench.Models
    OCDocker.Workbench.OCScoreLayout
+   OCDocker.Workbench.OptunaDashboard
    OCDocker.Workbench.Overview
    OCDocker.Workbench.Planner
    OCDocker.Workbench.Plots

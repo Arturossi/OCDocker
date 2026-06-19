@@ -11,6 +11,14 @@ Subpackages
    OCDocker.OCScore.Analysis.Plotting
    OCDocker.OCScore.Analysis.SHAP
 
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 2
+
+   OCDocker.OCScore.Analysis.ProductionBaselines
+
 Module contents
 ---------------
 

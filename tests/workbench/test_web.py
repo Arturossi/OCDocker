@@ -3,7 +3,7 @@
 # Description
 ###############################################################################
 """
-Tests for embedded Workbench browser assets.
+Tests for packaged Workbench browser assets.
 """
 
 # Imports
@@ -16,6 +16,7 @@ import pytest
 
 from OCDocker.Workbench import build_workbench_web_asset
 from OCDocker.Workbench import is_workbench_web_asset_path
+from OCDocker.Workbench.Web import WORKBENCH_STATIC_DIR
 
 # License
 ###############################################################################
@@ -203,6 +204,25 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b"figure-preview-button" in script
     assert b".figure-lightbox" in style
     assert b".gallery-note" in style
+
+
+def test_workbench_static_assets_exist_on_disk() -> None:
+    '''Packaged Workbench UI assets live beside Web.py for pip installs.'''
+
+    for name in ("index.html", "app.css", "app.js"):
+        assert (WORKBENCH_STATIC_DIR / name).is_file()
+
+
+def test_build_workbench_web_asset_matches_static_files_on_disk() -> None:
+    '''HTTP asset payloads match the packaged static files on disk.'''
+
+    for route, filename in (
+        ("/app", "index.html"),
+        ("/app.css", "app.css"),
+        ("/app.js", "app.js"),
+    ):
+        _, body = build_workbench_web_asset(route)
+        assert body == (WORKBENCH_STATIC_DIR / filename).read_bytes()
 
 
 def test_is_workbench_web_asset_path_recognizes_known_routes() -> None:

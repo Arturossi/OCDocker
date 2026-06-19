@@ -54,6 +54,8 @@ Commands
 
   **Full step-by-step replication guide:** :doc:`ocscore_replication` (also `OCSCORE_REPLICATION.md` in the repo root).
 
+  **Bundled protocol YAML and feature-policy data:** :doc:`OCDocker.OCScore.Protocols`.
+
   Minimal commands:
 
   .. code-block:: bash
@@ -138,6 +140,7 @@ Commands
      # Serve an OCScore output root shaped as train/replica_* plus train/ablations/<study>/replica_*.
      ocdocker workbench serve /data/hd4tb/OCDocker/data/ocdb2/OCScore/output --host 127.0.0.1 --port 8765
      # Open http://127.0.0.1:8765/app after forwarding the port over SSH.
+     # Dashboard UI sources: OCDocker/Workbench/static/ (index.html, app.css, app.js).
      # Old adopted Workbench run_manifest.yml smoke folders are reported as unsupported.
      # The dashboard reads /api/ocscore-workspace and stays read-only.
      ocdocker workbench schema ocscore_study --output ocscore_study.schema.json

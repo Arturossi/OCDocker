@@ -21,6 +21,6 @@ stop, copy, or modify OCScore jobs or outputs.
    ocdocker workbench ablations workbench-runs --baseline train --candidate no_shape_core
 
 The same payload is exposed by the local API at ``/api/ablations`` and by the
-embedded dashboard decision view. The dashboard renders the ablation table, a
+browser dashboard decision view at ``/app``. The dashboard renders the ablation table, a
 centered delta bar chart for the selected rank metric, and a metric-direction
 heatmap for the selected decision metrics.

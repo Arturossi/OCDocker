@@ -8,6 +8,7 @@ Submodules
    :maxdepth: 2
 
    OCDocker.OCScore.Analysis.Metrics.Bootstrap
+   OCDocker.OCScore.Analysis.Metrics.Calibration
    OCDocker.OCScore.Analysis.Metrics.Ranking
 
 Module contents

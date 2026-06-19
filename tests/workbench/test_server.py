@@ -158,8 +158,8 @@ def test_build_workbench_api_handler_serves_figure_assets(tmp_path) -> None:
     assert body == b"png"
 
 
-def test_build_workbench_api_handler_serves_embedded_browser_assets(tmp_path) -> None:
-    '''Workbench API handlers serve embedded browser assets.
+def test_build_workbench_api_handler_serves_packaged_browser_assets(tmp_path) -> None:
+    '''Workbench API handlers serve packaged browser assets.
 
     Parameters
     ----------

@@ -102,8 +102,8 @@ def test_export_shap_happy_path_with_mocked_explainer(monkeypatch, tmp_path):
         "compute_shap_values",
         lambda **_k: np.array([[0.1, -0.1], [0.2, -0.2], [0.3, -0.3]]),
     )
-    monkeypatch.setattr(ocexpshap.plots, "feature_importance_barh", lambda *_a, **_k: None)
-    monkeypatch.setattr(ocexpshap.plots, "beeswarm", lambda *_a, **_k: None)
+    monkeypatch.setattr(ocexpshap.shap_plots, "feature_importance_barh", lambda *_a, **_k: None)
+    monkeypatch.setattr(ocexpshap.shap_plots, "beeswarm", lambda *_a, **_k: None)
 
     out = ocexpshap.run_export_shap_analysis(
         tmp_path / "export",

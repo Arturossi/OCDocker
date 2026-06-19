@@ -81,6 +81,14 @@ class FixedOuterSplitAssignment:
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
+        '''Serialize split assignments and integrity hashes for JSON export.
+
+        Returns
+        -------
+        dict[str, Any]
+            Fixed outer split payload suitable for ``fixed_outer_split.json``.
+        '''
+
         payload = asdict(self)
         payload["pdbbind_train_row_count"] = len(self.pdbbind_train_indices)
         payload["pdbbind_validation_row_count"] = len(self.pdbbind_validation_indices)
@@ -92,6 +100,19 @@ class FixedOuterSplitAssignment:
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "FixedOuterSplitAssignment":
+        '''Reconstruct a split assignment from serialized JSON metadata.
+
+        Parameters
+        ----------
+        payload : dict[str, Any]
+            Dictionary previously produced by :meth:`to_dict`.
+
+        Returns
+        -------
+        FixedOuterSplitAssignment
+            Parsed assignment with unknown keys ignored.
+        '''
+
         known = {field.name for field in cls.__dataclass_fields__.values()}  # type: ignore[attr-defined]
         filtered = {key: value for key, value in payload.items() if key in known}
         return cls(**filtered)

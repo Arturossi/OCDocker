@@ -194,3 +194,25 @@ def test_rmsd_clustering_matplotlib_error_message():
             mod._require_matplotlib()
     finally:
         mod._require_matplotlib = original
+
+
+@pytest.mark.order(479)
+def test_workbench_static_files_are_declared_in_package_data():
+    '''Workbench dashboard assets ship with the OCDocker.Workbench package.'''
+
+    data = _load_pyproject()
+    package_data = data["tool"]["setuptools"]["package-data"]
+    assert "OCDocker.Workbench" in package_data
+    assert "static/*" in package_data["OCDocker.Workbench"]
+
+
+@pytest.mark.order(480)
+def test_ocscore_protocol_files_are_declared_in_package_data():
+    '''Bundled OCScore protocol YAML files ship with the OCDocker.OCScore package.'''
+
+    data = _load_pyproject()
+    package_data = data["tool"]["setuptools"]["package-data"]
+    assert "OCDocker.OCScore" in package_data
+    patterns = package_data["OCDocker.OCScore"]
+    assert "Protocols/*.yml" in patterns
+    assert "Protocols/Ablations/*.yml" in patterns

@@ -82,6 +82,14 @@ class TrainOnlyReductionArtifact:
     transform_artifact_hashes: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        '''Serialize the frozen reduction artifact for JSON persistence.
+
+        Returns
+        -------
+        dict[str, Any]
+            Selected features, scope metadata, and transform artifact hashes.
+        '''
+
         return {
             "selected_features": self.selected_features,
             "removed_features": self.removed_features,

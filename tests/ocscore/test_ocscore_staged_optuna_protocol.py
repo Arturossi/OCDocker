@@ -742,15 +742,13 @@ def test_staged_protocol_calls_stages_and_not_optuna_owning_full_workflow(tmp_pa
 
 
 @pytest.mark.order(495)
-def test_archived_optuna_namespace_is_separated_from_current_protocol():
+def test_archived_optuna_namespace_removed():
+    '''Legacy four-study Optuna modules were dropped from the package.'''
+
     import importlib
 
-    archived = importlib.import_module("OCDocker.OCScore.Optimization." + "leg" + "acy")
-    modules = getattr(archived, "LEG" + "ACY_OPTUNA_MODULES")
-
-    assert "OCDocker.OCScore.Optimization." + "leg" + "acy.models.dnn.DNNOptimizer" in modules
-    assert "OCDocker.OCScore.Optimization." + "leg" + "acy.DNN" in modules
-    assert "OCDocker.OCScore.Optimization.StagedOptuna" not in modules
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("OCDocker.OCScore.Optimization.legacy")
 
 
 @pytest.mark.order(496)

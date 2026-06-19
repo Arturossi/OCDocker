@@ -9,6 +9,8 @@ artifacts. The train CLI loads a protocol file and applies it without preset
 flags or CLI hyperparameter overrides.
 '''
 
+# Imports
+###############################################################################
 from __future__ import annotations
 
 import yaml
@@ -74,6 +76,8 @@ ABLATION_VARIANT_ALIASES: dict[str, AblationVariantName] = {
 
 @dataclass(frozen=True)
 class PDBbindProtocolSection:
+    """PDBbind regression stage settings from a staged train protocol."""
+
     target_column: str
     trials: int
     epochs: int
@@ -88,6 +92,8 @@ class PDBbindProtocolSection:
 
 @dataclass(frozen=True)
 class DUDEzProtocolSection:
+    """DUDEz ranking stage settings from a staged train protocol."""
+
     kind_column: str
     positive_kind: str
     negative_kind: str
@@ -102,6 +108,8 @@ class DUDEzProtocolSection:
 
 @dataclass(frozen=True)
 class RuntimeProtocolSection:
+    """Execution controls shared across replicas and stages."""
+
     use_gpu: bool
     pdbbind_only: bool
     replica_jobs: int
@@ -110,6 +118,8 @@ class RuntimeProtocolSection:
 
 @dataclass(frozen=True)
 class ReportingProtocolSection:
+    """Optional post-training reports and audits."""
+
     generate_final_report: bool
     run_leakage_audit: bool
     run_baselines: bool
@@ -118,12 +128,16 @@ class ReportingProtocolSection:
 
 @dataclass(frozen=True)
 class AblationProtocolSection:
+    """Feature-policy ablation variants to run after baseline replicas."""
+
     enabled: bool
     variants: tuple[AblationVariantName, ...]
 
 
 @dataclass(frozen=True)
 class ProductionClaimRequirements:
+    """Minimum replica and trial budgets enforced for production claims."""
+
     enforce: bool
     min_replicas: int
     min_pdbbind_trials: int
@@ -132,6 +146,8 @@ class ProductionClaimRequirements:
 
 @dataclass(frozen=True)
 class StagedTrainProtocol:
+    """Structured staged-training protocol loaded from YAML."""
+
     name: str
     description: str
     replicas: int
@@ -146,6 +162,14 @@ class StagedTrainProtocol:
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     def pdbbind_split_config(self) -> PDBbindSplitConfig:
+        '''Build the PDBbind split configuration implied by this protocol.
+
+        Returns
+        -------
+        PDBbindSplitConfig
+            Split strategy and sizes for PDBbind regression rows.
+        '''
+
         return PDBbindSplitConfig(
             strategy=self.pdbbind.split_strategy,
             train_size=self.pdbbind.split_train_size,
@@ -155,6 +179,14 @@ class StagedTrainProtocol:
         )
 
     def budget_dict(self) -> dict[str, Any]:
+        '''Serialize replica and trial budgets for provenance metadata.
+
+        Returns
+        -------
+        dict[str, Any]
+            Budget fields written into training provenance bundles.
+        '''
+
         return {
             "protocol": self.name,
             "protocol_path": str(self.source_path),
@@ -173,6 +205,14 @@ class StagedTrainProtocol:
         }
 
     def validate_production_claim_budget(self) -> None:
+        '''Raise when configured budgets fall below production-claim thresholds.
+
+        Raises
+        ------
+        ValueError
+            If ``production_claim.enforce`` is true and replicas or trials are too low.
+        '''
+
         if self.production_claim is None or not self.production_claim.enforce:
             return
         issues: list[str] = []
@@ -194,6 +234,14 @@ class StagedTrainProtocol:
 
 
 def bundled_protocol_names() -> tuple[str, ...]:
+    '''List bundled protocol stems shipped under ``OCScore/Protocols/``.
+
+    Returns
+    -------
+    tuple[str, ...]
+        Sorted protocol names without file extensions.
+    '''
+
     names: list[str] = []
     for path in sorted(BUNDLED_PROTOCOL_DIR.glob("*.yml")):
         names.append(path.stem)
@@ -204,6 +252,24 @@ def bundled_protocol_names() -> tuple[str, ...]:
 
 
 def resolve_protocol_path(spec: str) -> Path:
+    '''Resolve a user path or bundled protocol name to an on-disk YAML file.
+
+    Parameters
+    ----------
+    spec : str
+        Filesystem path or bundled protocol stem (for example ``production``).
+
+    Returns
+    -------
+    pathlib.Path
+        Absolute path to the resolved protocol YAML file.
+
+    Raises
+    ------
+    ValueError
+        If neither a file nor a bundled protocol matches ``spec``.
+    '''
+
     candidate = Path(spec).expanduser()
     if candidate.is_file():
         return candidate.resolve()
@@ -222,6 +288,24 @@ def resolve_protocol_path(spec: str) -> Path:
 
 
 def normalize_ablation_variant_name(value: str) -> AblationVariantName:
+    '''Normalize CLI or YAML ablation variant aliases to canonical names.
+
+    Parameters
+    ----------
+    value : str
+        Raw variant label from protocol YAML or CLI flags.
+
+    Returns
+    -------
+    AblationVariantName
+        Canonical ablation variant identifier.
+
+    Raises
+    ------
+    ValueError
+        If ``value`` does not match a known alias.
+    '''
+
     normalized = str(value).strip().lower().replace(" ", "_")
     normalized = normalized.replace("+", "_").replace("/", "_")
     if normalized in ABLATION_VARIANT_ALIASES:
@@ -258,6 +342,24 @@ def _require_mapping(raw: dict[str, Any], key: str) -> dict[str, Any]:
 
 
 def load_staged_train_protocol(path: Path) -> StagedTrainProtocol:
+    '''Load and validate a staged train protocol YAML file.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        Protocol YAML path on disk.
+
+    Returns
+    -------
+    StagedTrainProtocol
+        Parsed template ready for the train CLI and Optuna orchestration.
+
+    Raises
+    ------
+    ValueError
+        If required fields are missing or budgets fail production-claim checks.
+    '''
+
     with path.open("r", encoding="utf-8") as handle:
         loaded = yaml.safe_load(handle)
     if not isinstance(loaded, dict):

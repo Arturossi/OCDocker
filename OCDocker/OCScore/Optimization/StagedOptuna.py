@@ -802,6 +802,8 @@ class PDBbindOptunaStage:
         )
 
         def objective(trial: optuna.Trial) -> float:
+            '''Optuna objective for the PDBbind regression stage.'''
+
             return self._objective(
                 trial,
                 splits,
@@ -1190,6 +1192,8 @@ class DUDEzOptunaStage:
         )
 
         def objective(trial: optuna.Trial) -> float:
+            '''Optuna objective for the DUDEz ranking stage.'''
+
             return self._objective(
                 trial,
                 splits,

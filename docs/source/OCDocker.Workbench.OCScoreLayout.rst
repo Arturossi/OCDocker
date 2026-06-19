@@ -44,7 +44,7 @@ Useful entry points
    ocdocker workbench serve /path/to/ocscore/output --host 127.0.0.1 --port 8765
 
 The local API exposes the strict payload at ``/api/ocscore-workspace``. The
-embedded browser dashboard at ``/app`` renders baseline replicas, ablation
+browser dashboard at ``/app`` renders baseline replicas, ablation
 studies, study-level replica status, curated metric summaries, generated
 decision plots, and labeled figures. Figure discovery tags known datasets
 (``dudez``, ``pdbbind``, ``casf``, ``dekois``, and ``lit_pcba``), common roles
@@ -52,7 +52,9 @@ such as SHAP beeswarm, SHAP importance, CV mean/std, CV heatmap, per-target
 validation, architecture, and performance plots, and curated metric names when
 they appear in figure filenames. The dashboard filters previews by dataset, role,
 figure metric, and artifact group so model-comparison plots stay separate from
-selected-model diagnostics. Generated decision plots expose an explicit result
+selected-model diagnostics. UI sources live under ``OCDocker/Workbench/static/``
+(``index.html``, ``app.css``, ``app.js``) and are served by
+``OCDocker.Workbench.Web``. Generated decision plots expose an explicit result
 scope selector for test metrics, validation metrics, or both together, and can be
 exported as SVG plus CSV for paper-ready review. The dashboard still caps large
 galleries and keeps generated comparison plots visible even when no source image

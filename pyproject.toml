@@ -46,6 +46,7 @@ version = { attr = "OCDocker._version.__version__" }
 
 [tool.setuptools.package-data]
 "OCDocker.OCScore" = ["Protocols/*.yml", "Protocols/Ablations/*.yml"]
+"OCDocker.Workbench" = ["static/*"]
 
 [project.urls]
 Homepage = "https://github.com/Arturossi/OCDocker"

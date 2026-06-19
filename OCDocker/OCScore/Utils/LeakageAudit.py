@@ -56,6 +56,14 @@ class LeakageAuditResult:
     findings: list[LeakageFinding] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
+        '''Serialize leakage audit findings for JSON reports.
+
+        Returns
+        -------
+        dict[str, Any]
+            Pass/fail flag and structured finding list.
+        '''
+
         return {
             "passed": self.passed,
             "findings": [

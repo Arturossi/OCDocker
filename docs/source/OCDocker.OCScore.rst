@@ -8,8 +8,10 @@ Subpackages
    :maxdepth: 4
 
    OCDocker.OCScore.Analysis
+   OCDocker.OCScore.CLI
    OCDocker.OCScore.Optimization
    OCDocker.OCScore.Utils
+   OCDocker.OCScore.Protocols
 
 Submodules
 ----------

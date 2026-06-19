@@ -14,7 +14,6 @@ from OCDocker.OCScore.Analysis.SHAP.ExportRunner import run_export_shap_analysis
 ###############################################################################
 from __future__ import annotations
 
-import importlib
 import json
 import os
 from pathlib import Path
@@ -26,11 +25,10 @@ import torch
 from torch import nn
 
 import OCDocker.OCScore.Optimization.ModelExport as ocexport
+from OCDocker.OCScore.Analysis.SHAP import Plots as shap_plots
+from OCDocker.OCScore.Analysis.SHAP.Explain import compute_shap_values
+from OCDocker.OCScore.Analysis.SHAP.Paths import OutputPaths
 from OCDocker.OCScore.Utils.ContentHash import hash_feature_list
-_ARCHIVED_SHAP = importlib.import_module("OCDocker.OCScore.Analysis." + "leg" + "acy.SHAP")
-plots = _ARCHIVED_SHAP.plots
-compute_shap_values = _ARCHIVED_SHAP.compute_shap_values
-OutputPaths = _ARCHIVED_SHAP.OutputPaths
 
 # License
 ###############################################################################
@@ -209,8 +207,8 @@ def run_export_shap_analysis(
 
     imp_png = str(output_path / "shap_feature_importance.png")
     bee_png = str(output_path / "shap_beeswarm_plot.png")
-    plots.feature_importance_barh(shap_2d, feature_names, out_png=imp_png, top_k=20)
-    plots.beeswarm(shap_2d, X_eval.iloc[: shap_2d.shape[0]], out_png=bee_png, rng_seed=seed)
+    shap_plots.feature_importance_barh(shap_2d, feature_names, out_png=imp_png, top_k=20)
+    shap_plots.beeswarm(shap_2d, X_eval.iloc[: shap_2d.shape[0]], out_png=bee_png, rng_seed=seed)
 
     shap_report = {
         "export_dir": str(export_path.resolve()),

@@ -15,5 +15,6 @@ Submodules
    OCDocker.OCScore.Analysis.Plotting.Colouring
    OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots
    OCDocker.OCScore.Analysis.Plotting.Core
+   OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots
    OCDocker.OCScore.Analysis.Plotting.MetricsPlots
    OCDocker.OCScore.Analysis.Plotting.Stats

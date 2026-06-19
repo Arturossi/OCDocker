@@ -75,6 +75,14 @@ class FeaturePolicy:
     source_hash: str = ""
 
     def request_payload(self) -> dict[str, Any]:
+        '''Serialize policy fields for provenance and CLI replay.
+
+        Returns
+        -------
+        dict[str, Any]
+            JSON-serializable policy request payload.
+        '''
+
         return {
             "name": self.name,
             "description": self.description,
@@ -97,6 +105,14 @@ class FeaturePolicyDiscovery:
 
     @property
     def available_names(self) -> tuple[str, ...]:
+        '''Sorted policy names discovered in the lookup pool.
+
+        Returns
+        -------
+        tuple[str, ...]
+            Policy names available for ``--feature-policy`` resolution.
+        '''
+
         return tuple(self.policies.keys())
 
 
@@ -127,6 +143,14 @@ class FeaturePolicyApplication:
     final_candidate_features_before_reduction: list[str]
 
     def to_metadata(self) -> dict[str, Any]:
+        '''Build provenance metadata for one policy application result.
+
+        Returns
+        -------
+        dict[str, Any]
+            Feature-policy audit fields written beside training artifacts.
+        '''
+
         final_candidates = list(self.final_candidate_features_before_reduction)
         candidates = list(self.candidate_features_before_policy)
         return {

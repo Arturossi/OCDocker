@@ -8,6 +8,9 @@ Submodules
    :maxdepth: 2
 
    OCDocker.OCScore.Analysis.SHAP.ExportRunner
+   OCDocker.OCScore.Analysis.SHAP.Explain
+   OCDocker.OCScore.Analysis.SHAP.Plots
+   OCDocker.OCScore.Analysis.SHAP.Paths
 
 Module contents
 ---------------

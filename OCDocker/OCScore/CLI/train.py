@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 
-"""CLI for staged OCScore Optuna from raw unreduced modeling inputs.
+# Description
+###############################################################################
+'''
+CLI for staged OCScore Optuna from raw unreduced modeling inputs.
 
 The train command loads raw pipeline tables, creates a fixed outer split, fits
 train-only feature reduction on PDBbind training rows, and runs replicated
 staged Optuna on the frozen feature set.
-"""
+'''
 
+# Imports
+###############################################################################
 from __future__ import annotations
 
 import argparse

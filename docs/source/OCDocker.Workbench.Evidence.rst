@@ -20,8 +20,8 @@ or regenerate plots.
    ocdocker workbench evidence workbench-runs --source-depth 5
    ocdocker workbench serve workbench-runs --host 127.0.0.1 --port 8765
 
-The local API exposes the payload at ``/api/evidence``. The embedded dashboard
-uses the same payload to render performance, optimization, and SHAP previews
+The local API exposes the payload at ``/api/evidence``. The Workbench browser
+dashboard can use the same payload to render performance, optimization, and SHAP previews
 when those evidence files are present in adopted OCScore outputs. Raster figure
 previews are served through ``/api/evidence-asset`` only when the requested image
 belongs to a discovered SHAP or analysis figure under an adopted source path.
