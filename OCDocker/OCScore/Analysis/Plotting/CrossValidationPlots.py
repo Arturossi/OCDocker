@@ -60,6 +60,8 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 RESULTS_JSON_NAME = "cross_validation_results.json"
 MEAN_STD_CSV_NAME = "cross_validation_scorer_mean_std.csv"
 FOLD_COMPARISON_CSV_NAME = "cross_validation_fold_comparison.csv"
+FOLD_COMPARISON_PLOT_PREFIX = "cv_fold_comparison_"
+LEGACY_FOLD_LINES_PLOT_PREFIX = "cv_fold_lines_"
 OCSCORE_WINS_CSV_NAME = "cross_validation_ocscore_wins.csv"
 PER_TARGET_CSV_NAME = "cross_validation_per_target_metrics.csv"
 
@@ -191,6 +193,13 @@ def _resolve_plot_metrics(
     return [objective]
 
 
+def _remove_legacy_fold_line_plots(output_path: Path) -> None:
+    '''Drop obsolete ``cv_fold_lines_*`` PNGs after the bar-chart rename.'''
+
+    for path in output_path.glob(f"{LEGACY_FOLD_LINES_PLOT_PREFIX}*.png"):
+        path.unlink(missing_ok=True)
+
+
 def _prune_obsolete_cv_figures(output_path: Path, active_metrics: Sequence[str]) -> None:
     '''Remove PNG artifacts for metrics that are no longer plotted.'''
 
@@ -198,7 +207,7 @@ def _prune_obsolete_cv_figures(output_path: Path, active_metrics: Sequence[str])
     patterns = (
         "cv_mean_std_*.png",
         "cv_heatmap_*.png",
-        "cv_fold_lines_*.png",
+        f"{FOLD_COMPARISON_PLOT_PREFIX}*.png",
         "per_target_validation_*_boxplot.png",
         "per_target_validation_*_heatmap.png",
         "per_target_validation_*_heatmap_part*.png",
@@ -209,7 +218,7 @@ def _prune_obsolete_cv_figures(output_path: Path, active_metrics: Sequence[str])
     prefix_lengths = {
         "cv_mean_std_": len("cv_mean_std_"),
         "cv_heatmap_": len("cv_heatmap_"),
-        "cv_fold_lines_": len("cv_fold_lines_"),
+        FOLD_COMPARISON_PLOT_PREFIX: len(FOLD_COMPARISON_PLOT_PREFIX),
         "per_target_validation_": len("per_target_validation_"),
         "per_target_test_": len("per_target_test_"),
     }
@@ -229,8 +238,8 @@ def _prune_obsolete_cv_figures(output_path: Path, active_metrics: Sequence[str])
                 metric = name[len("cv_mean_std_") : -len(".png")]
             elif name.startswith("cv_heatmap_"):
                 metric = name[len("cv_heatmap_") : -len(".png")]
-            elif name.startswith("cv_fold_lines_"):
-                metric = name[len("cv_fold_lines_") : -len(".png")]
+            elif name.startswith(FOLD_COMPARISON_PLOT_PREFIX):
+                metric = name[len(FOLD_COMPARISON_PLOT_PREFIX) : -len(".png")]
             elif name.startswith("per_target_validation_") and name.endswith("_boxplot.png"):
                 metric = name[len("per_target_validation_") : -len("_boxplot.png")]
             elif name.startswith("per_target_validation_") and name.endswith("_heatmap.png"):
@@ -1316,6 +1325,7 @@ def save_cross_validation_figures(
 
     output_path.mkdir(parents=True, exist_ok=True)
     _prune_obsolete_cv_figures(output_path, metric_list)
+    _remove_legacy_fold_line_plots(output_path)
 
     written: dict[str, str] = {}
 
@@ -1345,9 +1355,9 @@ def save_cross_validation_figures(
                 dpi=dpi,
             )
             fig, _ = plot_fold_metric_bars(fold_comparison, metric, top_n=min(15, top_n or 15))
-            written[f"fold_lines_{metric}"] = _save_figure(
+            written[f"fold_comparison_{metric}"] = _save_figure(
                 fig,
-                output_path / f"cv_fold_lines_{_safe_filename(metric)}.png",
+                output_path / f"{FOLD_COMPARISON_PLOT_PREFIX}{_safe_filename(metric)}.png",
                 dpi=dpi,
             )
 

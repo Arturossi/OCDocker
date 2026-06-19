@@ -420,6 +420,36 @@ def test_fold_comparison_scorer_selection_excludes_desc_and_pins_sf_max():
     plt.close(fig)
 
 
+@pytest.mark.order(292)
+def test_save_cross_validation_figures_writes_fold_comparison_plot_names(tmp_path):
+    fold_comparison = pd.DataFrame(
+        [
+            {"scorer": "OCScore", "scorer_type": "model", "fold_index": 0, "validation_BEDROC": 0.5},
+            {"scorer": "OCScore", "scorer_type": "model", "fold_index": 1, "validation_BEDROC": 0.6},
+            {"scorer": "vina_vina", "scorer_type": "sf", "fold_index": 0, "validation_BEDROC": 0.2},
+            {"scorer": "vina_vina", "scorer_type": "sf", "fold_index": 1, "validation_BEDROC": 0.25},
+        ]
+    )
+    cv_dir = tmp_path / "cv"
+    cv_dir.mkdir()
+    fold_comparison.to_csv(cv_dir / occvplot.FOLD_COMPARISON_CSV_NAME, index=False)
+    (cv_dir / occvplot.RESULTS_JSON_NAME).write_text(
+        json.dumps({"objective_metric": "BEDROC", "scorer_comparison_summary": {"comparison_metrics": ["BEDROC"]}}),
+        encoding="utf-8",
+    )
+
+    figures_dir = tmp_path / "figures"
+    legacy_path = figures_dir / "cv_fold_lines_BEDROC.png"
+    figures_dir.mkdir()
+    legacy_path.write_bytes(b"legacy")
+
+    written = occvplot.save_cross_validation_figures(cv_dir, figures_dir=figures_dir, metrics=["BEDROC"])
+    assert "fold_comparison_BEDROC" in written
+    assert written["fold_comparison_BEDROC"].endswith("cv_fold_comparison_BEDROC.png")
+    assert not legacy_path.exists()
+    plt.close("all")
+
+
 @pytest.mark.order(291)
 def test_plot_ocscore_wins_uses_external_legend():
     ocscore_wins = pd.DataFrame(

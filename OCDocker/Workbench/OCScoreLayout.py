@@ -748,6 +748,8 @@ def _figure_role(path: Path) -> str:
         return "cv_mean_std"
     if "cv_heatmap" in normalized or "heatmap" in tokens:
         return "cv_heatmap"
+    if "cv_fold_comparison" in normalized or "fold_comparison" in normalized:
+        return "cv_fold_comparison"
     if "per_target" in normalized or "target_validation" in normalized or "validation_by_target" in normalized:
         return "per_target_validation"
     if "architecture" in tokens or "model_structure" in normalized:

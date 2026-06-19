@@ -647,11 +647,12 @@ const RECOMMENDED_FIGURE_ROLES = new Set([
   "shap_importance",
   "cv_mean_std",
   "cv_heatmap",
+  "cv_fold_comparison",
   "per_target_validation",
   "architecture",
   "performance",
 ]);
-const MODEL_COMPARISON_ROLES = new Set(["performance", "cv_mean_std", "cv_heatmap", "per_target_validation", "optuna"]);
+const MODEL_COMPARISON_ROLES = new Set(["performance", "cv_mean_std", "cv_heatmap", "cv_fold_comparison", "per_target_validation", "optuna"]);
 const SELECTED_MODEL_ROLES = new Set(["shap", "shap_beeswarm", "shap_importance", "shap_dependence", "architecture"]);
 const UI_STATE_KEY = "ocscore-workbench-ui";
 const SPREAD_BAR_COLORS = ["#9ecae1", "#c6dbef", "#74c476", "#a1d99b", "#fd8d3c", "#fdae6b", "#bcbddc", "#9e9ac8"];
