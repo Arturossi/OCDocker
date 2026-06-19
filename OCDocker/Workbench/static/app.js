@@ -179,6 +179,62 @@ function bindCollapsibleZones() {
   });
 }
 
+function plotZoneBodyId(plotKey) {
+  return `plot-zone-${slug(plotKey)}`;
+}
+
+function applyPlotCollapsedZone(zone, collapsed) {
+  zone.classList.toggle("is-collapsed", collapsed);
+  const toggle = zone.querySelector(".zone-toggle");
+  if (toggle) toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+}
+
+function setPlotCollapsed(plotKey, collapsed, zone = null) {
+  state.plotCollapsed[plotKey] = collapsed;
+  const target = zone || document.querySelector(`[data-plot-zone="${plotKey}"]`);
+  if (target) applyPlotCollapsedZone(target, collapsed);
+  persistUiState();
+  if (!collapsed && target) {
+    requestAnimationFrame(() => resizePlotlyHosts(target));
+  }
+}
+
+function bindCollapsiblePlots(root = document) {
+  const scope = root instanceof Element ? root : document;
+  scope.querySelectorAll(".plot-collapsible[data-plot-zone]").forEach((zone) => {
+    const plotKey = zone.dataset.plotZone;
+    if (!plotKey) return;
+    applyPlotCollapsedZone(zone, Boolean(state.plotCollapsed[plotKey]));
+    const toggle = zone.querySelector(".zone-toggle");
+    if (!toggle) return;
+    toggle.addEventListener("click", () => {
+      setPlotCollapsed(plotKey, !state.plotCollapsed[plotKey], zone);
+    });
+  });
+}
+
+function collapsiblePlotMarkup(plotKey, title, bodyHtml, options = {}) {
+  const collapsed = Boolean(state.plotCollapsed[plotKey]);
+  const zoneBodyId = plotZoneBodyId(plotKey);
+  const subtitle = options.subtitle ? `<div class="scope-note">${escapeHtml(options.subtitle)}</div>` : "";
+  const headActions = options.headActions || "";
+  return `
+    <div class="generated-plot plot-collapsible zone-block zone-collapsible${collapsed ? " is-collapsed" : ""}" data-plot-zone="${escapeHtml(plotKey)}">
+      <div class="zone-head zone-head-split chart-head">
+        <button type="button" class="zone-toggle" aria-expanded="${collapsed ? "false" : "true"}" aria-controls="${zoneBodyId}">
+          <span class="zone-chevron" aria-hidden="true">▾</span>
+          <span class="plot-zone-title">${escapeHtml(title)}</span>
+        </button>
+        ${headActions}
+      </div>
+      <div id="${zoneBodyId}" class="zone-body plot-zone-body">
+        ${subtitle}
+        ${bodyHtml}
+      </div>
+    </div>
+  `;
+}
+
 function toast(message) {
   const node = $("toast");
   node.textContent = message;
