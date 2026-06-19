@@ -212,12 +212,43 @@ def test_large_per_target_heatmap_disables_annotations_and_expands_canvas():
 
     assert fig.get_size_inches()[0] > 12
     assert len(ax.texts) == 0
-    assert "values in CSV" in ax.get_title()
+    assert "color scale only" in ax.get_title()
     plt.close(fig)
 
 
 @pytest.mark.order(284)
-def test_save_per_target_figures_writes_chunked_heatmaps_for_many_receptors(tmp_path):
+def test_per_target_heatmap_transposes_when_fewer_receptors_than_scorers():
+    rows = []
+    groups = [f"r{i:02d}" for i in range(8)]
+    scorers = ["OCScore", *[f"sf_{i:02d}" for i in range(11)]]
+    for scorer in scorers:
+        for group in groups:
+            rows.append(
+                {
+                    "split": "validation",
+                    "group": group,
+                    "scorer": scorer,
+                    "scorer_type": "model" if scorer == "OCScore" else "sf",
+                    "BEDROC": 0.5,
+                }
+            )
+    per_target = pd.DataFrame(rows)
+
+    fig, ax = occvplot.plot_per_target_heatmap(
+        per_target,
+        "BEDROC",
+        split="validation",
+        top_n=12,
+        max_groups=None,
+    )
+
+    assert ax.get_ylabel() == "Receptor"
+    assert ax.get_xlabel() == "Scorer"
+    plt.close(fig)
+
+
+@pytest.mark.order(285)
+def test_save_per_target_figures_writes_single_heatmap_for_many_receptors(tmp_path):
     rows = []
     groups = [f"r{i:02d}" for i in range(34)]
     scorers = ["OCScore", *[f"sf_{i:02d}" for i in range(8)]]
@@ -240,17 +271,16 @@ def test_save_per_target_figures_writes_chunked_heatmaps_for_many_receptors(tmp_
         split="validation",
         metrics=["NDCG@1%"],
         top_n=12,
-        max_groups=34,
-        heatmap_chunk_size=12,
     )
 
-    chunk_keys = [key for key in written if "heatmap" in key and "part" in key]
-    assert len(chunk_keys) == 3
-    assert all(Path(written[key]).is_file() for key in chunk_keys)
+    assert "per_target_heatmap_validation_NDCG@1%" in written
+    assert Path(written["per_target_heatmap_validation_NDCG@1%"]).is_file()
+    assert not any("part" in key for key in written if "heatmap" in key)
+    assert list((tmp_path / "figures").glob("*_heatmap_part*.png")) == []
     plt.close("all")
 
 
-@pytest.mark.order(285)
+@pytest.mark.order(286)
 def test_per_target_boxplot_is_horizontal_with_point_overlay():
     rows = []
     scorers = ["OCScore", "sf_a", "sf_b"]
@@ -277,11 +307,92 @@ def test_per_target_boxplot_is_horizontal_with_point_overlay():
     assert ax.get_xlabel() == "EF1%"
     assert ax.get_ylabel() == "Scorer"
     assert [label.get_text() for label in ax.get_yticklabels()] == scorers
-    assert ax.collections
+    assert ax.patches
     plt.close(fig)
 
 
-@pytest.mark.order(286)
+@pytest.mark.order(287)
+def test_resolve_plot_metrics_excludes_confusion_counts():
+    results = {
+        "objective_metric": "BEDROC",
+        "scorer_comparison_summary": {
+            "comparison_metrics": ["BEDROC", "TN", "FP"],
+        },
+    }
+    mean_std = pd.DataFrame(
+        [
+            {"scorer": "OCScore", "metric": "BEDROC", "mean": 0.5, "std": 0.1},
+            {"scorer": "OCScore", "metric": "TN", "mean": 100.0, "std": 10.0},
+        ]
+    )
+    metrics = occvplot._resolve_plot_metrics(None, results, mean_std)
+    assert metrics == ["BEDROC"]
+    assert occvplot._resolve_plot_metrics(["TN"], results, mean_std) == ["TN"]
+
+
+@pytest.mark.order(290)
+def test_large_per_target_heatmap_uses_scaled_typography():
+    rows = []
+    groups = [f"r{i:02d}" for i in range(43)]
+    scorers = ["OCScore", *[f"sf_{i:02d}" for i in range(24)]]
+    for scorer in scorers:
+        for group in groups:
+            rows.append(
+                {
+                    "split": "validation",
+                    "group": group,
+                    "scorer": scorer,
+                    "scorer_type": "model" if scorer == "OCScore" else "sf",
+                    "EF1%": 0.5,
+                }
+            )
+    per_target = pd.DataFrame(rows)
+
+    fig, ax = occvplot.plot_per_target_heatmap(
+        per_target,
+        "EF1%",
+        split="validation",
+        top_n=25,
+        max_groups=None,
+    )
+
+    assert fig.get_size_inches()[0] > 20.0
+    y_font = ax.get_yticklabels()[0].get_fontsize()
+    x_font = ax.get_xticklabels()[0].get_fontsize()
+    assert y_font >= 16
+    assert x_font >= 15
+    n_rows = 25
+    n_cols = 43
+    axes_width = ax.get_position().width * fig.get_figwidth()
+    axes_height = ax.get_position().height * fig.get_figheight()
+    cell_width = axes_width / n_cols
+    cell_height = axes_height / n_rows
+    assert abs(cell_width - cell_height) / max(cell_width, cell_height) < 0.08
+    plt.close(fig)
+
+
+@pytest.mark.order(289)
+def test_plot_fold_metric_lines_uses_integer_fold_ticks_and_external_legend():
+    fold_comparison = pd.DataFrame(
+        [
+            {"scorer": "OCScore", "fold_index": 0, "validation_BEDROC": 0.5},
+            {"scorer": "OCScore", "fold_index": 1, "validation_BEDROC": 0.6},
+            {"scorer": "OCScore", "fold_index": 2, "validation_BEDROC": 0.55},
+            {"scorer": "vina_vina", "fold_index": 0, "validation_BEDROC": 0.2},
+            {"scorer": "vina_vina", "fold_index": 1, "validation_BEDROC": 0.25},
+            {"scorer": "vina_vina", "fold_index": 2, "validation_BEDROC": 0.22},
+        ]
+    )
+    fig, ax = occvplot.plot_fold_metric_lines(fold_comparison, "BEDROC", top_n=2)
+    tick_values = [int(round(value)) for value in ax.get_xticks()]
+    assert tick_values == [0, 1, 2]
+    legend = ax.get_legend()
+    assert legend is not None
+    assert legend.get_bbox_to_anchor().x0 > 1.0
+    plt.close(fig)
+
+
+@pytest.mark.order(288)
 def test_aggregate_cv_per_target_metrics_collapses_folds():
     per_target = pd.DataFrame(
         [

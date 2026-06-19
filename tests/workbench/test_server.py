@@ -2,9 +2,9 @@
 
 # Description
 ###############################################################################
-'''
-Tests for the read-only Workbench HTTP API payload layer.
-'''
+"""
+Tests for the strict OCScore Workbench HTTP API payload layer.
+"""
 
 # Imports
 ###############################################################################
@@ -13,17 +13,11 @@ from __future__ import annotations
 import http.client
 import threading
 
-from urllib.parse import urlencode
-
 import pytest
 
-from OCDocker.Workbench import ResultArtifact
-from OCDocker.Workbench import RunManifest
-from OCDocker.Workbench import ResultManifest
 from OCDocker.Workbench import WorkbenchAPIError
 from OCDocker.Workbench import build_workbench_api_handler
 from OCDocker.Workbench import build_workbench_api_payload
-from OCDocker.Workbench import write_model
 
 # License
 ###############################################################################
@@ -47,151 +41,28 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Private ##
 
 
-def _write_api_workspace(tmp_path) -> None:
-    '''Write result manifests for API tests.
+def _write_api_ocscore_root(root) -> None:
+    '''Write a synthetic OCScore root for API tests.
 
     Parameters
     ----------
-    tmp_path : pathlib.Path
-        Temporary test directory.
+    root : pathlib.Path
+        Temporary root.
     '''
 
-    for run_id, metrics in {
-        "baseline": {"auc": 0.85, "loss": 0.20},
-        "candidate": {"auc": 0.90, "loss": 0.18},
-    }.items():
-        run_dir = tmp_path / run_id
-        run_dir.mkdir()
-        write_model(
-            run_dir / "result_manifest.yml",
-            ResultManifest(run_id=run_id, status="completed", metrics=metrics),
-        )
-
-
-def _write_api_run_bundle(tmp_path):
-    '''Write a synthetic run bundle for API tests.
-
-    Parameters
-    ----------
-    tmp_path : pathlib.Path
-        Temporary test directory.
-
-    Returns
-    -------
-    pathlib.Path
-        Run directory path.
-    '''
-
-    run_dir = tmp_path / "run-001"
-    run_dir.mkdir()
-    (run_dir / "run.log").write_text("queued\ncompleted\n", encoding="utf-8")
-    (run_dir / "metrics.csv").write_text("metric,value\nauc,0.93\n", encoding="utf-8")
-    write_model(
-        run_dir / "run_manifest.yml",
-        RunManifest(
-            run_id="run-001",
-            spec_type="ocscore_study",
-            name="api-detail",
-            status="completed",
-            workspace=".",
-            log_files=("run.log",),
-            artifacts=(ResultArtifact(name="metrics", path="metrics.csv", kind="csv"),),
-        ),
-    )
-    write_model(
-        run_dir / "result_manifest.yml",
-        ResultManifest(
-            run_id="run-001",
-            status="completed",
-            metrics={"auc": 0.93},
-            artifacts=(ResultArtifact(name="metrics", path="metrics.csv", kind="csv"),),
-        ),
-    )
-    return run_dir
-
-
-def _write_api_evidence_workspace(tmp_path) -> None:
-    '''Write a synthetic adopted evidence workspace for API tests.
-
-    Parameters
-    ----------
-    tmp_path : pathlib.Path
-        Temporary test directory.
-    '''
-
-    source_root = tmp_path / "source" / "output"
-    train_source = source_root / "train"
-    train_source.mkdir(parents=True)
-    (train_source / "baselines_per_fold.csv").write_text(
-        "baseline,baseline_family,split,BEDROC,replica\nvina,scoring_function,validation,0.30,replica_000\n",
-        encoding="utf-8",
-    )
-    optuna_dir = train_source / "replica_001" / "dudez"
-    optuna_dir.mkdir(parents=True)
-    (optuna_dir / "dudez_optuna_trials.csv").write_text(
-        "number,value,state\n0,0.50,COMPLETE\n1,0.60,COMPLETE\n",
-        encoding="utf-8",
-    )
-    shap_dir = source_root / "export" / "dudez" / "shap"
-    shap_dir.mkdir(parents=True)
-    (shap_dir / "shap_values.csv").write_text("feature_a,feature_b\n1.0,-2.0\n", encoding="utf-8")
-    (shap_dir / "shap_feature_importance.png").write_bytes(b"png")
-    run_dir = tmp_path / "train"
-    run_dir.mkdir()
-    write_model(
-        run_dir / "run_manifest.yml",
-        RunManifest(
-            run_id="train",
-            spec_type="ocscore_study",
-            name="train",
-            status="completed",
-            workspace=train_source,
-            metadata={"adopted": True, "source_path": str(train_source)},
-        ),
-    )
-    write_model(
-        run_dir / "result_manifest.yml",
-        ResultManifest(run_id="train", status="completed", metrics={"auc": 0.9}),
-    )
-
-
-def _write_api_ablation_workspace(tmp_path) -> None:
-    '''Write a synthetic adopted ablation workspace for API tests.
-
-    Parameters
-    ----------
-    tmp_path : pathlib.Path
-        Temporary test directory.
-    '''
-
-    for run_id, source_path, metrics in (
-        ("train", "/source/output/train", {"auc": 0.88, "loss": 0.20}),
-        ("shape_only", "/source/output/train/ablations/shape_only", {"auc": 0.91, "loss": 0.18}),
-    ):
-        run_dir = tmp_path / run_id
-        run_dir.mkdir()
-        write_model(
-            run_dir / "run_manifest.yml",
-            RunManifest(
-                run_id=run_id,
-                spec_type="ocscore_ablation",
-                name=run_id,
-                status="completed",
-                workspace=source_path,
-                metadata={"adopted": True, "source_path": source_path},
-            ),
-        )
-        write_model(
-            run_dir / "result_manifest.yml",
-            ResultManifest(run_id=run_id, status="completed", metrics=metrics),
-        )
+    replica = root / "replica_1"
+    replica.mkdir()
+    (replica / "metrics.csv").write_text("metric,value\nBEDROC,0.77\n", encoding="utf-8")
+    ablation = root / "ablation" / "no_ligand" / "replica_1"
+    ablation.mkdir(parents=True)
+    (ablation / "metrics.csv").write_text("metric,value\nBEDROC,0.52\n", encoding="utf-8")
 
 
 ## Public ##
 
 
-def test_build_workbench_api_payload_serves_health_and_index(tmp_path) -> None:
-    '''Workbench API payloads expose service metadata.
+def test_build_workbench_api_payload_indexes_strict_endpoints(tmp_path) -> None:
+    '''Workbench API index exposes only the strict dashboard endpoint set.
 
     Parameters
     ----------
@@ -199,19 +70,17 @@ def test_build_workbench_api_payload_serves_health_and_index(tmp_path) -> None:
         Temporary test directory.
     '''
 
-    index = build_workbench_api_payload(tmp_path, "/", default_max_depth=2)
-    health = build_workbench_api_payload(tmp_path, "/health", default_max_depth=2)
+    payload = build_workbench_api_payload(tmp_path, "/api")
 
-    assert index["service"] == "ocdocker-workbench"
-    assert index["read_only"] is True
-    assert "/api/overview" in index["endpoints"]
-    assert "/api/run-detail" in index["endpoints"]
-    assert health["ok"] is True
-    assert health["root"] == str(tmp_path)
+    assert payload["dashboard_model"] == "strict_ocscore_layout"
+    assert "/api/ocscore-workspace" in payload["endpoints"]
+    assert "/api/figure-asset?path=..." in payload["endpoints"]
+    assert "/api/evidence" not in payload["endpoints"]
+    assert "/api/plot" not in payload["endpoints"]
 
 
-def test_build_workbench_api_payload_serves_decision_endpoints(tmp_path) -> None:
-    '''Workbench API payloads wrap existing read-only decision helpers.
+def test_build_workbench_api_payload_serves_ocscore_workspace(tmp_path) -> None:
+    '''Workbench API exposes the strict OCScore workspace payload.
 
     Parameters
     ----------
@@ -219,137 +88,23 @@ def test_build_workbench_api_payload_serves_decision_endpoints(tmp_path) -> None
         Temporary test directory.
     '''
 
-    _write_api_workspace(tmp_path)
-
-    overview = build_workbench_api_payload(
-        tmp_path,
-        "/api/overview",
-        {"max_depth": ["2"]},
-    )
-    leaderboard = build_workbench_api_payload(
-        tmp_path,
-        "/api/leaderboard",
-        {"metric": ["auc"], "max_depth": ["2"]},
-    )
-    comparison = build_workbench_api_payload(
-        tmp_path,
-        "/api/compare",
-        {
-            "baseline": ["baseline"],
-            "metric": ["auc:max", "loss:min"],
-            "max_depth": ["2"],
-        },
-    )
-
-    assert overview["result_manifest_count"] == 2
-    assert leaderboard["best_entry"]["run_id"] == "candidate"
-    assert comparison["best_candidate"]["run_id"] == "candidate"
-    assert comparison["best_candidate"]["net_score"] == 2
-
-
-def test_build_workbench_api_payload_serves_evidence_endpoint(tmp_path) -> None:
-    '''Workbench API exposes read-only OCScore evidence discovery.
-
-    Parameters
-    ----------
-    tmp_path : pathlib.Path
-        Temporary test directory.
-    '''
-
-    _write_api_evidence_workspace(tmp_path)
+    _write_api_ocscore_root(tmp_path)
 
     payload = build_workbench_api_payload(
         tmp_path,
-        "/api/evidence",
-        {"max_depth": ["2"], "source_depth": ["4"], "max_csv_rows": ["20"]},
+        "/api/ocscore-workspace",
     )
 
-    assert payload["evidence_count"] == 4
-    assert payload["kind_counts"]["performance"] == 1
-    assert payload["kind_counts"]["optimization"] == 1
-    assert payload["kind_counts"]["shap"] == 2
-    assert payload["performance_points"][0]["metric_name"] == "BEDROC"
-    assert payload["optimization_points"][-1]["best_value"] == 0.6
-    assert payload["shap_features"][0]["feature"] == "feature_b"
+    assert payload["study_count"] == 2
+    assert payload["baseline_study"]["completed_count"] == 1
+    assert payload["baseline_study"]["expected_replica_count"] == 1
+    assert payload["baseline_study"]["missing_count"] == 0
+    assert payload["baseline_study"]["metric_summary"]["test_bedroc"]["mean"] == 0.77
+    assert payload["ablation_studies"][0]["study_name"] == "no_ligand"
 
 
-def test_build_workbench_api_payload_serves_ablation_endpoint(tmp_path) -> None:
-    '''Workbench API payloads expose ablation comparisons.
-
-    Parameters
-    ----------
-    tmp_path : pathlib.Path
-        Temporary test directory.
-    '''
-
-    _write_api_ablation_workspace(tmp_path)
-
-    payload = build_workbench_api_payload(
-        tmp_path,
-        "/api/ablations",
-        {"metric": ["auc:max", "loss:min"], "max_depth": ["2"]},
-    )
-
-    assert payload["baseline_run_id"] == "train"
-    assert payload["candidate_count"] == 1
-    assert payload["best_candidate"]["policy_name"] == "shape_only"
-    assert payload["best_candidate"]["net_score"] == 2
-
-
-def test_build_workbench_api_payload_serves_plot_endpoint(tmp_path) -> None:
-    '''Workbench API payloads can produce Plotly-compatible plot payloads.
-
-    Parameters
-    ----------
-    tmp_path : pathlib.Path
-        Temporary test directory.
-    '''
-
-    _write_api_workspace(tmp_path)
-
-    payload = build_workbench_api_payload(
-        tmp_path,
-        "/api/plot",
-        {
-            "kind": ["scatter"],
-            "x_metric": ["auc"],
-            "y_metric": ["loss"],
-            "max_depth": ["2"],
-        },
-    )
-
-    assert payload["plot_kind"] == "metric_scatter"
-    assert payload["included_count"] == 2
-    assert payload["data"][0]["type"] == "scatter"
-
-
-def test_build_workbench_api_payload_serves_run_detail_endpoint(tmp_path) -> None:
-    '''Workbench API payloads expose aggregate run details.
-
-    Parameters
-    ----------
-    tmp_path : pathlib.Path
-        Temporary test directory.
-    '''
-
-    _write_api_run_bundle(tmp_path)
-
-    payload = build_workbench_api_payload(
-        tmp_path,
-        "/api/run-detail",
-        {"target": ["run-001"], "lines": ["1"]},
-        default_max_depth=2,
-    )
-
-    assert payload["run_id"] == "run-001"
-    assert payload["status_report"]["result_manifest_exists"] is True
-    assert payload["log_preview"]["logs"][0]["text"] == "completed"
-    assert payload["result_summary"]["metrics"] == {"auc": 0.93}
-    assert payload["issue_count"] == 0
-
-
-def test_build_workbench_api_payload_rejects_unknown_endpoint(tmp_path) -> None:
-    '''Workbench API payloads reject unknown endpoints.
+def test_build_workbench_api_payload_rejects_legacy_endpoint(tmp_path) -> None:
+    '''Workbench API rejects legacy generic dashboard endpoints.
 
     Parameters
     ----------
@@ -358,11 +113,11 @@ def test_build_workbench_api_payload_rejects_unknown_endpoint(tmp_path) -> None:
     '''
 
     with pytest.raises(WorkbenchAPIError, match="Unknown Workbench API endpoint"):
-        build_workbench_api_payload(tmp_path, "/api/unknown")
+        build_workbench_api_payload(tmp_path, "/api/evidence")
 
 
-def test_build_workbench_api_handler_binds_root_and_depth(tmp_path) -> None:
-    '''Workbench API handlers preserve root and default depth.
+def test_build_workbench_api_handler_serves_figure_assets(tmp_path) -> None:
+    '''Workbench API handlers serve allowed OCScore figure assets.
 
     Parameters
     ----------
@@ -370,13 +125,34 @@ def test_build_workbench_api_handler_binds_root_and_depth(tmp_path) -> None:
         Temporary test directory.
     '''
 
-    handler = build_workbench_api_handler(tmp_path, default_max_depth=3)
+    from http.server import ThreadingHTTPServer
+    from urllib.parse import quote
 
-    assert handler.workbench_root == tmp_path
-    assert handler.workbench_default_max_depth == 3
+    image = tmp_path / "export" / "dudez" / "shap" / "shap_beeswarm_plot.png"
+    image.parent.mkdir(parents=True)
+    image.write_bytes(b"png")
+
+    handler = build_workbench_api_handler(tmp_path, max_depth=2)
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    try:
+        connection = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=5)
+        connection.request("GET", f"/api/figure-asset?path={quote(str(image))}")
+        response = connection.getresponse()
+        body = response.read()
+        connection.close()
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=5)
+
+    assert response.status == 200
+    assert response.getheader("Content-Type") == "image/png"
+    assert body == b"png"
 
 
-def test_workbench_api_handler_serves_embedded_browser_assets(tmp_path) -> None:
+def test_build_workbench_api_handler_serves_embedded_browser_assets(tmp_path) -> None:
     '''Workbench API handlers serve embedded browser assets.
 
     Parameters
@@ -387,66 +163,21 @@ def test_workbench_api_handler_serves_embedded_browser_assets(tmp_path) -> None:
 
     from http.server import ThreadingHTTPServer
 
-    handler = build_workbench_api_handler(tmp_path, default_max_depth=2)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    handler = build_workbench_api_handler(tmp_path, max_depth=2)
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
     try:
-        connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+        connection = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=5)
         connection.request("GET", "/app")
         response = connection.getresponse()
         body = response.read()
         connection.close()
     finally:
-        server.shutdown()
-        server.server_close()
+        httpd.shutdown()
+        httpd.server_close()
         thread.join(timeout=5)
 
     assert response.status == 200
     assert response.getheader("Content-Type") == "text/html; charset=utf-8"
-    assert b"Decision Console" in body
-
-
-def test_workbench_api_handler_serves_constrained_evidence_assets(tmp_path) -> None:
-    '''Workbench API handlers serve discovered image evidence assets only.
-
-    Parameters
-    ----------
-    tmp_path : pathlib.Path
-        Temporary test directory.
-    '''
-
-    from http.server import ThreadingHTTPServer
-
-    _write_api_evidence_workspace(tmp_path)
-    image_path = tmp_path / "source" / "output" / "export" / "dudez" / "shap" / "shap_feature_importance.png"
-    outside_path = tmp_path / "outside.png"
-    outside_path.write_bytes(b"png")
-
-    handler = build_workbench_api_handler(tmp_path, default_max_depth=2)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        allowed_query = urlencode({"path": str(image_path), "max_depth": 2, "source_depth": 4})
-        connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
-        connection.request("GET", f"/api/evidence-asset?{allowed_query}")
-        response = connection.getresponse()
-        body = response.read()
-        connection.close()
-
-        denied_query = urlencode({"path": str(outside_path), "max_depth": 2, "source_depth": 4})
-        connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
-        connection.request("GET", f"/api/evidence-asset?{denied_query}")
-        denied_response = connection.getresponse()
-        denied_response.read()
-        connection.close()
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=5)
-
-    assert response.status == 200
-    assert response.getheader("Content-Type") == "image/png"
-    assert body == b"png"
-    assert denied_response.status == 403
+    assert b"OCScore Control Dashboard" in body

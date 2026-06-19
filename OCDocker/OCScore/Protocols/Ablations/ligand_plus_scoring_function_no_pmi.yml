@@ -1,0 +1,13 @@
+name: ligand_plus_scoring_function_no_pmi
+description: Ligand descriptors and scoring-function features, excluding principal moments of inertia.
+include_patterns:
+  - "ligand_*"
+  - "plants_*"
+  - "vina_*"
+  - "smina_*"
+  - "gnina_*"
+  - "oddt_*"
+exclude_features:
+  - ligand_PMI1
+  - ligand_PMI2
+  - ligand_PMI3

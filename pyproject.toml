@@ -45,7 +45,7 @@ keywords = ["docking", "virtual screening", "AI", "bioinformatics", "drug discov
 version = { attr = "OCDocker._version.__version__" }
 
 [tool.setuptools.package-data]
-"OCDocker.OCScore" = ["Protocols/*.yml"]
+"OCDocker.OCScore" = ["Protocols/*.yml", "Protocols/Ablations/*.yml"]
 
 [project.urls]
 Homepage = "https://github.com/Arturossi/OCDocker"

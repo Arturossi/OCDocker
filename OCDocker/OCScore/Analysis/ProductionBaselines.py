@@ -28,8 +28,13 @@ from OCDocker.OCScore.Analysis.Metrics.Ranking import evaluate_screening_metrics
 from OCDocker.OCScore.Optimization.ModelCrossValidation import (
     evaluate_scoring_function_baselines_on_fold,
     identify_scoring_function_columns,
+    infer_higher_is_better,
 )
 from OCDocker.OCScore.Optimization.Protocol import ReplicaResult
+from OCDocker.OCScore.Utils.DescriptorAggregateBaselines import (
+    evaluate_descriptor_aggregate_baselines_on_fold,
+    evaluate_sf_consensus_baselines_on_fold,
+)
 
 PRODUCTION_BASELINE_RANK_METRICS = (
     "BEDROC",
@@ -97,6 +102,8 @@ class ProductionBaselineConfig:
     include_xgb: bool = True
     include_lgbm: bool = True
     include_shuffle_control: bool = True
+    include_sf_consensus: bool = True
+    include_descriptor_aggregates: bool = True
     metric_names: Sequence[str] = field(default_factory=lambda: PRODUCTION_BASELINE_RANK_METRICS)
     bedroc_alpha: float = 20.0
 
@@ -478,6 +485,102 @@ def evaluate_individual_sf_baselines(
     return rows
 
 
+def evaluate_sf_consensus_baselines(
+        dataframe: pd.DataFrame,
+        selected_features: Sequence[str],
+        split_indices: Mapping[str, Sequence[int]],
+        *,
+        label_column: str,
+        group_column: str,
+        config: ProductionBaselineConfig,
+    ) -> list[dict[str, Any]]:
+    '''Evaluate SF consensus row aggregates on validation and test splits.'''
+
+    sf_columns = identify_scoring_function_columns(selected_features)
+    if not sf_columns:
+        return []
+
+    labels = dataframe[label_column].to_numpy(dtype=int)
+    groups = (
+        None
+        if group_column not in dataframe.columns
+        else dataframe[group_column].astype(str).to_numpy()
+    )
+    val_idx = np.asarray(split_indices["validation"], dtype=int)
+    test_idx = np.asarray(split_indices["test"], dtype=int)
+
+    rows: list[dict[str, Any]] = []
+    for split_name, split_idx in (("validation", val_idx), ("test", test_idx)):
+        consensus_metrics = evaluate_sf_consensus_baselines_on_fold(
+            dataframe,
+            split_idx,
+            sf_columns,
+            labels,
+            groups,
+            metric_names=config.metric_names,
+            bedroc_alpha=config.bedroc_alpha,
+            infer_higher_is_better=infer_higher_is_better,
+        )
+        for baseline_name, metrics in consensus_metrics.items():
+            rows.append(
+                {
+                    "baseline": baseline_name,
+                    "baseline_family": "sf_consensus",
+                    "split": split_name,
+                    **_metric_subset(metrics, config.metric_names),
+                }
+            )
+    return rows
+
+
+def evaluate_descriptor_aggregate_baselines(
+        dataframe: pd.DataFrame,
+        selected_features: Sequence[str],
+        split_indices: Mapping[str, Sequence[int]],
+        *,
+        label_column: str,
+        group_column: str,
+        config: ProductionBaselineConfig,
+    ) -> list[dict[str, Any]]:
+    '''Evaluate descriptor row aggregates on validation and test splits.'''
+
+    feature_columns = [column for column in selected_features if column in dataframe.columns]
+    if not feature_columns:
+        return []
+
+    labels = dataframe[label_column].to_numpy(dtype=int)
+    groups = (
+        None
+        if group_column not in dataframe.columns
+        else dataframe[group_column].astype(str).to_numpy()
+    )
+    feature_matrix = dataframe[feature_columns].to_numpy(dtype=float)
+    val_idx = np.asarray(split_indices["validation"], dtype=int)
+    test_idx = np.asarray(split_indices["test"], dtype=int)
+
+    rows: list[dict[str, Any]] = []
+    for split_name, split_idx in (("validation", val_idx), ("test", test_idx)):
+        aggregate_metrics = evaluate_descriptor_aggregate_baselines_on_fold(
+            feature_matrix,
+            split_idx,
+            labels,
+            groups,
+            metric_names=config.metric_names,
+            bedroc_alpha=config.bedroc_alpha,
+            infer_higher_is_better=infer_higher_is_better,
+        )
+        for baseline_name, metrics in aggregate_metrics.items():
+            rows.append(
+                {
+                    "baseline": baseline_name,
+                    "baseline_family": "descriptor_aggregate",
+                    "split": split_name,
+                    **_metric_subset(metrics, config.metric_names),
+                }
+            )
+    return rows
+
+
 def run_production_baselines_for_replica(
         *,
         replica_name: str,
@@ -501,6 +604,28 @@ def run_production_baselines_for_replica(
         config=cfg,
     )
     rows.extend({**row, "replica": replica_name} for row in sf_rows)
+
+    if cfg.include_sf_consensus:
+        consensus_rows = evaluate_sf_consensus_baselines(
+            dudez_df,
+            selected_features,
+            split_indices,
+            label_column=cfg.label_column,
+            group_column=cfg.group_column,
+            config=cfg,
+        )
+        rows.extend({**row, "replica": replica_name} for row in consensus_rows)
+
+    if cfg.include_descriptor_aggregates:
+        descriptor_rows = evaluate_descriptor_aggregate_baselines(
+            dudez_df,
+            selected_features,
+            split_indices,
+            label_column=cfg.label_column,
+            group_column=cfg.group_column,
+            config=cfg,
+        )
+        rows.extend({**row, "replica": replica_name} for row in descriptor_rows)
 
     learned_rows, learned_skips = evaluate_learned_sf_baselines(
         dudez_df,
@@ -647,6 +772,8 @@ __all__ = [
     "aggregate_baseline_rows",
     "build_baseline_rank_table",
     "evaluate_individual_sf_baselines",
+    "evaluate_sf_consensus_baselines",
+    "evaluate_descriptor_aggregate_baselines",
     "evaluate_learned_sf_baselines",
     "run_and_write_production_baselines",
     "run_production_baselines_for_replica",

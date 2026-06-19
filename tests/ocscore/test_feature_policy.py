@@ -26,6 +26,12 @@ SHAPE_FEATURES = [
     "ligand_SpherocityIndex",
 ]
 SCORING_FEATURES = ["plants_plp", "vina_vina", "smina_vinardo", "gnina_ad4_scoring", "oddt_rfscore_v1"]
+NEW_LIGAND_PLUS_SCORING_POLICIES = {
+    "ligand_plus_scoring_function_clean_receptor",
+    "ligand_plus_scoring_function_no_plants",
+    "ligand_plus_scoring_function_no_pmi",
+    "ligand_plus_scoring_function_no_shape_size_no_autocorr2d",
+}
 FEATURES = [
     "receptor_countA",
     "receptor_countG",
@@ -57,6 +63,7 @@ FEATURES = [
     "ligand_TPSA",
     "ligand_MolLogP",
     "ligand_RingCount",
+    "ligand_AUTOCORR2D_1",
     *SCORING_FEATURES,
 ]
 
@@ -69,6 +76,7 @@ def test_bundled_ablation_policies_are_discovered():
     discovered = discover_feature_policies()
     assert "full_ocscore" in discovered.policies
     assert "no_pmi" in discovered.policies
+    assert NEW_LIGAND_PLUS_SCORING_POLICIES.issubset(discovered.policies)
     assert discovered.policies["no_pmi"].source_kind == "bundled"
     assert discovered.policies["no_pmi"].source_path.suffix == ".yml"
 
@@ -257,6 +265,64 @@ def test_ligand_plus_scoring_function_no_shape_size_excludes_shape_and_size_prox
     assert "ligand_TPSA" not in final
     assert "ligand_MolLogP" not in final
     assert "ligand_RingCount" not in final
+    assert any(feature in SCORING_FEATURES for feature in final)
+
+
+def test_ligand_plus_scoring_function_no_pmi_excludes_pmi_only():
+    final = apply_feature_policy(
+        _policy("ligand_plus_scoring_function_no_pmi"),
+        FEATURES,
+    ).final_candidate_features_before_reduction
+
+    assert all(not feature.startswith("receptor_") for feature in final)
+    assert "ligand_PMI1" not in final
+    assert "ligand_PMI2" not in final
+    assert "ligand_PMI3" not in final
+    assert "ligand_NPR1" in final
+    assert "ligand_BertzCT" in final
+    assert any(feature in SCORING_FEATURES for feature in final)
+
+
+def test_ligand_plus_scoring_function_no_plants_excludes_plants_scores():
+    final = apply_feature_policy(
+        _policy("ligand_plus_scoring_function_no_plants"),
+        FEATURES,
+    ).final_candidate_features_before_reduction
+
+    assert all(not feature.startswith("receptor_") for feature in final)
+    assert "plants_plp" not in final
+    assert "vina_vina" in final
+    assert "smina_vinardo" in final
+    assert "gnina_ad4_scoring" in final
+    assert any(feature.startswith("ligand_") for feature in final)
+
+
+def test_ligand_plus_scoring_function_no_shape_size_no_autocorr2d_excludes_extra_block():
+    final = apply_feature_policy(
+        _policy("ligand_plus_scoring_function_no_shape_size_no_autocorr2d"),
+        FEATURES,
+    ).final_candidate_features_before_reduction
+
+    assert all(not feature.startswith("receptor_") for feature in final)
+    assert "ligand_AUTOCORR2D_1" not in final
+    assert all(feature not in final for feature in SHAPE_FEATURES)
+    assert "ligand_BertzCT" not in final
+    assert any(feature in SCORING_FEATURES for feature in final)
+
+
+def test_ligand_plus_scoring_function_clean_receptor_keeps_clean_receptor_descriptors():
+    final = apply_feature_policy(
+        _policy("ligand_plus_scoring_function_clean_receptor"),
+        FEATURES,
+    ).final_candidate_features_before_reduction
+
+    assert "receptor_countA" not in final
+    assert "receptor_countV" not in final
+    assert "receptor_TotalAALength" not in final
+    assert "receptor_AvgAALength" not in final
+    assert "receptor_countChain" not in final
+    assert "receptor_SASA" in final
+    assert any(feature.startswith("ligand_") for feature in final)
     assert any(feature in SCORING_FEATURES for feature in final)
 
 

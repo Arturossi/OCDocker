@@ -1,0 +1,10 @@
+name: ligand_plus_scoring_function_no_plants
+description: Ligand descriptors and scoring-function features, excluding PLANTS-derived scoring functions.
+include_patterns:
+  - "ligand_*"
+  - "vina_*"
+  - "smina_*"
+  - "gnina_*"
+  - "oddt_*"
+exclude_patterns:
+  - "plants_*"

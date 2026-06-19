@@ -2,9 +2,9 @@
 
 # Description
 ###############################################################################
-'''
+"""
 Tests for embedded Workbench browser assets.
-'''
+"""
 
 # Imports
 ###############################################################################
@@ -37,8 +37,8 @@ Contact: Artur Duque Rossi - arturossi10@gmail.com
 ## Public ##
 
 
-def test_build_workbench_web_asset_serves_browser_entrypoint() -> None:
-    '''Workbench web assets include the browser shell and API calls.'''
+def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
+    '''Workbench web assets include only the strict OCScore dashboard shell.'''
 
     content_type, body = build_workbench_web_asset("/app")
     script_type, script = build_workbench_web_asset("/app.js")
@@ -47,41 +47,125 @@ def test_build_workbench_web_asset_serves_browser_entrypoint() -> None:
     assert content_type == "text/html; charset=utf-8"
     assert script_type == "text/javascript; charset=utf-8"
     assert style_type == "text/css; charset=utf-8"
-    assert b"Decision Console" in body
-    assert b"Run Detail" in body
-    assert b"Ablations" in body
-    assert b"Ablation Delta" in body
-    assert b"Metric Direction Heatmap" in body
-    assert b"Evidence Explorer" in body
-    assert b"Performance Profile" in body
-    assert b"Optuna Trace" in body
-    assert b"SHAP Importance" in body
-    assert b"Figure Gallery" in body
-    assert b"ablation-delta-plot" in body
-    assert b"ablation-heatmap" in body
-    assert b"evidence-performance-plot" in body
-    assert b"evidence-gallery" in body
-    assert b"/api/overview" in script
-    assert b"/api/run-detail" in script
-    assert b"/api/ablations" in script
-    assert b"/api/evidence" in script
-    assert b"/api/evidence-asset" in script
-    assert b"renderAblationDeltaPlot" in script
-    assert b"renderAblationHeatmap" in script
-    assert b"renderEvidencePerformancePlot" in script
-    assert b"renderEvidenceTracePlot" in script
-    assert b"renderShapFeaturePlot" in script
-    assert b"renderEvidenceGallery" in script
-    assert b"plot-axis-label" in script
-    assert b"x axis" in script
-    assert b".stat-grid" in style
-    assert b".detail-grid" in style
-    assert b"decision-grid" in style
-    assert b".plot-split" in style
-    assert b".evidence-grid" in style
-    assert b".evidence-gallery" in style
-    assert b".heat-cell" in style
-    assert b".plot-zero-line" in style
+    assert b"OCScore Control Dashboard" in body
+    assert b'role="tablist"' in body
+    assert b"tab-ablation" in body
+    assert b"panel-ablation" in body
+    assert b">Ablation</button>" in body
+    assert b"setActiveTab" in script
+    assert b"bindAppTabs" in script
+    assert b"bindCollapsiblePanels" in script
+    assert b"panel-collapsible" in style
+    assert b"Overview</h2>" in body
+    assert b".app-tabs" in style
+    assert b".tab-panel" in style
+    assert b"Results</h2>" in body
+    assert b"comparison-legend" in body
+    assert b"metric-legend" in style
+    assert b"metricStatMarkup" in script
+    assert b"metric-stat" in style
+    assert b"metric-cell-mu" in style
+    assert b"metric-stat-aggregate" in style
+    assert b"metric-std" in style
+    assert b"cv-panel" in body
+    assert b"renderCrossValidationPanel" in script
+    assert b"plot-span-full" in style
+    assert b"cdn.plot.ly/plotly" in body
+    assert b"buildRankPlotlySpec" in script
+    assert b"mountPendingPlotlyCharts" in script
+    assert b"plotly-host" in style
+    assert b"externalBaselineKindLabel" in script
+    assert b"RANK_BAR_LABELS" in script
+    assert b"Other consensus" in script
+    assert b'"SF"' in script
+    assert b"#9ecae1" in script
+    assert b"barLabel" in script
+    assert b"rankPlotLabelOffset" in script
+    assert b"replica values" in script
+    assert b"replica values" in script
+    assert b"cross-validation" in body.lower() or b"Cross-validation" in body
+    assert b"renderComparisonExportActions" in script
+    assert b"objectsToCsv" in script
+    assert b"externalEntryId" in script
+    assert b"normalizeComparisonBaseline" in script
+    assert b"findExternalBaselineByEntryId" in script
+    assert b"data-comparison-export" in script
+    assert b"comparison-charts" in body
+    assert b"result-scope-select" in body
+    assert b"comparison-baseline-select" in body
+    assert b"Workspace Issues" in body
+    assert b"comparisonEntries" in script
+    assert b"renderComparisonTable" in script
+    assert b"generatedAllDeltasPlot" in script
+    assert b"renderGlobalControls" in script
+    assert b"full_ocscore" in script
+    assert b"Full model" in script
+    assert b"modelDisplayName" in script
+    assert b"modelDescription" in script
+    assert b"ABLATION_DESCRIPTIONS" in script
+    assert b"lr_sf" in script
+    assert b"renderIssues" in script
+    assert b"metricColumns" in script
+    assert b"bindSortButtons" in script
+    assert b"comparisonSort" in script
+    assert b"comparisonBaseline" in script
+    assert b"scopedExternalBaselines" in script
+    assert b"external_baselines" in script
+    assert b"rankedMetricCell" in script
+    assert b"Rank ${rank} of ${total}" in script
+    assert b"metric-rank" not in script
+    assert b".rank-top" in style
+    assert b".rank-second" in style
+    assert b".rank-third" in style
+    assert b"generatedRankPlot" in script
+    assert b"generatedStabilityPlot" in script
+    assert b"shapComparisonGallery" in script
+    assert b"renderFigureControls" in script
+    assert b"FIGURE_RENDER_LIMIT" in script
+    assert b"figureFilters" in script
+    assert b"resultScope" in script
+    assert b"Test" in script
+    assert b"Validation" in script
+    assert b"Combined" in script
+    assert b"Model comparison" in script
+    assert b"Selected model" in script
+    assert b"registerPlotExport" in script
+    assert b"downloadText" in script
+    assert b"svgToPngBlob" in script
+    assert b"copyPngToClipboard" in script
+    assert b'data-export-kind="png"' in script
+    assert b'data-export-kind="copy"' in script
+    assert b'return /[",\\n]/.test(text)' in script
+    assert b'return /[",\n]/.test(text)' not in script
+    assert b"Metric Delta vs" not in script
+    assert b"async function refresh" in script
+    assert b'\nfunction refresh()' not in script
+    assert b'lines.join("\\n")' in script
+    from py_mini_racer import MiniRacer
+
+    parse_only = script.decode("utf-8").replace('$("refresh").addEventListener("click", refresh);', "")
+    parse_only = parse_only.replace("bindAppTabs();", "")
+    parse_only = parse_only.replace("bindCollapsiblePanels();", "")
+    parse_only = parse_only.replace('setActiveTab("ablation");', "")
+    parse_only = parse_only.replace("refresh();", "")
+    MiniRacer().eval(parse_only)
+    assert b"/api/figure-asset" in script
+    assert b"data-sort-key" in script
+    assert b"metric:" in script
+    assert b"/api/ocscore-workspace" in script
+    assert b"/api/evidence" not in script
+    assert b"Metric Scatter" not in body
+    assert b"Figure Gallery" not in body
+    assert b".figure-list" in style
+    assert b".filter-grid" in style
+    assert b".decision-plots" in style
+    assert b".sort-button" in style
+    assert b".figure-preview" in style
+    assert b".generated-plot" in style
+    assert b".decision-svg" in style
+    assert b".export-actions" in style
+    assert b".figure-section" in style
+    assert b".gallery-note" in style
 
 
 def test_is_workbench_web_asset_path_recognizes_known_routes() -> None:

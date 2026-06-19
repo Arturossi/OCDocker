@@ -2,9 +2,9 @@
 
 # Description
 ###############################################################################
-'''
+"""
 Declarative models for the OCDocker experiment workbench.
-'''
+"""
 
 # Imports
 ###############################################################################
@@ -25,7 +25,7 @@ from pydantic import model_validator
 
 # License
 ###############################################################################
-'''
+"""
 OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
@@ -38,7 +38,7 @@ All rights reserved. Use, reproduction, modification, and distribution are allow
 provided this copyright notice is preserved. See the LICENSE file for details.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
-'''
+"""
 
 # Constants
 ###############################################################################
@@ -92,6 +92,16 @@ EvidenceKind = Literal[
     "prediction",
     "other",
 ]
+OCScoreWorkspaceRole = Literal["baseline", "ablation"]
+OCScoreExternalBaselineFamily = Literal[
+    "scoring_function",
+    "learned_sf",
+    "sf_consensus",
+    "descriptor_aggregate",
+    "other",
+]
+OCScoreReplicaStatus = Literal["missing", "empty", "running", "completed", "failed", "unknown"]
+OCScoreMetricDirection = Literal["max", "min"]
 
 
 # Functions
@@ -100,19 +110,19 @@ EvidenceKind = Literal[
 
 
 def _utc_now() -> datetime:
-    '''Return the current UTC timestamp for manifest metadata.
+    """Return the current UTC timestamp for manifest metadata.
 
     Returns
     -------
     datetime
         Returned value.
-    '''
+    """
 
     return datetime.now(timezone.utc)
 
 
 def _clean_string(value: str, field_name: str) -> str:
-    '''Return a stripped non-empty string or raise a validation error.
+    """Return a stripped non-empty string or raise a validation error.
 
     Parameters
     ----------
@@ -125,7 +135,7 @@ def _clean_string(value: str, field_name: str) -> str:
     -------
     str
         Returned value.
-    '''
+    """
 
     cleaned = str(value).strip()
     if not cleaned:
@@ -134,7 +144,7 @@ def _clean_string(value: str, field_name: str) -> str:
 
 
 def _string_tuple(value: Any) -> tuple[str, ...]:
-    '''Normalize strings, comma-separated strings, or sequences to a string tuple.
+    """Normalize strings, comma-separated strings, or sequences to a string tuple.
 
     Parameters
     ----------
@@ -145,7 +155,7 @@ def _string_tuple(value: Any) -> tuple[str, ...]:
     -------
     tuple[str, ...]
         Returned value.
-    '''
+    """
 
     if value is None:
         return ()
@@ -157,7 +167,7 @@ def _string_tuple(value: Any) -> tuple[str, ...]:
 
 
 def _path_tuple(value: Any) -> tuple[Path, ...]:
-    '''Normalize path inputs to a tuple of Path objects.
+    """Normalize path inputs to a tuple of Path objects.
 
     Parameters
     ----------
@@ -168,7 +178,7 @@ def _path_tuple(value: Any) -> tuple[Path, ...]:
     -------
     tuple[Path, ...]
         Returned value.
-    '''
+    """
 
     if value is None:
         return ()
@@ -248,7 +258,7 @@ class SnakemakeWorkflowSpec(WorkbenchModel):
     @field_validator("targets", mode="before")
     @classmethod
     def _coerce_targets(cls, value: Any) -> tuple[str, ...]:
-        '''Coerce targets.
+        """Coerce targets.
 
         Parameters
         ----------
@@ -259,7 +269,7 @@ class SnakemakeWorkflowSpec(WorkbenchModel):
         -------
         tuple[str, ...]
             Returned value.
-        '''
+        """
 
         return _string_tuple(value)
 
@@ -293,7 +303,7 @@ class VSInputSpec(WorkbenchModel):
     @field_validator("sample")
     @classmethod
     def _validate_sample(cls, value: str) -> str:
-        '''Validate sample.
+        """Validate sample.
 
         Parameters
         ----------
@@ -304,14 +314,14 @@ class VSInputSpec(WorkbenchModel):
         -------
         str
             Returned value.
-        '''
+        """
 
         return _clean_string(value, "sample")
 
     @field_validator("engines", "rescoring_engines", mode="before")
     @classmethod
     def _coerce_engines(cls, value: Any) -> tuple[str, ...] | None:
-        '''Coerce engines.
+        """Coerce engines.
 
         Parameters
         ----------
@@ -322,7 +332,7 @@ class VSInputSpec(WorkbenchModel):
         -------
         tuple[str, ...] | None
             Returned value.
-        '''
+        """
 
         if value is None:
             return None
@@ -330,13 +340,13 @@ class VSInputSpec(WorkbenchModel):
 
     @model_validator(mode="after")
     def _validate_engines(self) -> Self:
-        '''Validate engines.
+        """Validate engines.
 
         Returns
         -------
         Self
             Returned value.
-        '''
+        """
 
         if not self.engines:
             raise ValueError("At least one docking engine is required.")
@@ -385,7 +395,7 @@ class VSCampaignSpec(WorkbenchModel):
     @field_validator("name")
     @classmethod
     def _validate_name(cls, value: str) -> str:
-        '''Validate name.
+        """Validate name.
 
         Parameters
         ----------
@@ -396,14 +406,14 @@ class VSCampaignSpec(WorkbenchModel):
         -------
         str
             Returned value.
-        '''
+        """
 
         return _clean_string(value, "name")
 
     @field_validator("inputs", mode="before")
     @classmethod
     def _coerce_inputs(cls, value: Any) -> Any:
-        '''Coerce inputs.
+        """Coerce inputs.
 
         Parameters
         ----------
@@ -414,7 +424,7 @@ class VSCampaignSpec(WorkbenchModel):
         -------
         Any
             Returned value.
-        '''
+        """
 
         if value is None:
             return ()
@@ -423,7 +433,7 @@ class VSCampaignSpec(WorkbenchModel):
     @field_validator("tags", mode="before")
     @classmethod
     def _coerce_tags(cls, value: Any) -> tuple[str, ...]:
-        '''Coerce tags.
+        """Coerce tags.
 
         Parameters
         ----------
@@ -434,19 +444,19 @@ class VSCampaignSpec(WorkbenchModel):
         -------
         tuple[str, ...]
             Returned value.
-        '''
+        """
 
         return _string_tuple(value)
 
     @model_validator(mode="after")
     def _validate_inputs(self) -> Self:
-        '''Validate inputs.
+        """Validate inputs.
 
         Returns
         -------
         Self
             Returned value.
-        '''
+        """
 
         if not self.inputs:
             raise ValueError("A VS campaign requires at least one input set.")
@@ -475,13 +485,13 @@ class OCScoreInputSpec(WorkbenchModel):
 
     @model_validator(mode="after")
     def _validate_input_mode(self) -> Self:
-        '''Validate input mode.
+        """Validate input mode.
 
         Returns
         -------
         Self
             Returned value.
-        '''
+        """
 
         raw = self.raw_input_dir is not None
         merged = self.merged_input is not None
@@ -521,7 +531,7 @@ class FeaturePolicySelection(WorkbenchModel):
     @field_validator("names", mode="before")
     @classmethod
     def _coerce_names(cls, value: Any) -> tuple[str, ...]:
-        '''Coerce names.
+        """Coerce names.
 
         Parameters
         ----------
@@ -532,14 +542,14 @@ class FeaturePolicySelection(WorkbenchModel):
         -------
         tuple[str, ...]
             Returned value.
-        '''
+        """
 
         return _string_tuple(value)
 
     @field_validator("policy_dirs", "policy_ymls", mode="before")
     @classmethod
     def _coerce_paths(cls, value: Any) -> tuple[Path, ...]:
-        '''Coerce paths.
+        """Coerce paths.
 
         Parameters
         ----------
@@ -550,19 +560,19 @@ class FeaturePolicySelection(WorkbenchModel):
         -------
         tuple[Path, ...]
             Returned value.
-        '''
+        """
 
         return _path_tuple(value)
 
     @model_validator(mode="after")
     def _validate_selection(self) -> Self:
-        '''Validate selection.
+        """Validate selection.
 
         Returns
         -------
         Self
             Returned value.
-        '''
+        """
 
         if len(set(self.names)) != len(self.names):
             raise ValueError("Feature-policy names must be unique.")
@@ -609,7 +619,7 @@ class OCScoreStudySpec(WorkbenchModel):
     @field_validator("name")
     @classmethod
     def _validate_name(cls, value: str) -> str:
-        '''Validate name.
+        """Validate name.
 
         Parameters
         ----------
@@ -620,14 +630,14 @@ class OCScoreStudySpec(WorkbenchModel):
         -------
         str
             Returned value.
-        '''
+        """
 
         return _clean_string(value, "name")
 
     @field_validator("tags", mode="before")
     @classmethod
     def _coerce_tags(cls, value: Any) -> tuple[str, ...]:
-        '''Coerce tags.
+        """Coerce tags.
 
         Parameters
         ----------
@@ -638,7 +648,7 @@ class OCScoreStudySpec(WorkbenchModel):
         -------
         tuple[str, ...]
             Returned value.
-        '''
+        """
 
         return _string_tuple(value)
 
@@ -684,7 +694,7 @@ class OCScoreAblationSpec(WorkbenchModel):
     @field_validator("name")
     @classmethod
     def _validate_name(cls, value: str) -> str:
-        '''Validate name.
+        """Validate name.
 
         Parameters
         ----------
@@ -695,14 +705,14 @@ class OCScoreAblationSpec(WorkbenchModel):
         -------
         str
             Returned value.
-        '''
+        """
 
         return _clean_string(value, "name")
 
     @field_validator("tags", mode="before")
     @classmethod
     def _coerce_tags(cls, value: Any) -> tuple[str, ...]:
-        '''Coerce tags.
+        """Coerce tags.
 
         Parameters
         ----------
@@ -713,19 +723,19 @@ class OCScoreAblationSpec(WorkbenchModel):
         -------
         tuple[str, ...]
             Returned value.
-        '''
+        """
 
         return _string_tuple(value)
 
     @model_validator(mode="after")
     def _validate_ablation_scope(self) -> Self:
-        '''Validate ablation scope.
+        """Validate ablation scope.
 
         Returns
         -------
         Self
             Returned value.
-        '''
+        """
 
         selection = self.feature_policies
         has_named_scope = bool(selection.names or selection.policy_ymls or selection.run_all)
@@ -763,7 +773,7 @@ class PlannedCommand(WorkbenchModel):
     @field_validator("command", mode="before")
     @classmethod
     def _coerce_command(cls, value: Any) -> tuple[str, ...]:
-        '''Coerce command.
+        """Coerce command.
 
         Parameters
         ----------
@@ -774,14 +784,14 @@ class PlannedCommand(WorkbenchModel):
         -------
         tuple[str, ...]
             Returned value.
-        '''
+        """
 
         return _string_tuple(value)
 
     @field_validator("writes", mode="before")
     @classmethod
     def _coerce_writes(cls, value: Any) -> tuple[Path, ...]:
-        '''Coerce writes.
+        """Coerce writes.
 
         Parameters
         ----------
@@ -792,7 +802,7 @@ class PlannedCommand(WorkbenchModel):
         -------
         tuple[Path, ...]
             Returned value.
-        '''
+        """
 
         return _path_tuple(value)
 
@@ -810,7 +820,7 @@ class PreflightCheck(WorkbenchModel):
     @field_validator("code", "message")
     @classmethod
     def _validate_non_empty(cls, value: str) -> str:
-        '''Validate non-empty string fields.
+        """Validate non-empty string fields.
 
         Parameters
         ----------
@@ -821,7 +831,7 @@ class PreflightCheck(WorkbenchModel):
         -------
         str
             Returned value.
-        '''
+        """
 
         return _clean_string(value, "preflight check field")
 
@@ -866,7 +876,7 @@ class ResultArtifact(WorkbenchModel):
     @field_validator("name")
     @classmethod
     def _validate_name(cls, value: str) -> str:
-        '''Validate name.
+        """Validate name.
 
         Parameters
         ----------
@@ -877,7 +887,7 @@ class ResultArtifact(WorkbenchModel):
         -------
         str
             Returned value.
-        '''
+        """
 
         return _clean_string(value, "name")
 
@@ -932,7 +942,7 @@ class RunManifest(WorkbenchModel):
     @field_validator("run_id", "name")
     @classmethod
     def _validate_non_empty(cls, value: str) -> str:
-        '''Validate non empty.
+        """Validate non empty.
 
         Parameters
         ----------
@@ -943,14 +953,14 @@ class RunManifest(WorkbenchModel):
         -------
         str
             Returned value.
-        '''
+        """
 
         return _clean_string(value, "manifest field")
 
     @field_validator("command", mode="before")
     @classmethod
     def _coerce_command(cls, value: Any) -> tuple[str, ...]:
-        '''Coerce command.
+        """Coerce command.
 
         Parameters
         ----------
@@ -961,14 +971,14 @@ class RunManifest(WorkbenchModel):
         -------
         tuple[str, ...]
             Returned value.
-        '''
+        """
 
         return _string_tuple(value)
 
     @field_validator("log_files", mode="before")
     @classmethod
     def _coerce_log_files(cls, value: Any) -> tuple[Path, ...]:
-        '''Coerce log files.
+        """Coerce log files.
 
         Parameters
         ----------
@@ -979,7 +989,7 @@ class RunManifest(WorkbenchModel):
         -------
         tuple[Path, ...]
             Returned value.
-        '''
+        """
 
         return _path_tuple(value)
 
@@ -1013,7 +1023,7 @@ class ResultManifest(WorkbenchModel):
     @field_validator("run_id")
     @classmethod
     def _validate_run_id(cls, value: str) -> str:
-        '''Validate run id.
+        """Validate run id.
 
         Parameters
         ----------
@@ -1024,7 +1034,7 @@ class ResultManifest(WorkbenchModel):
         -------
         str
             Returned value.
-        '''
+        """
 
         return _clean_string(value, "run_id")
 
@@ -1198,7 +1208,7 @@ class InventoryIssue(WorkbenchModel):
     @field_validator("message")
     @classmethod
     def _validate_message(cls, value: str) -> str:
-        '''Validate message.
+        """Validate message.
 
         Parameters
         ----------
@@ -1209,7 +1219,7 @@ class InventoryIssue(WorkbenchModel):
         -------
         str
             Returned value.
-        '''
+        """
 
         return _clean_string(value, "message")
 
@@ -1577,6 +1587,116 @@ class WorkbenchEvidenceIndex(WorkbenchModel):
     issues: tuple[InventoryIssue, ...] = ()
 
 
+class WorkbenchOCScoreMetric(WorkbenchModel):
+    """One curated OCScore metric value for a replica."""
+
+    name: str
+    label: str = ""
+    direction: OCScoreMetricDirection = "max"
+    value: float
+    observation_count: int = Field(default=1, ge=1)
+    source_paths: tuple[Path, ...] = ()
+
+
+class WorkbenchOCScoreFigure(WorkbenchModel):
+    """One figure discovered for a strict OCScore study or replica."""
+
+    path: Path
+    role: str = "figure"
+    dataset: str = ""
+    metric_name: str = ""
+    policy_name: str = ""
+    replica_name: str = ""
+    suffix: str = ""
+    size_bytes: int | None = Field(default=None, ge=0)
+    modified_at: datetime | None = None
+
+
+class WorkbenchOCScoreReplica(WorkbenchModel):
+    """One baseline or ablation replica in the strict OCScore layout."""
+
+    role: OCScoreWorkspaceRole
+    study_name: str
+    policy_name: str
+    replica_name: str
+    replica_index: int = Field(ge=1)
+    path: Path
+    exists: bool = False
+    status: OCScoreReplicaStatus = "missing"
+    metrics: tuple[WorkbenchOCScoreMetric, ...] = ()
+    figures: tuple[WorkbenchOCScoreFigure, ...] = ()
+    log_files: tuple[Path, ...] = ()
+    issues: tuple[str, ...] = ()
+
+
+class WorkbenchOCScoreCrossValidationMetric(WorkbenchModel):
+    """One mean/std row from exported cross-validation scorer summaries."""
+
+    scorer: str
+    metric: str
+    mean: float
+    std: float = 0.0
+    n_folds: int = Field(default=0, ge=0)
+
+
+class WorkbenchOCScoreCrossValidation(WorkbenchModel):
+    """Cross-validation summary discovered under a study export directory."""
+
+    path: Path
+    task: str = ""
+    fold_count: int = Field(default=0, ge=0)
+    metrics: tuple[WorkbenchOCScoreCrossValidationMetric, ...] = ()
+
+
+class WorkbenchOCScoreStudy(WorkbenchModel):
+    """A strict OCScore baseline or ablation study summary."""
+
+    role: OCScoreWorkspaceRole
+    study_name: str
+    policy_name: str
+    path: Path
+    expected_replica_count: int = Field(default=5, ge=1)
+    detected_replica_count: int = Field(default=0, ge=0)
+    completed_count: int = Field(default=0, ge=0)
+    failed_count: int = Field(default=0, ge=0)
+    missing_count: int = Field(default=0, ge=0)
+    replicas: tuple[WorkbenchOCScoreReplica, ...] = ()
+    figures: tuple[WorkbenchOCScoreFigure, ...] = ()
+    metric_summary: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    cross_validation: WorkbenchOCScoreCrossValidation | None = None
+
+
+class WorkbenchOCScoreExternalBaseline(WorkbenchModel):
+    """One external baseline row from baselines_summary.csv."""
+
+    baseline_name: str
+    baseline_family: OCScoreExternalBaselineFamily | str
+    split: str
+    path: Path
+    metric_summary: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    n_replicas: int = Field(default=0, ge=0)
+
+
+class WorkbenchOCScoreWorkspace(WorkbenchModel):
+    """Strict OCScore workspace payload used by the Workbench dashboard."""
+
+    root: Path
+    scanned_at: datetime = Field(default_factory=_utc_now)
+    expected_replica_count: int = Field(default=5, ge=1)
+    max_depth: int = Field(default=6, ge=0)
+    baseline_study: WorkbenchOCScoreStudy
+    ablation_studies: tuple[WorkbenchOCScoreStudy, ...] = ()
+    external_baselines: tuple[WorkbenchOCScoreExternalBaseline, ...] = ()
+    study_count: int = Field(default=0, ge=0)
+    replica_count: int = Field(default=0, ge=0)
+    completed_count: int = Field(default=0, ge=0)
+    failed_count: int = Field(default=0, ge=0)
+    missing_count: int = Field(default=0, ge=0)
+    metric_names: tuple[str, ...] = ()
+    issue_count: int = Field(default=0, ge=0)
+    issues: tuple[InventoryIssue, ...] = ()
+
+
 class WorkspaceInventory(WorkbenchModel):
     """Read-only inventory of Workbench manifests below a root path."""
 
@@ -1673,6 +1793,14 @@ __all__ = [
     "MetricCatalog",
     "MetricCatalogEntry",
     "OCScoreAblationSpec",
+    "WorkbenchOCScoreWorkspace",
+    "WorkbenchOCScoreStudy",
+    "WorkbenchOCScoreReplica",
+    "WorkbenchOCScoreMetric",
+    "WorkbenchOCScoreFigure",
+    "OCScoreWorkspaceRole",
+    "OCScoreReplicaStatus",
+    "OCScoreMetricDirection",
     "OCScoreInputSpec",
     "OCScoreStudySpec",
     "PreflightCheck",

@@ -2,9 +2,9 @@
 
 # Description
 ###############################################################################
-'''
+"""
 Experiment workbench models and planners for OCDocker.
-'''
+"""
 
 # Imports
 ###############################################################################
@@ -48,6 +48,14 @@ from OCDocker.Workbench.Models import MetricCatalog
 from OCDocker.Workbench.Models import MetricMatrixRow
 from OCDocker.Workbench.Models import MetricMatrix
 from OCDocker.Workbench.Models import OCScoreAblationSpec
+from OCDocker.Workbench.Models import WorkbenchOCScoreWorkspace
+from OCDocker.Workbench.Models import WorkbenchOCScoreStudy
+from OCDocker.Workbench.Models import WorkbenchOCScoreReplica
+from OCDocker.Workbench.Models import WorkbenchOCScoreMetric
+from OCDocker.Workbench.Models import WorkbenchOCScoreFigure
+from OCDocker.Workbench.Models import OCScoreWorkspaceRole
+from OCDocker.Workbench.Models import OCScoreReplicaStatus
+from OCDocker.Workbench.Models import OCScoreMetricDirection
 from OCDocker.Workbench.Models import OCScoreInputSpec
 from OCDocker.Workbench.Models import OCScoreStudySpec
 from OCDocker.Workbench.Models import MetricSortMode
@@ -91,6 +99,7 @@ from OCDocker.Workbench.Models import WorkbenchReportFinding
 from OCDocker.Workbench.Models import WorkbenchReportFindingKind
 from OCDocker.Workbench.Models import WorkspaceInventory
 from OCDocker.Workbench.Models import WorkspaceOverview
+from OCDocker.Workbench.OCScoreLayout import build_ocscore_workspace
 from OCDocker.Workbench.Overview import build_workspace_overview
 from OCDocker.Workbench.Planner import build_run_manifest
 from OCDocker.Workbench.Plots import build_leaderboard_plot
@@ -161,6 +170,14 @@ __all__ = [
     "MetricCatalogEntry",
     "MetricCatalog",
     "OCScoreAblationSpec",
+    "WorkbenchOCScoreWorkspace",
+    "WorkbenchOCScoreStudy",
+    "WorkbenchOCScoreReplica",
+    "WorkbenchOCScoreMetric",
+    "WorkbenchOCScoreFigure",
+    "OCScoreWorkspaceRole",
+    "OCScoreReplicaStatus",
+    "OCScoreMetricDirection",
     "OCScoreInputSpec",
     "OCScoreStudySpec",
     "PreflightCheck",
@@ -226,6 +243,7 @@ __all__ = [
     "parse_pareto_objective",
     "parse_report_metric",
     "build_pareto_front",
+    "build_ocscore_workspace",
     "build_metrics_catalog",
     "build_leaderboard_plot",
     "build_metric_scatter_plot",

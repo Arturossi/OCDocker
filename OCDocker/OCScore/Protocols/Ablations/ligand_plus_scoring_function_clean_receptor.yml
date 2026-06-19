@@ -1,0 +1,15 @@
+name: ligand_plus_scoring_function_clean_receptor
+description: Ligand + SF with receptor descriptors, excluding receptor amino-acid counts, chain count, and length proxies.
+include_patterns:
+  - "ligand_*"
+  - "receptor_*"
+  - "plants_*"
+  - "vina_*"
+  - "smina_*"
+  - "gnina_*"
+  - "oddt_*"
+exclude_patterns:
+  - "receptor_count*"
+exclude_features:
+  - receptor_TotalAALength
+  - receptor_AvgAALength

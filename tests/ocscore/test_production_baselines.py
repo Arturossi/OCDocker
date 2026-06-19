@@ -14,7 +14,9 @@ from OCDocker.OCScore.Analysis.ProductionBaselines import (
     ProductionBaselineConfig,
     TrainOnlyFitError,
     aggregate_baseline_rows,
+    evaluate_descriptor_aggregate_baselines,
     evaluate_learned_sf_baselines,
+    evaluate_sf_consensus_baselines,
     validate_fit_uses_train_only,
     write_production_baseline_reports,
 )
@@ -93,6 +95,32 @@ def test_learned_sf_baselines_use_train_indices_and_return_finite_metrics():
     for row in lr_rows:
         assert np.isfinite(row["ROC-AUC"])
         assert row["split"] in {"validation", "test"}
+
+
+@pytest.mark.order(2905)
+def test_sf_consensus_and_descriptor_aggregate_baselines_are_reported():
+    df, selected_features, split_indices = _synthetic_dudez_frame()
+    config = ProductionBaselineConfig(include_xgb=False, include_lgbm=False, random_seed=0)
+    sf_rows = evaluate_sf_consensus_baselines(
+        df,
+        selected_features,
+        split_indices,
+        label_column="label",
+        group_column="receptor",
+        config=config,
+    )
+    desc_rows = evaluate_descriptor_aggregate_baselines(
+        df,
+        selected_features,
+        split_indices,
+        label_column="label",
+        group_column="receptor",
+        config=config,
+    )
+    assert {row["baseline"] for row in sf_rows} >= {"sf_mean", "sf_median", "sf_max", "sf_min"}
+    assert {row["baseline"] for row in desc_rows} >= {"desc_mean", "desc_median", "desc_max", "desc_min"}
+    assert all(row["baseline_family"] == "sf_consensus" for row in sf_rows)
+    assert all(row["baseline_family"] == "descriptor_aggregate" for row in desc_rows)
 
 
 @pytest.mark.order(291)

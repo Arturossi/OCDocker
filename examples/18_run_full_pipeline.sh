@@ -198,6 +198,10 @@ FEATURE_POLICY_ABLATIONS=(
   ligand_plus_scoring_function
   ligand_plus_scoring_function_no_shape_core
   ligand_plus_scoring_function_no_shape_size
+  ligand_plus_scoring_function_no_pmi
+  ligand_plus_scoring_function_no_plants
+  ligand_plus_scoring_function_no_shape_size_no_autocorr2d
+  ligand_plus_scoring_function_clean_receptor
   no_scoring_function
   ligand_only
   receptor_plus_scoring_function

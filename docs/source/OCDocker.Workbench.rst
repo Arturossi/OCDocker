@@ -2,9 +2,18 @@ OCDocker.Workbench package
 ==========================
 
 The Workbench package defines declarative campaign, study, ablation, run, and
-result models used by future GUI and automation layers. Current helpers build prepared run bundles, adopt existing output directories into separate Workbench manifest workspaces, compare adopted OCScore ablations, discover read-only OCScore evidence such as performance tables, Optuna traces, SHAP exports, and analysis figures, export publication scaffolds, plan
-commands, serialize specs, emit starter templates and JSON Schemas, preflight specs, prepare launch plans, inventory workspaces, index artifacts, compare result runs, build dashboard overviews, inspect run status, preview logs, build aggregate run drill-downs, rank result metrics, build metric matrices, build metric catalogs, Pareto fronts, plot-ready payloads, and composed analysis reports, serve a local read-only API and embedded browser dashboard, and summarize result artifacts; they do not execute Snakemake
-or OCScore runs.
+result models used by GUI and automation layers. The active browser dashboard is
+now centered on a strict OCScore output layout: baseline replicas live directly
+under the served root, or under a ``train/`` child, and ablation studies live
+under ``ablation/`` or ``ablations/``. Generic adopted Workbench manifest folders
+are reported as unsupported instead of being treated as OCScore runs. The
+dashboard exposes curated metrics as sortable ablation-table columns, replica
+status, ablation summaries, dataset/role/metric-filtered figure previews,
+separate test, validation, and combined generated metric-delta/rank/stability
+plots with SVG/CSV export, and separated model-comparison versus selected-model
+figure sections through ``/api/ocscore-workspace``. Design and
+execution-control helpers remain guarded and explicit; the server does not launch
+or stop OCScore runs as part of read-only inspection.
 
 Submodules
 ----------
@@ -26,6 +35,7 @@ Submodules
    OCDocker.Workbench.MetricsMatrix
    OCDocker.Workbench.Logs
    OCDocker.Workbench.Models
+   OCDocker.Workbench.OCScoreLayout
    OCDocker.Workbench.Overview
    OCDocker.Workbench.Planner
    OCDocker.Workbench.Plots

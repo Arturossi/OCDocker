@@ -187,6 +187,12 @@ Interpretation table:
 | `shape_only` | Measures how much ligand 3D shape alone can separate ligands from decoys. |
 | `scoring_function_only` | Measures how much classical scoring functions alone can do under the same ML protocol. |
 | `ligand_plus_scoring_function` | Tests ligand descriptors plus docking scores without receptor descriptors. |
+| `ligand_plus_scoring_function_no_shape_core` | Tests ligand descriptors plus docking scores after removing core 3D shape descriptors. |
+| `ligand_plus_scoring_function_no_shape_size` | Tests ligand descriptors plus docking scores after removing shape and ligand size/topology proxies. |
+| `ligand_plus_scoring_function_no_shape_size_no_autocorr2d` | Tests ligand descriptors plus docking scores after removing shape/size proxies and AUTOCORR2D descriptors. |
+| `ligand_plus_scoring_function_no_pmi` | Tests ligand descriptors plus docking scores after removing PMI descriptors only. |
+| `ligand_plus_scoring_function_no_plants` | Tests ligand descriptors plus non-PLANTS scoring-function columns. |
+| `ligand_plus_scoring_function_clean_receptor` | Tests ligand plus scoring-function columns with receptor descriptors but without receptor amino-acid counts and length proxies. |
 | `no_scoring_function` | Tests whether the model depends on docking/scoring-function columns. |
 | `ligand_only` | Tests ligand descriptor bias alone. |
 | `receptor_plus_scoring_function` | Tests receptor descriptors plus scoring functions without ligand descriptors. |

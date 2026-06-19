@@ -920,9 +920,6 @@ def cmd_serve(args: argparse.Namespace) -> int:
     '''
 
     try:
-        base_url = f"http://{args.host}:{args.port}"
-        print(f"Workbench API serving {args.root} at {base_url} (read-only).")
-        print(f"Workbench browser dashboard: {base_url}/app")
         serve_workbench_api(
             args.root,
             host=args.host,

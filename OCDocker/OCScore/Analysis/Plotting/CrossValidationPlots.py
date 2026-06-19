@@ -22,10 +22,15 @@ from pathlib import Path
 from typing import Any, Iterable, Optional, Sequence
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FixedLocator
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from OCDocker.OCScore.Analysis.Metrics.Ranking import (
+    DEFAULT_SCREENING_RANKING_METRICS,
+    SCREENING_CONFUSION_METRICS,
+)
 from OCDocker.OCScore.Optimization.ModelCrossValidation import OCSCORE_MODEL_SCORER_NAME
 
 from .Core import apply_basic_style, new_fig
@@ -58,12 +63,19 @@ PER_TARGET_CSV_NAME = "cross_validation_per_target_metrics.csv"
 OCSCORE_COLOR = "#c0392b"
 SF_COLOR = "#7f8c8d"
 
+DEFAULT_CV_PLOT_METRICS = DEFAULT_SCREENING_RANKING_METRICS
+NON_VISUAL_COMPARISON_METRICS = frozenset(SCREENING_CONFUSION_METRICS)
+
 # Functions
 ###############################################################################
 ## Private ##
 
 def _validation_column(metric: str) -> str:
     return f"validation_{metric}"
+
+
+def _safe_filename(metric: str) -> str:
+    return metric.replace("%", "pct").replace("/", "_").replace(" ", "_")
 
 
 def _select_scorers_for_plot(
@@ -95,6 +107,97 @@ def _save_figure(fig: plt.Figure, path: Path, *, dpi: int) -> str:
     fig.savefig(path, dpi=dpi, bbox_inches="tight")
     plt.close(fig)
     return str(path.resolve())
+
+
+def _resolve_plot_metrics(
+        metrics: Optional[Sequence[str]],
+        results: dict[str, Any],
+        mean_std: pd.DataFrame,
+    ) -> list[str]:
+    '''Return metrics to plot, excluding raw confusion-matrix counts by default.'''
+
+    if metrics is not None:
+        return [str(item) for item in metrics]
+
+    summary_metrics = (results.get("scorer_comparison_summary") or {}).get("comparison_metrics")
+    if summary_metrics:
+        candidates = [
+            str(item)
+            for item in summary_metrics
+            if str(item) not in NON_VISUAL_COMPARISON_METRICS
+        ]
+    elif not mean_std.empty:
+        candidates = [
+            str(item)
+            for item in sorted(mean_std["metric"].astype(str).unique())
+            if str(item) not in NON_VISUAL_COMPARISON_METRICS
+        ]
+    else:
+        candidates = list(DEFAULT_CV_PLOT_METRICS)
+
+    if not mean_std.empty:
+        available = set(mean_std["metric"].astype(str))
+        candidates = [metric for metric in candidates if metric in available]
+
+    if candidates:
+        return candidates
+
+    objective = str(results.get("objective_metric") or "BEDROC")
+    return [objective]
+
+
+def _prune_obsolete_cv_figures(output_path: Path, active_metrics: Sequence[str]) -> None:
+    '''Remove PNG artifacts for metrics that are no longer plotted.'''
+
+    active_safe = {_safe_filename(metric) for metric in active_metrics}
+    patterns = (
+        "cv_mean_std_*.png",
+        "cv_heatmap_*.png",
+        "cv_fold_lines_*.png",
+        "per_target_validation_*_boxplot.png",
+        "per_target_validation_*_heatmap.png",
+        "per_target_validation_*_heatmap_part*.png",
+        "per_target_test_*_boxplot.png",
+        "per_target_test_*_heatmap.png",
+        "per_target_test_*_heatmap_part*.png",
+    )
+    prefix_lengths = {
+        "cv_mean_std_": len("cv_mean_std_"),
+        "cv_heatmap_": len("cv_heatmap_"),
+        "cv_fold_lines_": len("cv_fold_lines_"),
+        "per_target_validation_": len("per_target_validation_"),
+        "per_target_test_": len("per_target_test_"),
+    }
+
+    for pattern in patterns:
+        for path in output_path.glob(pattern):
+            name = path.name
+            if "_heatmap_part" in name:
+                stem = name.split("_heatmap_part", maxsplit=1)[0]
+                for prefix, length in prefix_lengths.items():
+                    if stem.startswith(prefix):
+                        metric = stem[length:]
+                        break
+                else:
+                    continue
+            elif name.startswith("cv_mean_std_"):
+                metric = name[len("cv_mean_std_") : -len(".png")]
+            elif name.startswith("cv_heatmap_"):
+                metric = name[len("cv_heatmap_") : -len(".png")]
+            elif name.startswith("cv_fold_lines_"):
+                metric = name[len("cv_fold_lines_") : -len(".png")]
+            elif name.startswith("per_target_validation_") and name.endswith("_boxplot.png"):
+                metric = name[len("per_target_validation_") : -len("_boxplot.png")]
+            elif name.startswith("per_target_validation_") and name.endswith("_heatmap.png"):
+                metric = name[len("per_target_validation_") : -len("_heatmap.png")]
+            elif name.startswith("per_target_test_") and name.endswith("_boxplot.png"):
+                metric = name[len("per_target_test_") : -len("_boxplot.png")]
+            elif name.startswith("per_target_test_") and name.endswith("_heatmap.png"):
+                metric = name[len("per_target_test_") : -len("_heatmap.png")]
+            else:
+                continue
+            if metric not in active_safe:
+                path.unlink(missing_ok=True)
 
 
 ## Public ##
@@ -234,10 +337,104 @@ def _ordered_groups_for_per_target(
     return ordered
 
 
-def _chunks(values: Sequence[str], chunk_size: int) -> list[list[str]]:
-    if chunk_size <= 0:
-        return []
-    return [list(values[index:index + chunk_size]) for index in range(0, len(values), chunk_size)]
+def _remove_stale_heatmap_parts(output_path: Path, split_label: str, metric: str) -> None:
+    '''Delete legacy receptor-chunk heatmap PNGs for one metric.'''
+
+    pattern = f"per_target_{split_label}_{_safe_filename(metric)}_heatmap_part*.png"
+    for path in output_path.glob(pattern):
+        path.unlink(missing_ok=True)
+
+
+def _heatmap_layout(n_rows: int, n_cols: int) -> dict[str, float]:
+    '''Square-cell canvas sizing and typography for per-target heatmaps.
+
+    Figure dimensions are derived from a single ``cell_in`` value so each grid
+    cell renders square; fonts scale up on larger grids.
+    '''
+
+    span = max(n_rows, n_cols)
+    if span >= 35:
+        cell_in = 0.44
+        row_font = 17.0
+        col_font = 16.0
+        axis_font = 17.0
+        title_font = 20.0
+        cbar_label = 16.0
+        cbar_tick = 15.0
+        margin_left = 3.0
+        margin_bottom = 2.6
+        margin_top = 1.1
+        margin_right = 0.55
+    elif span >= 22:
+        cell_in = 0.40
+        row_font = 15.0
+        col_font = 14.0
+        axis_font = 15.0
+        title_font = 18.0
+        cbar_label = 14.0
+        cbar_tick = 13.0
+        margin_left = 2.6
+        margin_bottom = 2.2
+        margin_top = 1.0
+        margin_right = 0.50
+    else:
+        cell_in = 0.36
+        row_font = 13.0
+        col_font = 12.0
+        axis_font = 14.0
+        title_font = 16.0
+        cbar_label = 12.0
+        cbar_tick = 11.0
+        margin_left = 2.0
+        margin_bottom = 1.8
+        margin_top = 0.9
+        margin_right = 0.45
+
+    plot_width = cell_in * max(1, n_cols)
+    plot_height = cell_in * max(1, n_rows)
+    width = margin_left + plot_width + margin_right
+    height = margin_top + plot_height + margin_bottom
+
+    return {
+        "cell_in": cell_in,
+        "row_font": row_font,
+        "col_font": col_font,
+        "axis_font": axis_font,
+        "title_font": title_font,
+        "cbar_label": cbar_label,
+        "cbar_tick": cbar_tick,
+        "width": width,
+        "height": height,
+        "left": margin_left / width,
+        "bottom": margin_bottom / height,
+        "right": 1.0 - (margin_right / width),
+        "top": 1.0 - (margin_top / height),
+    }
+
+
+def _position_heatmap_colorbar(
+        fig: plt.Figure,
+        ax: plt.Axes,
+        metric: str,
+        *,
+        tick_fontsize: float,
+        label_fontsize: float,
+    ) -> None:
+    '''Place a compact colorbar beside the rendered heatmap axes.'''
+
+    if len(fig.axes) < 2:
+        return
+    fig.canvas.draw()
+    pos = ax.get_position()
+    cbar_ax = fig.axes[-1]
+    cbar_height = pos.height * 0.68
+    cbar_y = pos.y0 + (pos.height - cbar_height) / 2.0
+    cbar_width = 0.012
+    cbar_x = pos.x1 + 0.012
+    cbar_ax.set_position([cbar_x, cbar_y, cbar_width, cbar_height])
+    cbar_ax.tick_params(labelsize=tick_fontsize, length=2.5, width=0.8)
+    cbar_ax.set_ylabel(metric, fontsize=label_fontsize, rotation=270, labelpad=14)
+    cbar_ax.yaxis.set_label_coords(3.8, 0.5)
 
 
 def aggregate_cv_per_target_metrics(per_target: pd.DataFrame) -> pd.DataFrame:
@@ -276,12 +473,14 @@ def plot_per_target_heatmap(
         *,
         split: Optional[str] = "test",
         top_n: Optional[int] = 15,
-        max_groups: Optional[int] = 40,
+        max_groups: Optional[int] = None,
         groups: Optional[Sequence[str]] = None,
         reference_scorer: str = OCSCORE_MODEL_SCORER_NAME,
         size: tuple[float, float] = (12, 8),
         annotate: Optional[bool] = None,
-        annotation_cell_limit: int = 300,
+        annotation_cell_limit: int = 80,
+        title_suffix: str = "",
+        transpose: Optional[bool] = None,
     ) -> tuple[plt.Figure, plt.Axes]:
     '''Heatmap of a metric with scorers on rows and receptors on columns.'''
 
@@ -326,37 +525,73 @@ def plot_per_target_heatmap(
     if selected_groups:
         table = table.reindex(columns=[group for group in selected_groups if group in table.columns])
 
-    apply_basic_style()
     n_scorers, n_groups = table.shape
-    n_cells = int(n_scorers * n_groups)
+    use_transpose = (n_groups <= n_scorers) if transpose is None else bool(transpose)
+    if use_transpose:
+        table = table.T
+        n_rows, n_cols = n_groups, n_scorers
+        y_label, x_label = "Receptor", "Scorer"
+    else:
+        n_rows, n_cols = n_scorers, n_groups
+        y_label, x_label = "Scorer", "Receptor"
+
+    apply_basic_style()
+    n_cells = int(n_rows * n_cols)
     show_annotations = n_cells <= annotation_cell_limit if annotate is None else bool(annotate)
-    width = max(size[0], 3.5 + 0.36 * max(1, n_groups))
-    height = max(size[1], 1.8 + 0.36 * max(1, n_scorers))
-    tick_fontsize = 6 if n_groups > 35 else 7
-    scorer_fontsize = 7 if n_scorers > 18 else 8
+    layout = _heatmap_layout(n_rows, n_cols)
+    row_fontsize = layout["row_font"]
+    col_fontsize = layout["col_font"]
+    axis_label_fontsize = layout["axis_font"]
+    title_fontsize = layout["title_font"]
+    cbar_label_fontsize = layout["cbar_label"]
+    cbar_tick_fontsize = layout["cbar_tick"]
+    width = max(size[0], layout["width"])
+    height = max(size[1], layout["height"])
     fig, ax = new_fig((width, height))
     sns.heatmap(
         table.astype(float),
         annot=show_annotations,
         fmt=".2f",
         cmap="YlOrRd",
-        linewidths=0.25 if n_cells > annotation_cell_limit else 0.5,
+        linewidths=0.5,
         ax=ax,
-        cbar_kws={"label": metric, "shrink": 0.85},
-        annot_kws={"fontsize": 6},
+        cbar_kws={
+            "label": metric,
+            "shrink": 0.68,
+            "aspect": 32,
+            "pad": 0.015,
+            "fraction": 0.035,
+        },
+        annot_kws={"fontsize": max(row_fontsize, col_fontsize) - 1.0},
     )
     title_split = f" ({split})" if split else ""
-    title_extra = "" if show_annotations else " - values in CSV"
-    ax.set_title(f"Per-receptor {metric}{title_split}{title_extra}")
-    ax.set_xlabel("Receptor")
-    ax.set_ylabel("Scorer")
+    title_extra = "" if show_annotations else " - color scale only"
+    suffix = f" {title_suffix}" if title_suffix else ""
+    ax.set_title(
+        f"Per-receptor {metric}{title_split}{title_extra}{suffix}",
+        fontsize=title_fontsize,
+        pad=12,
+    )
+    ax.set_xlabel(x_label, fontsize=axis_label_fontsize)
+    ax.set_ylabel(y_label, fontsize=axis_label_fontsize)
     xlabels = ax.get_xticklabels()
-    if n_groups > 24:
-        label_step = max(1, (n_groups + 23) // 24)
-        for index, label in enumerate(xlabels):
-            label.set_visible(index % label_step == 0)
-    plt.setp(xlabels, rotation=90, ha="center", fontsize=tick_fontsize)
-    plt.setp(ax.get_yticklabels(), fontsize=scorer_fontsize)
+    ylabels = ax.get_yticklabels()
+    plt.setp(xlabels, rotation=45, ha="right", fontsize=col_fontsize)
+    plt.setp(ylabels, fontsize=row_fontsize)
+    fig.subplots_adjust(
+        bottom=layout["bottom"],
+        left=layout["left"],
+        right=layout["right"],
+        top=layout["top"],
+    )
+    ax.set_aspect("equal", adjustable="box")
+    _position_heatmap_colorbar(
+        fig,
+        ax,
+        metric,
+        tick_fontsize=cbar_tick_fontsize,
+        label_fontsize=cbar_label_fontsize,
+    )
     return fig, ax
 
 
@@ -393,48 +628,64 @@ def plot_per_target_boxplot(
     )
 
     apply_basic_style()
-    height = max(size[1], 0.34 * max(1, len(scorers)) + 1.6)
+    height = max(size[1], 0.38 * max(1, len(scorers)) + 1.8)
     width = max(size[0], 8.0)
     palette = {s: OCSCORE_COLOR if s == reference_scorer else SF_COLOR for s in scorers}
     fig, ax = new_fig((width, height))
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            message="vert: bool will be deprecated.*",
-            category=PendingDeprecationWarning,
-        )
-        sns.boxplot(
-            data=plot_df,
-            x=metric,
-            y="scorer",
-            hue="scorer",
-            order=scorers,
-            hue_order=scorers,
-            ax=ax,
-            palette=palette,
-            legend=False,
-            dodge=False,
-            width=0.58,
-            showfliers=False,
-        )
-    sns.stripplot(
-        data=plot_df,
-        x=metric,
-        y="scorer",
-        order=scorers,
-        ax=ax,
-        color="#222222",
-        alpha=0.35,
-        size=2.5,
-        jitter=0.22,
+    box_data = [
+        plot_df.loc[plot_df["scorer"] == scorer, metric].dropna().astype(float).values
+        for scorer in scorers
+    ]
+    boxplot = ax.boxplot(
+        box_data,
+        orientation="horizontal",
+        tick_labels=scorers,
+        patch_artist=True,
+        showfliers=True,
+        widths=0.62,
+        medianprops={"color": "#1a1a1a", "linewidth": 1.4},
+        whiskerprops={"linewidth": 1.0, "color": "#555555"},
+        capprops={"linewidth": 1.0, "color": "#555555"},
+        flierprops={
+            "marker": "o",
+            "markerfacecolor": "white",
+            "markeredgecolor": "#666666",
+            "markersize": 3.5,
+            "alpha": 0.8,
+        },
     )
+    for patch, scorer in zip(boxplot["boxes"], scorers):
+        patch.set_facecolor(palette[scorer])
+        patch.set_edgecolor("#444444")
+        patch.set_alpha(0.82)
+        patch.set_linewidth(1.0)
+    positions = np.arange(1, len(scorers) + 1)
+    point_rng = np.random.default_rng(0)
+    for position, scorer in zip(positions, scorers):
+        values = plot_df.loc[plot_df["scorer"] == scorer, metric].dropna().astype(float).values
+        if values.size == 0:
+            continue
+        jitter = point_rng.uniform(-0.14, 0.14, size=values.size)
+        ax.scatter(
+            values,
+            np.full(values.size, position) + jitter,
+            color="#222222",
+            alpha=0.35,
+            s=12,
+            linewidths=0,
+            zorder=3,
+        )
+    ax.set_yticks(positions)
+    ax.set_yticklabels(scorers)
     title_split = f" ({split})" if split else ""
     ax.set_title(f"Per-receptor {metric} distribution{title_split}")
     ax.set_xlabel(metric)
     ax.set_ylabel("Scorer")
     ax.grid(axis="x", alpha=0.25)
     ax.grid(axis="y", visible=False)
+    ax.set_ylim(0.4, len(scorers) + 0.6)
     plt.setp(ax.get_yticklabels(), fontsize=8)
+    fig.subplots_adjust(left=0.28 if len(scorers) > 12 else 0.22)
     return fig, ax
 
 
@@ -501,8 +752,8 @@ def save_per_target_figures(
         split: Optional[str] = "test",
         metrics: Optional[Sequence[str]] = None,
         top_n: Optional[int] = 15,
-        max_groups: Optional[int] = 40,
-        heatmap_chunk_size: int = 16,
+        heatmap_top_n: Optional[int] = None,
+        max_groups: Optional[int] = None,
         dpi: int = 150,
     ) -> dict[str, str]:
     '''Generate per-receptor heatmap, boxplot, and OCScore-win charts.
@@ -540,15 +791,17 @@ def save_per_target_figures(
             reference = str(model_rows["scorer"].iloc[0])
 
     split_label = split or "all"
+    heatmap_scorers = heatmap_top_n if heatmap_top_n is not None else top_n
     for metric in metric_list:
         if metric not in per_target.columns:
             continue
+        _remove_stale_heatmap_parts(output_path, split_label, metric)
         try:
             fig, _ = plot_per_target_heatmap(
                 per_target,
                 metric,
                 split=split,
-                top_n=top_n,
+                top_n=heatmap_scorers,
                 max_groups=max_groups,
                 reference_scorer=reference,
             )
@@ -560,36 +813,6 @@ def save_per_target_figures(
             )
         except ValueError:
             pass
-
-        selected_groups = _ordered_groups_for_per_target(
-            per_target,
-            metric,
-            split=split,
-            reference_scorer=reference,
-            max_groups=max_groups,
-        )
-        if heatmap_chunk_size > 0 and len(selected_groups) > heatmap_chunk_size:
-            for chunk_index, group_chunk in enumerate(_chunks(selected_groups, heatmap_chunk_size), start=1):
-                try:
-                    fig, _ = plot_per_target_heatmap(
-                        per_target,
-                        metric,
-                        split=split,
-                        top_n=top_n,
-                        max_groups=None,
-                        groups=group_chunk,
-                        reference_scorer=reference,
-                    )
-                    key = f"per_target_heatmap_{split_label}_{metric}_part{chunk_index:02d}"
-                    written[key] = _save_figure(
-                        fig,
-                        output_path / (
-                            f"per_target_{split_label}_{_safe_filename(metric)}_heatmap_part{chunk_index:02d}.png"
-                        ),
-                        dpi=dpi,
-                    )
-                except ValueError:
-                    pass
 
         try:
             fig, _ = plot_per_target_boxplot(
@@ -695,6 +918,12 @@ def plot_mean_std_bars(
     ax.set_xlabel(metric)
     ax.set_title(f"Cross-validation: {metric} (mean ± std)")
     ax.invert_yaxis()
+    if subset["mean"].astype(float).notna().any():
+        xmin = float(subset["mean"].astype(float).min())
+        xmax = float((subset["mean"].astype(float) + subset["std"].astype(float)).max())
+        if np.isfinite(xmin) and np.isfinite(xmax) and xmax > xmin:
+            span = xmax - xmin
+            ax.set_xlim(xmin - 0.08 * span, xmax + 0.08 * span)
     return fig, ax
 
 
@@ -820,27 +1049,44 @@ def plot_fold_metric_lines(
         else:
             scorers = scorer_list
 
-    fig, ax = new_fig(size)
+    fig, ax = new_fig((max(size[0], 8.0 + 0.06 * len(scorers)), size[1]))
+    fold_ticks: set[int] = set()
     for scorer in scorers:
         rows = fold_comparison[fold_comparison["scorer"].astype(str) == scorer].sort_values(
             "fold_index"
         )
         if rows.empty:
             continue
+        x_values = rows["fold_index"].astype(int).tolist()
+        fold_ticks.update(x_values)
         color = OCSCORE_COLOR if scorer == reference_scorer else None
         linewidth = 2.5 if scorer == reference_scorer else 1.2
         ax.plot(
-            rows["fold_index"],
+            x_values,
             rows[value_col],
             marker="o",
             label=scorer,
             color=color,
             linewidth=linewidth,
         )
+    if fold_ticks:
+        ordered_folds = sorted(fold_ticks)
+        ax.set_xticks(ordered_folds)
+        ax.xaxis.set_major_locator(FixedLocator(ordered_folds))
+        pad = 0.35
+        ax.set_xlim(ordered_folds[0] - pad, ordered_folds[-1] + pad)
     ax.set_xlabel("Fold")
     ax.set_ylabel(metric)
     ax.set_title(f"{metric} across folds")
-    ax.legend(loc="best", fontsize=8)
+    legend = ax.legend(
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        fontsize=8,
+        frameon=True,
+        borderaxespad=0.0,
+    )
+    max_label_len = max((len(str(scorer)) for scorer in scorers), default=10)
+    fig.subplots_adjust(right=min(0.78, max(0.52, 0.96 - 0.013 * max_label_len)))
     return fig, ax
 
 
@@ -895,8 +1141,8 @@ def save_cross_validation_figures(
     figures_dir : str | Path | None, optional
         Destination for PNG files. Default: ``<cv_dir>/figures``.
     metrics : Sequence[str] | None, optional
-        Metrics to plot. Default: from ``comparison_metrics`` in results JSON,
-        or unique metrics in the mean/std table.
+        Metrics to plot. Default: ranking metrics from results JSON (excludes
+        raw TP/TN/FP/FN counts).
     top_n : int | None, optional
         Maximum scoring functions per chart (OCScore always shown). Default: 25.
     dpi : int, optional
@@ -917,19 +1163,10 @@ def save_cross_validation_figures(
     fold_comparison: pd.DataFrame = artifacts["fold_comparison"]
     ocscore_wins: pd.DataFrame = artifacts["ocscore_wins"]
 
-    if metrics is None:
-        summary_metrics = (results.get("scorer_comparison_summary") or {}).get(
-            "comparison_metrics"
-        )
-        if summary_metrics:
-            metric_list = [str(item) for item in summary_metrics]
-        elif not mean_std.empty:
-            metric_list = sorted(mean_std["metric"].astype(str).unique())
-        else:
-            objective = str(results.get("objective_metric") or "BEDROC")
-            metric_list = [objective]
-    else:
-        metric_list = [str(item) for item in metrics]
+    metric_list = _resolve_plot_metrics(metrics, results, mean_std)
+
+    output_path.mkdir(parents=True, exist_ok=True)
+    _prune_obsolete_cv_figures(output_path, metric_list)
 
     written: dict[str, str] = {}
 
@@ -994,10 +1231,6 @@ def save_cross_validation_figures(
                 pass
 
     return written
-
-
-def _safe_filename(metric: str) -> str:
-    return metric.replace("%", "pct").replace("/", "_").replace(" ", "_")
 
 
 def save_baseline_comparison_figures(

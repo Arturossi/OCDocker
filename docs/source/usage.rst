@@ -74,8 +74,15 @@ Commands
      ocdocker ocscore train \
        --protocol production \
        --raw-input-dir path/to/raw_prepare \
-       --feature-policy no_pmi \
-       --output-dir path/to/no_pmi
+       --feature-policy ligand_plus_scoring_function_no_pmi \
+       --feature-policy ligand_plus_scoring_function_no_plants \
+       --feature-policy ligand_plus_scoring_function_no_shape_size_no_autocorr2d \
+       --feature-policy ligand_plus_scoring_function_clean_receptor \
+       --output-dir path/to/new_ablations
+
+     # Same workflow through the full-pipeline shell runner; the policies above
+     # are listed in examples/18_run_full_pipeline.sh::FEATURE_POLICY_ABLATIONS.
+     ./examples/18_run_full_pipeline.sh
 
      # Score new pipeline data with an exported best_model bundle
      ocdocker ocscore score \\
@@ -118,7 +125,7 @@ Commands
      # or:
      ocdocker init-config --conf OCDocker.yml
 
-- workbench: Validate specs, preflight specs, build run bundles, prepare launch plans, export publication scaffolds, emit starter templates and JSON Schemas, inventory manifests, index artifacts, discover OCScore evidence tables, Optuna traces, SHAP exports, and figures from adopted outputs, compare result runs, build dashboard overviews, inspect run status, preview logs, build aggregate run drill-downs, rank result metrics, build metric matrices, build metric catalogs, Pareto fronts, plot-ready payloads, and composed analysis reports, serve a local read-only API and embedded browser dashboard, summarize result artifacts, and plan commands without executing runs
+- workbench: Validate specs, preflight specs, build run bundles, prepare launch plans, export publication scaffolds, emit starter templates and JSON Schemas, and serve a read-only strict OCScore dashboard over output roots with direct baseline replicas and ``ablation/`` or ``ablations/`` studies. The dashboard reports curated metrics as sortable ablation-table columns, replica status, ablation summaries, dataset/role/metric-filtered figure previews, explicit test/validation/combined generated metric-delta, rank, and replica-stability plots with SVG/CSV export, and separated model-comparison versus selected-model figure sections without launching or stopping runs.
 
   .. code-block:: bash
 
@@ -128,28 +135,11 @@ Commands
      ocdocker workbench build study.yml runs/run-001 --run-id run-001
      ocdocker workbench launch-plan runs/run-001 --script-output runs/run-001/run.sh
      ocdocker workbench export runs/run-001/run_manifest.yml exports/run-001
-     ocdocker workbench adopt-plan existing_outputs/ --max-depth 2 --require-metrics --output adoption_plan.json
-     ocdocker workbench adopt existing_outputs/ adopted-runs/ --max-depth 2 --require-metrics
-     # adopt writes manifests under adopted-runs/ and does not modify existing_outputs/.
-     # OCScore train/ablations/<policy> folders are promoted to separate runs.
-     ocdocker workbench inventory runs/ --max-depth 3
-     ocdocker workbench artifacts runs/ --kind csv --role metrics
-     ocdocker workbench evidence runs/ --source-depth 5
-     ocdocker workbench compare runs/ --baseline baseline --metric auc:max --metric validation.loss:min
-     ocdocker workbench ablations runs/ --baseline train --metric auc:max --metric validation.loss:min
-     ocdocker workbench overview runs/ --recent-limit 10
-     ocdocker workbench status runs/run-001
-     ocdocker workbench logs runs/run-001 --lines 80
-     ocdocker workbench leaderboard runs/ --metric auc --mode max
-     ocdocker workbench metrics-matrix runs/ --metric auc --metric validation.loss
-     ocdocker workbench metrics-catalog runs/
-     ocdocker workbench pareto runs/ --objective auc:max --objective validation.loss:min
-     ocdocker workbench plot runs/ --kind scatter --x-metric auc --y-metric validation.loss
-     ocdocker workbench report runs/ --leaderboard auc:max --objective auc:max --format markdown
-     ocdocker workbench serve runs/ --host 127.0.0.1 --port 8765
+     # Serve an OCScore output root shaped as train/replica_* plus train/ablations/<study>/replica_*.
+     ocdocker workbench serve /data/hd4tb/OCDocker/data/ocdb2/OCScore/output --host 127.0.0.1 --port 8765
      # Open http://127.0.0.1:8765/app after forwarding the port over SSH.
-     # Click a run in the dashboard to inspect status, metrics, artifacts, and logs.
-     ocdocker workbench results runs/run-001/result_manifest.yml
+     # Old adopted Workbench run_manifest.yml smoke folders are reported as unsupported.
+     # The dashboard reads /api/ocscore-workspace and stays read-only.
      ocdocker workbench schema ocscore_study --output ocscore_study.schema.json
      ocdocker workbench plan study.yml --run-id run-001 --output plan.json
 

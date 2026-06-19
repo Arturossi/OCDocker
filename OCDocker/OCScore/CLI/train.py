@@ -655,8 +655,10 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
             "Defaults to full_ocscore when no feature policy is supplied. "
             "Focused bundled policies include no_shape_core_no_receptor_length_pair, "
             "no_shape_core_no_receptor_surface_counts, no_shape_core_no_receptor_surface_size, "
-            "ligand_plus_scoring_function_no_shape_core, and "
-            "ligand_plus_scoring_function_no_shape_size."
+            "ligand_plus_scoring_function_no_shape_core, ligand_plus_scoring_function_no_shape_size, "
+            "ligand_plus_scoring_function_no_shape_size_no_autocorr2d, "
+            "ligand_plus_scoring_function_no_pmi, ligand_plus_scoring_function_no_plants, and "
+            "ligand_plus_scoring_function_clean_receptor."
         ),
     )
     parser.add_argument(
