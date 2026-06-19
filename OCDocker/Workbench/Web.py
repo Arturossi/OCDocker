@@ -204,7 +204,6 @@ _INDEX_HTML: Final[str] = """<!doctype html>
           </button>
         </div>
         <div id="detail-charts-zone" class="zone-body">
-          <div id="figure-controls" class="filter-grid"></div>
           <div id="detail-plots" class="decision-plots"></div>
         </div>
       </div>
@@ -216,6 +215,11 @@ _INDEX_HTML: Final[str] = """<!doctype html>
           </button>
         </div>
         <div id="detail-figures-zone" class="zone-body">
+          <div class="figure-filters-bar">
+            <span class="zone-title">Figure filters</span>
+            <span id="figure-filter-summary" class="muted"></span>
+          </div>
+          <div id="figure-controls" class="filter-grid"></div>
           <div id="figure-list" class="figure-list"></div>
         </div>
       </div>
@@ -658,6 +662,15 @@ button.model-pill:hover { filter: brightness(0.96); border-color: var(--accent) 
 .split-panel { display: grid; grid-template-columns: 1fr; gap: 18px; }
 .split-panel > div { min-width: 0; }
 .filter-grid { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.figure-filters-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.figure-filters-bar .zone-title { margin: 0; }
 .figure-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 12px; align-items: start; }
 .figure-item, .generated-plot { border: 1px solid var(--figure-card-border); border-radius: 6px; padding: 10px; display: grid; gap: 7px; min-width: 0; width: 100%; }
 .chart-head { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
@@ -2192,6 +2205,24 @@ function renderCrossValidationPanel() {
   $("cv-table").innerHTML = blocks;
 }
 
+function figureFilterSummaryLabel() {
+  const filters = state.figureFilters;
+  const groupLabels = {
+    comparison: "Model comparison",
+    selected: "Selected model",
+    all: "All figure groups",
+  };
+  const roleLabels = {
+    recommended: "Recommended",
+    all: "All roles",
+  };
+  const group = groupLabels[filters.group] || filters.group;
+  const role = roleLabels[filters.role] || titleCase(filters.role);
+  const dataset = filters.dataset === "all" ? "All datasets" : filters.dataset;
+  const metric = filters.metric === "all" ? "All metrics" : metricMeta(filters.metric).label;
+  return `${group} · ${role} · ${dataset} · ${metric}`;
+}
+
 function renderFigureControls(study, figures) {
   const datasets = uniqueSorted(figures.map((item) => item.figure.dataset || ""));
   const roles = uniqueSorted(figures.map((item) => item.figure.role || "figure"));
@@ -2208,27 +2239,33 @@ function renderFigureControls(study, figures) {
     ...roles.map((item) => optionHtml(item, titleCase(item), state.figureFilters.role)),
   ].join("");
   const metricOptions = [optionHtml("all", "All figure metrics", state.figureFilters.metric), ...metrics.map((item) => optionHtml(item, metricMeta(item).label, state.figureFilters.metric))].join("");
+  const summary = $("figure-filter-summary");
+  if (summary) summary.textContent = figureFilterSummaryLabel();
   $("figure-controls").innerHTML = `
     <label class="filter-field" for="figure-group-filter"><span>Figure group</span><select id="figure-group-filter">${groupOptions}</select></label>
     <label class="filter-field" for="figure-dataset-filter"><span>Dataset</span><select id="figure-dataset-filter">${datasetOptions}</select></label>
     <label class="filter-field" for="figure-role-filter"><span>Role</span><select id="figure-role-filter">${roleOptions}</select></label>
     <label class="filter-field" for="figure-metric-filter"><span>Figure metric</span><select id="figure-metric-filter">${metricOptions}</select></label>
   `;
+  const rerenderFigures = () => {
+    persistUiState();
+    renderDetailPlots(study);
+  };
   $("figure-group-filter").addEventListener("change", (event) => {
     state.figureFilters.group = event.target.value;
-    renderDetailPlots(study);
+    rerenderFigures();
   });
   $("figure-dataset-filter").addEventListener("change", (event) => {
     state.figureFilters.dataset = event.target.value;
-    renderDetailPlots(study);
+    rerenderFigures();
   });
   $("figure-role-filter").addEventListener("change", (event) => {
     state.figureFilters.role = event.target.value;
-    renderDetailPlots(study);
+    rerenderFigures();
   });
   $("figure-metric-filter").addEventListener("change", (event) => {
     state.figureFilters.metric = event.target.value;
-    renderDetailPlots(study);
+    rerenderFigures();
   });
 }
 
@@ -2755,8 +2792,8 @@ function shapFigureSection(study) {
   return `
     <section class="figure-section shap-section">
       <h3>SHAP (selected model)</h3>
-      <p class="scope-note">Recommended: one beeswarm (feature impact by value) and one importance plot (mean |SHAP|) per dataset and replica. Dependence plots explore individual features. Use the dataset, metric, and role filters above to narrow.</p>
-      ${items.length > visible.length ? `<div class="gallery-note">Showing ${visible.length} of ${items.length} SHAP figures.</div>` : ""}
+      <p class="scope-note">Recommended: one beeswarm (feature impact by value) and one importance plot (mean |SHAP|) per dataset and replica. Dependence plots explore individual features. Use the figure filters at the top of this section to narrow.</p>
+      ${items.length > visible.length ? `<div class="gallery-note">Showing ${visible.length} of ${items.length} SHAP figures. Change Role to “All roles” or relax Dataset / Figure metric to see more.</div>` : ""}
       <div class="shap-figure-grid">${visible.map(figureCardShap).join("")}</div>
     </section>
   `;
@@ -2768,7 +2805,7 @@ function figureSection(title, items, options = {}) {
   return `
     <section class="figure-section">
       <h3>${escapeHtml(title)}</h3>
-      ${items.length > visible.length ? `<div class="gallery-note">Showing ${visible.length} of ${items.length} matching figures. Narrow the dataset, role, or metric filter to inspect more precisely.</div>` : ""}
+      ${items.length > visible.length ? `<div class="gallery-note">Showing ${visible.length} of ${items.length} matching figures. Use the figure filters above (Figure group, Dataset, Role, Figure metric) to narrow the gallery.</div>` : ""}
       ${options.expandable ? '<p class="scope-note">Click a figure to expand it.</p>' : ""}
       <div class="figure-section-grid">${visible.map((item) => figureCard(item, options)).join("")}</div>
     </section>
