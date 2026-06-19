@@ -61,6 +61,11 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b"setActiveTab" in script
     assert b"bindAppTabs" in script
     assert b"bindCollapsibleZones" in script
+    assert b"bindThemeToggle" in script
+    assert b"applyTheme" in script
+    assert b'data-theme="dark"' in body
+    assert b"#1e1e1e" in style
+    assert b"PLOTLY_EXPORT_LAYOUT" in script
     assert b"zone-collapsible" in style
     assert b"Ablation protocol</span>" in body
     assert b"renderProtocolPanel" in script
@@ -172,6 +177,7 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     parse_only = script.decode("utf-8").replace('$("refresh").addEventListener("click", refresh);', "")
     parse_only = parse_only.replace("bindAppTabs();", "")
     parse_only = parse_only.replace("bindCollapsibleZones();", "")
+    parse_only = parse_only.replace("bindThemeToggle();", "")
     parse_only = parse_only.replace("loadPersistedUiState();", "")
     parse_only = parse_only.replace("uiStateHydrated = true;", "")
     parse_only = parse_only.replace('setActiveTab("ablation");', "")
