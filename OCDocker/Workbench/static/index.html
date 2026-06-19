@@ -9,7 +9,11 @@
   <script>
     (function () {
       try {
-        var saved = JSON.parse(sessionStorage.getItem("ocscore-workbench-ui") || "{}");
+        var saved = JSON.parse(
+          localStorage.getItem("ocscore-workbench-ui")
+          || sessionStorage.getItem("ocscore-workbench-ui")
+          || "{}"
+        );
         document.documentElement.setAttribute("data-theme", saved.theme === "light" ? "light" : "dark");
       } catch (_error) {
         document.documentElement.setAttribute("data-theme", "dark");

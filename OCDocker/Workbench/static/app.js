@@ -49,9 +49,40 @@ const state = {
 let uiStateHydrated = false;
 const $ = (id) => document.getElementById(id);
 
+function readStoredUiStateRaw() {
+  try {
+    const local = localStorage.getItem(UI_STATE_KEY);
+    if (local) return local;
+    const session = sessionStorage.getItem(UI_STATE_KEY);
+    if (session) {
+      localStorage.setItem(UI_STATE_KEY, session);
+      sessionStorage.removeItem(UI_STATE_KEY);
+      return session;
+    }
+  } catch (_) {
+    /* storage blocked or unavailable */
+  }
+  return null;
+}
+
+function writeStoredUiStateRaw(payload) {
+  try {
+    localStorage.setItem(UI_STATE_KEY, payload);
+    sessionStorage.removeItem(UI_STATE_KEY);
+    return;
+  } catch (_) {
+    /* fall back when localStorage is unavailable */
+  }
+  try {
+    sessionStorage.setItem(UI_STATE_KEY, payload);
+  } catch (_) {
+    /* ignore quota errors */
+  }
+}
+
 function loadPersistedUiState() {
   try {
-    const raw = sessionStorage.getItem(UI_STATE_KEY);
+    const raw = readStoredUiStateRaw();
     if (!raw) return;
     const saved = JSON.parse(raw);
     if (saved.zoneCollapsed && typeof saved.zoneCollapsed === "object") {
@@ -65,6 +96,7 @@ function loadPersistedUiState() {
     if (saved.selectedMetric) state.selectedMetric = saved.selectedMetric;
     if (saved.comparisonSort) state.comparisonSort = saved.comparisonSort;
     if (saved.detailReplicaSort) state.detailReplicaSort = saved.detailReplicaSort;
+    if (saved.activeTab) state.activeTab = saved.activeTab;
     if (saved.figureFilters) {
       state.figureFilters = { ...state.figureFilters, ...saved.figureFilters };
       if (state.figureFilters.role === "recommended") state.figureFilters.role = "all";
@@ -72,28 +104,25 @@ function loadPersistedUiState() {
     if (saved.theme === "light" || saved.theme === "dark") state.theme = saved.theme;
     state._persistedSelectedStudyName = saved.selectedStudyName || null;
   } catch (_) {
-    /* ignore corrupt session state */
+    /* ignore corrupt saved state */
   }
 }
 
 function persistUiState() {
   if (!uiStateHydrated) return;
-  try {
-    sessionStorage.setItem(UI_STATE_KEY, JSON.stringify({
-      zoneCollapsed: state.zoneCollapsed,
-      plotCollapsed: state.plotCollapsed,
-      selectedStudyName: state.selectedStudy?.study_name || null,
-      resultScope: state.resultScope,
-      comparisonBaseline: state.comparisonBaseline,
-      selectedMetric: state.selectedMetric,
-      comparisonSort: state.comparisonSort,
-      detailReplicaSort: state.detailReplicaSort,
-      figureFilters: state.figureFilters,
-      theme: state.theme,
-    }));
-  } catch (_) {
-    /* ignore quota errors */
-  }
+  writeStoredUiStateRaw(JSON.stringify({
+    zoneCollapsed: state.zoneCollapsed,
+    plotCollapsed: state.plotCollapsed,
+    selectedStudyName: state.selectedStudy?.study_name || null,
+    resultScope: state.resultScope,
+    comparisonBaseline: state.comparisonBaseline,
+    selectedMetric: state.selectedMetric,
+    comparisonSort: state.comparisonSort,
+    detailReplicaSort: state.detailReplicaSort,
+    activeTab: state.activeTab,
+    figureFilters: state.figureFilters,
+    theme: state.theme,
+  }));
 }
 
 function applyTheme(theme) {
@@ -144,6 +173,7 @@ function setActiveTab(tabId) {
   document.querySelectorAll("[data-tab-toolbar]").forEach((toolbar) => {
     toolbar.hidden = toolbar.dataset.tabToolbar !== tabId;
   });
+  persistUiState();
 }
 
 function bindAppTabs() {
@@ -848,15 +878,30 @@ function metricMeta(name) {
   return availableMetrics().find((metric) => metric.name === name) || { name, label: titleCase(name), direction: "max" };
 }
 
+function metricBaseName(name) {
+  return String(name || "").replace(/^(test|validation)_/, "");
+}
+
+function resolveSelectedMetric(metrics) {
+  if (!metrics.length) return null;
+  if (state.selectedMetric && metrics.some((metric) => metric.name === state.selectedMetric)) {
+    return state.selectedMetric;
+  }
+  if (state.selectedMetric) {
+    const base = metricBaseName(state.selectedMetric);
+    const scopedMatch = metrics.find((metric) => metricBaseName(metric.name) === base);
+    if (scopedMatch) return scopedMatch.name;
+  }
+  return metrics[0].name;
+}
+
 function ensureSelectedMetric() {
   const metrics = scopedMetrics();
   if (!metrics.length) {
     state.selectedMetric = null;
     return null;
   }
-  if (!state.selectedMetric || !metrics.some((metric) => metric.name === state.selectedMetric)) {
-    state.selectedMetric = metrics[0].name;
-  }
+  state.selectedMetric = resolveSelectedMetric(metrics);
   return state.selectedMetric;
 }
 
@@ -950,17 +995,14 @@ function buildRankPlotlySpec(rows, metric) {
     return Math.max(longest, ...lines.map((line) => line.length));
   }, 8);
   const legendCategories = ["full_ocscore", "ablation", "sf", "consensus"].filter((category) => rows.some((row) => rankBarCategory(row) === category));
-  const plotRows = rows.map((row) => ({
-    ...row,
-    plotLabel: compactPlotLabel(row.label, 42),
-  }));
+  const plotRows = plotLabelRows(rows, "label");
   const maxYLabelLen = plotRows.reduce((longest, row) => Math.max(longest, String(row.plotLabel || "").length), 8);
   const mainTrace = {
     type: "bar",
     orientation: "h",
     y: plotRows.map((row) => row.plotLabel),
     x: plotRows.map((row) => row.value),
-    customdata: plotRows.map((row) => [row.std, row.count, row.hoverLabel || row.display, rankBarHoverKind(row), row.label]),
+    customdata: plotRows.map((row) => [row.std, row.count, row.hoverLabel || row.display, rankBarHoverKind(row), row.hoverLabel]),
     error_x: {
       type: "data",
       array: rows.map((row) => row.std),
@@ -1057,7 +1099,7 @@ async function mountPendingPlotlyCharts() {
     }
     if (host.data) Plotly.purge(host);
     await Plotly.newPlot(host, item.spec.data, item.spec.layout, item.spec.config);
-    syncPlotlyHostHeight(host, item.spec.layout);
+    syncPlotlyHostHeight(host, host.layout || item.spec.layout);
     payload.plotlyDivId = item.divId;
   }
   requestAnimationFrame(() => {
@@ -1085,11 +1127,34 @@ function compactPlotLabel(label, maxLen = 30) {
   return `${text.slice(0, maxLen - 1)}…`;
 }
 
+const PLOT_Y_LABEL_MAX_CHARS = 40;
+const PLOT_REPLICA_LABEL_MAX_CHARS = 52;
+
+function uniqueReplicaPlotLabel(modelName, replicaName, maxLen = PLOT_REPLICA_LABEL_MAX_CHARS) {
+  const prefix = `${replicaName} · `;
+  const budget = maxLen - prefix.length;
+  const model = String(modelName || "");
+  const tail = model.length <= budget ? model : `${model.slice(0, Math.max(budget - 1, 1))}…`;
+  return `${prefix}${tail}`;
+}
+
+function plotLabelRows(rows, labelKey = "label", maxChars = PLOT_Y_LABEL_MAX_CHARS) {
+  return rows.map((row) => {
+    const full = String(row[labelKey] || "");
+    return {
+      ...row,
+      plotLabel: compactPlotLabel(full, maxChars),
+      hoverLabel: full,
+    };
+  });
+}
+
 function plotYAxisLeftMargin(maxLabelLen, options = {}) {
   const compact = Boolean(options.compact);
-  const cap = compact ? 156 : 360;
-  const floor = compact ? 72 : 96;
-  return Math.min(cap, Math.max(floor, maxLabelLen * 5.6));
+  const cap = compact ? 156 : 280;
+  const floor = compact ? 72 : 112;
+  const perChar = compact ? 5.6 : 6.8;
+  return Math.min(cap, Math.max(floor, maxLabelLen * perChar));
 }
 
 function plotLayoutHeight(rowCount, rowStep = 28, base = 120, minimum = 280) {
@@ -1104,22 +1169,39 @@ function syncPlotlyHostHeight(host, layout) {
   }
 }
 
+function plotTitleLayout(title, subtitle, options = {}) {
+  const centered = Boolean(options.centerTitle ?? options.replicaSpread);
+  const font = { size: 16, color: "#202833" };
+  const layout = { text: title, font };
+  if (subtitle) {
+    layout.text = `${title}<br><sup>${subtitle}</sup>`;
+  }
+  layout.x = centered ? 0.5 : 0;
+  layout.xanchor = centered ? "center" : "left";
+  return layout;
+}
+
 function buildSimpleBarPlotlySpec(rows, metric, options = {}) {
   const title = options.title || plotMetricLabel(metric);
   const subtitle = options.subtitle || "";
   const zeroCentered = Boolean(options.zeroCentered);
   const compact = Boolean(options.compact);
+  const replicaSpread = Boolean(options.replicaSpread);
   const colorForRow = options.colorForRow || (() => "#9ecae1");
-  const plotRows = rows.map((row) => ({
-    ...row,
-    plotLabel: compact ? compactPlotLabel(row.label) : String(row.label || ""),
-    hoverLabel: String(row.label || ""),
-  }));
+  const maxChars = compact ? 30 : PLOT_Y_LABEL_MAX_CHARS;
+  const plotRows = replicaSpread
+    ? rows.map((row) => ({
+        ...row,
+        plotLabel: row.plotLabel || row.label,
+        hoverLabel: row.hoverLabel || row.label,
+      }))
+    : plotLabelRows(rows, "label", maxChars);
   const maxLabelLen = plotRows.reduce((longest, row) => Math.max(longest, String(row.plotLabel || "").length), 8);
+  const yIndices = plotRows.map((_, index) => index);
   const trace = {
     type: "bar",
     orientation: "h",
-    y: plotRows.map((row) => row.plotLabel),
+    y: replicaSpread ? yIndices : plotRows.map((row) => row.plotLabel),
     x: plotRows.map((row) => row.value),
     customdata: plotRows.map((row) => [row.display || row.value, row.hoverLabel]),
     marker: {
@@ -1128,6 +1210,23 @@ function buildSimpleBarPlotlySpec(rows, metric, options = {}) {
     },
     hovertemplate: "<b>%{customdata[1]}</b><br>%{customdata[0]}<extra></extra>",
   };
+  const yaxis = replicaSpread
+    ? {
+        type: "linear",
+        tickmode: "array",
+        tickvals: yIndices,
+        ticktext: plotRows.map((row) => row.plotLabel),
+        range: [plotRows.length - 0.5, -0.5],
+        autorange: false,
+        automargin: false,
+        dtick: 1,
+        tickfont: { color: "#202833", size: 11 },
+      }
+    : {
+        automargin: false,
+        autorange: "reversed",
+        tickfont: { color: "#202833", size: Math.max(10, 12 - Math.floor(maxLabelLen / 28)) },
+      };
   return {
     data: [trace],
     layout: {
@@ -1135,9 +1234,8 @@ function buildSimpleBarPlotlySpec(rows, metric, options = {}) {
       paper_bgcolor: "#ffffff",
       plot_bgcolor: "#ffffff",
       autosize: true,
-      title: subtitle
-        ? { text: `${title}<br><sup>${subtitle}</sup>`, x: 0, xanchor: "left", font: { size: 16, color: "#202833" } }
-        : { text: title, x: 0, xanchor: "left", font: { size: 16, color: "#202833" } },
+      bargap: replicaSpread ? 0.15 : 0.2,
+      title: plotTitleLayout(title, subtitle, options),
       margin: {
         l: plotYAxisLeftMargin(maxLabelLen, { compact }),
         r: 24,
@@ -1153,11 +1251,7 @@ function buildSimpleBarPlotlySpec(rows, metric, options = {}) {
         zerolinecolor: zeroCentered ? "#8a93a0" : "#d8d1c5",
         rangemode: !zeroCentered && metric.direction !== "min" ? "tozero" : "normal",
       },
-      yaxis: {
-        automargin: false,
-        autorange: "reversed",
-        tickfont: { color: "#202833", size: Math.max(10, 12 - Math.floor(maxLabelLen / 28)) },
-      },
+      yaxis,
       height: plotLayoutHeight(rows.length, 28, 120, 280),
     },
     config: {
@@ -1263,19 +1357,24 @@ function renderGlobalControls() {
   $("comparison-baseline-select").innerHTML = comparisonOptions || '<option value="internal">full_ocscore</option>';
   $("decision-metric-select").innerHTML = metricOptions || '<option value="">No metrics</option>';
   $("result-scope-select").onchange = (event) => {
+    const previousMetric = state.selectedMetric;
     state.resultScope = event.target.value;
-    state.selectedMetric = null;
+    state.selectedMetric = previousMetric;
+    ensureSelectedMetric();
     if (state.comparisonBaseline !== "internal" && !scopedExternalBaselines().some((item) => externalEntryId(item) === state.comparisonBaseline)) {
       state.comparisonBaseline = "internal";
     }
+    persistUiState();
     renderWorkspace(state.workspace);
   };
   $("comparison-baseline-select").onchange = (event) => {
     state.comparisonBaseline = event.target.value || "internal";
+    persistUiState();
     renderWorkspace(state.workspace);
   };
   $("decision-metric-select").onchange = (event) => {
     state.selectedMetric = event.target.value || null;
+    persistUiState();
     renderComparisonTable();
     renderComparisonCharts();
     if (state.selectedStudy) renderDetailPlots(state.selectedStudy);
@@ -1414,24 +1513,41 @@ function renderComparisonCharts() {
 
 function collectReplicaSpreadRows(metricName) {
   if (!metricName) return [];
-  return comparisonEntries()
-    .filter((item) => !item.external)
-    .flatMap((item) => (item.study?.replicas || [])
-      .map((replica) => {
-        const value = replicaMetricValue(replica, metricName);
-        if (value === null) return null;
-        return {
-          label: `${modelDisplayName(item)} · ${replica.replica_name}`,
-          value,
-          display: numeric(value),
-          scope: metricScope(metricName),
-          study: item.id,
-          metric: metricName,
-          color: entryPaletteColor(item),
-        };
-      })
-      .filter(Boolean))
-    .sort((left, right) => right.value - left.value);
+  const entries = comparisonEntries().filter((item) => !item.external);
+  const metric = metricMeta(metricName);
+  const rows = entries.flatMap((item) => (item.study?.replicas || [])
+    .map((replica) => {
+      const value = replicaMetricValue(replica, metricName);
+      if (value === null) return null;
+      const rowKey = `${item.id}::${replica.replica_name}`;
+      return {
+        rowKey,
+        plotLabel: uniqueReplicaPlotLabel(modelDisplayName(item), replica.replica_name),
+        label: uniqueReplicaPlotLabel(modelDisplayName(item), replica.replica_name),
+        hoverLabel: `${modelDisplayName(item)} · ${replica.replica_name}`,
+        replica_name: replica.replica_name,
+        value,
+        display: numeric(value),
+        scope: metricScope(metricName),
+        study: item.id,
+        metric: metricName,
+        color: entryPaletteColor(item),
+      };
+    })
+    .filter(Boolean));
+  const deduped = [];
+  const seen = new Set();
+  rows.forEach((row) => {
+    if (seen.has(row.rowKey)) return;
+    seen.add(row.rowKey);
+    deduped.push(row);
+  });
+  deduped.sort((left, right) => {
+    const valueCmp = metric.direction === "min" ? left.value - right.value : right.value - left.value;
+    if (valueCmp !== 0) return valueCmp;
+    return String(left.hoverLabel || "").localeCompare(String(right.hoverLabel || ""));
+  });
+  return deduped;
 }
 
 function collectDeltaPlotRows(metricName) {
@@ -1470,9 +1586,10 @@ function generatedReplicaSpreadPlot(metricName, rows = null, options = {}) {
   const key = `replica_spread_${slug(metricName)}_${state.resultScope}`;
   const spec = buildSimpleBarPlotlySpec(plotRows, metric, {
     title,
-    subtitle: "Each bar is one replica. Table cells show μ only when averaged over multiple replicas.",
+    subtitle: "Sorted by replica performance (best at top); one bar per replica.",
     colorForRow: (row) => row.color || MODEL_CATEGORY_COLORS.ablation,
     compact: Boolean(options.compact),
+    replicaSpread: true,
   });
   return plotlyChartMarkup(key, title, "", "Green = full_ocscore · blue = ablation", plotRows, spec);
 }
@@ -2273,6 +2390,7 @@ function renderDetail(study) {
     $("detail-panel").hidden = true;
     state.selectedStudy = null;
     renderProtocolPanel();
+    persistUiState();
     return;
   }
   $("detail-panel").hidden = false;
@@ -2286,6 +2404,8 @@ function renderDetail(study) {
   }
   renderDetailPlots(study);
   renderProtocolPanel();
+  renderRunContext();
+  persistUiState();
 }
 
 function protocolFact(label, value) {
@@ -2417,6 +2537,23 @@ function pathBasename(path) {
   return index >= 0 ? text.slice(index + 1) : text;
 }
 
+function dashboardModelLabel(model) {
+  if (model === "strict_ocscore_layout") return "Strict OCScore layout";
+  return model || "Unknown";
+}
+
+function selectedModelLabel() {
+  if (!state.selectedStudy) return "—";
+  return studyDisplayName(state.selectedStudy);
+}
+
+function runContextSelectionItems() {
+  return [
+    ["Reference", comparisonReferenceLabel()],
+    ["Selected", selectedModelLabel()],
+  ];
+}
+
 function compactSplitSummary(context) {
   const summary = context.pdbbind_split_summary || context.pdbbind_split_strategy || "—";
   const strategy = summary.split("·")[0].trim().replace(/_/g, " ");
@@ -2438,18 +2575,24 @@ function summarizeBaselineSources(sources) {
   return { label, title };
 }
 
-function renderRunContext(payload) {
-  const context = payload.run_context;
+function renderRunContext(payload = state.workspace) {
+  const context = payload?.run_context;
   const strip = $("run-context-items");
   if (!strip) return;
   if (!context) {
-    strip.innerHTML = "";
+    strip.innerHTML = runContextSelectionItems().map(([label, value]) => `
+      <div class="run-context-item run-context-item-selection">
+        <strong>${escapeHtml(label)}</strong>
+        <span>${escapeHtml(String(value))}</span>
+      </div>
+    `).join("");
     bindRunContextMarquee();
     return;
   }
   const splitShort = compactSplitSummary(context);
   const baseline = summarizeBaselineSources(context.baseline_sources || []);
   const items = [
+    ...runContextSelectionItems(),
     ["Repl", `${context.detected_replica_count}/${context.planned_replica_count}`],
     ["Split", splitShort],
     ["Rank", "DUDEz test"],
@@ -2459,7 +2602,7 @@ function renderRunContext(payload) {
   ];
   if (baseline) items.push(["CSV", baseline.label, baseline.title]);
   strip.innerHTML = items.map(([label, value, title]) => `
-    <div class="run-context-item${label === "CSV" ? " path-item" : ""}">
+    <div class="run-context-item${label === "CSV" ? " path-item" : ""}${label === "Reference" || label === "Selected" ? " run-context-item-selection" : ""}">
       <strong>${escapeHtml(label)}</strong>
       <span${title ? ` title="${escapeHtml(title)}"` : ""}>${escapeHtml(String(value))}</span>
     </div>
@@ -2562,7 +2705,7 @@ async function refresh() {
     const health = await api("/health");
     const payload = await api("/api/ocscore-workspace");
     $("health-dot").className = "dot ok";
-    $("health-label").textContent = health.dashboard_model;
+    $("health-label").textContent = dashboardModelLabel(health.dashboard_model);
     renderWorkspace(payload);
   } catch (error) {
     $("health-dot").className = "dot error";
@@ -2577,5 +2720,5 @@ bindThemeToggle();
 bindAppTabs();
 bindCollapsibleZones();
 uiStateHydrated = true;
-setActiveTab("ablation");
+setActiveTab(state.activeTab || "ablation");
 refresh();

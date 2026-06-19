@@ -74,6 +74,7 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b"renderRunContext" in script
     assert b"run-context" in style
     assert b"loadPersistedUiState" in script
+    assert b"localStorage" in script
     assert b"sessionStorage" in script
     assert b"buildSimpleBarPlotlySpec" in script
     assert b"synthesized-baseline" in style
@@ -183,7 +184,7 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     parse_only = parse_only.replace("bindThemeToggle();", "")
     parse_only = parse_only.replace("loadPersistedUiState();", "")
     parse_only = parse_only.replace("uiStateHydrated = true;", "")
-    parse_only = parse_only.replace('setActiveTab("ablation");', "")
+    parse_only = parse_only.replace('setActiveTab(state.activeTab || "ablation");', "")
     parse_only = parse_only.replace("refresh();", "")
     MiniRacer().eval(parse_only)
     assert b"/api/figure-asset" in script

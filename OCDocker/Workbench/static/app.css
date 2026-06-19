@@ -209,6 +209,7 @@ button:disabled { border-color: var(--line); background: var(--disabled-bg); col
   white-space: nowrap;
 }
 .run-context-item.path-item span:last-child { color: var(--muted); }
+.run-context-item-selection span:last-child { color: var(--text); font-weight: 600; }
 .app-tabs:has(.tab:only-child) { display: none; }
 .app-tabs {
   display: flex;
@@ -383,12 +384,14 @@ main { padding-top: 16px; padding-bottom: 32px; }
 .plot-collapsible.generated-plot { gap: 0; }
 .plot-collapsible .zone-head.chart-head { width: 100%; padding: 10px 10px 8px; margin: 0; }
 .plot-collapsible.is-collapsed .zone-head.chart-head { padding-bottom: 10px; }
-.plot-collapsible .plot-zone-body { gap: 7px; }
+.plot-collapsible .plot-zone-body { gap: 7px; overflow: hidden; }
 .plot-zone-title { font-size: 14px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--ink); }
 .chart-head .export-actions { margin-left: auto; flex-shrink: 0; }
-.generated-plot .decision-svg { width: 100%; height: auto; display: block; }
-.plotly-host { width: 100%; min-width: 0; min-height: 280px; height: auto; background: var(--plot-bg); border: 1px solid var(--plot-border); border-radius: 5px; }
-.plotly-host .main-svg { border-radius: 5px; }
+.generated-plot .decision-svg { width: 100%; height: auto; display: block; max-width: 100%; }
+.plotly-host { width: 100%; max-width: 100%; min-width: 0; min-height: 280px; height: auto; overflow: hidden; background: var(--plot-bg); border: 1px solid var(--plot-border); border-radius: 5px; }
+.plotly-host .js-plotly-plot,
+.plotly-host .plotly,
+.plotly-host .main-svg { max-width: 100% !important; }
 .cv-panel { border-color: var(--line); }
 .cv-study-block { display: grid; gap: 8px; margin-bottom: 14px; }
 .cv-study-block:last-child { margin-bottom: 0; }
