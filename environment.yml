@@ -1,4 +1,9 @@
 name: ocdocker
+# Full conda lockfile used by install.sh and container images.
+# Python 3.11 matches pyproject.toml requires-python, mypy.ini, and CI.
+# Pip extras in pyproject.toml define optional dependency groups; this env
+# approximates a full scientific stack (similar to pip install "ocdocker[all,dev]").
+# Source of truth for pip version bounds: pyproject.toml
 channels:
   - bioconda
   - pytorch

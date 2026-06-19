@@ -216,3 +216,67 @@ def test_ocscore_protocol_files_are_declared_in_package_data():
     patterns = package_data["OCDocker.OCScore"]
     assert "Protocols/*.yml" in patterns
     assert "Protocols/Ablations/*.yml" in patterns
+
+
+@pytest.mark.order(481)
+def test_package_data_paths_exist_on_disk():
+    '''Declared package-data globs resolve to files in the source tree.'''
+
+    root = Path("OCDocker")
+    assert list(root.glob("OCScore/Protocols/*.yml")), "expected bundled training protocols"
+    assert list(root.glob("OCScore/Protocols/Ablations/*.yml")), "expected bundled ablation policies"
+    static_dir = root / "Workbench" / "static"
+    assert static_dir.is_dir()
+    for name in ("index.html", "app.css", "app.js"):
+        assert (static_dir / name).is_file(), f"missing Workbench static asset: {name}"
+
+
+@pytest.mark.order(482)
+def test_analysis_extra_includes_shap():
+    '''OCScore export SHAP uses the shap library from the analysis extra.'''
+
+    analysis = _load_pyproject()["project"]["optional-dependencies"]["analysis"]
+    assert any(_dep_name(dep) == "shap" for dep in analysis)
+
+
+@pytest.mark.order(483)
+def test_all_extra_is_superset_of_runtime_extras():
+    '''The all extra includes every package from runtime workflow extras.'''
+
+    extras = _load_pyproject()["project"]["optional-dependencies"]
+    all_names = {_dep_name(dep) for dep in extras["all"]}
+    for group in ("analysis", "docking", "db", "ml", "workflow", "cloud", "gpu"):
+        group_names = {_dep_name(dep) for dep in extras[group]}
+        missing = group_names - all_names
+        assert not missing, f"all extra missing packages from {group}: {sorted(missing)}"
+
+
+@pytest.mark.order(484)
+def test_full_extra_includes_all_and_docs():
+    '''The full extra includes runtime all packages and documentation build tools.'''
+
+    extras = _load_pyproject()["project"]["optional-dependencies"]
+    full_names = {_dep_name(dep) for dep in extras["full"]}
+    all_names = {_dep_name(dep) for dep in extras["all"]}
+    docs_names = {_dep_name(dep) for dep in extras["docs"]}
+    assert all_names <= full_names
+    assert docs_names <= full_names
+
+
+@pytest.mark.order(485)
+def test_python_version_metadata_is_aligned():
+    '''Python 3.11 is declared consistently across packaging and tooling files.'''
+
+    pyproject = _load_pyproject()
+    assert pyproject["project"]["requires-python"] == ">=3.11"
+
+    mypy_text = Path("mypy.ini").read_text(encoding="utf-8")
+    assert "python_version = 3.11" in mypy_text
+
+    recipe_text = Path("recipe/meta.yaml").read_text(encoding="utf-8")
+    assert "python >=3.11" in recipe_text
+    assert "python >=3.10" not in recipe_text
+
+    environment_text = Path("environment.yml").read_text(encoding="utf-8")
+    assert "python=3.11" in environment_text
+    assert "pyproject.toml" in environment_text

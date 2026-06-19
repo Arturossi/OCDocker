@@ -23,13 +23,14 @@ complete list and `install.sh` for an automated setup.
 Choose one setup path:
 
 ```bash
-# Conda
+# Conda (full lockfile used by install.sh and containers)
 conda env create -f environment.yml
 conda activate ocdocker
+pip install -e .
 ```
 
 ```bash
-# Pip from source (minimal core)
+# Pip from source (minimal core; mirrors requirements.txt)
 pip install -r requirements.txt
 pip install -e .
 

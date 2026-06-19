@@ -32,6 +32,9 @@ Packaging metadata
 - ``requirements.txt``: mirrors core ``[project.dependencies]`` only; one
   requirement per line. Optional stacks use pip extras (see
   :doc:`optional_dependencies`).
+- ``[tool.setuptools.package-data]`` in ``pyproject.toml`` ships bundled OCScore
+  protocol YAML (``OCDocker/OCScore/Protocols/``) and Workbench static assets
+  (``OCDocker/Workbench/static/``). See :doc:`OCDocker.OCScore.Protocols`.
 
 Config and tooling files
 ~~~~~~~~~~~~~~~~~~~~~~~~

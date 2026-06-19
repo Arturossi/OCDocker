@@ -10,48 +10,70 @@ source:
 
 build:
   noarch: python
-  script: 
+  script:
     - "{{ PYTHON }} -m pip install . --no-deps -vv"
   script_env:
     - PIP_INDEX_URL=https://pypi.org/simple
 
 requirements:
   host:
-    - python >=3.10
+    - python >=3.11
     - pip
     - setuptools >=80
 
   run:
-    - python >=3.10
-    - rdkit
-    - pandas >=2.2
-    - scikit-learn >=1.5
-    - seaborn
-    - matplotlib
-    - scipy >=1.14
+    - python >=3.11
+    # Core runtime (mirrors pyproject [project.dependencies])
+    - configargparse >=1.7
+    - joblib >=1.4.2
+    - packaging >=25.0
+    - pydantic >=2.11.4
+    - pydantic-settings >=2.9.1
+    - pyyaml >=6.0.2
+    - requests >=2.32.3
+    - rich >=13.9.1
+    - tqdm >=4.66.5
+    # Approximates pip install "ocdocker[all]" for conda users
+    - biopython >=1.84
+    - dcor >=0.6
+    - fsspec >=2024.10.0
+    - h5py >=3.11.0
+    - lime >=0.2.0.1
+    - matplotlib >=3.9.2
+    - networkx >=3.3
+    - numba >=0.60.0
+    - numpy >=1.26.4
     - openbabel
-    - numpy >=1.26
-    - optuna
-    - pingouin
-    - pytorch >=2.4
-    - torchaudio >=2.4
-    - torchvision >=0.19
-    - xgboost >=2.1
-    - lime
-    - pyyaml
-    - joblib
-    - biopython
-    - dcor
-    - fsspec
-    - numba >=0.60
-    - python-graphviz
+    - optuna >=3.6.1
+    - optuna-dashboard >=0.16.2
+    - optuna-integration >=4.0.0
+    - pandas >=2.2.3
+    - pingouin >=0.5.5
+    - python-graphviz >=0.20.3
+    - pytorch >=2.4.1
+    - rdkit >=2024.09.1
+    - scikit-image >=0.24.0
+    - scikit-learn >=1.5.2
+    - scipy >=1.14.1
+    - seaborn >=0.13.2
+    - shap >=0.44.0
+    - snakemake >=7.32.4
+    - spyrmsd >=0.8.0
+    - sqlalchemy >=2.0.35
+    - sqlalchemy-utils >=0.41.2
+    - statsmodels >=0.14.3
+    - torchaudio >=2.4.1
+    - torchvision >=0.19.1
     - torchsummary
     - torchviz
+    - visualtorch >=0.2.3
+    - xgboost >=2.1.1
 
 about:
   home: https://github.com/Arturossi/OCDocker
   summary: "Molecular docking automation, virtual screening, and AI consensus scoring"
-  license: Apache-2.0
+  license: LicenseRef-UFRJ-Proprietary
+  license_file: ../LICENSE
 
 extra:
   recipe-maintainers:

@@ -20,7 +20,7 @@ omit =
     Docking/Future/**
     **/Docking/Future/*
     **/Docking/Future/**
-    # Omit archival legacy implementation now that legacy tests/examples are removed
+    # Omit archival legacy trees removed from the package (historical patterns kept for safety)
     OCDocker/**/legacy/*
     OCDocker/**/legacy/**
     **/OCDocker/**/legacy/*

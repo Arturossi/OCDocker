@@ -131,7 +131,7 @@ Runtime extras
    Plotting, statistics, explainability, and extended scientific I/O.
 
    * **Plotting:** ``matplotlib``, ``seaborn``, ``graphviz``
-   * **Statistics:** ``statsmodels``, ``pingouin``, ``dcor``, ``lime``
+   * **Statistics / explainability:** ``statsmodels``, ``pingouin``, ``dcor``, ``lime``, ``shap``
    * **Graphs / imaging:** ``networkx``, ``rustworkx``, ``scikit-image``,
      ``h5py``, ``imageio``, ``pillow``, ``tifffile``
    * **Notebook / symbolic:** ``ipython``, ``sympy``, ``mpmath``, ``gmpy2``
@@ -253,7 +253,7 @@ Current releases move them into extras:
      - Now install via
    * - ``numpy``, ``pandas``, ``scipy``, ``scikit-learn``
      - ``[docking]`` and/or ``[ml]``
-   * - ``matplotlib``, ``seaborn``, ``statsmodels``, …
+   * - ``matplotlib``, ``seaborn``, ``statsmodels``, ``shap``, …
      - ``[analysis]``
    * - ``torch``, ``optuna``, ``xgboost``, …
      - ``[ml]`` (unchanged extra name)
@@ -266,7 +266,10 @@ If scripts break after upgrading, install the extras your workflow used implicit
 before, or switch to ``[all]`` for parity with a full historical environment.
 
 ``requirements.txt`` in the repository root mirrors **core only**; optional stacks
-are selected via pip extras, not a monolithic requirements file.
+are selected via pip extras, not a monolithic requirements file. Packaged YAML
+protocols and Workbench static assets are declared under
+``[tool.setuptools.package-data]`` in ``pyproject.toml`` (see
+:doc:`OCDocker.OCScore.Protocols`).
 
 Troubleshooting
 ---------------
