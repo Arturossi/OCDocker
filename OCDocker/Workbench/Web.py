@@ -775,16 +775,6 @@ const SHAP_RENDER_LIMIT = 8;
 const TEST_SCOPE = "test";
 const VALIDATION_SCOPE = "validation";
 const COMBINED_SCOPE = "combined";
-const RECOMMENDED_FIGURE_ROLES = new Set([
-  "shap_beeswarm",
-  "shap_importance",
-  "cv_mean_std",
-  "cv_heatmap",
-  "cv_fold_comparison",
-  "per_target_validation",
-  "architecture",
-  "performance",
-]);
 const MODEL_COMPARISON_ROLES = new Set(["performance", "cv_mean_std", "cv_heatmap", "cv_fold_comparison", "per_target_validation", "optuna"]);
 const SELECTED_MODEL_ROLES = new Set(["shap", "shap_beeswarm", "shap_importance", "shap_dependence", "architecture"]);
 const UI_STATE_KEY = "ocscore-workbench-ui";
@@ -809,7 +799,7 @@ const state = {
   selectedMetric: null,
   activeTab: "ablation",
   resultScope: TEST_SCOPE,
-  figureFilters: { dataset: "all", role: "recommended", metric: "all", group: "comparison" },
+  figureFilters: { dataset: "all", role: "all", metric: "all", group: "comparison" },
   plotExports: {},
   pendingPlotly: [],
   zoneCollapsed: {
@@ -843,7 +833,10 @@ function loadPersistedUiState() {
     if (saved.selectedMetric) state.selectedMetric = saved.selectedMetric;
     if (saved.comparisonSort) state.comparisonSort = saved.comparisonSort;
     if (saved.detailReplicaSort) state.detailReplicaSort = saved.detailReplicaSort;
-    if (saved.figureFilters) state.figureFilters = { ...state.figureFilters, ...saved.figureFilters };
+    if (saved.figureFilters) {
+      state.figureFilters = { ...state.figureFilters, ...saved.figureFilters };
+      if (state.figureFilters.role === "recommended") state.figureFilters.role = "all";
+    }
     if (saved.theme === "light" || saved.theme === "dark") state.theme = saved.theme;
     state._persistedSelectedStudyName = saved.selectedStudyName || null;
   } catch (_) {
@@ -1889,7 +1882,6 @@ function figureMatchesFilters(item) {
   if (filters.group !== "all" && figureGroup(figure) !== filters.group) return false;
   if (filters.dataset !== "all" && (figure.dataset || "") !== filters.dataset) return false;
   if (filters.metric !== "all" && (figure.metric_name || "") !== filters.metric) return false;
-  if (filters.role === "recommended") return RECOMMENDED_FIGURE_ROLES.has(figure.role || "figure");
   if (filters.role !== "all" && (figure.role || "figure") !== filters.role) return false;
   return true;
 }
@@ -2213,7 +2205,6 @@ function figureFilterSummaryLabel() {
     all: "All figure groups",
   };
   const roleLabels = {
-    recommended: "Recommended",
     all: "All roles",
   };
   const group = groupLabels[filters.group] || filters.group;
@@ -2234,7 +2225,6 @@ function renderFigureControls(study, figures) {
   ].join("");
   const datasetOptions = [optionHtml("all", "All datasets", state.figureFilters.dataset), ...datasets.map((item) => optionHtml(item, item, state.figureFilters.dataset))].join("");
   const roleOptions = [
-    optionHtml("recommended", "Recommended", state.figureFilters.role),
     optionHtml("all", "All roles", state.figureFilters.role),
     ...roles.map((item) => optionHtml(item, titleCase(item), state.figureFilters.role)),
   ].join("");
@@ -2693,7 +2683,6 @@ function shapFigureMatchesFilters(item) {
   const filters = state.figureFilters;
   if (filters.dataset !== "all" && (figure.dataset || "") !== filters.dataset) return false;
   if (filters.metric !== "all" && (figure.metric_name || "") !== filters.metric) return false;
-  if (filters.role === "recommended") return RECOMMENDED_FIGURE_ROLES.has(figure.role || "figure");
   if (filters.role !== "all" && (figure.role || "figure") !== filters.role) return false;
   return true;
 }
@@ -2792,8 +2781,8 @@ function shapFigureSection(study) {
   return `
     <section class="figure-section shap-section">
       <h3>SHAP (selected model)</h3>
-      <p class="scope-note">Recommended: one beeswarm (feature impact by value) and one importance plot (mean |SHAP|) per dataset and replica. Dependence plots explore individual features. Use the figure filters at the top of this section to narrow.</p>
-      ${items.length > visible.length ? `<div class="gallery-note">Showing ${visible.length} of ${items.length} SHAP figures. Change Role to “All roles” or relax Dataset / Figure metric to see more.</div>` : ""}
+      <p class="scope-note">Typical SHAP exports include a beeswarm plot (feature impact by value) and an importance plot (mean |SHAP|) per dataset and replica. Dependence plots explore individual features. Use the figure filters at the top of this section to narrow.</p>
+      ${items.length > visible.length ? `<div class="gallery-note">Showing ${visible.length} of ${items.length} SHAP figures. Relax Dataset, Role, or Figure metric to see more.</div>` : ""}
       <div class="shap-figure-grid">${visible.map(figureCardShap).join("")}</div>
     </section>
   `;
