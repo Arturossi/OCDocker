@@ -8,6 +8,12 @@ Experiment workbench models and planners for OCDocker.
 
 # Imports
 ###############################################################################
+from OCDocker.Workbench.AblationDesign import build_ablation_design_context
+from OCDocker.Workbench.AblationDesign import discover_ablation_input_features
+from OCDocker.Workbench.AblationDesign import handle_ablation_design_post
+from OCDocker.Workbench.AblationDesign import plan_ablation_design
+from OCDocker.Workbench.AblationDesign import preview_ablation_design
+from OCDocker.Workbench.AblationDesign import write_ablation_design_policy
 from OCDocker.Workbench.Adoption import build_adoption_plan
 from OCDocker.Workbench.Adoption import write_adoption_workspace
 from OCDocker.Workbench.Ablation import build_ablation_analysis
@@ -99,7 +105,9 @@ from OCDocker.Workbench.Models import WorkbenchReportFinding
 from OCDocker.Workbench.Models import WorkbenchReportFindingKind
 from OCDocker.Workbench.Models import WorkspaceInventory
 from OCDocker.Workbench.Models import WorkspaceOverview
+from OCDocker.Workbench.OCScoreLayout import ablation_container_paths
 from OCDocker.Workbench.OCScoreLayout import build_ocscore_workspace
+from OCDocker.Workbench.OCScoreLayout import resolve_ocscore_layout_root
 from OCDocker.Workbench.Overview import build_workspace_overview
 from OCDocker.Workbench.Planner import build_run_manifest
 from OCDocker.Workbench.Plots import build_leaderboard_plot
@@ -229,9 +237,14 @@ __all__ = [
     "available_template_names",
     "write_adoption_workspace",
     "build_adoption_plan",
+    "ablation_container_paths",
+    "build_ablation_design_context",
     "build_artifact_index",
+    "discover_ablation_input_features",
+    "handle_ablation_design_post",
     "build_evidence_index",
     "resolve_evidence_asset",
+    "resolve_ocscore_layout_root",
     "build_run_comparison",
     "build_json_schema",
     "write_launch_script",
@@ -267,6 +280,9 @@ __all__ = [
     "is_workbench_web_asset_path",
     "model_to_data",
     "plan_command",
+    "plan_ablation_design",
+    "preview_ablation_design",
+    "write_ablation_design_policy",
     "plan_ocscore_train_command",
     "plan_snakemake_command",
     "plan_vs_campaign_command",

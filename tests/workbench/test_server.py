@@ -76,6 +76,10 @@ def test_build_workbench_api_payload_indexes_strict_endpoints(tmp_path) -> None:
     assert "/api/ocscore-workspace" in payload["endpoints"]
     assert "/api/figure-asset?path=..." in payload["endpoints"]
     assert "/api/optuna-dashboard" in payload["endpoints"]
+    assert "/api/ablation-design" in payload["endpoints"]
+    assert "/api/ablation-design/preview" in payload["endpoints"]
+    assert "/api/ablation-design/features" in payload["endpoints"]
+    assert "/api/ablation-design/write" in payload["endpoints"]
     assert payload["optuna_dashboard"]["auto_ports"] is True
     assert payload["optuna_dashboard"]["slot_count"] == 1
     assert payload["optuna_dashboard"]["slot_count_source"] == "replica_count"

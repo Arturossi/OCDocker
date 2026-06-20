@@ -16,11 +16,15 @@
   --plot-bg: #ffffff;
   --plot-border: #464647;
   --header-shadow: rgba(0, 0, 0, 0.35);
-  --rank-top-bg: rgba(137, 209, 133, 0.14);
-  --rank-second-bg: rgba(77, 182, 172, 0.12);
-  --rank-third-bg: rgba(77, 182, 172, 0.08);
-  --row-hover: rgba(77, 182, 172, 0.08);
-  --reference-row-bg: rgba(77, 182, 172, 0.1);
+  --rank-top-bg: rgba(240, 190, 70, 0.17);
+  --rank-top-edge: #D4AE3A;
+  --rank-second-bg: rgba(100, 170, 235, 0.15);
+  --rank-second-edge: #6AAED0;
+  --rank-third-bg: rgba(200, 140, 210, 0.14);
+  --rank-third-edge: #C090C8;
+  --row-hover: rgba(100, 170, 235, 0.1);
+  --reference-row-bg: rgba(100, 210, 170, 0.13);
+  --reference-row-edge: #62C898;
   --ghost-bg: #2d2d30;
   --disabled-bg: #3a3a3a;
   --disabled-fg: #6e6e6e;
@@ -35,6 +39,8 @@
   --legend-mean-bg: rgba(77, 182, 172, 0.16);
   --legend-std-bg: #333337;
   --legend-delta-bg: rgba(137, 209, 133, 0.16);
+  --legend-delta-pos-bg: rgba(137, 209, 133, 0.16);
+  --legend-delta-neg-bg: rgba(244, 135, 113, 0.16);
   --legend-synth-bg: rgba(204, 167, 0, 0.16);
   --kind-synth-bg: rgba(204, 167, 0, 0.14);
   --kind-synth-border: rgba(204, 167, 0, 0.45);
@@ -71,11 +77,15 @@
   --plot-bg: #ffffff;
   --plot-border: #ebe5dc;
   --header-shadow: rgba(32, 40, 51, 0.06);
-  --rank-top-bg: #edf7f1;
-  --rank-second-bg: #f4faf8;
-  --rank-third-bg: #f8fbfa;
-  --row-hover: #f4faf8;
-  --reference-row-bg: #f8fbfa;
+  --rank-top-bg: rgba(201, 151, 0, 0.11);
+  --rank-top-edge: #B88900;
+  --rank-second-bg: rgba(74, 144, 194, 0.1);
+  --rank-second-edge: #4580B0;
+  --rank-third-bg: rgba(167, 123, 184, 0.1);
+  --rank-third-edge: #9870A8;
+  --row-hover: rgba(74, 144, 194, 0.06);
+  --reference-row-bg: rgba(92, 184, 150, 0.09);
+  --reference-row-edge: #48A878;
   --ghost-bg: #fffdf8;
   --disabled-bg: #ece8df;
   --disabled-fg: #667085;
@@ -90,6 +100,8 @@
   --legend-mean-bg: #eef4f4;
   --legend-std-bg: #f3f4f6;
   --legend-delta-bg: #edf7f1;
+  --legend-delta-pos-bg: #edf7f1;
+  --legend-delta-neg-bg: #fce9e7;
   --legend-synth-bg: #fff1d8;
   --kind-synth-bg: #fff6e8;
   --kind-synth-border: #e8c178;
@@ -213,72 +225,436 @@ button:disabled { border-color: var(--line); background: var(--disabled-bg); col
 .run-context-item.path-item span:last-child { color: var(--muted); }
 .run-context-item-selection span:last-child { color: var(--text); font-weight: 600; }
 
-.ablation-design-panel .panel-head-split { align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.ablation-design-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.ablation-design-panel .panel-head-split {
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.ablation-design-panel h2 { font-size: 18px; }
+.ablation-design-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
+  gap: 16px;
+  align-items: start;
+}
 .ablation-design-card {
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 12px 14px;
+  border-radius: 10px;
+  padding: 18px 20px;
   background: var(--panel);
 }
-.ablation-design-card-wide { grid-column: 1 / -1; }
-.ablation-design-card h3 { margin: 0 0 10px; font-size: 13px; }
+.ablation-design-card-policy,
+.ablation-design-card-output {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.ablation-design-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+}
+.ablation-design-card-head-actions {
+  align-items: center;
+}
+.ablation-design-card h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+.ablation-design-section + .ablation-design-section {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.ablation-design-section-title {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ablation-design-panel .field.ablation-design-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.ablation-design-panel .field.ablation-design-field > span {
+  line-height: 1.3;
+}
+.ablation-design-panel input[type="text"],
+.ablation-design-panel select,
+.ablation-design-panel textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-size: 14px;
+  line-height: 1.4;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-input);
+  color: var(--ink);
+}
+.ablation-design-panel textarea {
+  min-height: 120px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  resize: vertical;
+}
+.ablation-design-panel select {
+  min-height: 44px;
+  cursor: pointer;
+}
 .ablation-design-fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(180px, 1fr));
-  gap: 10px;
+  gap: 14px;
 }
-.ablation-design-span-2 { grid-column: 1 / -1; }
+.ablation-design-fields-identity {
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.4fr);
+}
+.ablation-design-fields-rules {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.ablation-design-fields-run {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.ablation-design-field-wide { grid-column: auto; }
 .ablation-design-checkbox {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 13px;
   font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
 }
-.ablation-design-checkbox input { width: auto; min-width: 0; }
-.ablation-design-note { margin: 8px 0 0; font-size: 12px; line-height: 1.45; }
-.ablation-design-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-.ablation-design-preview { margin-bottom: 10px; }
+.ablation-design-checkbox input {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  margin: 0;
+  cursor: pointer;
+}
+.ablation-design-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 72ch;
+}
+.ablation-design-card-run .ablation-design-note {
+  margin-bottom: 14px;
+}
+.ablation-design-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ablation-design-actions button {
+  min-height: 40px;
+  padding: 10px 16px;
+  font-size: 13px;
+}
+.ablation-design-preview { margin-top: 14px; }
+.ablation-design-preview-summary {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  margin-bottom: 10px;
+}
 .ablation-design-preview-details {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 8px;
-  margin-top: 8px;
-  font-size: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  font-size: 13px;
 }
 .ablation-design-preview-details div {
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 8px;
+  border-radius: 8px;
+  padding: 10px 12px;
   background: var(--bg);
+  line-height: 1.45;
+  word-break: break-word;
 }
-.ablation-design-preview-details strong { display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.ablation-design-preview-details strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 .ablation-design-code {
-  margin: 10px 0 0;
-  padding: 12px;
+  margin: 14px 0 0;
+  padding: 14px 16px;
   border-radius: 8px;
   border: 1px solid var(--line);
   background: var(--bg);
   color: var(--text);
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 13px;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
   overflow: auto;
-  max-height: 280px;
+  max-height: 320px;
 }
-.ablation-design-preflight { margin-top: 10px; display: grid; gap: 6px; }
+.ablation-design-preflight {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
 .ablation-design-check {
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 12px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
   background: var(--bg);
+  line-height: 1.45;
 }
 .ablation-design-check.error { border-color: #d9534f; }
 .ablation-design-check.warning { border-color: #d4a017; }
 .ablation-design-check.ok { border-color: #5cb85c; }
+.ablation-design-fields-input {
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+  align-items: end;
+}
+.ablation-design-feature-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.ablation-design-feature-toolbar input[type="search"] {
+  flex: 1 1 220px;
+  min-height: 40px;
+}
+.ablation-design-feature-summary {
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ablation-design-batch-bar {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.ablation-design-batch-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  align-items: center;
+}
+.ablation-design-batch-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.ablation-design-batch-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  min-width: 48px;
+}
+.ablation-design-batch-group button {
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.ablation-design-feature-group-select {
+  border: 0;
+  background: transparent;
+  color: var(--accent, #6ea8fe);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.ablation-design-feature-group-select:hover {
+  text-decoration: underline;
+}
+.ablation-design-feature-actions-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+.ablation-design-feature-browser {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 2px;
+  overflow: visible;
+}
+.ablation-design-feature-group {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  min-width: 0;
+  overflow: hidden;
+}
+.ablation-design-feature-group-head {
+  position: static;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ablation-design-feature-group-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ablation-design-feature-list {
+  display: block;
+  padding: 0;
+}
+.ablation-design-feature-list-virtual {
+  padding: 0;
+  position: relative;
+}
+.ablation-design-feature-spacer {
+  width: 1px;
+}
+.ablation-design-feature-viewport {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+  will-change: transform;
+}
+.ablation-design-pattern-feedback {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+.ablation-design-case-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.ablation-design-case-warning {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.ablation-design-case-warning.is-note {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--muted);
+}
+.ablation-design-case-warning.is-warning {
+  border: 1px solid #d4a017;
+  background: rgba(212, 160, 23, 0.08);
+  color: var(--text);
+}
+.ablation-design-template-diff {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 12px;
+}
+.ablation-design-diff-title {
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+.ablation-design-diff-field + .ablation-design-diff-field {
+  margin-top: 8px;
+}
+.ablation-design-diff-added {
+  color: #2e7d32;
+  margin-top: 4px;
+}
+.ablation-design-diff-removed {
+  color: #b42318;
+  margin-top: 4px;
+}
+.ablation-design-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text);
+  cursor: pointer;
+  min-width: 0;
+}
+.ablation-design-feature-item span {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.ablation-design-feature-item input {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  margin-top: 2px;
+}
+.ablation-design-feature-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.ablation-design-feature-actions button {
+  min-height: 38px;
+}
+@media (max-width: 1100px) {
+  .ablation-design-layout {
+    grid-template-columns: 1fr;
+  }
+  .ablation-design-fields-rules,
+  .ablation-design-feature-browser {
+    grid-template-columns: 1fr;
+  }
+  .ablation-design-fields-input {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 720px) {
+  .ablation-design-fields-identity,
+  .ablation-design-fields-run {
+    grid-template-columns: 1fr;
+  }
+  .ablation-design-card-head-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ablation-design-actions {
+    width: 100%;
+  }
+  .ablation-design-actions button {
+    flex: 1 1 calc(50% - 5px);
+  }
+}
 textarea {
   width: 100%;
   min-height: 72px;
@@ -416,8 +792,49 @@ main { padding-top: 16px; padding-bottom: 32px; }
 .legend-mark.mean-mark { background: var(--legend-mean-bg); color: var(--accent); }
 .legend-mark.std-mark { background: var(--legend-std-bg); color: var(--muted); }
 .legend-mark.delta-mark { background: var(--legend-delta-bg); color: var(--ok); }
+.legend-mark.delta-pos-mark { background: var(--legend-delta-pos-bg); color: var(--ok); font-weight: 800; }
+.legend-mark.delta-neg-mark { background: var(--legend-delta-neg-bg); color: var(--danger); font-weight: 800; }
 .legend-mark.noise-mark { background: var(--legend-std-bg); color: var(--muted); }
 .legend-mark.synth-mark { background: var(--legend-synth-bg); color: var(--warn); }
+.legend-mark.rank-mark {
+  width: 24px;
+  height: 14px;
+  min-height: 14px;
+  min-width: 24px;
+  padding: 0;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+  box-shadow: inset 4px 0 0 transparent;
+}
+.legend-mark.rank-mark-1 {
+  background: color-mix(in srgb, var(--rank-top-edge) 30%, transparent);
+  border-color: color-mix(in srgb, var(--rank-top-edge) 65%, transparent);
+  box-shadow: inset 4px 0 0 var(--rank-top-edge);
+}
+.legend-mark.rank-mark-2 {
+  background: color-mix(in srgb, var(--rank-second-edge) 28%, transparent);
+  border-color: color-mix(in srgb, var(--rank-second-edge) 62%, transparent);
+  box-shadow: inset 4px 0 0 var(--rank-second-edge);
+}
+.legend-mark.rank-mark-3 {
+  background: color-mix(in srgb, var(--rank-third-edge) 28%, transparent);
+  border-color: color-mix(in srgb, var(--rank-third-edge) 62%, transparent);
+  box-shadow: inset 4px 0 0 var(--rank-third-edge);
+}
+.legend-mark.ref-row-mark {
+  background: color-mix(in srgb, var(--reference-row-edge) 26%, transparent);
+  border-color: color-mix(in srgb, var(--reference-row-edge) 60%, transparent);
+  box-shadow: inset 4px 0 0 var(--reference-row-edge);
+  border-radius: 3px;
+  width: 24px;
+  height: 14px;
+  min-height: 14px;
+  min-width: 24px;
+  padding: 0;
+  flex-shrink: 0;
+}
+.legend-intro-inline { flex: 1 1 100%; font-size: 11px; color: var(--muted); margin-right: 4px; }
 .comparison-table-legends {
   display: grid;
   gap: 8px;
@@ -486,15 +903,15 @@ th, td { padding: 9px 10px; border-bottom: 1px solid var(--table-border); text-a
 th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
 th.numeric, td.numeric { text-align: right; font-variant-numeric: tabular-nums; vertical-align: middle; }
 th.delta-col, td.delta-col { width: 1%; white-space: nowrap; }
-td.rank-top { background: var(--rank-top-bg); box-shadow: inset 3px 0 0 var(--ok); font-weight: 700; }
-td.rank-second { background: var(--rank-second-bg); box-shadow: inset 3px 0 0 var(--accent); }
-td.rank-third { background: var(--rank-third-bg); box-shadow: inset 3px 0 0 var(--accent); }
+td.rank-top { background: var(--rank-top-bg); box-shadow: inset 4px 0 0 var(--rank-top-edge); font-weight: 700; }
+td.rank-second { background: var(--rank-second-bg); box-shadow: inset 4px 0 0 var(--rank-second-edge); }
+td.rank-third { background: var(--rank-third-bg); box-shadow: inset 4px 0 0 var(--rank-third-edge); }
 .sort-button { width: 100%; border: 0; border-radius: 4px; padding: 0; background: transparent; color: inherit; font: inherit; font-weight: 800; text-align: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; }
 .sort-button:hover, .sort-button.active { color: var(--accent); }
 .sort-button .sort-indicator { margin-left: 4px; color: var(--accent); }
 tr.selectable { cursor: pointer; }
 tr.selectable:hover { background: var(--row-hover); }
-tr.reference-row { background: var(--reference-row-bg); box-shadow: inset 3px 0 0 var(--accent); }
+tr.reference-row { background: var(--reference-row-bg); box-shadow: inset 4px 0 0 var(--reference-row-edge); }
 tr.reference-row:hover { background: var(--row-hover); }
 .metric-delta { display: inline-block; font-weight: 700; line-height: 1.35; font-variant-numeric: tabular-nums; }
 .delta-positive { color: var(--ok); }

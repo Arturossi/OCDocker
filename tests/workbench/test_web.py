@@ -111,13 +111,26 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b"plot-span-full" in style
     assert b"cdn.plot.ly/plotly" in body
     assert b"buildRankPlotlySpec" in script
+    assert b"barmode" in script
+    assert b"handleRankPlotRowClick" in script
+    assert b"rankPlotExpandLabels" in script
+    assert b"scheduleAblationDesignPreview" in script
+    assert b"ensureAblationDesignFeatures" in script
+    assert b"mountVirtualFeatureList" in script
+    assert b"renderAblationDesignTemplateDiff" in script
+    assert b"writeAblationDesignPolicy" in script
+    assert b"/api/ablation-design/write" in script
+    assert b"ablation-design-write-policy" in body
+    assert b"ablation-design-template-diff" in body
+    assert b"ablation-design-case-warning" in body
+    assert b"ablationDesignUpdateCaseAndFilterWarnings" in script
     assert b"mountPendingPlotlyCharts" in script
     assert b"plotly-host" in style
     assert b"externalBaselineKindLabel" in script
     assert b"RANK_BAR_LABELS" in script
     assert b"Other consensus" in script
     assert b'"SF"' in script
-    assert b"#9ecae1" in script
+    assert b"#9BD4EF" in script
     assert b"barLabel" in script
     assert b"rankPlotLabelOffset" in script
     assert b"replica values" in script
@@ -153,6 +166,8 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b"rankedMetricCell" in script
     assert b"Rank ${rank} of ${total}" in script
     assert b"metric-rank" not in script
+    assert b"rank-mark-1" in body
+    assert b"reference row" in body
     assert b".rank-top" in style
     assert b".rank-second" in style
     assert b".rank-third" in style
@@ -192,7 +207,34 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     parse_only = parse_only.replace("uiStateHydrated = true;", "")
     parse_only = parse_only.replace('setActiveTab(state.activeTab || "ablation");', "")
     parse_only = parse_only.replace("refresh();", "")
-    MiniRacer().eval(parse_only)
+    ctx = MiniRacer()
+    ctx.eval(parse_only)
+    ctx.eval(
+        """
+(function(){
+  var rows = [
+    {label:'study_a', value:0.5, std:0.01, count:3, display:'0.5', barLabel:'mu 0.5', external:false, study_name:'study_a'},
+    {label:'vina_vina', value:0.4, std:0.02, count:1, display:'0.4', barLabel:'mu 0.4', external:true, baseline_family:'scoring_function', study_name:'vina_vina'}
+  ];
+  var metric = {name:'test_bedroc', label:'Test BEDROC', direction:'max'};
+  var spec = buildRankPlotlySpec(rows, metric);
+  var barTraces = spec.data.filter(function(trace){ return trace.type === 'bar'; });
+  if (barTraces.length < 1) throw new Error('buildRankPlotlySpec must emit at least one bar trace');
+  if (spec.data.some(function(trace){ return trace.type === 'scatter'; })) {
+    throw new Error('buildRankPlotlySpec must not use scatter legend traces');
+  }
+  if (spec.layout.barmode !== 'overlay') throw new Error('buildRankPlotlySpec must set barmode overlay');
+  if (!spec.layout.title || spec.layout.title.text.indexOf('Error bars') === -1) {
+    throw new Error('buildRankPlotlySpec must include the error-bar subtitle');
+  }
+  if (spec.layout.legend.itemdoubleclick !== 'toggleothers') {
+    throw new Error('buildRankPlotlySpec legend must support double-click isolate');
+  }
+  var simple = buildSimpleBarPlotlySpec(rows, metric);
+  if (simple.layout.barmode !== 'overlay') throw new Error('buildSimpleBarPlotlySpec must set barmode overlay');
+})();
+"""
+    )
     assert b"/api/figure-asset" in script
     assert b"data-sort-key" in script
     assert b"metric:" in script

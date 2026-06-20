@@ -11,9 +11,13 @@ dashboard exposes curated metrics as sortable ablation-table columns, replica
 status, ablation summaries, dataset/role/metric-filtered figure previews,
 separate test, validation, and combined generated metric-delta/rank/stability
 plots with SVG/CSV export, and separated model-comparison versus selected-model
-figure sections through ``/api/ocscore-workspace``. Design and
-execution-control helpers remain guarded and explicit; the server does not launch
-or stop OCScore runs as part of read-only inspection.
+figure sections through ``/api/ocscore-workspace``. The dashboard **Design**
+tab composes custom feature-policy ablations interactively: clone bundled
+policies, preview kept/excluded features against workspace metadata, and generate
+read-only YAML plus ``ocdocker ocscore train`` command plans through
+``/api/ablation-design``. Design and execution-control helpers remain guarded
+and explicit; the server does not launch or stop OCScore runs as part of
+read-only inspection.
 
 Submodules
 ----------
@@ -23,6 +27,7 @@ Submodules
 
    OCDocker.Workbench.Adoption
    OCDocker.Workbench.Ablation
+   OCDocker.Workbench.AblationDesign
    OCDocker.Workbench.Artifacts
    OCDocker.Workbench.Bundle
    OCDocker.Workbench.Comparison

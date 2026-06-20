@@ -60,6 +60,8 @@ LOGGER = oclogging.get_logger("ocscore.feature_reduction")
 
 DEFAULT_METADATA_COLUMNS = ["receptor", "ligand", "name", "type", "db"]
 OCSCORE_PIPELINE_METADATA_COLUMNS = [
+    "database",
+    "target",
     "dataset",
     "kind",
     "label",

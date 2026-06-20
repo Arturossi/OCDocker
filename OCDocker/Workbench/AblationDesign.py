@@ -14,6 +14,7 @@ import json
 
 from pathlib import Path
 from typing import Any
+from typing import Optional
 
 from OCDocker.Workbench.IO import model_to_data
 from OCDocker.Workbench.Models import FeaturePolicySelection
@@ -59,6 +60,7 @@ def _feature_policy_tools() -> dict[str, Any]:
     from OCDocker.OCScore.Utils.FeaturePolicy import FEATURE_POLICY_METADATA_JSON
     from OCDocker.OCScore.Utils.FeaturePolicy import apply_feature_policy
     from OCDocker.OCScore.Utils.FeaturePolicy import discover_feature_policies
+    from OCDocker.OCScore.Utils.FeaturePolicy import discover_candidate_model_features
     from OCDocker.OCScore.Utils.FeaturePolicy import feature_policy_from_mapping
     from OCDocker.OCScore.Utils.FeaturePolicy import feature_policy_to_yaml_text
 
@@ -66,9 +68,355 @@ def _feature_policy_tools() -> dict[str, Any]:
         "FEATURE_POLICY_METADATA_JSON": FEATURE_POLICY_METADATA_JSON,
         "apply_feature_policy": apply_feature_policy,
         "discover_feature_policies": discover_feature_policies,
+        "discover_candidate_model_features": discover_candidate_model_features,
         "feature_policy_from_mapping": feature_policy_from_mapping,
         "feature_policy_to_yaml_text": feature_policy_to_yaml_text,
     }
+
+
+def _optional_input_path(body: dict[str, Any], key: str) -> str | None:
+    '''Return one trimmed input path from a request body when present.
+
+    Parameters
+    ----------
+    body : dict[str, Any]
+        Parsed JSON request body.
+    key : str
+        Body field name.
+
+    Returns
+    -------
+    str or None
+        Trimmed path string, or ``None`` when absent.
+    '''
+
+    value = str(body.get(key) or "").strip()
+    return value or None
+
+
+def _normalize_feature_source(value: str | None) -> str:
+    '''Normalize the requested descriptor source selector.
+
+    Parameters
+    ----------
+    value : str or None
+        Requested source name.
+
+    Returns
+    -------
+    str
+        One of ``auto``, ``pdbbind``, ``dudez``, or ``union``.
+    '''
+
+    normalized = str(value or "auto").strip().lower()
+    if normalized in {"auto", "pdbbind", "dudez", "union"}:
+        return normalized
+    raise ValueError("feature_source must be one of: auto, pdbbind, dudez, union.")
+
+
+_INPUT_PATH_KEYS = ("raw_input_dir", "merged_input", "pdbbind_input", "dudez_input")
+
+
+def _body_has_input_paths(body: dict[str, Any]) -> bool:
+    '''Return whether a request body already specifies modeling input paths.
+
+    Parameters
+    ----------
+    body : dict[str, Any]
+        Parsed JSON request body.
+
+    Returns
+    -------
+    bool
+        ``True`` when at least one supported input path is present.
+    '''
+
+    return any(_optional_input_path(body, key) for key in _INPUT_PATH_KEYS)
+
+
+def _default_workspace_input_paths(root: str | Path) -> dict[str, str]:
+    '''Return standard raw_prepare paths relative to the served Workbench root.
+
+    Parameters
+    ----------
+    root : str or pathlib.Path
+        Served OCScore output root.
+
+    Returns
+    -------
+    dict[str, str]
+        ``raw_input_dir``, ``pdbbind_input``, and ``dudez_input`` when present.
+    '''
+
+    from OCDocker.OCScore.Utils.RawModelingInput import RAW_DUDEZ_NAME
+    from OCDocker.OCScore.Utils.RawModelingInput import RAW_PDBBIND_NAME
+
+    raw_prepare = Path(root).expanduser().resolve() / "raw_prepare"
+    pdbbind = raw_prepare / RAW_PDBBIND_NAME
+    dudez = raw_prepare / RAW_DUDEZ_NAME
+    if not pdbbind.is_file() or not dudez.is_file():
+        return {}
+    return {"raw_input_dir": str(raw_prepare)}
+
+
+def _apply_workspace_input_defaults(
+    body: dict[str, Any],
+    root: str | Path | None,
+) -> dict[str, Any]:
+    '''Merge workspace-discovered input paths into one request body.
+
+    Parameters
+    ----------
+    body : dict[str, Any]
+        Parsed JSON request body.
+    root : str, pathlib.Path, or None
+        Served OCScore output root used for auto-discovery.
+
+    Returns
+    -------
+    dict[str, Any]
+        Request body with discovered paths filled in when absent.
+    '''
+
+    if _body_has_input_paths(body) or root is None:
+        return body
+
+    discovered = _default_workspace_input_paths(root)
+    if not discovered:
+        return body
+
+    merged = dict(body)
+    for key in _INPUT_PATH_KEYS:
+        value = discovered.get(key)
+        if value:
+            merged[key] = value
+    merged["_discovered_from"] = discovered["raw_input_dir"]
+    return merged
+
+
+def _load_modeling_table_columns(body: dict[str, Any]) -> tuple[dict[str, Optional[list[str]]], dict[str, str]]:
+    '''Read modeling column names from CSV headers referenced by a design request.
+
+    Parameters
+    ----------
+    body : dict[str, Any]
+        Parsed JSON request body with one supported input mode.
+
+    Returns
+    -------
+    tuple[dict[str, list[str] | None], dict[str, str]]
+        Column lists keyed by ``pdbbind`` / ``dudez`` and resolved input paths.
+
+    Raises
+    ------
+    ValueError
+        If no supported input mode was supplied.
+    FileNotFoundError
+        If referenced input paths do not exist.
+    '''
+
+    from OCDocker.OCScore.Utils.RawModelingInput import discover_raw_modeling_input_columns
+
+    return discover_raw_modeling_input_columns(
+        raw_input_dir=_optional_input_path(body, "raw_input_dir"),
+        merged_input=_optional_input_path(body, "merged_input"),
+        pdbbind_input=_optional_input_path(body, "pdbbind_input"),
+        dudez_input=_optional_input_path(body, "dudez_input"),
+    )
+
+
+def _table_columns(table: list[str] | Any | None) -> list[str]:
+    '''Return column names from a loaded table or pre-read header list.
+
+    Parameters
+    ----------
+    table : list[str], pandas.DataFrame, or None
+        Loaded table or header column list.
+
+    Returns
+    -------
+    list[str]
+        Column names when available.
+    '''
+
+    if table is None:
+        return []
+    if isinstance(table, list):
+        return [str(column) for column in table]
+    return [str(column) for column in table.columns]
+
+
+def _select_feature_columns(
+    tables: dict[str, Any],
+    *,
+    feature_source: str,
+) -> tuple[str, list[str]]:
+    '''Choose which loaded table columns drive candidate-feature discovery.
+
+    Parameters
+    ----------
+    tables : dict[str, Any]
+        Loaded PDBbind and/or DUDEz tables.
+    feature_source : str
+        One of ``auto``, ``pdbbind``, ``dudez``, or ``union``.
+
+    Returns
+    -------
+    tuple[str, list[str]]
+        Selected source label and ordered column names.
+
+    Raises
+    ------
+    ValueError
+        If the requested source is unavailable.
+    '''
+
+    pdbbind_df = tables.get("pdbbind")
+    dudez_df = tables.get("dudez")
+    if feature_source == "pdbbind":
+        if pdbbind_df is None:
+            raise ValueError("PDBbind input was not loaded.")
+        return "pdbbind", _table_columns(pdbbind_df)
+    if feature_source == "dudez":
+        if dudez_df is None:
+            raise ValueError("DUDEz input was not loaded.")
+        return "dudez", _table_columns(dudez_df)
+    if feature_source == "union":
+        columns: list[str] = []
+        for frame in (pdbbind_df, dudez_df):
+            for name in _table_columns(frame):
+                if name not in columns:
+                    columns.append(name)
+        if not columns:
+            raise ValueError("Union feature discovery requires PDBbind and/or DUDEz tables.")
+        return "union", columns
+    if pdbbind_df is not None:
+        return "pdbbind", _table_columns(pdbbind_df)
+    if dudez_df is not None:
+        return "dudez", _table_columns(dudez_df)
+    raise ValueError("No modeling tables were loaded.")
+
+
+def _discovery_payload_from_columns(
+    columns: list[str],
+    *,
+    feature_source: str,
+    input_paths: dict[str, str],
+) -> dict[str, Any]:
+    '''Build one candidate-feature discovery payload from raw table columns.
+
+    Parameters
+    ----------
+    columns : list[str]
+        Raw table column names.
+    feature_source : str
+        Selected descriptor source label.
+    input_paths : dict[str, str]
+        Resolved input paths used for loading.
+
+    Returns
+    -------
+    dict[str, Any]
+        JSON-safe discovery payload with metadata stripped out of candidates.
+    '''
+
+    discovery = _feature_policy_tools()["discover_candidate_model_features"](columns)
+    blocks = discovery.blocks
+    return {
+        "ok": True,
+        "feature_source": feature_source,
+        "input_paths": input_paths,
+        "column_count": len(columns),
+        "metadata_columns": discovery.metadata_columns,
+        "target_columns": discovery.target_columns,
+        "unmatched_columns": discovery.unmatched_columns,
+        "candidate_features": discovery.candidate_features,
+        "candidate_feature_count": len(discovery.candidate_features),
+        "feature_groups": {
+            "ligand": list(blocks.ligand),
+            "receptor": list(blocks.receptor),
+            "scoring": list(blocks.scoring),
+            "unmatched": list(blocks.unmatched),
+        },
+    }
+
+
+def _resolve_preview_candidate_features(
+    body: dict[str, Any],
+    layout_root: Path,
+) -> tuple[list[str], str | None]:
+    '''Resolve candidate features for preview/plan requests.
+
+    Parameters
+    ----------
+    body : dict[str, Any]
+        Parsed JSON request body.
+    layout_root : pathlib.Path
+        Resolved strict OCScore layout root.
+
+    Returns
+    -------
+    tuple[list[str], str or None]
+        Candidate feature names and a short source label.
+    '''
+
+    explicit = body.get("candidate_features")
+    if isinstance(explicit, list) and explicit:
+        return [str(item) for item in explicit], "request"
+
+    if any(
+        _optional_input_path(body, key)
+        for key in ("raw_input_dir", "merged_input", "pdbbind_input", "dudez_input")
+    ):
+        try:
+            payload = discover_ablation_input_features(body)
+            features = payload.get("candidate_features") or []
+            if features:
+                source = str(payload.get("feature_source") or "input")
+                paths = payload.get("input_paths") or {}
+                path_hint = next(iter(paths.values()), source)
+                return [str(item) for item in features], f"input:{path_hint}"
+        except (OSError, ValueError, FileNotFoundError):
+            pass
+
+    features, source = _discover_candidate_features(layout_root)
+    if features:
+        return features, source
+    return [], None
+
+
+def _build_ocscore_input_spec(body: dict[str, Any]) -> OCScoreInputSpec:
+    '''Build one validated OCScore input spec from a design request.
+
+    Parameters
+    ----------
+    body : dict[str, Any]
+        Parsed JSON request body.
+
+    Returns
+    -------
+    OCScoreInputSpec
+        Validated OCScore input selection.
+
+    Raises
+    ------
+    ValueError
+        If no supported input mode was supplied.
+    '''
+
+    raw_input_dir = _optional_input_path(body, "raw_input_dir")
+    merged_input = _optional_input_path(body, "merged_input")
+    pdbbind_input = _optional_input_path(body, "pdbbind_input")
+    dudez_input = _optional_input_path(body, "dudez_input")
+    if raw_input_dir:
+        return OCScoreInputSpec(raw_input_dir=raw_input_dir)
+    if merged_input:
+        return OCScoreInputSpec(merged_input=merged_input)
+    if pdbbind_input and dudez_input:
+        return OCScoreInputSpec(pdbbind_input=pdbbind_input, dudez_input=dudez_input)
+    raise ValueError(
+        "Provide raw_input_dir, merged_input, or both pdbbind_input and dudez_input for planning."
+    )
 
 
 def _policy_catalog_entry(policy: Any) -> dict[str, Any]:
@@ -235,6 +583,18 @@ def _build_design_context(root: Path) -> dict[str, Any]:
     existing_names = sorted({study.study_name for study in workspace.ablation_studies})
     ablation_container = _resolve_ablation_container(layout_root)
     protocol_path = str(protocol.source_path) if protocol and protocol.source_path else ""
+    discovered = _default_workspace_input_paths(root)
+    discovered_inputs = {"ok": bool(discovered)}
+    if discovered:
+        raw_prepare = Path(discovered["raw_input_dir"])
+        discovered_inputs.update(
+            {
+                "discovered_from": discovered["raw_input_dir"],
+                "raw_input_dir": discovered["raw_input_dir"],
+                "pdbbind_input": str(raw_prepare / "raw_pdbbind.csv"),
+                "dudez_input": str(raw_prepare / "raw_dudez.csv"),
+            }
+        )
     return {
         "ok": True,
         "read_only": True,
@@ -246,6 +606,7 @@ def _build_design_context(root: Path) -> dict[str, Any]:
         "existing_ablation_names": existing_names,
         "candidate_features": candidate_features,
         "candidate_source": candidate_source,
+        "discovered_inputs": discovered_inputs,
         "catalog": catalog,
     }
 
@@ -304,9 +665,12 @@ def _build_ablation_spec(body: dict[str, Any], *, layout_root: Path) -> OCScoreA
     if not protocol:
         raise ValueError("Request body must include 'protocol'.")
 
-    raw_input_dir = str(body.get("raw_input_dir") or "").strip()
-    if not raw_input_dir:
-        raise ValueError("Request body must include 'raw_input_dir'.")
+    raw_input_dir = _optional_input_path(body, "raw_input_dir")
+    if not _body_has_input_paths(body):
+        raise ValueError(
+            "Provide raw_input_dir, merged_input, or both pdbbind_input and dudez_input, "
+            "or serve a Workbench root that contains raw_prepare/raw_pdbbind.csv and raw_dudez.csv."
+        )
 
     output_dir = str(body.get("output_dir") or "").strip()
     if not output_dir:
@@ -322,7 +686,7 @@ def _build_ablation_spec(body: dict[str, Any], *, layout_root: Path) -> OCScoreA
     return OCScoreAblationSpec(
         name=campaign_name,
         protocol=protocol,
-        inputs=OCScoreInputSpec(raw_input_dir=raw_input_dir),
+        inputs=_build_ocscore_input_spec(body),
         output_dir=output_dir,
         feature_policies=FeaturePolicySelection(
             names=(policy_name,),
@@ -354,6 +718,64 @@ def build_ablation_design_context(root: str | Path) -> dict[str, Any]:
     return _build_design_context(Path(root).expanduser().resolve())
 
 
+def discover_ablation_input_features(
+    body: dict[str, Any],
+    root: str | Path | None = None,
+) -> dict[str, Any]:
+    '''Discover candidate model features from raw PDBbind/DUDEz modeling inputs.
+
+    Parameters
+    ----------
+    body : dict[str, Any]
+        Parsed JSON request body with input paths and optional ``feature_source``.
+    root : str, pathlib.Path, or None
+        Served OCScore output root used to auto-discover ``raw_prepare/`` tables
+        when explicit input paths are omitted.
+
+    Returns
+    -------
+    dict[str, Any]
+        JSON-safe payload with metadata/target columns removed from candidates.
+
+    Raises
+    ------
+    ValueError
+        If input paths or ``feature_source`` are invalid.
+    FileNotFoundError
+        If referenced input paths do not exist.
+    '''
+
+    body = _apply_workspace_input_defaults(body, root)
+    if not _body_has_input_paths(body):
+        raise ValueError(
+            "No raw modeling input files found. Expected "
+            f"{Path(root).expanduser().resolve() / 'raw_prepare' / 'raw_pdbbind.csv'} and "
+            "raw_dudez.csv under the served Workbench root, or set input paths in Run settings."
+        )
+
+    feature_source = _normalize_feature_source(body.get("feature_source"))
+    tables, input_paths = _load_modeling_table_columns(body)
+    selected_source, columns = _select_feature_columns(tables, feature_source=feature_source)
+    payload = _discovery_payload_from_columns(
+        columns,
+        feature_source=selected_source,
+        input_paths=input_paths,
+    )
+    payload["columns_only"] = True
+    discovered_from = body.get("_discovered_from")
+    if discovered_from:
+        payload["discovered_from"] = discovered_from
+        payload["auto_discovered"] = True
+    resolved_inputs = {
+        key: value
+        for key in _INPUT_PATH_KEYS
+        if (value := _optional_input_path(body, key))
+    }
+    if resolved_inputs:
+        payload["resolved_inputs"] = resolved_inputs
+    return payload
+
+
 def preview_ablation_design(root: str | Path, body: dict[str, Any]) -> dict[str, Any]:
     '''Preview one draft feature policy against workspace candidate features.
 
@@ -376,14 +798,9 @@ def preview_ablation_design(root: str | Path, body: dict[str, Any]) -> dict[str,
     '''
 
     layout_root = resolve_ocscore_layout_root(root)
+    body = _apply_workspace_input_defaults(body, root)
     policy_data = _coerce_policy_draft(body)
-    candidate_features = body.get("candidate_features")
-    candidate_source = None
-    if isinstance(candidate_features, list) and candidate_features:
-        candidates = [str(item) for item in candidate_features]
-        candidate_source = "request"
-    else:
-        candidates, candidate_source = _discover_candidate_features(layout_root)
+    candidates, candidate_source = _resolve_preview_candidate_features(body, layout_root)
 
     payload = _preview_payload(policy_data, candidates)
     payload["candidate_source"] = candidate_source
@@ -413,6 +830,7 @@ def plan_ablation_design(root: str | Path, body: dict[str, Any]) -> dict[str, An
 
     root_path = Path(root).expanduser().resolve()
     layout_root = resolve_ocscore_layout_root(root_path)
+    body = _apply_workspace_input_defaults(body, root_path)
     policy_data = _coerce_policy_draft(body)
     spec = _build_ablation_spec(body, layout_root=layout_root)
     plan = plan_ocscore_train_command(spec)
@@ -429,6 +847,101 @@ def plan_ablation_design(root: str | Path, body: dict[str, Any]) -> dict[str, An
         "planned_command": " ".join(plan.command),
         "planned_command_argv": list(plan.command),
         "preflight": model_to_data(report),
+    }
+
+
+def write_ablation_design_policy(root: str | Path, body: dict[str, Any]) -> dict[str, Any]:
+    '''Write one draft feature-policy YAML into the served workspace layout.
+
+    Parameters
+    ----------
+    root : str or pathlib.Path
+        Served OCScore output root.
+    body : dict[str, Any]
+        Parsed JSON request body with ``policy``, ``policy_yml_path``,
+        ``confirm``, and optional ``overwrite``.
+
+    Returns
+    -------
+    dict[str, Any]
+        JSON-safe write result.
+
+    Raises
+    ------
+    ValueError
+        If confirmation, paths, or overwrite guards fail.
+    FileExistsError
+        If the target file exists and ``overwrite`` is not set.
+    '''
+
+    if not body.get("confirm"):
+        raise ValueError("Set confirm: true to write a policy YAML into the workspace.")
+
+    root_path = Path(root).expanduser().resolve()
+    layout_root = resolve_ocscore_layout_root(root_path)
+    policy_data = _coerce_policy_draft(body)
+    tools = _feature_policy_tools()
+    feature_policy_to_yaml_text = tools["feature_policy_to_yaml_text"]
+    yaml_text = str(body.get("policy_yaml") or "").strip()
+    if not yaml_text:
+        yaml_text = feature_policy_to_yaml_text(policy_data)
+
+    policy_yml_path = str(body.get("policy_yml_path") or "").strip()
+    if not policy_yml_path:
+        policy_name = str(policy_data.get("name") or "").strip()
+        if not policy_name:
+            raise ValueError("Request body must include policy_yml_path or a policy name.")
+        policy_yml_path = str(Path("Ablations") / f"{policy_name}.yml")
+
+    target = Path(policy_yml_path).expanduser()
+    if not target.is_absolute():
+        target = (layout_root / target).resolve()
+    else:
+        target = target.resolve()
+
+    layout_resolved = layout_root.resolve()
+    try:
+        target.relative_to(layout_resolved)
+    except ValueError as exc:
+        raise ValueError(
+            f"Policy path must stay inside the workspace layout root ({layout_resolved})."
+        ) from exc
+
+    from OCDocker.OCScore.Utils.FeaturePolicy import BUNDLED_FEATURE_POLICY_DIR
+
+    bundled_resolved = BUNDLED_FEATURE_POLICY_DIR.resolve()
+    try:
+        target.relative_to(bundled_resolved)
+    except ValueError:
+        pass
+    else:
+        raise ValueError("Bundled/shipped feature policies cannot be overwritten from the Workbench.")
+
+    if target.is_file() and not body.get("overwrite"):
+        raise FileExistsError(f"Policy file already exists: {target}. Set overwrite: true to replace it.")
+
+    discovery = tools["discover_feature_policies"]()
+    bundled_names = {
+        name
+        for name, policy in discovery.policies.items()
+        if policy.source_kind == "bundled"
+    }
+    policy_name = str(policy_data.get("name") or "").strip()
+    if policy_name in bundled_names and target.name == f"{policy_name}.yml":
+        bundled_path = bundled_resolved / f"{policy_name}.yml"
+        if bundled_path.is_file() and target.resolve() == bundled_path.resolve():
+            raise ValueError(
+                f'Bundled policy "{policy_name}" is read-only. Choose a different name or path.'
+            )
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(yaml_text if yaml_text.endswith("\n") else f"{yaml_text}\n", encoding="utf-8")
+    return {
+        "ok": True,
+        "read_only": False,
+        "written_path": str(target),
+        "policy_name": policy_name or target.stem,
+        "policy_yaml": yaml_text,
     }
 
 
@@ -456,16 +969,22 @@ def handle_ablation_design_post(root: str | Path, endpoint: str, body: dict[str,
     '''
 
     path = endpoint.rstrip("/")
+    if path == "/api/ablation-design/features":
+        return discover_ablation_input_features(body, root)
     if path == "/api/ablation-design/preview":
         return preview_ablation_design(root, body)
     if path == "/api/ablation-design/plan":
         return plan_ablation_design(root, body)
+    if path == "/api/ablation-design/write":
+        return write_ablation_design_policy(root, body)
     raise ValueError(f"Unknown ablation design endpoint: {endpoint}")
 
 
 __all__ = [
     "build_ablation_design_context",
+    "discover_ablation_input_features",
     "handle_ablation_design_post",
     "plan_ablation_design",
     "preview_ablation_design",
+    "write_ablation_design_policy",
 ]

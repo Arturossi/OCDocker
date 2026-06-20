@@ -127,7 +127,7 @@ Commands
      # or:
      ocdocker init-config --conf OCDocker.yml
 
-- workbench: Validate specs, preflight specs, build run bundles, prepare launch plans, export publication scaffolds, emit starter templates and JSON Schemas, and serve a read-only strict OCScore dashboard over output roots with direct baseline replicas and ``ablation/`` or ``ablations/`` studies. The dashboard reports curated metrics as sortable ablation-table columns, replica status, ablation summaries, dataset/role/metric-filtered figure previews, explicit test/validation/combined generated metric-delta, rank, and replica-stability plots with SVG/CSV export, and separated model-comparison versus selected-model figure sections without launching or stopping runs.
+- workbench: Validate specs, preflight specs, build run bundles, prepare launch plans, export publication scaffolds, emit starter templates and JSON Schemas, and serve a read-only strict OCScore dashboard over output roots with direct baseline replicas and ``ablation/`` or ``ablations/`` studies. The dashboard reports curated metrics as sortable ablation-table columns, replica status, ablation summaries, dataset/role/metric-filtered figure previews, explicit test/validation/combined generated metric-delta, rank, and replica-stability plots with SVG/CSV export, separated model-comparison versus selected-model figure sections, and a **Design** tab for composing custom feature-policy ablations without leaving the browser. Design preview and planning stay read-only: the UI emits policy YAML and ``ocdocker ocscore train`` commands but does not launch runs.
 
   .. code-block:: bash
 
@@ -143,6 +143,8 @@ Commands
      # Dashboard UI sources: OCDocker/Workbench/static/ (index.html, app.css, app.js).
      # Old adopted Workbench run_manifest.yml smoke folders are reported as unsupported.
      # The dashboard reads /api/ocscore-workspace and stays read-only.
+     # Use the Design tab or POST /api/ablation-design/features to load descriptor columns
+     # from raw PDBbind/DUDEz inputs (metadata stripped) and preview custom policies.
      ocdocker workbench schema ocscore_study --output ocscore_study.schema.json
      ocdocker workbench plan study.yml --run-id run-001 --output plan.json
 

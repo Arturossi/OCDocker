@@ -129,9 +129,16 @@
           <div class="comparison-table-legends comparison-table-legends-top" aria-label="Table legend">
             <div id="comparison-color-legend-top" class="metric-legend color-legend" aria-label="Model color key"></div>
             <div id="comparison-legend-top" class="metric-legend" aria-label="Metric notation">
+              <span class="legend-intro legend-intro-inline">Metric cell shading (per column, best value first):</span>
+              <span class="legend-item"><span class="legend-mark rank-mark rank-mark-1"></span> 1st</span>
+              <span class="legend-item"><span class="legend-mark rank-mark rank-mark-2"></span> 2nd</span>
+              <span class="legend-item"><span class="legend-mark rank-mark rank-mark-3"></span> 3rd</span>
+              <span class="legend-item"><span class="legend-mark ref-row-mark"></span> reference row</span>
               <span class="legend-item"><span class="legend-mark mean-mark">μ</span> replica mean (multi-replica cells only)</span>
               <span class="legend-item"><span class="legend-mark std-mark">σ</span> std dev in those cells</span>
               <span class="legend-item"><span class="legend-mark delta-mark">Δ</span> vs reference (column)</span>
+              <span class="legend-item"><span class="legend-mark delta-pos-mark">+</span> better than reference</span>
+              <span class="legend-item"><span class="legend-mark delta-neg-mark">−</span> worse than reference</span>
               <span class="legend-item"><span class="legend-mark noise-mark">~</span> |Δ| &lt; σ (within replica noise)</span>
               <span class="legend-item"><span class="legend-mark synth-mark">≈</span> synthesized SF consensus (approximate)</span>
             </div>
@@ -140,9 +147,16 @@
           <div class="comparison-table-legends comparison-table-legends-bottom" aria-label="Table legend">
             <div id="comparison-color-legend-bottom" class="metric-legend color-legend" aria-label="Model color key"></div>
             <div id="comparison-legend-bottom" class="metric-legend" aria-label="Metric notation">
+              <span class="legend-intro legend-intro-inline">Metric cell shading (per column, best value first):</span>
+              <span class="legend-item"><span class="legend-mark rank-mark rank-mark-1"></span> 1st</span>
+              <span class="legend-item"><span class="legend-mark rank-mark rank-mark-2"></span> 2nd</span>
+              <span class="legend-item"><span class="legend-mark rank-mark rank-mark-3"></span> 3rd</span>
+              <span class="legend-item"><span class="legend-mark ref-row-mark"></span> reference row</span>
               <span class="legend-item"><span class="legend-mark mean-mark">μ</span> replica mean (multi-replica cells only)</span>
               <span class="legend-item"><span class="legend-mark std-mark">σ</span> std dev in those cells</span>
               <span class="legend-item"><span class="legend-mark delta-mark">Δ</span> vs reference (column)</span>
+              <span class="legend-item"><span class="legend-mark delta-pos-mark">+</span> better than reference</span>
+              <span class="legend-item"><span class="legend-mark delta-neg-mark">−</span> worse than reference</span>
               <span class="legend-item"><span class="legend-mark noise-mark">~</span> |Δ| &lt; σ (within replica noise)</span>
               <span class="legend-item"><span class="legend-mark synth-mark">≈</span> synthesized SF consensus (approximate)</span>
             </div>
@@ -230,65 +244,159 @@
           <h2>Design ablation</h2>
           <span id="ablation-design-summary" class="muted">Compose a feature-policy YAML and training command without leaving the dashboard.</span>
         </div>
-        <div class="ablation-design-grid">
-          <section class="ablation-design-card">
-            <h3>Start from template</h3>
-            <label class="field" for="ablation-design-template"><span>Bundled policy</span>
-              <select id="ablation-design-template"></select>
-            </label>
-            <p id="ablation-design-template-description" class="muted ablation-design-note"></p>
-          </section>
-          <section class="ablation-design-card ablation-design-card-wide">
-            <h3>Feature policy</h3>
-            <div class="ablation-design-fields">
-              <label class="field" for="ablation-design-name"><span>Policy name</span>
-                <input id="ablation-design-name" type="text" autocomplete="off" spellcheck="false" placeholder="my_custom_ablation">
+        <div class="ablation-design-layout">
+          <section class="ablation-design-card ablation-design-card-policy">
+            <div class="ablation-design-card-head">
+              <h3>Feature policy</h3>
+              <p id="ablation-design-template-description" class="muted ablation-design-note"></p>
+              <div id="ablation-design-template-diff" class="ablation-design-template-diff" hidden></div>
+            </div>
+            <div class="ablation-design-section">
+              <h4 class="ablation-design-section-title">Start from template</h4>
+              <label class="field ablation-design-field" for="ablation-design-template">
+                <span>Bundled policy</span>
+                <select id="ablation-design-template"></select>
               </label>
-              <label class="field ablation-design-span-2" for="ablation-design-description"><span>Description</span>
-                <input id="ablation-design-description" type="text" placeholder="What this ablation removes or keeps">
-              </label>
-              <label class="field ablation-design-span-2" for="ablation-design-include-patterns"><span>Include patterns</span>
-                <textarea id="ablation-design-include-patterns" rows="3" placeholder="* or ligand_* (one per line)"></textarea>
-              </label>
-              <label class="field ablation-design-span-2" for="ablation-design-exclude-features"><span>Exclude features</span>
-                <textarea id="ablation-design-exclude-features" rows="4" placeholder="ligand_PMI1 (one per line)"></textarea>
-              </label>
-              <label class="field ablation-design-span-2" for="ablation-design-exclude-patterns"><span>Exclude patterns</span>
-                <textarea id="ablation-design-exclude-patterns" rows="3" placeholder="receptor_* (one per line)"></textarea>
-              </label>
+            </div>
+            <div class="ablation-design-section">
+              <h4 class="ablation-design-section-title">Identity</h4>
+              <div class="ablation-design-fields ablation-design-fields-identity">
+                <label class="field ablation-design-field" for="ablation-design-name">
+                  <span>Policy name</span>
+                  <input id="ablation-design-name" type="text" autocomplete="off" spellcheck="false" placeholder="my_custom_ablation">
+                </label>
+                <label class="field ablation-design-field ablation-design-field-wide" for="ablation-design-description">
+                  <span>Description</span>
+                  <input id="ablation-design-description" type="text" spellcheck="false" placeholder="What this ablation removes or keeps">
+                </label>
+              </div>
+            </div>
+            <div class="ablation-design-section">
+              <h4 class="ablation-design-section-title">Available features</h4>
+              <p class="muted ablation-design-note">Uses <code>raw_prepare/raw_pdbbind.csv</code> and <code>raw_prepare/raw_dudez.csv</code> under the served Workbench root. Metadata and target columns are stripped automatically.</p>
+              <div class="ablation-design-fields ablation-design-fields-input">
+                <label class="field ablation-design-field" for="ablation-design-feature-source">
+                  <span>Descriptor source</span>
+                  <select id="ablation-design-feature-source">
+                    <option value="auto">Auto (PDBbind when available)</option>
+                    <option value="pdbbind">PDBbind only</option>
+                    <option value="dudez">DUDEz only</option>
+                    <option value="union">Union of PDBbind + DUDEz columns</option>
+                  </select>
+                </label>
+                <div class="ablation-design-feature-toolbar">
+                  <button id="ablation-design-load-features" type="button" class="button-secondary">Reload features</button>
+                  <input id="ablation-design-feature-filter" type="search" spellcheck="false" placeholder="Filter loaded features">
+                </div>
+                <p id="ablation-design-filter-note" class="ablation-design-case-note muted" hidden>Feature filter is case-insensitive and only narrows the browser — it does not affect policy matching.</p>
+              </div>
+              <div id="ablation-design-feature-summary" class="ablation-design-feature-summary muted"></div>
+              <div class="ablation-design-batch-bar" id="ablation-design-batch-bar" hidden>
+                <label class="field ablation-design-field ablation-design-field-wide" for="ablation-design-wildcard-pattern">
+                  <span>Wildcard pattern</span>
+                  <input id="ablation-design-wildcard-pattern" type="text" spellcheck="false" placeholder="ligand_* · vina_* · *PMI* (fnmatch, one per line)">
+                </label>
+                <div class="ablation-design-batch-controls">
+                  <div class="ablation-design-batch-group">
+                    <span class="ablation-design-batch-label">Select</span>
+                    <button id="ablation-design-select-matched" type="button" class="button-secondary">Matched</button>
+                    <button id="ablation-design-select-visible" type="button" class="button-secondary">Visible</button>
+                    <button id="ablation-design-invert-visible" type="button" class="button-secondary">Invert visible</button>
+                    <button id="ablation-design-clear-selection" type="button" class="button-secondary">Clear</button>
+                  </div>
+                  <div class="ablation-design-batch-group">
+                    <span class="ablation-design-batch-label">Apply</span>
+                    <button id="ablation-design-apply-include-features" type="button" class="button-secondary">→ Include features</button>
+                    <button id="ablation-design-apply-include-pattern" type="button" class="button-secondary">→ Include patterns</button>
+                    <button id="ablation-design-apply-exclude-pattern" type="button" class="button-secondary">→ Exclude patterns</button>
+                    <button id="ablation-design-apply-exclude-features" type="button" class="button-secondary">→ Exclude features</button>
+                  </div>
+                </div>
+                <div id="ablation-design-wildcard-feedback" class="ablation-design-pattern-feedback muted"></div>
+                <p class="ablation-design-case-note muted">Wildcards and policy patterns are case-sensitive (Python fnmatch). Match CSV column names exactly, e.g. <code>ligand_*</code>.</p>
+                <div id="ablation-design-case-warning" class="ablation-design-case-warning" hidden></div>
+              </div>
+              <div id="ablation-design-feature-browser" class="ablation-design-feature-browser" hidden></div>
+              <div class="ablation-design-feature-actions" id="ablation-design-feature-actions" hidden>
+                <p class="muted ablation-design-note ablation-design-feature-actions-note">Use wildcards or checkboxes, then apply to <code>include_features</code> (exact names) or <code>include_patterns</code> / exclude fields. Patterns use fnmatch (<code>*</code>, <code>?</code>).</p>
+              </div>
+            </div>
+            <div class="ablation-design-section">
+              <h4 class="ablation-design-section-title">Include / exclude rules</h4>
+              <div id="ablation-design-pattern-feedback" class="ablation-design-pattern-feedback muted"></div>
+              <div class="ablation-design-fields ablation-design-fields-rules">
+                <label class="field ablation-design-field" for="ablation-design-include-features">
+                  <span>Include features</span>
+                  <textarea id="ablation-design-include-features" rows="5" spellcheck="false" placeholder="ligand_MW&#10;exact feature names, one per line"></textarea>
+                </label>
+                <label class="field ablation-design-field" for="ablation-design-include-patterns">
+                  <span>Include patterns</span>
+                  <textarea id="ablation-design-include-patterns" rows="5" spellcheck="false" placeholder="* or ligand_*&#10;one pattern per line"></textarea>
+                </label>
+                <label class="field ablation-design-field" for="ablation-design-exclude-features">
+                  <span>Exclude features</span>
+                  <textarea id="ablation-design-exclude-features" rows="5" spellcheck="false" placeholder="ligand_PMI1&#10;one feature per line"></textarea>
+                </label>
+                <label class="field ablation-design-field" for="ablation-design-exclude-patterns">
+                  <span>Exclude patterns</span>
+                  <textarea id="ablation-design-exclude-patterns" rows="5" spellcheck="false" placeholder="receptor_*&#10;one pattern per line"></textarea>
+                </label>
+              </div>
               <label class="field ablation-design-checkbox" for="ablation-design-allow-missing-excludes">
                 <input id="ablation-design-allow-missing-excludes" type="checkbox" checked>
                 <span>Allow missing exclude features</span>
               </label>
             </div>
           </section>
-          <section class="ablation-design-card ablation-design-card-wide">
+
+          <section class="ablation-design-card ablation-design-card-run">
             <h3>Run settings</h3>
-            <div class="ablation-design-fields">
-              <label class="field ablation-design-span-2" for="ablation-design-protocol"><span>Protocol path</span>
+            <p class="muted ablation-design-note">Paths used when generating the training command. The dashboard stays read-only: save YAML locally, then run the command in your shell.</p>
+            <div class="ablation-design-fields ablation-design-fields-run">
+              <label class="field ablation-design-field" for="ablation-design-protocol">
+                <span>Protocol path</span>
                 <input id="ablation-design-protocol" type="text" spellcheck="false" placeholder="/path/to/production.yml">
               </label>
-              <label class="field ablation-design-span-2" for="ablation-design-raw-input"><span>Raw input dir</span>
+              <label class="field ablation-design-field" for="ablation-design-raw-input">
+                <span>Raw input dir</span>
                 <input id="ablation-design-raw-input" type="text" spellcheck="false" placeholder="/path/to/raw_prepare">
               </label>
-              <label class="field ablation-design-span-2" for="ablation-design-output-dir"><span>Output dir</span>
+              <label class="field ablation-design-field" for="ablation-design-merged-input">
+                <span>Merged input CSV</span>
+                <input id="ablation-design-merged-input" type="text" spellcheck="false" placeholder="/path/to/merged_input_dataset.csv">
+              </label>
+              <label class="field ablation-design-field" for="ablation-design-pdbbind-input">
+                <span>PDBbind input</span>
+                <input id="ablation-design-pdbbind-input" type="text" spellcheck="false" placeholder="/path/to/raw_pdbbind.csv">
+              </label>
+              <label class="field ablation-design-field" for="ablation-design-dudez-input">
+                <span>DUDEz input</span>
+                <input id="ablation-design-dudez-input" type="text" spellcheck="false" placeholder="/path/to/raw_dudez.csv">
+              </label>
+              <label class="field ablation-design-field" for="ablation-design-output-dir">
+                <span>Output dir</span>
                 <input id="ablation-design-output-dir" type="text" spellcheck="false" placeholder="ablations/my_custom_ablation">
               </label>
-              <label class="field ablation-design-span-2" for="ablation-design-policy-path"><span>Policy YAML path</span>
+              <label class="field ablation-design-field" for="ablation-design-policy-path">
+                <span>Policy YAML path</span>
                 <input id="ablation-design-policy-path" type="text" spellcheck="false" placeholder="Ablations/my_custom_ablation.yml">
               </label>
             </div>
-            <p class="muted ablation-design-note">The dashboard stays read-only: save the generated YAML locally, then run the planned command in your shell.</p>
           </section>
-          <section class="ablation-design-card ablation-design-card-wide">
-            <div class="ablation-design-actions">
-              <button id="ablation-design-preview" type="button">Preview policy</button>
-              <button id="ablation-design-plan" type="button">Generate plan</button>
-              <button id="ablation-design-download-yaml" type="button" class="button-secondary">Download YAML</button>
-              <button id="ablation-design-copy-command" type="button" class="button-secondary" disabled>Copy command</button>
+
+          <section class="ablation-design-card ablation-design-card-output">
+            <div class="ablation-design-card-head ablation-design-card-head-actions">
+              <h3>Preview &amp; plan</h3>
+              <div class="ablation-design-actions">
+                <button id="ablation-design-preview" type="button">Preview policy</button>
+                <button id="ablation-design-plan" type="button">Generate plan</button>
+                <button id="ablation-design-download-yaml" type="button" class="button-secondary">Download YAML</button>
+                <button id="ablation-design-write-policy" type="button" class="button-secondary">Write to workspace</button>
+                <button id="ablation-design-copy-command" type="button" class="button-secondary" disabled>Copy command</button>
+              </div>
             </div>
             <div id="ablation-design-preview-panel" class="ablation-design-preview" hidden>
-              <div id="ablation-design-preview-summary" class="muted"></div>
+              <div id="ablation-design-preview-summary" class="ablation-design-preview-summary"></div>
               <div id="ablation-design-preview-details" class="ablation-design-preview-details"></div>
             </div>
             <pre id="ablation-design-yaml" class="ablation-design-code" hidden></pre>

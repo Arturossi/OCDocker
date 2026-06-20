@@ -7,10 +7,10 @@ const MODEL_COMPARISON_ROLES = new Set(["performance", "cv_mean_std", "cv_heatma
 const SELECTED_MODEL_ROLES = new Set(["shap", "shap_beeswarm", "shap_importance", "shap_dependence", "architecture"]);
 const UI_STATE_KEY = "ocscore-workbench-ui";
 const MODEL_CATEGORY_COLORS = {
-  full_ocscore: "#74c476",
-  ablation: "#9ecae1",
-  sf: "#f4b183",
-  consensus: "#c9b1d4",
+  full_ocscore: "#7FD4B8",
+  ablation: "#9BD4EF",
+  sf: "#F5C96A",
+  consensus: "#E8B4D4",
 };
 const MODEL_CATEGORY_LABELS = {
   full_ocscore: "full_ocscore",
@@ -48,8 +48,16 @@ const state = {
   ablationDesignContext: null,
   ablationDesignPreview: null,
   ablationDesignPlan: null,
+  ablationDesignFeatureCatalog: null,
+  ablationDesignFeatureCatalogKey: "",
+  ablationDesignFeaturesLoading: false,
+  ablationDesignFeatureSelection: [],
+  ablationDesignFeatureFilter: "",
+  ablationDesignWildcardPattern: "",
+  rankPlotExpandLabels: false,
   _persistedSelectedStudyName: null,
 };
+let ablationDesignPreviewTimer = null;
 let uiStateHydrated = false;
 const $ = (id) => document.getElementById(id);
 
@@ -100,6 +108,12 @@ function loadPersistedUiState() {
     if (saved.ablationDesign && typeof saved.ablationDesign === "object") {
       state.ablationDesign = { ...defaultAblationDesign(), ...saved.ablationDesign };
     }
+    if (typeof saved.ablationDesignWildcardPattern === "string") {
+      state.ablationDesignWildcardPattern = saved.ablationDesignWildcardPattern;
+    }
+    if (typeof saved.rankPlotExpandLabels === "boolean") {
+      state.rankPlotExpandLabels = saved.rankPlotExpandLabels;
+    }
     if (saved.selectedMetric) state.selectedMetric = saved.selectedMetric;
     if (saved.comparisonSort) state.comparisonSort = saved.comparisonSort;
     if (saved.detailReplicaSort) state.detailReplicaSort = saved.detailReplicaSort;
@@ -124,6 +138,8 @@ function persistUiState() {
     resultScope: state.resultScope,
     comparisonBaseline: state.comparisonBaseline,
     ablationDesign: readAblationDesignDraft(),
+    ablationDesignWildcardPattern: state.ablationDesignWildcardPattern || "",
+    rankPlotExpandLabels: Boolean(state.rankPlotExpandLabels),
     selectedMetric: state.selectedMetric,
     comparisonSort: state.comparisonSort,
     detailReplicaSort: state.detailReplicaSort,
@@ -181,7 +197,7 @@ function setActiveTab(tabId) {
   document.querySelectorAll("[data-tab-toolbar]").forEach((toolbar) => {
     toolbar.hidden = toolbar.dataset.tabToolbar !== tabId;
   });
-  if (tabId === "design") ensureAblationDesignContext();
+  if (tabId === "design") void ensureAblationDesignContext();
   persistUiState();
 }
 
@@ -658,6 +674,32 @@ function comparisonRowClass(item) {
   return classes.join(" ");
 }
 
+function handleRankPlotRowClick(row) {
+  if (!row) return;
+  const item = comparisonEntries().find((entry) => {
+    if (row.external) return entry.external && entry.entry?.baseline_name === row.study_name;
+    return !entry.external && entry.study?.study_name === row.study_name;
+  });
+  if (item) handleComparisonEntryClick(item);
+}
+
+function rankPlotLabelToggleMarkup(plotKey) {
+  const expanded = Boolean(state.rankPlotExpandLabels);
+  return `<button type="button" class="ghost-button" data-rank-expand-labels="${escapeHtml(plotKey)}" aria-pressed="${expanded ? "true" : "false"}">${expanded ? "Compact labels" : "Expand labels"}</button>`;
+}
+
+function bindRankPlotLabelToggleButtons() {
+  document.querySelectorAll("button[data-rank-expand-labels]").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+      state.rankPlotExpandLabels = !state.rankPlotExpandLabels;
+      persistUiState();
+      renderComparisonCharts();
+    });
+  });
+}
+
 function handleComparisonEntryClick(item) {
   if (!item) return;
   if (item.external) {
@@ -995,63 +1037,101 @@ function rankBarHoverKind(row) {
   return RANK_BAR_LABELS[rankBarCategory(row)];
 }
 
-function buildRankPlotlySpec(rows, metric) {
+function plotYAxisLeftMargin(maxLabelLen, options = {}) {
+  const compact = Boolean(options.compact);
+  const rank = Boolean(options.rank);
+  const expand = Boolean(options.expand);
+  const cap = rank ? (expand ? 560 : 480) : compact ? 156 : 280;
+  const floor = rank ? 140 : compact ? 72 : 112;
+  const perChar = rank ? 6.4 : compact ? 5.6 : 6.8;
+  return Math.min(cap, Math.max(floor, maxLabelLen * perChar));
+}
+
+function buildRankCategoryBarTraces(plotRows, categories) {
+  return categories.map((category) => {
+    const entries = plotRows
+      .map((row, index) => ({ row, index }))
+      .filter(({ row }) => rankBarCategory(row) === category);
+    return {
+      type: "bar",
+      orientation: "h",
+      name: RANK_BAR_LABELS[category],
+      legendgroup: category,
+      y: entries.map(({ index }) => index),
+      x: entries.map(({ row }) => row.value),
+      customdata: entries.map(({ row, index }) => [
+        row.std,
+        row.count,
+        row.hoverLabel || row.display,
+        rankBarHoverKind(row),
+        row.hoverLabel,
+        row.study_name,
+        row.external,
+        index,
+      ]),
+      error_x: {
+        type: "data",
+        array: entries.map(({ row }) => row.std),
+        color: "#8899a6",
+        thickness: 1.2,
+        width: 5,
+      },
+      marker: {
+        color: RANK_BAR_COLORS[category],
+        line: { color: "#ffffff", width: 1 },
+      },
+      showlegend: true,
+      hovertemplate: "<b>%{customdata[4]}</b><br>%{customdata[2]}<br><span style='color:#667085'>%{customdata[3]}</span><extra></extra>",
+    };
+  });
+}
+
+function buildRankPlotlySpec(rows, metric, options = {}) {
   const title = `${plotMetricLabel(metric)} rank across studies`;
   const subtitle = "Error bars = σ across replicas";
+  const expandLabels = Boolean(options.expandLabels);
+  const plotRows = rows.map((row) => {
+    const full = String(row.label || "");
+    return {
+      ...row,
+      plotLabel: full,
+      hoverLabel: full,
+    };
+  });
   const labelOffset = rankPlotLabelOffset(rows);
-  const maxLabelLen = rows.reduce((longest, row) => {
+  const maxLabelLen = plotRows.reduce((longest, row) => {
     const lines = String(row.barLabel || row.display || "").split("<br>");
     return Math.max(longest, ...lines.map((line) => line.length));
   }, 8);
+  const maxYLabelLen = plotRows.reduce(
+    (longest, row) => Math.max(longest, String(row.hoverLabel || row.label || "").length),
+    8,
+  );
   const legendCategories = ["full_ocscore", "ablation", "sf", "consensus"].filter((category) => rows.some((row) => rankBarCategory(row) === category));
-  const plotRows = plotLabelRows(rows, "label");
-  const maxYLabelLen = plotRows.reduce((longest, row) => Math.max(longest, String(row.plotLabel || "").length), 8);
-  const mainTrace = {
-    type: "bar",
-    orientation: "h",
-    y: plotRows.map((row) => row.plotLabel),
-    x: plotRows.map((row) => row.value),
-    customdata: plotRows.map((row) => [row.std, row.count, row.hoverLabel || row.display, rankBarHoverKind(row), row.hoverLabel]),
-    error_x: {
-      type: "data",
-      array: rows.map((row) => row.std),
-      color: "#8899a6",
-      thickness: 1.2,
-      width: 5,
-    },
-    marker: {
-      color: rows.map((row) => rankBarFillColor(row)),
-      line: { color: "#ffffff", width: 1 },
-    },
-    showlegend: false,
-    hovertemplate: "<b>%{customdata[4]}</b><br>%{customdata[2]}<br><span style='color:#667085'>%{customdata[3]}</span><extra></extra>",
-  };
-  const legendTraces = legendCategories.map((category) => ({
-    type: "bar",
-    orientation: "h",
-    x: [null],
-    y: [null],
-    name: RANK_BAR_LABELS[category],
-    marker: { color: RANK_BAR_COLORS[category] },
-    showlegend: true,
-    hoverinfo: "skip",
-  }));
+  const yIndices = plotRows.map((_, index) => index);
+  const categoryTraces = buildRankCategoryBarTraces(plotRows, legendCategories);
+  const tickFontSize = expandLabels ? 11 : Math.max(9, 12 - Math.floor(maxYLabelLen / 36));
   return {
-    data: [mainTrace, ...legendTraces],
+    data: categoryTraces,
     layout: {
       template: "plotly_white",
       paper_bgcolor: "#ffffff",
       plot_bgcolor: "#ffffff",
       autosize: true,
+      barmode: "overlay",
+      title: {
+        ...plotTitleLayout(title, subtitle),
+        pad: { t: 8, b: 4 },
+      },
       margin: {
-        l: plotYAxisLeftMargin(maxYLabelLen),
-        r: Math.max(120, maxLabelLen * 7),
-        t: 56,
+        l: plotYAxisLeftMargin(maxYLabelLen, { rank: true, expand: expandLabels }),
+        r: Math.max(expandLabels ? 180 : 120, maxLabelLen * (expandLabels ? 8 : 7)),
+        t: 104,
         b: 44,
       },
-      annotations: plotRows.map((row) => ({
+      annotations: plotRows.map((row, index) => ({
         x: row.value + (Number(row.std) || 0) + labelOffset,
-        y: row.plotLabel,
+        y: index,
         text: row.barLabel || row.display,
         showarrow: false,
         xanchor: "left",
@@ -1064,10 +1144,14 @@ function buildRankPlotlySpec(rows, metric) {
       legend: {
         orientation: "h",
         yanchor: "bottom",
-        y: 1.02,
+        y: 1,
         xanchor: "left",
         x: 0,
         font: { color: "#667085", size: 12 },
+        bgcolor: "rgba(255,255,255,0)",
+        borderwidth: 0,
+        itemclick: "toggle",
+        itemdoubleclick: "toggleothers",
       },
       xaxis: {
         title: plotMetricLabel(metric),
@@ -1079,9 +1163,16 @@ function buildRankPlotlySpec(rows, metric) {
         zeroline: true,
       },
       yaxis: {
-        automargin: false,
-        autorange: "reversed",
-        tickfont: { color: "#202833", size: 12 },
+        type: "linear",
+        tickmode: "array",
+        tickvals: yIndices,
+        ticktext: plotRows.map((row) => row.hoverLabel || row.label || ""),
+        range: [plotRows.length - 0.5, -0.5],
+        autorange: false,
+        automargin: true,
+        ticklabelposition: "outside",
+        dtick: 1,
+        tickfont: { color: "#202833", size: tickFontSize },
       },
       height: plotLayoutHeight(rows.length, 40, 120, 280),
     },
@@ -1110,11 +1201,47 @@ async function mountPendingPlotlyCharts() {
     await Plotly.newPlot(host, item.spec.data, item.spec.layout, item.spec.config);
     syncPlotlyHostHeight(host, host.layout || item.spec.layout);
     payload.plotlyDivId = item.divId;
+    if (payload.plotKind === "rank") {
+      payload.plotRankSpec = item.spec;
+      const syncRankPlot = () => syncRankPlotAnnotations(host, item.spec);
+      host.on("plotly_click", (event) => {
+        const point = event.points?.[0];
+        if (!point) return;
+        const rowIndex = Number.isFinite(Number(point.customdata?.[7]))
+          ? Number(point.customdata[7])
+          : Math.round(Number(point.y));
+        handleRankPlotRowClick(payload.rows?.[rowIndex]);
+      });
+      host.on("plotly_legendclick", () => {
+        window.setTimeout(syncRankPlot, 0);
+      });
+      host.on("plotly_restyle", () => {
+        window.setTimeout(syncRankPlot, 0);
+      });
+      syncRankPlot();
+    }
   }
   requestAnimationFrame(() => {
     resizePlotlyHosts();
     requestAnimationFrame(resizePlotlyHosts);
   });
+}
+
+function rankPlotVisibleYIndices(host) {
+  const visibleY = new Set();
+  (host.data || []).forEach((trace) => {
+    if (trace.type !== "bar") return;
+    if (trace.visible === false || trace.visible === "legendonly") return;
+    (trace.y || []).forEach((y) => visibleY.add(Math.round(Number(y))));
+  });
+  return visibleY;
+}
+
+function syncRankPlotAnnotations(host, spec) {
+  if (!host?.data || !spec?.layout?.annotations?.length) return;
+  const visibleY = rankPlotVisibleYIndices(host);
+  const annotations = spec.layout.annotations.filter((annotation) => visibleY.has(Math.round(Number(annotation.y))));
+  Plotly.relayout(host, { annotations });
 }
 
 function resizePlotlyHosts(root = document) {
@@ -1156,14 +1283,6 @@ function plotLabelRows(rows, labelKey = "label", maxChars = PLOT_Y_LABEL_MAX_CHA
       hoverLabel: full,
     };
   });
-}
-
-function plotYAxisLeftMargin(maxLabelLen, options = {}) {
-  const compact = Boolean(options.compact);
-  const cap = compact ? 156 : 280;
-  const floor = compact ? 72 : 112;
-  const perChar = compact ? 5.6 : 6.8;
-  return Math.min(cap, Math.max(floor, maxLabelLen * perChar));
 }
 
 function plotLayoutHeight(rowCount, rowStep = 28, base = 120, minimum = 280) {
@@ -1210,32 +1329,26 @@ function buildSimpleBarPlotlySpec(rows, metric, options = {}) {
   const trace = {
     type: "bar",
     orientation: "h",
-    y: replicaSpread ? yIndices : plotRows.map((row) => row.plotLabel),
+    y: yIndices,
     x: plotRows.map((row) => row.value),
-    customdata: plotRows.map((row) => [row.display || row.value, row.hoverLabel]),
+    customdata: plotRows.map((row) => [row.display || row.value, row.hoverLabel || row.plotLabel || row.label]),
     marker: {
       color: plotRows.map((row) => colorForRow(row)),
       line: { color: "#ffffff", width: 1 },
     },
     hovertemplate: "<b>%{customdata[1]}</b><br>%{customdata[0]}<extra></extra>",
   };
-  const yaxis = replicaSpread
-    ? {
-        type: "linear",
-        tickmode: "array",
-        tickvals: yIndices,
-        ticktext: plotRows.map((row) => row.plotLabel),
-        range: [plotRows.length - 0.5, -0.5],
-        autorange: false,
-        automargin: false,
-        dtick: 1,
-        tickfont: { color: "#202833", size: 11 },
-      }
-    : {
-        automargin: false,
-        autorange: "reversed",
-        tickfont: { color: "#202833", size: Math.max(10, 12 - Math.floor(maxLabelLen / 28)) },
-      };
+  const yaxis = {
+    type: "linear",
+    tickmode: "array",
+    tickvals: yIndices,
+    ticktext: plotRows.map((row) => row.plotLabel),
+    range: [plotRows.length - 0.5, -0.5],
+    autorange: false,
+    automargin: false,
+    dtick: 1,
+    tickfont: { color: "#202833", size: replicaSpread ? 11 : Math.max(10, 12 - Math.floor(maxLabelLen / 28)) },
+  };
   return {
     data: [trace],
     layout: {
@@ -1243,6 +1356,7 @@ function buildSimpleBarPlotlySpec(rows, metric, options = {}) {
       paper_bgcolor: "#ffffff",
       plot_bgcolor: "#ffffff",
       autosize: true,
+      barmode: "overlay",
       bargap: replicaSpread ? 0.15 : 0.2,
       title: plotTitleLayout(title, subtitle, options),
       margin: {
@@ -1417,7 +1531,7 @@ function buildComparisonColorLegendHtml(entries) {
   if (!entries.length) return "";
   const categoriesPresent = new Set(entries.map((item) => entryModelCategory(item)));
   const items = [
-    '<span class="legend-intro">Model and Type pill colors by category (same palette as Charts).</span>',
+    '<span class="legend-intro">Model / Type pill colors (same palette as charts).</span>',
   ];
   ["full_ocscore", "ablation", "sf", "consensus"].forEach((category) => {
     if (!categoriesPresent.has(category)) return;
@@ -1517,6 +1631,7 @@ function renderComparisonCharts() {
   container.innerHTML = parts.join("");
   void mountPendingPlotlyCharts();
   bindPlotExportButtons();
+  bindRankPlotLabelToggleButtons();
   bindCollapsiblePlots(container);
 }
 
@@ -1901,12 +2016,21 @@ const PLOTLY_EXPORT_LAYOUT = {
 };
 
 function plotlyExportImageOptions(host, format) {
+  const layout = host.layout || {};
+  const margin = layout.margin || {};
   return {
     format,
     width: Math.max(960, host.offsetWidth || 960),
     height: Math.max(320, host.offsetHeight || 320),
     scale: format === "png" ? 2 : 1,
-    layout: PLOTLY_EXPORT_LAYOUT,
+    layout: {
+      ...PLOTLY_EXPORT_LAYOUT,
+      margin: {
+        ...margin,
+        r: Math.max(Number(margin.r) || 24, 160),
+        l: Math.max(Number(margin.l) || 112, 112),
+      },
+    },
   };
 }
 
@@ -1937,13 +2061,16 @@ async function copyPlotlyPng(host) {
   await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
 }
 
-function registerPlotExport(key, title, rows, asset) {
+function registerPlotExport(key, title, rows, asset, options = {}) {
   const payload = { title, rows };
   if (asset === "plotly") payload.engine = "plotly";
   else payload.svg = asset;
+  if (options.plotKind) payload.plotKind = options.plotKind;
   state.plotExports[key] = payload;
+  const extraActions = options.headActions || "";
   return `
     <div class="export-actions">
+      ${extraActions}
       <button class="ghost-button" type="button" data-export-kind="png" data-export-key="${escapeHtml(key)}">PNG</button>
       <button class="ghost-button" type="button" data-export-kind="copy" data-export-key="${escapeHtml(key)}">Copy</button>
       <button class="ghost-button" type="button" data-export-kind="svg" data-export-key="${escapeHtml(key)}">SVG</button>
@@ -2086,11 +2213,15 @@ function generatedRankPlot(metricName) {
   const title = `${plotMetricLabel(metric)} rank across studies`;
   const key = `rank_${slug(metricName)}_${state.resultScope}`;
   const divId = `plot-${slug(key)}`;
-  const spec = buildRankPlotlySpec(rows, metric);
+  const spec = buildRankPlotlySpec(rows, metric, { expandLabels: state.rankPlotExpandLabels });
   state.pendingPlotly.push({ key, divId, spec });
-  return collapsiblePlotMarkup(key, title, `<div id="${divId}" class="plotly-host" role="img" aria-label="${escapeHtml(title)}"></div>`, {
-    subtitle: "full_ocscore / Ablation / SF / Other consensus",
-    headActions: registerPlotExport(key, title, rows, "plotly"),
+  const exportActions = registerPlotExport(key, title, rows, "plotly", {
+    plotKind: "rank",
+    headActions: rankPlotLabelToggleMarkup(key),
+  });
+  return collapsiblePlotMarkup(key, title, `<div id="${divId}" class="plotly-host plotly-host-rank" role="img" aria-label="${escapeHtml(title)}"></div>`, {
+    subtitle: "Click a bar to open study detail · legend: click toggles categories, double-click isolates one",
+    headActions: exportActions,
   });
 }
 
@@ -2538,12 +2669,17 @@ function defaultAblationDesign() {
     templateName: "",
     name: "",
     description: "",
+    include_features: "",
     include_patterns: "*",
     exclude_features: "",
     exclude_patterns: "",
     allow_missing_exclude_features: true,
     protocol: "",
     raw_input_dir: "",
+    merged_input: "",
+    pdbbind_input: "",
+    dudez_input: "",
+    feature_source: "auto",
     output_dir: "",
     policy_yml_path: "",
   };
@@ -2560,12 +2696,17 @@ function readAblationDesignDraft() {
     templateName: draft.templateName || "",
     name: draft.name || "",
     description: draft.description || "",
+    include_features: draft.include_features || "",
     include_patterns: draft.include_patterns || "",
     exclude_features: draft.exclude_features || "",
     exclude_patterns: draft.exclude_patterns || "",
     allow_missing_exclude_features: draft.allow_missing_exclude_features !== false,
     protocol: draft.protocol || "",
     raw_input_dir: draft.raw_input_dir || "",
+    merged_input: draft.merged_input || "",
+    pdbbind_input: draft.pdbbind_input || "",
+    dudez_input: draft.dudez_input || "",
+    feature_source: draft.feature_source || "auto",
     output_dir: draft.output_dir || "",
     policy_yml_path: draft.policy_yml_path || "",
   };
@@ -2576,16 +2717,47 @@ function writeAblationDesignDraftFromForm() {
   draft.templateName = $("ablation-design-template")?.value || "";
   draft.name = $("ablation-design-name")?.value.trim() || "";
   draft.description = $("ablation-design-description")?.value.trim() || "";
+  draft.include_features = $("ablation-design-include-features")?.value || "";
   draft.include_patterns = $("ablation-design-include-patterns")?.value || "";
   draft.exclude_features = $("ablation-design-exclude-features")?.value || "";
   draft.exclude_patterns = $("ablation-design-exclude-patterns")?.value || "";
   draft.allow_missing_exclude_features = Boolean($("ablation-design-allow-missing-excludes")?.checked);
   draft.protocol = $("ablation-design-protocol")?.value.trim() || "";
   draft.raw_input_dir = $("ablation-design-raw-input")?.value.trim() || "";
+  draft.merged_input = $("ablation-design-merged-input")?.value.trim() || "";
+  draft.pdbbind_input = $("ablation-design-pdbbind-input")?.value.trim() || "";
+  draft.dudez_input = $("ablation-design-dudez-input")?.value.trim() || "";
+  draft.feature_source = $("ablation-design-feature-source")?.value || "auto";
   draft.output_dir = $("ablation-design-output-dir")?.value.trim() || "";
   draft.policy_yml_path = $("ablation-design-policy-path")?.value.trim() || "";
   persistUiState();
   return draft;
+}
+
+function ablationDesignHasInputPaths(draft = readAblationDesignDraft()) {
+  return Boolean(
+    draft.raw_input_dir
+    || draft.merged_input
+    || draft.pdbbind_input
+    || draft.dudez_input
+    || state.ablationDesignContext?.discovered_inputs?.ok,
+  );
+}
+
+function applyAblationDesignDiscoveredInputs(context = state.ablationDesignContext) {
+  const draft = ensureAblationDesignDraft();
+  const discovered = context?.discovered_inputs;
+  if (!discovered?.ok) return;
+  if (!draft.raw_input_dir && discovered.raw_input_dir) draft.raw_input_dir = discovered.raw_input_dir;
+}
+
+function ablationDesignInputPayload(draft = readAblationDesignDraft()) {
+  const payload = { feature_source: draft.feature_source || "auto" };
+  if (draft.raw_input_dir) payload.raw_input_dir = draft.raw_input_dir;
+  if (draft.merged_input) payload.merged_input = draft.merged_input;
+  if (draft.pdbbind_input) payload.pdbbind_input = draft.pdbbind_input;
+  if (draft.dudez_input) payload.dudez_input = draft.dudez_input;
+  return payload;
 }
 
 function ablationDesignLines(value) {
@@ -2601,9 +2773,11 @@ function ablationDesignPolicyPayload(draft = readAblationDesignDraft()) {
     description: draft.description,
     allow_missing_exclude_features: draft.allow_missing_exclude_features !== false,
   };
+  const includeFeatures = ablationDesignLines(draft.include_features);
   const includePatterns = ablationDesignLines(draft.include_patterns);
   const excludeFeatures = ablationDesignLines(draft.exclude_features);
   const excludePatterns = ablationDesignLines(draft.exclude_patterns);
+  if (includeFeatures.length) payload.include_features = includeFeatures;
   if (includePatterns.length) payload.include_patterns = includePatterns;
   if (excludeFeatures.length) payload.exclude_features = excludeFeatures;
   if (excludePatterns.length) payload.exclude_patterns = excludePatterns;
@@ -2611,15 +2785,20 @@ function ablationDesignPolicyPayload(draft = readAblationDesignDraft()) {
 }
 
 function ablationDesignRequestPayload(draft = readAblationDesignDraft()) {
-  return {
+  const payload = {
     policy: ablationDesignPolicyPayload(draft),
     protocol: draft.protocol,
-    raw_input_dir: draft.raw_input_dir,
     output_dir: draft.output_dir,
     policy_yml_path: draft.policy_yml_path,
     description: draft.description,
     name: draft.name ? `ablation-${draft.name}` : "",
+    ...ablationDesignInputPayload(draft),
   };
+  const catalog = state.ablationDesignFeatureCatalog;
+  if (catalog?.candidate_features?.length) {
+    payload.candidate_features = catalog.candidate_features;
+  }
+  return payload;
 }
 
 function syncAblationDesignOutputPaths(draft = readAblationDesignDraft(), context = state.ablationDesignContext) {
@@ -2633,34 +2812,689 @@ function syncAblationDesignOutputPaths(draft = readAblationDesignDraft(), contex
 function renderAblationDesignForm(context = state.ablationDesignContext) {
   const draft = ensureAblationDesignDraft();
   if (context?.protocol_path && !draft.protocol) draft.protocol = context.protocol_path;
+  applyAblationDesignDiscoveredInputs(context);
   syncAblationDesignOutputPaths(draft, context);
 
   const templateSelect = $("ablation-design-template");
   if (templateSelect && context?.catalog) {
     const options = ['<option value="">Custom (blank)</option>']
-      .concat(context.catalog.map((item) => `<option value="${escapeHtml(item.name)}">${escapeHtml(item.name)}</option>`));
+      .concat(context.catalog.map((item) => {
+        const shipped = item.source_kind === "bundled" ? " (shipped)" : "";
+        return `<option value="${escapeHtml(item.name)}">${escapeHtml(item.name)}${shipped}</option>`;
+      }));
     templateSelect.innerHTML = options.join("");
     templateSelect.value = draft.templateName || "";
   }
 
   $("ablation-design-name").value = draft.name || "";
   $("ablation-design-description").value = draft.description || "";
+  $("ablation-design-include-features").value = draft.include_features || "";
   $("ablation-design-include-patterns").value = draft.include_patterns || "";
   $("ablation-design-exclude-features").value = draft.exclude_features || "";
   $("ablation-design-exclude-patterns").value = draft.exclude_patterns || "";
   $("ablation-design-allow-missing-excludes").checked = draft.allow_missing_exclude_features !== false;
   $("ablation-design-protocol").value = draft.protocol || "";
   $("ablation-design-raw-input").value = draft.raw_input_dir || "";
+  $("ablation-design-merged-input").value = draft.merged_input || "";
+  $("ablation-design-pdbbind-input").value = draft.pdbbind_input || "";
+  $("ablation-design-dudez-input").value = draft.dudez_input || "";
+  $("ablation-design-feature-source").value = draft.feature_source || "auto";
   $("ablation-design-output-dir").value = draft.output_dir || "";
   $("ablation-design-policy-path").value = draft.policy_yml_path || "";
+  if ($("ablation-design-feature-filter")) {
+    $("ablation-design-feature-filter").value = state.ablationDesignFeatureFilter || "";
+  }
+  if ($("ablation-design-wildcard-pattern")) {
+    $("ablation-design-wildcard-pattern").value = state.ablationDesignWildcardPattern || "";
+  }
 
   const existing = (context?.existing_ablation_names || []);
-  const summary = context?.candidate_source
-    ? `Candidate features from ${pathBasename(context.candidate_source)} · ${existing.length} existing ablations`
-    : `${existing.length} existing ablations · preview uses workspace metadata when available`;
+  const discoveredFrom = context?.discovered_inputs?.discovered_from;
+  const summary = discoveredFrom
+    ? `Raw inputs from ${pathBasename(discoveredFrom)}/ · ${existing.length} existing ablations`
+    : context?.candidate_source
+      ? `Workspace metadata available from ${pathBasename(context.candidate_source)} · ${existing.length} existing ablations`
+      : `${existing.length} existing ablations · expected raw_prepare/ under served root`;
   $("ablation-design-summary").textContent = summary;
 
+  renderAblationDesignFeatureBrowser();
   updateAblationDesignTemplateDescription();
+  renderAblationDesignTemplateDiff();
+  ablationDesignUpdatePatternFeedback();
+}
+
+function ablationDesignGroupPatterns(groupName, features = []) {
+  if (groupName === "ligand") return ["ligand_*"];
+  if (groupName === "receptor") return ["receptor_*"];
+  if (groupName === "scoring") {
+    const patterns = new Set();
+    features.forEach((name) => {
+      const text = String(name);
+      const idx = text.indexOf("_");
+      if (idx > 0) patterns.add(`${text.slice(0, idx + 1)}*`);
+    });
+    return [...patterns];
+  }
+  return [];
+}
+
+function ablationDesignFnmatch(name, pattern) {
+  const escaped = String(pattern)
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*/g, ".*")
+    .replace(/\?/g, ".");
+  return new RegExp(`^${escaped}$`).test(String(name));
+}
+
+function ablationDesignFnmatchFolded(name, pattern) {
+  return ablationDesignFnmatch(String(name).toLowerCase(), String(pattern).toLowerCase());
+}
+
+function ablationDesignPatternCaseMismatchHints(patterns, candidates) {
+  const hints = [];
+  [...new Set(patterns.map(String).filter(Boolean))].forEach((pattern) => {
+    const strictCount = candidates.filter((name) => ablationDesignFnmatch(name, pattern)).length;
+    if (strictCount > 0) return;
+    const foldedCount = candidates.filter((name) => ablationDesignFnmatchFolded(name, pattern)).length;
+    if (foldedCount <= 0) return;
+    const suggestion = pattern === pattern.toLowerCase()
+      ? pattern
+      : pattern.toLowerCase();
+    hints.push(
+      `Pattern "${pattern}" matches 0 features (case-sensitive). `
+      + `"${suggestion}" would match ${foldedCount}.`,
+    );
+  });
+  return hints;
+}
+
+function ablationDesignActivePolicyPatterns(draft = readAblationDesignDraft()) {
+  return [
+    ...ablationDesignWildcardPatterns(),
+    ...ablationDesignLines(draft.include_patterns),
+    ...ablationDesignLines(draft.exclude_patterns),
+  ];
+}
+
+function ablationDesignUpdateCaseAndFilterWarnings() {
+  const caseNode = $("ablation-design-case-warning");
+  const filterNote = $("ablation-design-filter-note");
+  const filter = String(state.ablationDesignFeatureFilter || "").trim();
+  if (filterNote) {
+    filterNote.hidden = !filter;
+  }
+  const catalog = state.ablationDesignFeatureCatalog;
+  if (!caseNode) return;
+  if (!catalog?.ok) {
+    caseNode.hidden = true;
+    caseNode.textContent = "";
+    return;
+  }
+  const candidates = ablationDesignAllCandidateFeatures(catalog);
+  const patterns = ablationDesignActivePolicyPatterns();
+  const hints = ablationDesignPatternCaseMismatchHints(patterns, candidates);
+  if (hints.length) {
+    caseNode.hidden = false;
+    caseNode.className = "ablation-design-case-warning is-warning";
+    caseNode.textContent = hints.slice(0, 2).join(" ");
+    return;
+  }
+  if (patterns.length) {
+    caseNode.hidden = false;
+    caseNode.className = "ablation-design-case-warning is-note";
+    caseNode.textContent =
+      "Wildcards and policy patterns are case-sensitive (Python fnmatch). "
+      + "Match CSV column names exactly — e.g. ligand_*, not Ligand_*.";
+    return;
+  }
+  caseNode.hidden = true;
+  caseNode.textContent = "";
+}
+
+function ablationDesignWildcardPatterns() {
+  return ablationDesignLines(state.ablationDesignWildcardPattern || "");
+}
+
+function ablationDesignAllCandidateFeatures(catalog = state.ablationDesignFeatureCatalog) {
+  if (!catalog?.ok) return [];
+  const groups = catalog.feature_groups || {};
+  const names = Object.values(groups).flatMap((items) => items || []);
+  return [...new Set(names.map(String))];
+}
+
+function ablationDesignFeaturesMatchingPatterns(features, patterns) {
+  if (!patterns.length) return [];
+  const matched = new Set();
+  features.forEach((name) => {
+    if (patterns.some((pattern) => ablationDesignFnmatch(name, pattern))) matched.add(name);
+  });
+  return [...matched];
+}
+
+const ABLATION_DESIGN_FEATURE_GROUPS = [
+  ["ligand", "Ligand"],
+  ["receptor", "Receptor"],
+  ["scoring", "Scoring"],
+];
+const FEATURE_VIRTUAL_ROW_HEIGHT = 28;
+const FEATURE_VIRTUAL_VIEWPORT_HEIGHT = 320;
+const FEATURE_VIRTUAL_OVERSCAN = 6;
+
+function ablationDesignTemplateRequest() {
+  const templateName = readAblationDesignDraft().templateName;
+  if (!templateName) return null;
+  const entry = (state.ablationDesignContext?.catalog || []).find((item) => item.name === templateName);
+  return entry?.request || null;
+}
+
+function ablationDesignPolicyFieldLines(value) {
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  return ablationDesignLines(value);
+}
+
+function ablationDesignDiffFieldLines(field, baseRequest, draftPayload) {
+  const base = new Set(ablationDesignPolicyFieldLines(baseRequest?.[field]));
+  const current = new Set(ablationDesignPolicyFieldLines(draftPayload?.[field]));
+  const added = [...current].filter((item) => !base.has(item));
+  const removed = [...base].filter((item) => !current.has(item));
+  return { added, removed, changed: added.length > 0 || removed.length > 0 };
+}
+
+function renderAblationDesignTemplateDiff() {
+  const panel = $("ablation-design-template-diff");
+  if (!panel) return;
+  const base = ablationDesignTemplateRequest();
+  if (!base) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    return;
+  }
+  const draftPayload = ablationDesignPolicyPayload(readAblationDesignDraft());
+  const fields = [
+    ["include_features", "Include features"],
+    ["include_patterns", "Include patterns"],
+    ["exclude_features", "Exclude features"],
+    ["exclude_patterns", "Exclude patterns"],
+  ];
+  const chunks = fields.map(([field, label]) => {
+    const diff = ablationDesignDiffFieldLines(field, base, draftPayload);
+    if (!diff.changed) return "";
+    const added = diff.added.length ? `<div class="ablation-design-diff-added">+ ${escapeHtml(diff.added.join(", "))}</div>` : "";
+    const removed = diff.removed.length ? `<div class="ablation-design-diff-removed">− ${escapeHtml(diff.removed.join(", "))}</div>` : "";
+    return `<div class="ablation-design-diff-field"><strong>${escapeHtml(label)}</strong>${added}${removed}</div>`;
+  }).filter(Boolean);
+  if (!chunks.length) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    return;
+  }
+  panel.hidden = false;
+  panel.innerHTML = `
+    <div class="ablation-design-diff-title">Changes vs template <code>${escapeHtml(readAblationDesignDraft().templateName)}</code></div>
+    ${chunks.join("")}
+  `;
+}
+
+function ablationDesignPatternMatchSummary(patterns) {
+  const catalog = state.ablationDesignFeatureCatalog;
+  if (!catalog?.ok || !patterns.length) return null;
+  const candidates = ablationDesignAllCandidateFeatures(catalog);
+  const matched = ablationDesignFeaturesMatchingPatterns(candidates, patterns);
+  const unmatchedPatterns = patterns.filter(
+    (pattern) => !candidates.some((name) => ablationDesignFnmatch(name, pattern)),
+  );
+  return { matchedCount: matched.length, unmatchedPatterns };
+}
+
+function ablationDesignUpdatePatternFeedback() {
+  const wildcardNode = $("ablation-design-wildcard-feedback");
+  const rulesNode = $("ablation-design-pattern-feedback");
+  const catalog = state.ablationDesignFeatureCatalog;
+  if (!catalog?.ok) {
+    if (wildcardNode) wildcardNode.textContent = "";
+    if (rulesNode) rulesNode.textContent = "";
+    ablationDesignUpdateCaseAndFilterWarnings();
+    return;
+  }
+  const wildcardPatterns = ablationDesignWildcardPatterns();
+  if (wildcardNode) {
+    if (!wildcardPatterns.length) {
+      wildcardNode.textContent = "";
+    } else {
+      const summary = ablationDesignPatternMatchSummary(wildcardPatterns);
+      const unmatched = summary?.unmatchedPatterns?.length
+        ? ` · ${summary.unmatchedPatterns.length} pattern(s) match nothing`
+        : "";
+      wildcardNode.textContent = `${summary?.matchedCount ?? 0} feature(s) match wildcard${unmatched}`;
+    }
+  }
+  if (rulesNode) {
+    const draft = readAblationDesignDraft();
+    const parts = [];
+    [
+      ["include_patterns", "Include patterns", ablationDesignLines(draft.include_patterns)],
+      ["exclude_patterns", "Exclude patterns", ablationDesignLines(draft.exclude_patterns)],
+    ].forEach(([, label, patterns]) => {
+      if (!patterns.length) return;
+      const summary = ablationDesignPatternMatchSummary(patterns);
+      const unmatched = summary?.unmatchedPatterns?.length
+        ? ` (${summary.unmatchedPatterns.length} unmatched)`
+        : "";
+      parts.push(`${label}: ${summary?.matchedCount ?? 0} features${unmatched}`);
+    });
+    rulesNode.textContent = parts.join(" · ");
+  }
+  ablationDesignUpdateCaseAndFilterWarnings();
+}
+
+function mountVirtualFeatureList(container, features) {
+  container.innerHTML = "";
+  container.classList.add("ablation-design-feature-list-virtual");
+  if (!features.length) {
+    container.classList.remove("ablation-design-feature-list-virtual");
+    container.innerHTML = '<div class="muted">No matches</div>';
+    return;
+  }
+  const totalHeight = features.length * FEATURE_VIRTUAL_ROW_HEIGHT;
+  const viewportHeight = Math.min(FEATURE_VIRTUAL_VIEWPORT_HEIGHT, Math.max(totalHeight, FEATURE_VIRTUAL_ROW_HEIGHT * 3));
+  container.style.maxHeight = `${viewportHeight}px`;
+  container.style.overflowY = "auto";
+  container.style.position = "relative";
+
+  const spacer = document.createElement("div");
+  spacer.className = "ablation-design-feature-spacer";
+  spacer.style.height = `${totalHeight}px`;
+  container.appendChild(spacer);
+
+  const viewport = document.createElement("div");
+  viewport.className = "ablation-design-feature-viewport";
+  container.appendChild(viewport);
+
+  const paint = () => {
+    const scrollTop = container.scrollTop;
+    const start = Math.max(0, Math.floor(scrollTop / FEATURE_VIRTUAL_ROW_HEIGHT) - FEATURE_VIRTUAL_OVERSCAN);
+    const end = Math.min(
+      features.length,
+      start + Math.ceil(viewportHeight / FEATURE_VIRTUAL_ROW_HEIGHT) + FEATURE_VIRTUAL_OVERSCAN * 2,
+    );
+    viewport.style.transform = `translateY(${start * FEATURE_VIRTUAL_ROW_HEIGHT}px)`;
+    viewport.innerHTML = features.slice(start, end).map((name) => {
+      const checked = state.ablationDesignFeatureSelection.includes(name) ? " checked" : "";
+      return `
+        <label class="ablation-design-feature-item">
+          <input type="checkbox" data-feature-name="${escapeHtml(name)}"${checked}>
+          <span>${escapeHtml(name)}</span>
+        </label>
+      `;
+    }).join("");
+  };
+
+  if (container._virtualPaint) {
+    container.removeEventListener("scroll", container._virtualPaint);
+    container.removeEventListener("virtual-refresh", container._virtualPaint);
+  }
+  if (!container._virtualChangeBound) {
+    container._virtualChangeBound = true;
+    container.addEventListener("change", (event) => {
+      const input = event.target.closest("input[data-feature-name]");
+      if (!input) return;
+      ablationDesignToggleFeatureSelection(input.dataset.featureName, input.checked, { skipRender: true });
+      paint();
+    });
+  }
+  container._virtualPaint = paint;
+  container.addEventListener("scroll", paint, { passive: true });
+  container.addEventListener("virtual-refresh", paint);
+  paint();
+}
+
+function ablationDesignRefreshFeatureLists() {
+  document.querySelectorAll(".ablation-design-feature-list-virtual").forEach((node) => {
+    node.dispatchEvent(new Event("virtual-refresh"));
+  });
+}
+
+function scheduleAblationDesignPreview() {
+  window.clearTimeout(ablationDesignPreviewTimer);
+  ablationDesignPreviewTimer = window.setTimeout(() => {
+    void previewAblationDesign({ silent: true, auto: true });
+  }, 420);
+}
+
+function ablationDesignVisibleFeatureEntries(catalog = state.ablationDesignFeatureCatalog) {
+  if (!catalog?.ok) return [];
+  const filter = String(state.ablationDesignFeatureFilter || "").trim().toLowerCase();
+  const entries = [];
+  ABLATION_DESIGN_FEATURE_GROUPS.forEach(([key, label]) => {
+    (catalog.feature_groups?.[key] || []).forEach((name) => {
+      const text = String(name);
+      if (!filter || text.toLowerCase().includes(filter)) {
+        entries.push({ name: text, groupKey: key, groupLabel: label });
+      }
+    });
+  });
+  return entries;
+}
+
+function ablationDesignSetFeatureSelection(names, mode = "replace") {
+  const normalized = [...new Set(names.map(String))];
+  if (mode === "replace") {
+    state.ablationDesignFeatureSelection = normalized;
+  } else if (mode === "add") {
+    state.ablationDesignFeatureSelection = [...new Set([
+      ...(state.ablationDesignFeatureSelection || []),
+      ...normalized,
+    ])];
+  } else if (mode === "toggle") {
+    const current = new Set(state.ablationDesignFeatureSelection || []);
+    normalized.forEach((name) => {
+      if (current.has(name)) current.delete(name);
+      else current.add(name);
+    });
+    state.ablationDesignFeatureSelection = [...current];
+  }
+  renderAblationDesignFeatureBrowser();
+}
+
+function ablationDesignResolveApplyPatterns(options = {}) {
+  const { preferWildcard = true, inferFromSelection = true } = options;
+  const wildcardPatterns = ablationDesignWildcardPatterns();
+  if (preferWildcard && wildcardPatterns.length) return wildcardPatterns;
+
+  const selected = ablationDesignSelectedFeatures();
+  if (!selected.length) return [];
+
+  if (inferFromSelection) {
+    const catalog = state.ablationDesignFeatureCatalog;
+    if (catalog?.feature_groups) {
+      const groupNames = Object.keys(catalog.feature_groups);
+      const matchingGroups = groupNames.filter((group) => (
+        selected.every((name) => (catalog.feature_groups[group] || []).includes(name))
+      ));
+      const inferred = [...new Set(matchingGroups.flatMap((group) => (
+        ablationDesignGroupPatterns(group, catalog.feature_groups[group] || [])
+      )))];
+      if (inferred.length) return inferred;
+    }
+  }
+  return selected;
+}
+
+function ablationDesignResolveApplyFeatures(options = {}) {
+  const { preferWildcard = true } = options;
+  const wildcardPatterns = ablationDesignWildcardPatterns();
+  if (preferWildcard && wildcardPatterns.length) {
+    return ablationDesignFeaturesMatchingPatterns(
+      ablationDesignAllCandidateFeatures(),
+      wildcardPatterns,
+    );
+  }
+  return ablationDesignSelectedFeatures();
+}
+
+function ablationDesignAppendLines(fieldId, values) {
+  const node = $(fieldId);
+  if (!node || !values.length) return;
+  const existing = new Set(ablationDesignLines(node.value));
+  const merged = [...existing];
+  values.forEach((value) => {
+    if (!existing.has(value)) merged.push(value);
+  });
+  node.value = merged.join("\n");
+  writeAblationDesignDraftFromForm();
+}
+
+function ablationDesignSelectedFeatures() {
+  return [...(state.ablationDesignFeatureSelection || [])];
+}
+
+function ablationDesignFeatureSummaryText(catalog = state.ablationDesignFeatureCatalog) {
+  if (!catalog?.ok) return "";
+  const metadata = (catalog.metadata_columns || []).join(", ") || "—";
+  const targets = (catalog.target_columns || []).join(", ") || "—";
+  const wildcardPatterns = ablationDesignWildcardPatterns();
+  const matchedCount = wildcardPatterns.length
+    ? ablationDesignFeaturesMatchingPatterns(ablationDesignAllCandidateFeatures(catalog), wildcardPatterns).length
+    : 0;
+  const selectionCount = (state.ablationDesignFeatureSelection || []).length;
+  let text =
+    `${catalog.candidate_feature_count} candidate descriptors from ${catalog.feature_source} `
+    + `(metadata stripped: ${metadata}; targets: ${targets})`;
+  if (wildcardPatterns.length) text += ` · wildcard matches ${matchedCount}`;
+  if (selectionCount) text += ` · ${selectionCount} selected`;
+  return text;
+}
+
+function ablationDesignUpdateFeatureSummary() {
+  const summary = $("ablation-design-feature-summary");
+  if (summary) summary.textContent = ablationDesignFeatureSummaryText();
+}
+
+function ablationDesignToggleFeatureSelection(name, selected, options = {}) {
+  const current = new Set(state.ablationDesignFeatureSelection || []);
+  if (selected) current.add(name);
+  else current.delete(name);
+  state.ablationDesignFeatureSelection = [...current];
+  ablationDesignUpdateFeatureSummary();
+  if (options.skipRender) return;
+  ablationDesignRefreshFeatureLists();
+}
+
+function renderAblationDesignFeatureBrowser() {
+  const browser = $("ablation-design-feature-browser");
+  const actions = $("ablation-design-feature-actions");
+  const summary = $("ablation-design-feature-summary");
+  const catalog = state.ablationDesignFeatureCatalog;
+  if (!browser || !summary) return;
+
+  if (!catalog?.ok) {
+    browser.hidden = true;
+    if (actions) actions.hidden = true;
+    const batchBar = $("ablation-design-batch-bar");
+    if (batchBar) batchBar.hidden = true;
+    summary.textContent = state.ablationDesignFeaturesLoading
+      ? "Loading descriptor columns from raw_prepare/…"
+      : (catalog?.error
+        || "Expected raw_prepare/ under the served Workbench root.");
+    return;
+  }
+
+  const filter = String(state.ablationDesignFeatureFilter || "").trim().toLowerCase();
+  summary.textContent = ablationDesignFeatureSummaryText(catalog);
+
+  const batchBar = $("ablation-design-batch-bar");
+  if (batchBar) batchBar.hidden = false;
+
+  browser.innerHTML = ABLATION_DESIGN_FEATURE_GROUPS.map(([key, label]) => {
+    const features = (catalog.feature_groups?.[key] || []).filter((name) => (
+      !filter || String(name).toLowerCase().includes(filter)
+    ));
+    return `
+      <section class="ablation-design-feature-group" data-feature-group="${escapeHtml(key)}">
+        <div class="ablation-design-feature-group-head">
+          <span>${escapeHtml(label)}</span>
+          <span class="ablation-design-feature-group-actions">
+            <button type="button" class="ablation-design-feature-group-select" data-select-group="${escapeHtml(key)}">All</button>
+            <span>${features.length}</span>
+          </span>
+        </div>
+        <div class="ablation-design-feature-list" data-feature-list="${escapeHtml(key)}"></div>
+      </section>
+    `;
+  }).join("");
+
+  browser.hidden = false;
+  if (actions) actions.hidden = false;
+  ABLATION_DESIGN_FEATURE_GROUPS.forEach(([key]) => {
+    const listNode = browser.querySelector(`[data-feature-list="${key}"]`);
+    if (!listNode) return;
+    const features = (catalog.feature_groups?.[key] || []).filter((name) => (
+      !filter || String(name).toLowerCase().includes(filter)
+    ));
+    mountVirtualFeatureList(listNode, features);
+  });
+  ablationDesignUpdatePatternFeedback();
+  renderAblationDesignTemplateDiff();
+  browser.querySelectorAll("[data-select-group]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      const groupKey = button.dataset.selectGroup;
+      const visible = ablationDesignVisibleFeatureEntries(catalog)
+        .filter((entry) => entry.groupKey === groupKey)
+        .map((entry) => entry.name);
+      ablationDesignSetFeatureSelection(visible, "add");
+    });
+  });
+}
+
+function ablationDesignInputFingerprint(draft = readAblationDesignDraft()) {
+  return JSON.stringify({
+    ...ablationDesignInputPayload(draft),
+    feature_source: draft.feature_source || "auto",
+  });
+}
+
+async function loadAblationDesignFeatures(options = {}) {
+  const { silent = false, force = false } = options;
+  writeAblationDesignDraftFromForm();
+  applyAblationDesignDiscoveredInputs();
+  const draft = readAblationDesignDraft();
+  if (!ablationDesignHasInputPaths(draft)) {
+    if (!silent) {
+      toast(
+        "Expected raw_prepare/raw_pdbbind.csv and raw_dudez.csv under the served Workbench root, "
+        + "or set paths in Run settings.",
+      );
+    }
+    return false;
+  }
+
+  const fingerprint = ablationDesignInputFingerprint(draft);
+  if (!force && state.ablationDesignFeatureCatalog?.ok && state.ablationDesignFeatureCatalogKey === fingerprint) {
+    renderAblationDesignFeatureBrowser();
+    return true;
+  }
+
+  state.ablationDesignFeaturesLoading = true;
+  renderAblationDesignFeatureBrowser();
+  try {
+    const payload = await apiPost("/api/ablation-design/features", ablationDesignInputPayload(draft));
+    state.ablationDesignFeatureCatalog = payload;
+    state.ablationDesignFeatureCatalogKey = fingerprint;
+    state.ablationDesignFeatureSelection = [];
+    if (payload.resolved_inputs) {
+      Object.assign(ensureAblationDesignDraft(), payload.resolved_inputs);
+      renderAblationDesignForm();
+    } else {
+      renderAblationDesignFeatureBrowser();
+    }
+    if (!silent) {
+      toast(`Loaded ${payload.candidate_feature_count} candidate features.`);
+    }
+    scheduleAblationDesignPreview();
+    return true;
+  } catch (error) {
+    state.ablationDesignFeatureCatalog = { ok: false, error: error.message || String(error) };
+    state.ablationDesignFeatureCatalogKey = "";
+    renderAblationDesignFeatureBrowser();
+    if (!silent) toast(error.message || String(error));
+    return false;
+  } finally {
+    state.ablationDesignFeaturesLoading = false;
+  }
+}
+
+async function ensureAblationDesignFeatures(force = false) {
+  applyAblationDesignDiscoveredInputs(state.ablationDesignContext);
+  return loadAblationDesignFeatures({ silent: true, force });
+}
+
+async function loadAblationDesignFeaturesManual() {
+  await loadAblationDesignFeatures({ silent: false, force: true });
+}
+
+function applyAblationDesignIncludeFeatureRules() {
+  const features = ablationDesignResolveApplyFeatures();
+  if (!features.length) {
+    toast("Enter a wildcard pattern or select features first.");
+    return;
+  }
+  ablationDesignAppendLines("ablation-design-include-features", features);
+  toast(`Added ${features.length} include feature${features.length === 1 ? "" : "s"}.`);
+}
+
+function applyAblationDesignIncludePatternRules() {
+  const patterns = ablationDesignResolveApplyPatterns();
+  if (!patterns.length) {
+    toast("Enter a wildcard pattern or select features first.");
+    return;
+  }
+  ablationDesignAppendLines("ablation-design-include-patterns", patterns);
+  toast(`Added ${patterns.length} include pattern${patterns.length === 1 ? "" : "s"}.`);
+}
+
+function applyAblationDesignExcludePatternRules() {
+  const patterns = ablationDesignResolveApplyPatterns();
+  if (!patterns.length) {
+    toast("Enter a wildcard pattern or select features first.");
+    return;
+  }
+  ablationDesignAppendLines("ablation-design-exclude-patterns", patterns);
+  toast(`Added ${patterns.length} exclude pattern${patterns.length === 1 ? "" : "s"}.`);
+}
+
+function applyAblationDesignExcludeFeatureRules() {
+  const features = ablationDesignResolveApplyFeatures();
+  if (!features.length) {
+    toast("Enter a wildcard pattern or select features first.");
+    return;
+  }
+  ablationDesignAppendLines("ablation-design-exclude-features", features);
+  toast(`Added ${features.length} exclude feature${features.length === 1 ? "" : "s"}.`);
+}
+
+function selectAblationDesignMatchedFeatures() {
+  const patterns = ablationDesignWildcardPatterns();
+  if (!patterns.length) {
+    toast("Enter a wildcard pattern first (for example ligand_*).");
+    return;
+  }
+  const matched = ablationDesignFeaturesMatchingPatterns(
+    ablationDesignAllCandidateFeatures(),
+    patterns,
+  );
+  if (!matched.length) {
+    toast("No loaded features matched the wildcard pattern.");
+    return;
+  }
+  ablationDesignSetFeatureSelection(matched, "replace");
+  toast(`Selected ${matched.length} matched feature${matched.length === 1 ? "" : "s"}.`);
+}
+
+function selectAblationDesignVisibleFeatures() {
+  const visible = ablationDesignVisibleFeatureEntries().map((entry) => entry.name);
+  if (!visible.length) {
+    toast("No visible features to select.");
+    return;
+  }
+  ablationDesignSetFeatureSelection(visible, "replace");
+  toast(`Selected ${visible.length} visible feature${visible.length === 1 ? "" : "s"}.`);
+}
+
+function invertAblationDesignVisibleFeatures() {
+  const visible = new Set(ablationDesignVisibleFeatureEntries().map((entry) => entry.name));
+  if (!visible.size) {
+    toast("No visible features to invert.");
+    return;
+  }
+  const current = new Set(state.ablationDesignFeatureSelection || []);
+  visible.forEach((name) => {
+    if (current.has(name)) current.delete(name);
+    else current.add(name);
+  });
+  state.ablationDesignFeatureSelection = [...current];
+  renderAblationDesignFeatureBrowser();
+  toast("Inverted visible selection.");
 }
 
 function updateAblationDesignTemplateDescription() {
@@ -2687,13 +3521,16 @@ function applyAblationDesignTemplate(templateName) {
   const request = entry.request || {};
   draft.name = templateName.startsWith("custom_") ? templateName : `custom_${templateName}`;
   draft.description = entry.description || request.description || "";
-  draft.include_patterns = (request.include_patterns || []).join("\n") || "*";
+  draft.include_features = (request.include_features || []).join("\n");
+  draft.include_patterns = (request.include_patterns || []).join("\n");
+  if (!draft.include_features && !draft.include_patterns) draft.include_patterns = "*";
   draft.exclude_features = (request.exclude_features || []).join("\n");
   draft.exclude_patterns = (request.exclude_patterns || []).join("\n");
   draft.allow_missing_exclude_features = request.allow_missing_exclude_features !== false;
   syncAblationDesignOutputPaths(draft, state.ablationDesignContext);
   renderAblationDesignForm();
   persistUiState();
+  scheduleAblationDesignPreview();
 }
 
 function renderAblationDesignPreview(payload) {
@@ -2731,6 +3568,7 @@ function renderAblationDesignPreview(payload) {
   $("ablation-design-preview-details").innerHTML = details.map(([label, value]) => `
     <div><strong>${escapeHtml(label)}</strong>${escapeHtml(value)}</div>
   `).join("");
+  renderAblationDesignTemplateDiff();
 }
 
 function renderAblationDesignPlan(payload) {
@@ -2772,12 +3610,14 @@ function renderAblationDesignPlan(payload) {
 async function ensureAblationDesignContext(force = false) {
   if (state.ablationDesignContext && !force) {
     renderAblationDesignForm();
+    await ensureAblationDesignFeatures(false);
     return state.ablationDesignContext;
   }
   try {
     const context = await api("/api/ablation-design");
     state.ablationDesignContext = context;
     renderAblationDesignForm();
+    await ensureAblationDesignFeatures(force);
     return context;
   } catch (error) {
     toast(error.message || String(error));
@@ -2785,18 +3625,29 @@ async function ensureAblationDesignContext(force = false) {
   }
 }
 
-async function previewAblationDesign() {
+async function previewAblationDesign(options = {}) {
+  const { silent = false, auto = false } = options;
   writeAblationDesignDraftFromForm();
   const draft = readAblationDesignDraft();
   if (!draft.name) {
-    toast("Policy name is required.");
+    if (!silent && !auto) toast("Policy name is required.");
     return;
   }
+  if (!state.ablationDesignFeatureCatalog?.ok) {
+    if (!silent && !auto) toast("Load features before previewing.");
+    return;
+  }
+  const summaryNode = $("ablation-design-preview-summary");
+  if (auto && summaryNode) summaryNode.textContent = "Previewing…";
   try {
     const payload = await apiPost("/api/ablation-design/preview", ablationDesignRequestPayload(draft));
     renderAblationDesignPreview(payload);
   } catch (error) {
-    renderAblationDesignPreview({ ok: false, error: error.message || String(error) });
+    if (!silent || !auto) {
+      renderAblationDesignPreview({ ok: false, error: error.message || String(error) });
+    } else if (summaryNode) {
+      summaryNode.textContent = error.message || String(error);
+    }
   }
 }
 
@@ -2807,8 +3658,8 @@ async function planAblationDesign() {
     toast("Policy name is required.");
     return;
   }
-  if (!draft.protocol || !draft.raw_input_dir) {
-    toast("Protocol path and raw input dir are required to generate a plan.");
+  if (!draft.protocol || !ablationDesignHasInputPaths(draft)) {
+    toast("Protocol path and at least one input path are required to generate a plan.");
     return;
   }
   try {
@@ -2854,6 +3705,45 @@ async function copyAblationDesignCommand() {
   }
 }
 
+async function writeAblationDesignPolicy() {
+  writeAblationDesignDraftFromForm();
+  const draft = readAblationDesignDraft();
+  const yamlText = state.ablationDesignPlan?.policy_yaml
+    || state.ablationDesignPreview?.policy_yaml
+    || "";
+  if (!yamlText) {
+    toast("Generate a preview or plan first.");
+    return;
+  }
+  if (!draft.policy_yml_path) {
+    toast("Policy YAML path is required.");
+    return;
+  }
+  const shippedTemplate = draft.templateName
+    && (state.ablationDesignContext?.catalog || []).some(
+      (item) => item.name === draft.templateName && item.source_kind === "bundled",
+    );
+  const overwriteNote = draft.name === draft.templateName && shippedTemplate
+    ? "\n\nThis uses a shipped template name — the file will be written under your workspace, not the bundled copy."
+    : "";
+  const confirmed = window.confirm(
+    `Write policy YAML to:\n${draft.policy_yml_path}\n\nThis modifies your served workspace.${overwriteNote}`,
+  );
+  if (!confirmed) return;
+  try {
+    const payload = await apiPost("/api/ablation-design/write", {
+      ...ablationDesignRequestPayload(draft),
+      policy_yaml: yamlText,
+      confirm: true,
+      overwrite: true,
+    });
+    toast(`Policy written to ${payload.written_path || draft.policy_yml_path}`);
+    await ensureAblationDesignContext(true);
+  } catch (error) {
+    toast(error.message || String(error));
+  }
+}
+
 function bindAblationDesignPanel() {
   const templateSelect = $("ablation-design-template");
   if (templateSelect && templateSelect.dataset.bound !== "true") {
@@ -2874,23 +3764,67 @@ function bindAblationDesignPanel() {
     syncAblationDesignOutputPaths();
     $("ablation-design-output-dir").value = state.ablationDesign.output_dir || "";
     $("ablation-design-policy-path").value = state.ablationDesign.policy_yml_path || "";
+    renderAblationDesignTemplateDiff();
+    scheduleAblationDesignPreview();
   });
+  const schedulePreviewOnEdit = () => {
+    writeAblationDesignDraftFromForm();
+    renderAblationDesignTemplateDiff();
+    ablationDesignUpdatePatternFeedback();
+    scheduleAblationDesignPreview();
+  };
   [
     "ablation-design-description",
+    "ablation-design-include-features",
     "ablation-design-include-patterns",
     "ablation-design-exclude-features",
     "ablation-design-exclude-patterns",
     "ablation-design-allow-missing-excludes",
     "ablation-design-protocol",
-    "ablation-design-raw-input",
     "ablation-design-output-dir",
     "ablation-design-policy-path",
-  ].forEach((id) => bindInput(id, writeAblationDesignDraftFromForm));
+  ].forEach((id) => bindInput(id, schedulePreviewOnEdit));
 
-  $("ablation-design-preview")?.addEventListener("click", previewAblationDesign);
+  const reloadFeaturesOnInputChange = () => {
+    writeAblationDesignDraftFromForm();
+    if (state.activeTab === "design") void ensureAblationDesignFeatures(true);
+  };
+  [
+    "ablation-design-raw-input",
+    "ablation-design-merged-input",
+    "ablation-design-pdbbind-input",
+    "ablation-design-dudez-input",
+    "ablation-design-feature-source",
+  ].forEach((id) => bindInput(id, reloadFeaturesOnInputChange));
+
+  $("ablation-design-feature-filter")?.addEventListener("input", (event) => {
+    state.ablationDesignFeatureFilter = event.target.value || "";
+    renderAblationDesignFeatureBrowser();
+    ablationDesignUpdateCaseAndFilterWarnings();
+  });
+  $("ablation-design-wildcard-pattern")?.addEventListener("input", (event) => {
+    state.ablationDesignWildcardPattern = event.target.value || "";
+    ablationDesignUpdateFeatureSummary();
+    ablationDesignUpdatePatternFeedback();
+    persistUiState();
+  });
+  $("ablation-design-load-features")?.addEventListener("click", loadAblationDesignFeaturesManual);
+  $("ablation-design-select-matched")?.addEventListener("click", selectAblationDesignMatchedFeatures);
+  $("ablation-design-select-visible")?.addEventListener("click", selectAblationDesignVisibleFeatures);
+  $("ablation-design-invert-visible")?.addEventListener("click", invertAblationDesignVisibleFeatures);
+  $("ablation-design-clear-selection")?.addEventListener("click", () => {
+    state.ablationDesignFeatureSelection = [];
+    renderAblationDesignFeatureBrowser();
+  });
+  $("ablation-design-apply-include-features")?.addEventListener("click", applyAblationDesignIncludeFeatureRules);
+  $("ablation-design-apply-include-pattern")?.addEventListener("click", applyAblationDesignIncludePatternRules);
+  $("ablation-design-apply-exclude-pattern")?.addEventListener("click", applyAblationDesignExcludePatternRules);
+  $("ablation-design-apply-exclude-features")?.addEventListener("click", applyAblationDesignExcludeFeatureRules);
+  $("ablation-design-preview")?.addEventListener("click", () => previewAblationDesign());
   $("ablation-design-plan")?.addEventListener("click", planAblationDesign);
   $("ablation-design-download-yaml")?.addEventListener("click", downloadAblationDesignYaml);
   $("ablation-design-copy-command")?.addEventListener("click", copyAblationDesignCommand);
+  $("ablation-design-write-policy")?.addEventListener("click", writeAblationDesignPolicy);
 }
 
 function pathBasename(path) {
@@ -3076,7 +4010,7 @@ async function refresh() {
     $("health-dot").className = "dot ok";
     $("health-label").textContent = dashboardModelLabel(health.dashboard_model);
     renderWorkspace(payload);
-    if (state.activeTab === "design") ensureAblationDesignContext(true);
+    if (state.activeTab === "design") await ensureAblationDesignContext(true);
   } catch (error) {
     $("health-dot").className = "dot error";
     $("health-label").textContent = "Error";

@@ -481,7 +481,27 @@ def feature_policy_from_mapping(
         source_kind: str = "draft",
         source_path: str | Path | None = None,
     ) -> FeaturePolicy:
-    """Build a feature policy from an in-memory mapping (Workbench draft UI)."""
+    """Build a feature policy from an in-memory mapping.
+
+    Parameters
+    ----------
+    data : Mapping[str, Any]
+        Feature-policy mapping with ``name``, optional description, and include/exclude fields.
+    source_kind : str
+        Provenance label stored on the returned policy.
+    source_path : str or pathlib.Path or None
+        Optional source path recorded on the returned policy.
+
+    Returns
+    -------
+    FeaturePolicy
+        Validated in-memory feature policy.
+
+    Raises
+    ------
+    ValueError
+        If required fields are missing or invalid.
+    """
 
     if source_kind not in VALID_SOURCE_KINDS and source_kind != "draft":
         raise ValueError(f"Unknown feature policy source kind: {source_kind!r}.")
@@ -505,7 +525,18 @@ def feature_policy_from_mapping(
 
 
 def feature_policy_to_yaml_text(data: Mapping[str, Any]) -> str:
-    """Serialize one feature-policy mapping to YAML text."""
+    """Serialize one feature-policy mapping to YAML text.
+
+    Parameters
+    ----------
+    data : Mapping[str, Any]
+        Feature-policy mapping.
+
+    Returns
+    -------
+    str
+        YAML text suitable for ``--feature-policy-yml``.
+    """
 
     payload: dict[str, Any] = {
         "name": str(data.get("name", "")).strip(),

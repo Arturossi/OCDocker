@@ -126,8 +126,10 @@ def _endpoint_index(root: Path) -> dict[str, Any]:
             "/api/figure-asset?path=...",
             "/api/optuna-dashboard",
             "/api/ablation-design",
+            "/api/ablation-design/features",
             "/api/ablation-design/preview",
             "/api/ablation-design/plan",
+            "/api/ablation-design/write",
             "/api/schema",
             "/api/template",
         ],
@@ -421,6 +423,11 @@ def build_workbench_api_payload(
         )
     if path == "/api/ablation-design":
         return build_ablation_design_context(root_path)
+    if path == "/api/ablation-design/features":
+        raise WorkbenchAPIError(
+            "Use POST /api/ablation-design/features with input paths in the JSON body.",
+            status_code=405,
+        )
     if path == "/api/schema":
         names = _values(request_query, "name")
         return build_schema_catalog(names or None)
@@ -593,7 +600,12 @@ def build_workbench_api_handler(
 
             parsed = urlparse(self.path)
             try:
-                if parsed.path in {"/api/ablation-design/preview", "/api/ablation-design/plan"}:
+                if parsed.path in {
+                    "/api/ablation-design/preview",
+                    "/api/ablation-design/plan",
+                    "/api/ablation-design/features",
+                    "/api/ablation-design/write",
+                }:
                     body = _read_json_body(self)
                     payload = handle_ablation_design_post(self.workbench_root, parsed.path, body)
                     self._send_json(payload, status_code=200)
@@ -608,6 +620,8 @@ def build_workbench_api_handler(
                 self._send_json({"ok": False, "error": str(exc)}, status_code=exc.status_code)
             except ValueError as exc:
                 self._send_json({"ok": False, "error": str(exc)}, status_code=400)
+            except FileExistsError as exc:
+                self._send_json({"ok": False, "error": str(exc)}, status_code=409)
             except Exception as exc:
                 self._send_json({"ok": False, "error": str(exc)}, status_code=500)
 

@@ -254,6 +254,167 @@ def validate_raw_schema(pdbbind: pd.DataFrame, dudez: pd.DataFrame) -> None:
         raise ValueError("DUDEz input contains duplicate column names.")
 
 
+def _resolve_raw_modeling_paths(
+        *,
+        merged_input: Optional[str | Path] = None,
+        pdbbind_input: Optional[str | Path] = None,
+        dudez_input: Optional[str | Path] = None,
+        raw_input_dir: Optional[str | Path] = None,
+    ) -> tuple[Optional[Path], Optional[Path], Optional[Path], dict[str, str]]:
+    '''Resolve raw modeling input paths without loading CSV rows.
+
+    Parameters
+    ----------
+    merged_input : str or pathlib.Path, optional
+        Path to a merged raw unreduced CSV.
+    pdbbind_input : str or pathlib.Path, optional
+        Path to a raw unreduced PDBbind pipeline CSV or archive.
+    dudez_input : str or pathlib.Path, optional
+        Path to a raw unreduced DUDEz pipeline CSV or archive.
+    raw_input_dir : str or pathlib.Path, optional
+        Directory containing ``merged_input_dataset.csv`` or separate raw tables.
+
+    Returns
+    -------
+    tuple[pathlib.Path | None, pathlib.Path | None, pathlib.Path | None, dict[str, str]]
+        Resolved merged, PDBbind, and DUDEz paths plus provenance paths.
+
+    Raises
+    ------
+    ValueError
+        If input modes are ambiguous or forbidden artifacts are present.
+    FileNotFoundError
+        If ``raw_input_dir`` does not contain the required raw tables.
+    '''
+
+    merged_path = Path(merged_input).expanduser() if merged_input else None
+    pdb_path = Path(pdbbind_input).expanduser() if pdbbind_input else None
+    dudez_path = Path(dudez_input).expanduser() if dudez_input else None
+    input_dir = Path(raw_input_dir).expanduser() if raw_input_dir else None
+
+    modes = sum(
+        bool(flag)
+        for flag in (
+            merged_path is not None,
+            pdb_path is not None or dudez_path is not None,
+            input_dir is not None,
+        )
+    )
+    if modes != 1:
+        raise ValueError(
+            "Specify exactly one raw input mode: --merged-input, "
+            "(--pdbbind-input and --dudez-input), or --raw-input-dir."
+        )
+
+    artifact_paths: dict[str, str] = {}
+    if input_dir is not None:
+        reject_precomputed_training_artifacts(input_dir)
+        merged_candidate = _find_file(input_dir, MERGED_INPUT_DATASET_NAME)
+        if merged_candidate is not None:
+            merged_path = merged_candidate
+            artifact_paths["merged_input_dataset"] = str(merged_candidate.resolve())
+        else:
+            pdb_path = _find_file(input_dir, RAW_PDBBIND_NAME) or _find_file(input_dir, "PDBbind.csv")
+            dudez_path = _find_file(input_dir, RAW_DUDEZ_NAME) or _find_file(input_dir, "DUDEz.csv")
+            if pdb_path is None or dudez_path is None:
+                raise FileNotFoundError(
+                    f"{input_dir} must contain {MERGED_INPUT_DATASET_NAME!r} "
+                    f"or both raw PDBbind and DUDEz CSV files."
+                )
+            artifact_paths["raw_pdbbind"] = str(pdb_path.resolve())
+            artifact_paths["raw_dudez"] = str(dudez_path.resolve())
+
+    if merged_path is not None:
+        if pdb_path is not None or dudez_path is not None:
+            raise ValueError("Do not combine --merged-input with separate PDBbind/DUDEz inputs.")
+        if merged_path.name in FORBIDDEN_TRAINING_ARTIFACTS:
+            raise ValueError(
+                f"Training input {merged_path.name!r} is not a raw unreduced modeling table."
+            )
+        artifact_paths["merged_input_dataset"] = str(merged_path.resolve())
+
+    if pdb_path is not None and dudez_path is not None and "raw_pdbbind" not in artifact_paths:
+        reject_precomputed_training_artifacts(pdb_path.parent)
+        reject_precomputed_training_artifacts(dudez_path.parent)
+        artifact_paths["raw_pdbbind"] = str(pdb_path.resolve())
+        artifact_paths["raw_dudez"] = str(dudez_path.resolve())
+
+    return merged_path, pdb_path, dudez_path, artifact_paths
+
+
+def _read_modeling_columns(path: Path) -> list[str]:
+    '''Read raw modeling CSV header columns from a file path.'''
+
+    if path.suffix.lower() == ".csv" and path.is_file():
+        return ocscoreio.read_csv_column_names(path)
+    return ocscoreio.read_pipeline_csv_columns(path)
+
+
+def discover_raw_modeling_input_columns(
+        *,
+        merged_input: Optional[str | Path] = None,
+        pdbbind_input: Optional[str | Path] = None,
+        dudez_input: Optional[str | Path] = None,
+        raw_input_dir: Optional[str | Path] = None,
+    ) -> tuple[dict[str, Optional[list[str]]], dict[str, str]]:
+    '''Discover modeling column names from CSV headers without loading rows.
+
+    Parameters
+    ----------
+    merged_input : str or pathlib.Path, optional
+        Path to a merged raw unreduced CSV.
+    pdbbind_input : str or pathlib.Path, optional
+        Path to a raw unreduced PDBbind pipeline CSV or archive.
+    dudez_input : str or pathlib.Path, optional
+        Path to a raw unreduced DUDEz pipeline CSV or archive.
+    raw_input_dir : str or pathlib.Path, optional
+        Directory containing ``merged_input_dataset.csv`` or separate raw tables.
+
+    Returns
+    -------
+    tuple[dict[str, list[str] | None], dict[str, str]]
+        PDBbind/DUDEz column lists and resolved provenance paths.
+    '''
+
+    merged_path, pdb_path, dudez_path, artifact_paths = _resolve_raw_modeling_paths(
+        merged_input=merged_input,
+        pdbbind_input=pdbbind_input,
+        dudez_input=dudez_input,
+        raw_input_dir=raw_input_dir,
+    )
+
+    if merged_path is not None:
+        merged_columns = ocscoreio.pdbbind_columns_from_header(_read_modeling_columns(merged_path))
+        return (
+            {"pdbbind": merged_columns, "dudez": list(merged_columns)},
+            artifact_paths,
+        )
+
+    if pdb_path is not None and dudez_path is not None:
+        pdbbind_columns = ocscoreio.pdbbind_columns_from_header(_read_modeling_columns(pdb_path))
+        dudez_columns = ocscoreio.dudez_columns_from_header(_read_modeling_columns(dudez_path))
+        return (
+            {"pdbbind": pdbbind_columns, "dudez": dudez_columns},
+            artifact_paths,
+        )
+
+    if pdb_path is not None:
+        return (
+            {"pdbbind": ocscoreio.pdbbind_columns_from_header(_read_modeling_columns(pdb_path)), "dudez": None},
+            {"pdbbind_input": str(pdb_path.resolve())},
+        )
+
+    if dudez_path is not None:
+        return (
+            {"pdbbind": None, "dudez": ocscoreio.dudez_columns_from_header(_read_modeling_columns(dudez_path))},
+            {"dudez_input": str(dudez_path.resolve())},
+        )
+
+    raise ValueError(
+        "Provide raw_input_dir, merged_input, pdbbind_input, dudez_input, or both pdbbind_input and dudez_input."
+    )
+
+
 def load_raw_modeling_input(
         *,
         merged_input: Optional[str | Path] = None,
@@ -410,6 +571,7 @@ __all__ = [
     "RAW_PDBBIND_NAME",
     "RawModelingInput",
     "align_and_concatenate_inputs",
+    "discover_raw_modeling_input_columns",
     "load_raw_modeling_input",
     "reject_precomputed_training_artifacts",
     "validate_raw_schema",

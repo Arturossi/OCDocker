@@ -148,7 +148,7 @@ Main commands (see ``ocdocker <command> --help``):
 - ``vs``: single-engine docking with optional rescoring of all poses
 - ``pipeline``: multi-engine docking, RMSD clustering, representative selection, rescoring
 - ``ocscore``: staged OCScore ML pipeline (``reduce``, ``train``, ``shap``, export tools)
-- ``workbench``: validate specs, preflight specs, build run bundles, prepare launch plans, export publication scaffolds, emit starter templates and JSON Schemas, and serve a local read-only strict OCScore dashboard over output roots with baseline replicas and ablation studies. The dashboard reports curated metrics, replica status, ablation summaries, and labeled figures; run execution controls remain explicit rather than automatic.
+- ``workbench``: validate specs, preflight specs, build run bundles, prepare launch plans, export publication scaffolds, emit starter templates and JSON Schemas, and serve a local read-only strict OCScore dashboard over output roots with baseline replicas and ablation studies. The dashboard reports curated metrics, replica status, ablation summaries, labeled figures, and a Design tab for composing custom feature-policy ablations; run execution controls remain explicit rather than automatic.
 - ``console``: interactive console with OCDocker pre-loaded
 - ``script``: run a Python script with OCDocker pre-loaded
   (requires ``--allow-unsafe-exec`` or ``OCDOCKER_ALLOW_SCRIPT_EXEC=1``)

@@ -411,6 +411,165 @@ def _read_pipeline_csv(csv_path: Path) -> pd.DataFrame:
     return cleaned
 
 
+def read_csv_column_names(csv_path: str | Path) -> list[str]:
+    '''Read CSV column names without loading table rows.
+
+    Parameters
+    ----------
+    csv_path : str or pathlib.Path
+        Path to a CSV file.
+
+    Returns
+    -------
+    list[str]
+        Column names from the header row.
+
+    Raises
+    ------
+    ValueError
+        If the CSV is empty or has no columns.
+    FileNotFoundError
+        If ``csv_path`` does not exist.
+    '''
+
+    path = Path(csv_path).expanduser()
+    if not path.is_file():
+        raise FileNotFoundError(f"CSV file not found: {path}")
+    try:
+        frame = pd.read_csv(path, nrows=0)
+    except pd.errors.EmptyDataError as exc:
+        raise ValueError(f"{path.name!r} at {path} is empty.") from exc
+    columns = [str(column) for column in frame.columns.tolist()]
+    if not columns:
+        raise ValueError(f"{path.name!r} at {path} has no columns.")
+    return columns
+
+
+def pdbbind_columns_from_header(columns: Sequence[str]) -> list[str]:
+    '''Return PDBbind column names after ``prepare_pdbbind_dataframe`` additions.
+
+    Parameters
+    ----------
+    columns : Sequence[str]
+        Raw PDBbind CSV header columns.
+
+    Returns
+    -------
+    list[str]
+        Header columns plus any workflow columns added during preparation.
+    '''
+
+    output = [str(column) for column in columns]
+    for name in (DATASET_COLUMN, LABEL_COLUMN):
+        if name not in output:
+            output.append(name)
+    if DUDEZ_KIND_COLUMN not in output:
+        output.append(DUDEZ_KIND_COLUMN)
+    return output
+
+
+def dudez_columns_from_header(columns: Sequence[str]) -> list[str]:
+    '''Return DUDEz column names after ``prepare_dudez_dataframe`` additions.
+
+    Parameters
+    ----------
+    columns : Sequence[str]
+        Raw DUDEz CSV header columns.
+
+    Returns
+    -------
+    list[str]
+        Header columns plus any workflow columns added during preparation.
+    '''
+
+    output = [str(column) for column in columns]
+    for name in (DATASET_COLUMN, LABEL_COLUMN):
+        if name not in output:
+            output.append(name)
+    return output
+
+
+def read_pipeline_csv_columns(
+        archive_path: str | Path,
+        member_name: str | None = None,
+    ) -> list[str]:
+    '''Read pipeline CSV column names without loading table rows.
+
+    Parameters
+    ----------
+    archive_path : str or pathlib.Path
+        Path to a pipeline CSV file, extracted directory, or tar archive.
+    member_name : str, optional
+        Explicit tar member path when multiple pipeline CSV files exist.
+
+    Returns
+    -------
+    list[str]
+        Column names from the selected pipeline CSV header.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the path or a canonical pipeline CSV is missing.
+    ValueError
+        If the archive cannot be read or the CSV header is empty.
+    '''
+
+    path = Path(archive_path)
+
+    if path.suffix.lower() == ".csv" and path.is_file():
+        return read_csv_column_names(path)
+
+    if path.is_dir():
+        csv_path = _find_directory_pipeline_csv(path)
+        return read_csv_column_names(csv_path)
+
+    if not path.is_file():
+        raise FileNotFoundError(f"Pipeline input not found: {path}")
+
+    try:
+        with tarfile.open(path, mode="r:*") as archive:
+            members = _collect_tar_pipeline_members(archive.getmembers())
+
+            if not members:
+                expected = ", ".join(PIPELINE_CSV_BASENAMES)
+                raise FileNotFoundError(
+                    f"Could not find a pipeline results CSV inside archive {path}. "
+                    f"Expected one of: {expected}"
+                )
+
+            if member_name is not None:
+                selected = next((member for member in members if member.name == member_name), None)
+                if selected is None:
+                    raise FileNotFoundError(
+                        f"Could not find tar member {member_name!r} in archive: {path}"
+                    )
+                members = [selected]
+            elif len(members) > 1:
+                names = ", ".join(member.name for member in members[:5])
+                suffix = "..." if len(members) > 5 else ""
+                raise ValueError(
+                    f"Found {len(members)} pipeline CSV files inside archive {path}: "
+                    f"{names}{suffix}. Pass member_name to select one."
+                )
+
+            handle = archive.extractfile(members[0])
+            if handle is None:
+                raise ValueError(f"Could not open {members[0].name!r} from archive: {path}")
+
+            try:
+                frame = pd.read_csv(handle, nrows=0)
+            except pd.errors.EmptyDataError as exc:
+                raise ValueError(f"Pipeline CSV in archive {path} is empty.") from exc
+            columns = [str(column) for column in frame.columns.tolist()]
+            if not columns:
+                raise ValueError(f"Pipeline CSV in archive {path} has no columns.")
+            return columns
+
+    except tarfile.TarError as exc:
+        raise ValueError(f"Could not read tar archive {path}: {exc}") from exc
+
+
 def _find_directory_pipeline_csv(directory: Path) -> Path:
     '''Return the first canonical pipeline CSV in ``directory`` (KTD3 order).'''
 

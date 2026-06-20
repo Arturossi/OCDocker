@@ -165,6 +165,30 @@ def test_full_ocscore_includes_all_candidate_features_not_metadata():
     assert "unmatched_project_note" not in application.final_candidate_features_before_reduction
 
 
+def test_discover_candidate_model_features_treats_database_and_target_as_metadata():
+    '''Pipeline wide tables expose database and target as metadata, not descriptors.'''
+
+    columns = [
+        "receptor",
+        "ligand",
+        "name",
+        "database",
+        "target",
+        "experimental",
+        "ligand_MW",
+        "unmatched_project_note",
+    ]
+    discovery = discover_candidate_model_features(columns)
+
+    assert "database" in discovery.metadata_columns
+    assert "target" in discovery.metadata_columns
+    assert "database" not in discovery.unmatched_columns
+    assert "target" not in discovery.unmatched_columns
+    assert "experimental" in discovery.target_columns
+    assert "ligand_MW" in discovery.candidate_features
+    assert "unmatched_project_note" in discovery.unmatched_columns
+
+
 def test_no_pmi_excludes_exact_pmi_features_when_present():
     application = apply_feature_policy(_policy("no_pmi"), FEATURES)
     final = application.final_candidate_features_before_reduction
