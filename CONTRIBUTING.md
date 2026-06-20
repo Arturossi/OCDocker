@@ -100,5 +100,6 @@ If your contribution is accepted, add your name to `COLLABORATORS.md` in the
 same pull request.
 
 ## License
-By contributing, you agree that your contributions are licensed under the terms
-in `LICENSE`.
+By contributing, you agree that your contributions are licensed under the
+[UFRJ License](LICENSE): use, modification, and redistribution are permitted
+provided UFRJ and the original developers receive appropriate credit.

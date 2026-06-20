@@ -1067,7 +1067,7 @@ function buildRankCategoryBarTraces(plotRows, categories) {
         row.hoverLabel,
         row.study_name,
         row.external,
-        index,
+        row._sourceIndex ?? index,
       ]),
       error_x: {
         type: "data",
@@ -1086,19 +1086,59 @@ function buildRankCategoryBarTraces(plotRows, categories) {
   });
 }
 
-function buildRankPlotlySpec(rows, metric, options = {}) {
-  const title = `${plotMetricLabel(metric)} rank across studies`;
-  const subtitle = "Error bars = σ across replicas";
-  const expandLabels = Boolean(options.expandLabels);
-  const plotRows = rows.map((row) => {
+const RANK_LEGEND_ORDER = ["full_ocscore", "ablation", "sf", "consensus"];
+
+function rankPlotNormalizeRows(rows) {
+  return rows.map((row, sourceIndex) => {
     const full = String(row.label || "");
-    return {
-      ...row,
-      plotLabel: full,
-      hoverLabel: full,
-    };
+    return { ...row, plotLabel: full, hoverLabel: full, _sourceIndex: sourceIndex };
   });
-  const labelOffset = rankPlotLabelOffset(rows);
+}
+
+function rankPlotCategoriesForRows(rows) {
+  return RANK_LEGEND_ORDER.filter((category) => rows.some((row) => rankBarCategory(row) === category));
+}
+
+function rankPlotVisibleRows(plotRows, categoryVisibility) {
+  if (!categoryVisibility) return plotRows;
+  return plotRows.filter((row) => categoryVisibility[rankBarCategory(row)] !== false);
+}
+
+function rankPlotExportRows(plotRows, categoryVisibility) {
+  return plotRows.filter((row) => categoryVisibility[rankBarCategory(row)] === true);
+}
+
+function buildRankPlotEmptyTrace(category) {
+  return {
+    type: "bar",
+    orientation: "h",
+    name: RANK_BAR_LABELS[category],
+    legendgroup: category,
+    x: [],
+    y: [],
+    visible: false,
+    showlegend: true,
+    marker: { color: RANK_BAR_COLORS[category], line: { color: "#ffffff", width: 1 } },
+    hoverinfo: "skip",
+  };
+}
+
+function buildRankPlotTraceSet(plotRows, allCategories, categoryVisibility = null) {
+  const visibility = categoryVisibility
+    || Object.fromEntries(allCategories.map((category) => [category, true]));
+  const visibleCategories = allCategories.filter((category) => visibility[category] !== false);
+  const visibleRows = rankPlotVisibleRows(plotRows, visibility);
+  const activeTraces = buildRankCategoryBarTraces(visibleRows, visibleCategories);
+  const activeByCategory = new Map(activeTraces.map((trace) => [trace.legendgroup, trace]));
+  if (!categoryVisibility) return activeTraces;
+  return allCategories.map((category) => (
+    visibility[category] === false ? buildRankPlotEmptyTrace(category) : activeByCategory.get(category)
+  ));
+}
+
+function buildRankPlotLayout(plotRows, metric, options = {}) {
+  const expandLabels = Boolean(options.expandLabels);
+  const labelOffset = rankPlotLabelOffset(plotRows);
   const maxLabelLen = plotRows.reduce((longest, row) => {
     const lines = String(row.barLabel || row.display || "").split("<br>");
     return Math.max(longest, ...lines.map((line) => line.length));
@@ -1107,74 +1147,93 @@ function buildRankPlotlySpec(rows, metric, options = {}) {
     (longest, row) => Math.max(longest, String(row.hoverLabel || row.label || "").length),
     8,
   );
-  const legendCategories = ["full_ocscore", "ablation", "sf", "consensus"].filter((category) => rows.some((row) => rankBarCategory(row) === category));
   const yIndices = plotRows.map((_, index) => index);
-  const categoryTraces = buildRankCategoryBarTraces(plotRows, legendCategories);
   const tickFontSize = expandLabels ? 11 : Math.max(9, 12 - Math.floor(maxYLabelLen / 36));
   return {
-    data: categoryTraces,
+    template: "plotly_white",
+    paper_bgcolor: "#ffffff",
+    plot_bgcolor: "#ffffff",
+    autosize: true,
+    barmode: "overlay",
+    margin: {
+      l: plotYAxisLeftMargin(maxYLabelLen, { rank: true, expand: expandLabels }),
+      r: Math.max(expandLabels ? 180 : 120, maxLabelLen * (expandLabels ? 8 : 7)),
+      t: 104,
+      b: 44,
+    },
+    annotations: plotRows.map((row, index) => ({
+      x: row.value + (Number(row.std) || 0) + labelOffset,
+      y: index,
+      text: row.barLabel || row.display,
+      showarrow: false,
+      xanchor: "left",
+      yanchor: "middle",
+      align: "left",
+      font: { size: 11, color: "#202833", family: "system-ui, sans-serif" },
+      xref: "x",
+      yref: "y",
+    })),
+    legend: {
+      orientation: "h",
+      yanchor: "bottom",
+      y: 1,
+      xanchor: "left",
+      x: 0,
+      font: { color: "#667085", size: 12 },
+      bgcolor: "rgba(255,255,255,0)",
+      borderwidth: 0,
+      itemclick: "toggle",
+      itemdoubleclick: "toggle",
+    },
+    xaxis: {
+      title: plotMetricLabel(metric),
+      titlefont: { color: "#667085" },
+      tickfont: { color: "#667085" },
+      gridcolor: "#ebe5dc",
+      zerolinecolor: "#d8d1c5",
+      rangemode: metric.direction !== "min" ? "tozero" : "normal",
+      zeroline: true,
+    },
+    yaxis: {
+      type: "linear",
+      tickmode: "array",
+      tickvals: yIndices,
+      ticktext: plotRows.map((row) => row.hoverLabel || row.label || ""),
+      range: [Math.max(plotRows.length - 0.5, 0.5), -0.5],
+      autorange: false,
+      automargin: true,
+      ticklabelposition: "outside",
+      dtick: 1,
+      tickfont: { color: "#202833", size: tickFontSize },
+    },
+    height: plotLayoutHeight(plotRows.length, 40, 120, 280),
+  };
+}
+
+function buildRankPlotlySpec(rows, metric, options = {}) {
+  const title = `${plotMetricLabel(metric)} rank across studies`;
+  const subtitle = "Error bars = σ across replicas";
+  const plotRows = rankPlotNormalizeRows(rows);
+  const allCategories = options.allCategories || rankPlotCategoriesForRows(plotRows);
+  const categoryVisibility = options.categoryVisibility || null;
+  const includeHiddenLegend = options.includeHiddenLegend !== false;
+  const visibleRows = options.forExport
+    ? rankPlotExportRows(plotRows, categoryVisibility || {})
+    : rankPlotVisibleRows(
+      plotRows,
+      includeHiddenLegend && categoryVisibility ? categoryVisibility : null,
+    );
+  const data = includeHiddenLegend && categoryVisibility
+    ? buildRankPlotTraceSet(plotRows, allCategories, categoryVisibility)
+    : buildRankCategoryBarTraces(visibleRows, rankPlotCategoriesForRows(visibleRows));
+  return {
+    data,
     layout: {
-      template: "plotly_white",
-      paper_bgcolor: "#ffffff",
-      plot_bgcolor: "#ffffff",
-      autosize: true,
-      barmode: "overlay",
+      ...buildRankPlotLayout(visibleRows, metric, options),
       title: {
         ...plotTitleLayout(title, subtitle),
         pad: { t: 8, b: 4 },
       },
-      margin: {
-        l: plotYAxisLeftMargin(maxYLabelLen, { rank: true, expand: expandLabels }),
-        r: Math.max(expandLabels ? 180 : 120, maxLabelLen * (expandLabels ? 8 : 7)),
-        t: 104,
-        b: 44,
-      },
-      annotations: plotRows.map((row, index) => ({
-        x: row.value + (Number(row.std) || 0) + labelOffset,
-        y: index,
-        text: row.barLabel || row.display,
-        showarrow: false,
-        xanchor: "left",
-        yanchor: "middle",
-        align: "left",
-        font: { size: 11, color: "#202833", family: "system-ui, sans-serif" },
-        xref: "x",
-        yref: "y",
-      })),
-      legend: {
-        orientation: "h",
-        yanchor: "bottom",
-        y: 1,
-        xanchor: "left",
-        x: 0,
-        font: { color: "#667085", size: 12 },
-        bgcolor: "rgba(255,255,255,0)",
-        borderwidth: 0,
-        itemclick: "toggle",
-        itemdoubleclick: "toggleothers",
-      },
-      xaxis: {
-        title: plotMetricLabel(metric),
-        titlefont: { color: "#667085" },
-        tickfont: { color: "#667085" },
-        gridcolor: "#ebe5dc",
-        zerolinecolor: "#d8d1c5",
-        rangemode: metric.direction !== "min" ? "tozero" : "normal",
-        zeroline: true,
-      },
-      yaxis: {
-        type: "linear",
-        tickmode: "array",
-        tickvals: yIndices,
-        ticktext: plotRows.map((row) => row.hoverLabel || row.label || ""),
-        range: [plotRows.length - 0.5, -0.5],
-        autorange: false,
-        automargin: true,
-        ticklabelposition: "outside",
-        dtick: 1,
-        tickfont: { color: "#202833", size: tickFontSize },
-      },
-      height: plotLayoutHeight(rows.length, 40, 120, 280),
     },
     config: {
       responsive: true,
@@ -1182,7 +1241,57 @@ function buildRankPlotlySpec(rows, metric, options = {}) {
       modeBarButtonsToRemove: ["lasso2d", "select2d"],
       toImageButtonOptions: { format: "png", filename: slug(title), scale: 2 },
     },
+    meta: {
+      allCategories,
+      plotRows,
+      metric,
+      expandLabels: Boolean(options.expandLabels),
+    },
   };
+}
+
+function rankPlotCategoryVisibility(host) {
+  const visibility = {};
+  (host.data || []).forEach((trace) => {
+    if (!trace.legendgroup) return;
+    visibility[trace.legendgroup] = trace.visible !== false;
+  });
+  return visibility;
+}
+
+function rankPlotCategoryVisibilityFromHost(host, allCategories) {
+  const visibility = rankPlotCategoryVisibility(host);
+  const visibleCount = allCategories.filter((category) => visibility[category] !== false).length;
+  if (visibleCount > 0) return visibility;
+  return Object.fromEntries(allCategories.map((category) => [category, true]));
+}
+
+function buildRankPlotViewSpec(payload, categoryVisibility, { forExport = false } = {}) {
+  const allCategories = payload.plotRankCategories || rankPlotCategoriesForRows(payload.plotRankAllRows);
+  return buildRankPlotlySpec(payload.plotRankAllRows, payload.plotRankMetric, {
+    expandLabels: payload.plotRankExpandLabels ?? state.rankPlotExpandLabels,
+    allCategories,
+    categoryVisibility,
+    includeHiddenLegend: !forExport,
+    forExport,
+  });
+}
+
+function reflowRankPlot(host, payload) {
+  if (!host?.data || !payload?.plotRankAllRows || !payload?.plotRankMetric) return;
+  const allCategories = payload.plotRankCategories || rankPlotCategoriesForRows(payload.plotRankAllRows);
+  const categoryVisibility = rankPlotCategoryVisibilityFromHost(host, allCategories);
+  const spec = buildRankPlotViewSpec(payload, categoryVisibility);
+  Plotly.react(host, spec.data, spec.layout, spec.config);
+  payload.plotRankSpec = spec;
+  syncPlotlyHostHeight(host, spec.layout);
+}
+
+function buildRankPlotExportFigure(host, payload) {
+  if (!payload?.plotRankAllRows || !payload?.plotRankMetric) return null;
+  const allCategories = payload.plotRankCategories || rankPlotCategoriesForRows(payload.plotRankAllRows);
+  const categoryVisibility = rankPlotCategoryVisibilityFromHost(host, allCategories);
+  return buildRankPlotViewSpec(payload, categoryVisibility, { forExport: true });
 }
 
 async function mountPendingPlotlyCharts() {
@@ -1203,22 +1312,13 @@ async function mountPendingPlotlyCharts() {
     payload.plotlyDivId = item.divId;
     if (payload.plotKind === "rank") {
       payload.plotRankSpec = item.spec;
-      const syncRankPlot = () => syncRankPlotAnnotations(host, item.spec);
+      const scheduleReflow = () => window.setTimeout(() => reflowRankPlot(host, payload), 0);
       host.on("plotly_click", (event) => {
-        const point = event.points?.[0];
-        if (!point) return;
-        const rowIndex = Number.isFinite(Number(point.customdata?.[7]))
-          ? Number(point.customdata[7])
-          : Math.round(Number(point.y));
+        const rowIndex = rankPlotClickRowIndex(event.points?.[0]);
         handleRankPlotRowClick(payload.rows?.[rowIndex]);
       });
-      host.on("plotly_legendclick", () => {
-        window.setTimeout(syncRankPlot, 0);
-      });
-      host.on("plotly_restyle", () => {
-        window.setTimeout(syncRankPlot, 0);
-      });
-      syncRankPlot();
+      host.on("plotly_legendclick", scheduleReflow);
+      host.on("plotly_legenddoubleclick", scheduleReflow);
     }
   }
   requestAnimationFrame(() => {
@@ -1227,21 +1327,10 @@ async function mountPendingPlotlyCharts() {
   });
 }
 
-function rankPlotVisibleYIndices(host) {
-  const visibleY = new Set();
-  (host.data || []).forEach((trace) => {
-    if (trace.type !== "bar") return;
-    if (trace.visible === false || trace.visible === "legendonly") return;
-    (trace.y || []).forEach((y) => visibleY.add(Math.round(Number(y))));
-  });
-  return visibleY;
-}
-
-function syncRankPlotAnnotations(host, spec) {
-  if (!host?.data || !spec?.layout?.annotations?.length) return;
-  const visibleY = rankPlotVisibleYIndices(host);
-  const annotations = spec.layout.annotations.filter((annotation) => visibleY.has(Math.round(Number(annotation.y))));
-  Plotly.relayout(host, { annotations });
+function rankPlotClickRowIndex(point) {
+  if (!point) return null;
+  if (Number.isFinite(Number(point.customdata?.[7]))) return Number(point.customdata[7]);
+  return Math.round(Number(point.y));
 }
 
 function resizePlotlyHosts(root = document) {
@@ -2015,16 +2104,18 @@ const PLOTLY_EXPORT_LAYOUT = {
   legend: { font: { color: "#667085" } },
 };
 
-function plotlyExportImageOptions(host, format) {
-  const layout = host.layout || {};
+function plotlyExportImageOptions(host, format, exportFigure = null) {
+  const layout = exportFigure?.layout || host.layout || {};
   const margin = layout.margin || {};
+  const height = Number(exportFigure?.layout?.height || layout.height || host.offsetHeight || 320);
   return {
     format,
     width: Math.max(960, host.offsetWidth || 960),
-    height: Math.max(320, host.offsetHeight || 320),
+    height: Math.max(280, height),
     scale: format === "png" ? 2 : 1,
     layout: {
       ...PLOTLY_EXPORT_LAYOUT,
+      ...layout,
       margin: {
         ...margin,
         r: Math.max(Number(margin.r) || 24, 160),
@@ -2034,8 +2125,20 @@ function plotlyExportImageOptions(host, format) {
   };
 }
 
-async function downloadPlotlyImage(filename, host, format) {
-  const dataUrl = await Plotly.toImage(host, plotlyExportImageOptions(host, format));
+async function plotlyImageDataUrl(host, format, payload = null) {
+  const exportFigure = payload?.plotKind === "rank" ? buildRankPlotExportFigure(host, payload) : null;
+  const options = plotlyExportImageOptions(host, format, exportFigure);
+  if (exportFigure) {
+    return Plotly.toImage(
+      { data: exportFigure.data, layout: options.layout },
+      { format: options.format, width: options.width, height: options.height, scale: options.scale },
+    );
+  }
+  return Plotly.toImage(host, options);
+}
+
+async function downloadPlotlyImage(filename, host, format, payload = null) {
+  const dataUrl = await plotlyImageDataUrl(host, format, payload);
   if (format === "svg") {
     const svg = decodeURIComponent(dataUrl.split(",")[1] || "");
     downloadText(filename, svg, "image/svg+xml;charset=utf-8");
@@ -2052,11 +2155,11 @@ function downloadDataUrl(filename, dataUrl) {
   link.click();
 }
 
-async function copyPlotlyPng(host) {
+async function copyPlotlyPng(host, payload = null) {
   if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
     throw new Error("Clipboard image copy is not supported in this browser");
   }
-  const dataUrl = await Plotly.toImage(host, plotlyExportImageOptions(host, "png"));
+  const dataUrl = await plotlyImageDataUrl(host, "png", payload);
   const blob = await (await fetch(dataUrl)).blob();
   await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
 }
@@ -2095,11 +2198,11 @@ function bindPlotExportButtons() {
           const host = document.getElementById(payload.plotlyDivId);
           if (!host) throw new Error("Chart is not ready yet");
           if (kind === "svg") {
-            await downloadPlotlyImage(`${base}.svg`, host, "svg");
+            await downloadPlotlyImage(`${base}.svg`, host, "svg", payload);
           } else if (kind === "png") {
-            await downloadPlotlyImage(`${base}.png`, host, "png");
+            await downloadPlotlyImage(`${base}.png`, host, "png", payload);
           } else if (kind === "copy") {
-            await copyPlotlyPng(host);
+            await copyPlotlyPng(host, payload);
             toast("Chart copied to clipboard");
           }
           return;
@@ -2219,8 +2322,13 @@ function generatedRankPlot(metricName) {
     plotKind: "rank",
     headActions: rankPlotLabelToggleMarkup(key),
   });
+  const exportPayload = state.plotExports[key];
+  exportPayload.plotRankAllRows = rows;
+  exportPayload.plotRankMetric = metric;
+  exportPayload.plotRankCategories = rankPlotCategoriesForRows(rows);
+  exportPayload.plotRankExpandLabels = state.rankPlotExpandLabels;
   return collapsiblePlotMarkup(key, title, `<div id="${divId}" class="plotly-host plotly-host-rank" role="img" aria-label="${escapeHtml(title)}"></div>`, {
-    subtitle: "Click a bar to open study detail · legend: click toggles categories, double-click isolates one",
+    subtitle: "Click a bar · legend click toggles categories (combine any set) · export matches visible categories",
     headActions: exportActions,
   });
 }

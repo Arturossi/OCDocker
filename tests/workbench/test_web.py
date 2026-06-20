@@ -20,17 +20,18 @@ from OCDocker.Workbench.Web import WORKBENCH_STATIC_DIR
 
 # License
 ###############################################################################
-"""
-OCDocker
+"""OCDocker
 Authors: Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M.
 Federal University of Rio de Janeiro
 Carlos Chagas Filho Institute of Biophysics
 Laboratory for Molecular Modeling and Dynamics
 
-This program is proprietary software owned by the Federal University of Rio de Janeiro (UFRJ),
-developed by Rossi, A.D.; Monachesi, M.C.E.; Spelta, G.I.; Torres, P.H.M., and protected under Brazilian Law No. 9,609/1998.
-All rights reserved. Use, reproduction, modification, and distribution are allowed under this UFRJ license,
-provided this copyright notice is preserved. See the LICENSE file for details.
+Copyright (c) Federal University of Rio de Janeiro (UFRJ).
+
+Licensed under the UFRJ License (see LICENSE). You may use, study, modify, and
+redistribute this software for any purpose, including in publications and
+derivative works, provided you preserve this notice and give appropriate credit
+to UFRJ and the original developers listed above.
 
 Contact: Artur Duque Rossi - arturossi10@gmail.com
 """
@@ -227,8 +228,33 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
   if (!spec.layout.title || spec.layout.title.text.indexOf('Error bars') === -1) {
     throw new Error('buildRankPlotlySpec must include the error-bar subtitle');
   }
-  if (spec.layout.legend.itemdoubleclick !== 'toggleothers') {
-    throw new Error('buildRankPlotlySpec legend must support double-click isolate');
+  if (spec.layout.legend.itemdoubleclick !== 'toggle') {
+    throw new Error('buildRankPlotlySpec legend must allow multi-select (double-click toggles, not isolate)');
+  }
+  if (spec.layout.legend.itemclick !== 'toggle') {
+    throw new Error('buildRankPlotlySpec legend must allow multi-select toggling');
+  }
+  var hidden = { full_ocscore: true, ablation: false, sf: true, consensus: true };
+  var compact = buildRankPlotlySpec(rows, metric, {
+    allCategories: ['full_ocscore', 'ablation', 'sf', 'consensus'],
+    categoryVisibility: hidden,
+    includeHiddenLegend: true,
+    forExport: false,
+  });
+  if (compact.layout.yaxis.tickvals.length !== 1) {
+    throw new Error('hidden categories must reflow y-axis to visible rows only');
+  }
+  var exported = buildRankPlotlySpec(rows, metric, {
+    allCategories: ['full_ocscore', 'ablation', 'sf', 'consensus'],
+    categoryVisibility: hidden,
+    includeHiddenLegend: false,
+    forExport: true,
+  });
+  if (exported.data.some(function(trace){ return trace.legendgroup === 'ablation'; })) {
+    throw new Error('export must omit hidden legend categories');
+  }
+  if (exported.data.length < 1) {
+    throw new Error('export must include visible category traces');
   }
   var simple = buildSimpleBarPlotlySpec(rows, metric);
   if (simple.layout.barmode !== 'overlay') throw new Error('buildSimpleBarPlotlySpec must set barmode overlay');

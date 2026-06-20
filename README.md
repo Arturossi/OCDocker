@@ -209,6 +209,14 @@ External docking binaries are not required for most unit tests. End-to-end
 docking runs require the configured tools to be available on the system or in the
 container.
 
+License
+-------
+
+OCDocker is released under the [UFRJ License](LICENSE). You may use, modify,
+and redistribute the software for any purpose, including academic and
+commercial work, provided you preserve the license notice and give appropriate
+credit to UFRJ and the original developers.
+
 Community
 ---------
 
