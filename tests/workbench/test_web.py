@@ -215,30 +215,31 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
   if (spec.data.some(function(trace){ return trace.type === 'scatter'; })) {
     throw new Error('buildRankPlotlySpec must not use scatter legend traces');
   }
+  if (spec.layout.legend.visible !== false) {
+    throw new Error('buildRankPlotlySpec must hide the in-chart legend (HTML legend is used)');
+  }
+  if (spec.layout.legend.itemdoubleclick !== undefined || spec.layout.legend.itemclick !== undefined) {
+    throw new Error('buildRankPlotlySpec must not wire plotly legend toggles');
+  }
   if (spec.layout.barmode !== 'overlay') throw new Error('buildRankPlotlySpec must set barmode overlay');
   if (!spec.layout.title || spec.layout.title.text.indexOf('Error bars') === -1) {
     throw new Error('buildRankPlotlySpec must include the error-bar subtitle');
-  }
-  if (spec.layout.legend.itemdoubleclick !== 'toggle') {
-    throw new Error('buildRankPlotlySpec legend must allow multi-select (double-click toggles, not isolate)');
-  }
-  if (spec.layout.legend.itemclick !== 'toggle') {
-    throw new Error('buildRankPlotlySpec legend must allow multi-select toggling');
   }
   var hidden = { full_ocscore: true, ablation: false, sf: true, consensus: true };
   var compact = buildRankPlotlySpec(rows, metric, {
     allCategories: ['full_ocscore', 'ablation', 'sf', 'consensus'],
     categoryVisibility: hidden,
-    includeHiddenLegend: true,
     forExport: false,
   });
   if (compact.layout.yaxis.tickvals.length !== 1) {
     throw new Error('hidden categories must reflow y-axis to visible rows only');
   }
+  if (compact.data.some(function(trace){ return trace.legendgroup === 'ablation'; })) {
+    throw new Error('interactive filtered view must omit hidden category traces');
+  }
   var exported = buildRankPlotlySpec(rows, metric, {
     allCategories: ['full_ocscore', 'ablation', 'sf', 'consensus'],
     categoryVisibility: hidden,
-    includeHiddenLegend: false,
     forExport: true,
   });
   if (exported.data.some(function(trace){ return trace.legendgroup === 'ablation'; })) {
@@ -247,15 +248,17 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
   if (exported.data.length < 1) {
     throw new Error('export must include visible category traces');
   }
-  var hiddenTrace = compact.data.find(function(trace){ return trace.legendgroup === 'ablation'; });
-  if (!hiddenTrace || hiddenTrace.visible !== 'legendonly') {
-    throw new Error('hidden categories must stay in legend as legendonly traces');
+  if (exported.layout.legend.visible === false) {
+    throw new Error('export must include a plot legend for visible categories');
   }
   var simple = buildSimpleBarPlotlySpec(rows, metric);
   if (simple.layout.barmode !== 'overlay') throw new Error('buildSimpleBarPlotlySpec must set barmode overlay');
 })();
 """
     )
+    assert b"rankPlotLegendMarkup" in script
+    assert b"bindRankPlotLegendButtons" in script
+    assert b"rank-plot-legend" in style
     assert b"/api/figure-asset" in script
     assert b"data-sort-key" in script
     assert b"metric:" in script

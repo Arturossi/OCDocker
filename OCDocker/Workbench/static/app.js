@@ -1108,53 +1108,9 @@ function rankPlotExportRows(plotRows, categoryVisibility) {
   return plotRows.filter((row) => categoryVisibility[rankBarCategory(row)] === true);
 }
 
-function buildRankPlotEmptyTrace(category) {
-  return {
-    type: "bar",
-    orientation: "h",
-    name: RANK_BAR_LABELS[category],
-    legendgroup: category,
-    x: [],
-    y: [],
-    visible: "legendonly",
-    showlegend: true,
-    marker: { color: RANK_BAR_COLORS[category], line: { color: "#ffffff", width: 1 } },
-    hoverinfo: "skip",
-  };
-}
-
-function buildRankPlotCategoryTrace(category, visibility, activeByCategory) {
-  if (!rankPlotCategoryShown(visibility, category)) {
-    return buildRankPlotEmptyTrace(category);
-  }
-  const active = activeByCategory.get(category);
-  if (active) return active;
-  return {
-    type: "bar",
-    orientation: "h",
-    name: RANK_BAR_LABELS[category],
-    legendgroup: category,
-    x: [],
-    y: [],
-    showlegend: true,
-    marker: { color: RANK_BAR_COLORS[category], line: { color: "#ffffff", width: 1 } },
-    hoverinfo: "skip",
-  };
-}
-
-function buildRankPlotTraceSet(plotRows, allCategories, categoryVisibility = null) {
-  const visibility = categoryVisibility
-    || Object.fromEntries(allCategories.map((category) => [category, true]));
-  const visibleCategories = allCategories.filter((category) => rankPlotCategoryShown(visibility, category));
-  const visibleRows = rankPlotVisibleRows(plotRows, visibility);
-  const activeTraces = buildRankCategoryBarTraces(visibleRows, visibleCategories);
-  const activeByCategory = new Map(activeTraces.map((trace) => [trace.legendgroup, trace]));
-  if (!categoryVisibility) return activeTraces;
-  return allCategories.map((category) => buildRankPlotCategoryTrace(category, visibility, activeByCategory));
-}
-
 function buildRankPlotLayout(plotRows, metric, options = {}) {
   const expandLabels = Boolean(options.expandLabels);
+  const showLegend = options.showLegend !== false;
   const labelOffset = rankPlotLabelOffset(plotRows);
   const maxLabelLen = plotRows.reduce((longest, row) => {
     const lines = String(row.barLabel || row.display || "").split("<br>");
@@ -1175,7 +1131,7 @@ function buildRankPlotLayout(plotRows, metric, options = {}) {
     margin: {
       l: plotYAxisLeftMargin(maxYLabelLen, { rank: true, expand: expandLabels }),
       r: Math.max(expandLabels ? 180 : 120, maxLabelLen * (expandLabels ? 8 : 7)),
-      t: 104,
+      t: showLegend ? 104 : 72,
       b: 44,
     },
     annotations: plotRows.map((row, index) => ({
@@ -1190,7 +1146,7 @@ function buildRankPlotLayout(plotRows, metric, options = {}) {
       xref: "x",
       yref: "y",
     })),
-    legend: {
+    legend: showLegend ? {
       orientation: "h",
       yanchor: "bottom",
       y: 1,
@@ -1199,9 +1155,7 @@ function buildRankPlotLayout(plotRows, metric, options = {}) {
       font: { color: "#667085", size: 12 },
       bgcolor: "rgba(255,255,255,0)",
       borderwidth: 0,
-      itemclick: "toggle",
-      itemdoubleclick: "toggle",
-    },
+    } : { visible: false },
     xaxis: {
       title: plotMetricLabel(metric),
       titlefont: { color: "#667085" },
@@ -1233,20 +1187,23 @@ function buildRankPlotlySpec(rows, metric, options = {}) {
   const plotRows = rankPlotNormalizeRows(rows);
   const allCategories = options.allCategories || rankPlotCategoriesForRows(plotRows);
   const categoryVisibility = options.categoryVisibility || null;
-  const includeHiddenLegend = options.includeHiddenLegend !== false;
   const visibleRows = options.forExport
     ? rankPlotExportRows(plotRows, categoryVisibility || {})
     : rankPlotVisibleRows(
       plotRows,
-      includeHiddenLegend && categoryVisibility ? categoryVisibility : null,
+      categoryVisibility || null,
     );
-  const data = includeHiddenLegend && categoryVisibility
-    ? buildRankPlotTraceSet(plotRows, allCategories, categoryVisibility)
-    : buildRankCategoryBarTraces(visibleRows, rankPlotCategoriesForRows(visibleRows));
+  const visibleCategories = rankPlotCategoriesForRows(
+    categoryVisibility ? visibleRows : plotRows,
+  );
+  const data = buildRankCategoryBarTraces(visibleRows, visibleCategories);
   return {
     data,
     layout: {
-      ...buildRankPlotLayout(visibleRows, metric, options),
+      ...buildRankPlotLayout(visibleRows, metric, {
+        expandLabels: Boolean(options.expandLabels),
+        showLegend: Boolean(options.forExport),
+      }),
       title: {
         ...plotTitleLayout(title, subtitle),
         pad: { t: 8, b: 4 },
@@ -1295,7 +1252,6 @@ function buildRankPlotViewSpec(payload, categoryVisibility, { forExport = false 
     expandLabels: payload.plotRankExpandLabels ?? state.rankPlotExpandLabels,
     allCategories,
     categoryVisibility,
-    includeHiddenLegend: !forExport,
     forExport,
   });
 }
@@ -1307,7 +1263,7 @@ async function reflowRankPlot(host, payload) {
   await Plotly.react(host, spec.data, spec.layout, spec.config);
   payload.plotRankSpec = spec;
   syncPlotlyHostHeight(host, spec.layout);
-  bindRankPlotInteractions(host, payload);
+  syncRankPlotHtmlLegend(payload);
 }
 
 function buildRankPlotExportFigure(host, payload) {
@@ -1316,32 +1272,48 @@ function buildRankPlotExportFigure(host, payload) {
   return buildRankPlotViewSpec(payload, categoryVisibility, { forExport: true });
 }
 
-function handleRankPlotLegendToggle(host, payload, event) {
-  const trace = host.data?.[event.curveNumber];
-  const category = trace?.legendgroup;
-  if (!category) return false;
-  const now = Date.now();
-  if (host._rankPlotLastLegendToggle?.category === category && now - host._rankPlotLastLegendToggle.at < 250) {
-    return false;
-  }
-  host._rankPlotLastLegendToggle = { category, at: now };
-  toggleRankPlotCategory(payload, category);
-  void reflowRankPlot(host, payload);
-  return false;
+function rankPlotLegendMarkup(exportKey, categories) {
+  if (!categories.length) return "";
+  const buttons = categories.map((category) => (
+    `<button type="button" class="rank-legend-button" data-rank-legend-key="${escapeHtml(exportKey)}" data-rank-legend-category="${escapeHtml(category)}" aria-pressed="true">
+      <span class="legend-swatch" style="background:${RANK_BAR_COLORS[category]};border-color:${RANK_BAR_COLORS[category]};"></span>
+      <span>${escapeHtml(RANK_BAR_LABELS[category])}</span>
+    </button>`
+  )).join("");
+  return `<div class="rank-plot-legend metric-legend" role="toolbar" aria-label="Filter rank chart categories">${buttons}</div>`;
+}
+
+function syncRankPlotHtmlLegend(payload) {
+  if (!payload?.plotExportKey) return;
+  const visibility = rankPlotCategoryVisibilityState(payload);
+  document.querySelectorAll(`button[data-rank-legend-key="${payload.plotExportKey}"]`).forEach((button) => {
+    const shown = rankPlotCategoryShown(visibility, button.dataset.rankLegendCategory);
+    button.classList.toggle("is-hidden", !shown);
+    button.setAttribute("aria-pressed", shown ? "true" : "false");
+  });
+}
+
+function bindRankPlotLegendButtons() {
+  document.querySelectorAll("button[data-rank-legend-key]").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+      const payload = state.plotExports[button.dataset.rankLegendKey];
+      const host = payload?.plotlyDivId ? document.getElementById(payload.plotlyDivId) : null;
+      if (!payload?.plotRankAllRows || !host) return;
+      toggleRankPlotCategory(payload, button.dataset.rankLegendCategory);
+      void reflowRankPlot(host, payload);
+    });
+  });
 }
 
 function bindRankPlotInteractions(host, payload) {
-  if (typeof host.removeAllListeners === "function") {
-    host.removeAllListeners("plotly_click");
-    host.removeAllListeners("plotly_legendclick");
-    host.removeAllListeners("plotly_legenddoubleclick");
-  }
+  if (host.dataset.rankPlotClickBound === "true") return;
+  host.dataset.rankPlotClickBound = "true";
   host.on("plotly_click", (event) => {
     const rowIndex = rankPlotClickRowIndex(event.points?.[0]);
     handleRankPlotRowClick(payload.rows?.[rowIndex]);
   });
-  host.on("plotly_legendclick", (event) => handleRankPlotLegendToggle(host, payload, event));
-  host.on("plotly_legenddoubleclick", (event) => handleRankPlotLegendToggle(host, payload, event));
 }
 
 async function mountPendingPlotlyCharts() {
@@ -1364,6 +1336,7 @@ async function mountPendingPlotlyCharts() {
       payload.plotRankSpec = item.spec;
       rankPlotCategoryVisibilityState(payload);
       bindRankPlotInteractions(host, payload);
+      syncRankPlotHtmlLegend(payload);
     }
   }
   requestAnimationFrame(() => {
@@ -1766,6 +1739,7 @@ function renderComparisonCharts() {
   void mountPendingPlotlyCharts();
   bindPlotExportButtons();
   bindRankPlotLabelToggleButtons();
+  bindRankPlotLegendButtons();
   bindCollapsiblePlots(container);
 }
 
@@ -2361,6 +2335,7 @@ function generatedRankPlot(metricName) {
   const title = `${plotMetricLabel(metric)} rank across studies`;
   const key = `rank_${slug(metricName)}_${state.resultScope}`;
   const divId = `plot-${slug(key)}`;
+  const categories = rankPlotCategoriesForRows(rows);
   const spec = buildRankPlotlySpec(rows, metric, { expandLabels: state.rankPlotExpandLabels });
   state.pendingPlotly.push({ key, divId, spec });
   const exportActions = registerPlotExport(key, title, rows, "plotly", {
@@ -2368,12 +2343,17 @@ function generatedRankPlot(metricName) {
     headActions: rankPlotLabelToggleMarkup(key),
   });
   const exportPayload = state.plotExports[key];
+  exportPayload.plotExportKey = key;
   exportPayload.plotRankAllRows = rows;
   exportPayload.plotRankMetric = metric;
-  exportPayload.plotRankCategories = rankPlotCategoriesForRows(rows);
+  exportPayload.plotRankCategories = categories;
   exportPayload.plotRankExpandLabels = state.rankPlotExpandLabels;
-  return collapsiblePlotMarkup(key, title, `<div id="${divId}" class="plotly-host plotly-host-rank" role="img" aria-label="${escapeHtml(title)}"></div>`, {
-    subtitle: "Click a bar · legend click toggles categories (combine any set) · export matches visible categories",
+  const plotBody = `
+    ${rankPlotLegendMarkup(key, categories)}
+    <div id="${divId}" class="plotly-host plotly-host-rank" role="img" aria-label="${escapeHtml(title)}"></div>
+  `;
+  return collapsiblePlotMarkup(key, title, plotBody, {
+    subtitle: "Click a bar · legend toggles categories (combine any set) · export matches visible categories",
     headActions: exportActions,
   });
 }

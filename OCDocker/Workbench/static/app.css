@@ -851,6 +851,36 @@ main { padding-top: 16px; padding-bottom: 32px; }
 .comparison-table-legends .color-legend {
   margin: 0;
 }
+.rank-plot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0 0 10px;
+  padding: 2px 0;
+}
+.rank-legend-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 4px 10px 4px 6px;
+  cursor: pointer;
+}
+.rank-legend-button:hover { border-color: var(--accent); }
+.rank-legend-button.is-hidden {
+  opacity: 0.45;
+  color: var(--muted);
+}
+.rank-legend-button.is-hidden .legend-swatch {
+  opacity: 0.55;
+  filter: grayscale(0.35);
+}
 .color-legend { margin-top: 8px; }
 .color-legend-grid { display: flex; flex-wrap: wrap; gap: 6px 10px; max-height: 132px; overflow-y: auto; padding: 2px 0; }
 .legend-intro { flex: 1 1 100%; font-size: 11px; color: var(--muted); }
