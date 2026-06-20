@@ -101,5 +101,6 @@ same pull request.
 
 ## License
 By contributing, you agree that your contributions are licensed under the
-[UFRJ License](LICENSE): use, modification, and redistribution are permitted
-provided UFRJ and the original developers receive appropriate credit.
+[BSD 3-Clause License](LICENSE) on the same terms as the rest of the project. Copyright
+in OCDocker remains with UFRJ, Artur Duque Rossi, and Pedro Henrique Monteiro
+Torres only; accepted contributions are distributed under the project license.

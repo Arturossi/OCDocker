@@ -1116,7 +1116,26 @@ function buildRankPlotEmptyTrace(category) {
     legendgroup: category,
     x: [],
     y: [],
-    visible: false,
+    visible: "legendonly",
+    showlegend: true,
+    marker: { color: RANK_BAR_COLORS[category], line: { color: "#ffffff", width: 1 } },
+    hoverinfo: "skip",
+  };
+}
+
+function buildRankPlotCategoryTrace(category, visibility, activeByCategory) {
+  if (!rankPlotCategoryShown(visibility, category)) {
+    return buildRankPlotEmptyTrace(category);
+  }
+  const active = activeByCategory.get(category);
+  if (active) return active;
+  return {
+    type: "bar",
+    orientation: "h",
+    name: RANK_BAR_LABELS[category],
+    legendgroup: category,
+    x: [],
+    y: [],
     showlegend: true,
     marker: { color: RANK_BAR_COLORS[category], line: { color: "#ffffff", width: 1 } },
     hoverinfo: "skip",
@@ -1126,14 +1145,12 @@ function buildRankPlotEmptyTrace(category) {
 function buildRankPlotTraceSet(plotRows, allCategories, categoryVisibility = null) {
   const visibility = categoryVisibility
     || Object.fromEntries(allCategories.map((category) => [category, true]));
-  const visibleCategories = allCategories.filter((category) => visibility[category] !== false);
+  const visibleCategories = allCategories.filter((category) => rankPlotCategoryShown(visibility, category));
   const visibleRows = rankPlotVisibleRows(plotRows, visibility);
   const activeTraces = buildRankCategoryBarTraces(visibleRows, visibleCategories);
   const activeByCategory = new Map(activeTraces.map((trace) => [trace.legendgroup, trace]));
   if (!categoryVisibility) return activeTraces;
-  return allCategories.map((category) => (
-    visibility[category] === false ? buildRankPlotEmptyTrace(category) : activeByCategory.get(category)
-  ));
+  return allCategories.map((category) => buildRankPlotCategoryTrace(category, visibility, activeByCategory));
 }
 
 function buildRankPlotLayout(plotRows, metric, options = {}) {
@@ -1250,20 +1267,26 @@ function buildRankPlotlySpec(rows, metric, options = {}) {
   };
 }
 
-function rankPlotCategoryVisibility(host) {
-  const visibility = {};
-  (host.data || []).forEach((trace) => {
-    if (!trace.legendgroup) return;
-    visibility[trace.legendgroup] = trace.visible !== false;
-  });
-  return visibility;
+function rankPlotCategoryVisibilityState(payload) {
+  const allCategories = payload.plotRankCategories || rankPlotCategoriesForRows(payload.plotRankAllRows || []);
+  if (!payload.plotRankCategoryVisibility) {
+    payload.plotRankCategoryVisibility = Object.fromEntries(allCategories.map((category) => [category, true]));
+  }
+  return payload.plotRankCategoryVisibility;
 }
 
-function rankPlotCategoryVisibilityFromHost(host, allCategories) {
-  const visibility = rankPlotCategoryVisibility(host);
-  const visibleCount = allCategories.filter((category) => visibility[category] !== false).length;
-  if (visibleCount > 0) return visibility;
-  return Object.fromEntries(allCategories.map((category) => [category, true]));
+function rankPlotCategoryShown(visibility, category) {
+  return visibility[category] !== false;
+}
+
+function toggleRankPlotCategory(payload, category) {
+  const allCategories = payload.plotRankCategories || rankPlotCategoriesForRows(payload.plotRankAllRows || []);
+  const visibility = rankPlotCategoryVisibilityState(payload);
+  visibility[category] = !rankPlotCategoryShown(visibility, category);
+  if (!allCategories.some((entry) => rankPlotCategoryShown(visibility, entry))) {
+    visibility[category] = true;
+  }
+  return visibility;
 }
 
 function buildRankPlotViewSpec(payload, categoryVisibility, { forExport = false } = {}) {
@@ -1277,21 +1300,48 @@ function buildRankPlotViewSpec(payload, categoryVisibility, { forExport = false 
   });
 }
 
-function reflowRankPlot(host, payload) {
-  if (!host?.data || !payload?.plotRankAllRows || !payload?.plotRankMetric) return;
-  const allCategories = payload.plotRankCategories || rankPlotCategoriesForRows(payload.plotRankAllRows);
-  const categoryVisibility = rankPlotCategoryVisibilityFromHost(host, allCategories);
+async function reflowRankPlot(host, payload) {
+  if (!host || !payload?.plotRankAllRows || !payload?.plotRankMetric) return;
+  const categoryVisibility = rankPlotCategoryVisibilityState(payload);
   const spec = buildRankPlotViewSpec(payload, categoryVisibility);
-  Plotly.react(host, spec.data, spec.layout, spec.config);
+  await Plotly.react(host, spec.data, spec.layout, spec.config);
   payload.plotRankSpec = spec;
   syncPlotlyHostHeight(host, spec.layout);
+  bindRankPlotInteractions(host, payload);
 }
 
 function buildRankPlotExportFigure(host, payload) {
   if (!payload?.plotRankAllRows || !payload?.plotRankMetric) return null;
-  const allCategories = payload.plotRankCategories || rankPlotCategoriesForRows(payload.plotRankAllRows);
-  const categoryVisibility = rankPlotCategoryVisibilityFromHost(host, allCategories);
+  const categoryVisibility = rankPlotCategoryVisibilityState(payload);
   return buildRankPlotViewSpec(payload, categoryVisibility, { forExport: true });
+}
+
+function handleRankPlotLegendToggle(host, payload, event) {
+  const trace = host.data?.[event.curveNumber];
+  const category = trace?.legendgroup;
+  if (!category) return false;
+  const now = Date.now();
+  if (host._rankPlotLastLegendToggle?.category === category && now - host._rankPlotLastLegendToggle.at < 250) {
+    return false;
+  }
+  host._rankPlotLastLegendToggle = { category, at: now };
+  toggleRankPlotCategory(payload, category);
+  void reflowRankPlot(host, payload);
+  return false;
+}
+
+function bindRankPlotInteractions(host, payload) {
+  if (typeof host.removeAllListeners === "function") {
+    host.removeAllListeners("plotly_click");
+    host.removeAllListeners("plotly_legendclick");
+    host.removeAllListeners("plotly_legenddoubleclick");
+  }
+  host.on("plotly_click", (event) => {
+    const rowIndex = rankPlotClickRowIndex(event.points?.[0]);
+    handleRankPlotRowClick(payload.rows?.[rowIndex]);
+  });
+  host.on("plotly_legendclick", (event) => handleRankPlotLegendToggle(host, payload, event));
+  host.on("plotly_legenddoubleclick", (event) => handleRankPlotLegendToggle(host, payload, event));
 }
 
 async function mountPendingPlotlyCharts() {
@@ -1312,13 +1362,8 @@ async function mountPendingPlotlyCharts() {
     payload.plotlyDivId = item.divId;
     if (payload.plotKind === "rank") {
       payload.plotRankSpec = item.spec;
-      const scheduleReflow = () => window.setTimeout(() => reflowRankPlot(host, payload), 0);
-      host.on("plotly_click", (event) => {
-        const rowIndex = rankPlotClickRowIndex(event.points?.[0]);
-        handleRankPlotRowClick(payload.rows?.[rowIndex]);
-      });
-      host.on("plotly_legendclick", scheduleReflow);
-      host.on("plotly_legenddoubleclick", scheduleReflow);
+      rankPlotCategoryVisibilityState(payload);
+      bindRankPlotInteractions(host, payload);
     }
   }
   requestAnimationFrame(() => {

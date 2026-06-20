@@ -11,7 +11,8 @@ name = "OCDocker"
 dynamic = ["version"]
 description = "OCDocker is a Python package for molecular docking automation, virtual screening and AI consensus scoring."
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "BSD-3-Clause"
+license-files = ["LICENSE", "NOTICE"]
 authors = [
   { name = "Artur Duque Rossi", email = "arturossi10@gmail.com" },
 ]
@@ -32,6 +33,7 @@ dependencies = [
 
 classifiers = [
   "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: BSD License",
   "Operating System :: POSIX :: Linux",
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",

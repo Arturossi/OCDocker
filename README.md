@@ -212,10 +212,13 @@ container.
 License
 -------
 
-OCDocker is released under the [UFRJ License](LICENSE). You may use, modify,
-and redistribute the software for any purpose, including academic and
-commercial work, provided you preserve the license notice and give appropriate
-credit to UFRJ and the original developers.
+OCDocker is released under the [BSD 3-Clause License](LICENSE). Copyright is held by
+**Federal University of Rio de Janeiro (UFRJ)**, **Artur Duque Rossi**, and
+**Pedro Henrique Monteiro Torres** only (see [NOTICE](NOTICE)). You may use,
+modify, and redistribute the software for any purpose, including commercial
+work, provided you include the BSD license notice. Please credit UFRJ and the
+copyright holders in publications. Community contributors are acknowledged in
+[COLLABORATORS.md](COLLABORATORS.md).
 
 Community
 ---------
