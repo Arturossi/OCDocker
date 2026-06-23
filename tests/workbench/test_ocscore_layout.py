@@ -29,6 +29,17 @@ See the LICENSE file for full terms.
 ## Private ##
 
 
+def _mark_replica_stages_complete(replica_dir) -> None:
+    '''Mark a synthetic replica as PDBbind + DUDEz complete for layout tests.'''
+
+    pdbbind = replica_dir / "pdbbind"
+    pdbbind.mkdir(exist_ok=True)
+    (pdbbind / "pdbbind_best.pt").write_bytes(b"pt")
+    dudez = replica_dir / "dudez"
+    dudez.mkdir(exist_ok=True)
+    (dudez / "dudez_best.pt").write_bytes(b"pt")
+
+
 def _write_strict_ocscore_root(root) -> None:
     '''Write a synthetic strict OCScore output root.
 
@@ -45,6 +56,7 @@ def _write_strict_ocscore_root(root) -> None:
     shap_dir = replica_1 / "dudez" / "shap"
     shap_dir.mkdir(parents=True)
     (shap_dir / "shap_feature_importance.png").write_bytes(b"png")
+    _mark_replica_stages_complete(replica_1)
 
     baseline_export = root / "export" / "dudez" / "shap"
     baseline_export.mkdir(parents=True)
@@ -56,6 +68,7 @@ def _write_strict_ocscore_root(root) -> None:
         '{"aggregate_summary": {"metrics": {"dudez_test_bedroc": {"mean": 0.51}}}}',
         encoding="utf-8",
     )
+    _mark_replica_stages_complete(replica_2)
 
     failed = root / "replica_3"
     failed.mkdir()
@@ -103,6 +116,31 @@ def test_build_ocscore_workspace_detects_baseline_and_ablation_layout(tmp_path) 
     assert workspace.ablation_studies[0].figures[0].metric_name == "rmse"
     assert workspace.ablation_studies[0].replicas[0].replica_name == "replica_001"
     assert set(workspace.ablation_studies[0].metric_summary) == {"test_bedroc", "rmse"}
+
+
+def test_replica_status_completed_only_when_pdbbind_and_dudez_finish(tmp_path) -> None:
+    '''Replica status is completed only after both PDBbind and DUDEz stages finish.'''
+
+    train_root = tmp_path / "train"
+    train_root.mkdir()
+    partial = train_root / "replica_000"
+    partial.mkdir()
+    pdbbind = partial / "pdbbind"
+    pdbbind.mkdir()
+    (pdbbind / "pdbbind_best.pt").write_bytes(b"pt")
+    (partial / "metrics.csv").write_text("RMSE,1.0\n", encoding="utf-8")
+
+    complete = train_root / "replica_001"
+    complete.mkdir()
+    _mark_replica_stages_complete(complete)
+
+    workspace = build_ocscore_workspace(train_root, expected_replica_count=2, max_depth=4)
+    statuses = {replica.replica_name: replica.status for replica in workspace.baseline_study.replicas}
+
+    assert statuses["replica_000"] == "running"
+    assert statuses["replica_001"] == "completed"
+    assert workspace.baseline_study.completed_count == 1
+    assert workspace.baseline_study.missing_count == 0
 
 
 def test_build_ocscore_workspace_preserves_validation_and_test_metric_scopes(tmp_path) -> None:
@@ -436,6 +474,7 @@ def test_build_ocscore_workspace_exposes_run_context(tmp_path) -> None:
     assert workspace.run_context is not None
     assert workspace.run_context.planned_replica_count == 3
     assert workspace.run_context.detected_replica_count == 3
+    assert workspace.run_context.completed_replica_count == 2
     assert workspace.run_context.pdbbind_split_strategy == "receptor_heldout"
     assert workspace.run_context.dudez_bedroc_alpha == 20.0
     assert len(workspace.run_context.baseline_sources) == 1

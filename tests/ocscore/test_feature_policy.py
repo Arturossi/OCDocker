@@ -30,6 +30,9 @@ NEW_LIGAND_PLUS_SCORING_POLICIES = {
     "ligand_plus_scoring_function_clean_receptor",
     "ligand_plus_scoring_function_no_plants",
     "ligand_plus_scoring_function_no_pmi",
+    "ligand_plus_scoring_function_no_pmi_no_autocorr2d",
+    "ligand_plus_scoring_function_no_pmi_no_plants",
+    "ligand_plus_scoring_function_no_pmi_no_shape_size_no_autocorr2d_no_vsa",
     "ligand_plus_scoring_function_no_shape_size_no_autocorr2d",
 }
 FEATURES = [
@@ -64,6 +67,12 @@ FEATURES = [
     "ligand_MolLogP",
     "ligand_RingCount",
     "ligand_AUTOCORR2D_1",
+    "ligand_EState_VSA1",
+    "ligand_PEOE_VSA1",
+    "ligand_SMR_VSA1",
+    "ligand_SlogP_VSA1",
+    "ligand_VSA_EState1",
+    "ligand_MaxAbsPartialCharge",
     *SCORING_FEATURES,
 ]
 
@@ -304,6 +313,64 @@ def test_ligand_plus_scoring_function_no_pmi_excludes_pmi_only():
     assert "ligand_PMI3" not in final
     assert "ligand_NPR1" in final
     assert "ligand_BertzCT" in final
+    assert any(feature in SCORING_FEATURES for feature in final)
+
+
+def test_ligand_plus_scoring_function_no_pmi_no_plants_combines_exclusions():
+    '''Validate the combined PMI and PLANTS exclusion policy.'''
+
+    final = apply_feature_policy(
+        _policy("ligand_plus_scoring_function_no_pmi_no_plants"),
+        FEATURES,
+    ).final_candidate_features_before_reduction
+
+    assert all(feature not in final for feature in ["ligand_PMI1", "ligand_PMI2", "ligand_PMI3"])
+    assert "plants_plp" not in final
+    assert "ligand_AUTOCORR2D_1" in final
+    assert "vina_vina" in final
+    assert "ligand_MaxAbsPartialCharge" in final
+
+
+def test_ligand_plus_scoring_function_no_pmi_no_autocorr2d_combines_exclusions():
+    '''Validate the combined PMI and AUTOCORR2D exclusion policy.'''
+
+    final = apply_feature_policy(
+        _policy("ligand_plus_scoring_function_no_pmi_no_autocorr2d"),
+        FEATURES,
+    ).final_candidate_features_before_reduction
+
+    assert all(feature not in final for feature in ["ligand_PMI1", "ligand_PMI2", "ligand_PMI3"])
+    assert "ligand_AUTOCORR2D_1" not in final
+    assert "ligand_NPR1" in final
+    assert "plants_plp" in final
+    assert "ligand_MaxAbsPartialCharge" in final
+
+
+def test_ligand_plus_scoring_function_no_pmi_no_shape_size_no_autocorr2d_no_vsa():
+    '''Validate the combined ligand descriptor-family exclusion policy.'''
+
+    final = apply_feature_policy(
+        _policy("ligand_plus_scoring_function_no_pmi_no_shape_size_no_autocorr2d_no_vsa"),
+        FEATURES,
+    ).final_candidate_features_before_reduction
+
+    excluded = [
+        *SHAPE_FEATURES,
+        "ligand_BertzCT",
+        "ligand_MolWt",
+        "ligand_TPSA",
+        "ligand_MolLogP",
+        "ligand_RingCount",
+        "ligand_AUTOCORR2D_1",
+        "ligand_EState_VSA1",
+        "ligand_PEOE_VSA1",
+        "ligand_SMR_VSA1",
+        "ligand_SlogP_VSA1",
+        "ligand_VSA_EState1",
+    ]
+    assert all(feature not in final for feature in excluded)
+    assert "ligand_MaxAbsPartialCharge" in final
+    assert all(not feature.startswith("receptor_") for feature in final)
     assert any(feature in SCORING_FEATURES for feature in final)
 
 

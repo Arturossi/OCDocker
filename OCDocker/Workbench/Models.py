@@ -1499,6 +1499,77 @@ class WorkbenchAblationAnalysis(WorkbenchModel):
     issues: tuple[InventoryIssue, ...] = ()
 
 
+class WorkbenchAblationProtocolFamilyState(WorkbenchModel):
+    """Presence of one feature family in an expanded ablation protocol."""
+
+    family_id: str
+    present: bool = False
+    member_count: int = Field(default=0, ge=0)
+    total_members: int = Field(default=0, ge=0)
+
+
+class WorkbenchAblationProtocolSimilarityEntry(WorkbenchModel):
+    """One ablation protocol resolved to an expanded feature set."""
+
+    policy_name: str
+    description: str = ""
+    source_kind: str = "bundled"
+    source_path: Path | None = None
+    expanded_feature_count: int = Field(default=0, ge=0)
+    run_id: str | None = None
+    study_present: bool = False
+    metric_value: float | None = None
+    families: tuple[WorkbenchAblationProtocolFamilyState, ...] = ()
+
+
+class WorkbenchAblationProtocolReferenceDiff(WorkbenchModel):
+    """Feature and family differences versus a reference protocol."""
+
+    policy_name: str = ""
+    added_features: tuple[str, ...] = ()
+    removed_features: tuple[str, ...] = ()
+    added_families: tuple[str, ...] = ()
+    removed_families: tuple[str, ...] = ()
+    shared_feature_count: int = Field(default=0, ge=0)
+
+
+class WorkbenchAblationProtocolClusterSummary(WorkbenchModel):
+    """Aggregate outcome for one feature-similarity cluster."""
+
+    cluster_id: int
+    policy_names: tuple[str, ...] = ()
+    mean_metric: float | None = None
+    metric_count: int = Field(default=0, ge=0)
+    missing_metric_count: int = Field(default=0, ge=0)
+
+
+class WorkbenchAblationProtocolSimilarity(WorkbenchModel):
+    """Expanded feature-set similarity across ablation protocols.
+
+    Returned by :func:`OCDocker.Workbench.AblationProtocolSimilarity.build_ablation_protocol_similarity_analysis`
+    and serialized by ``GET /api/ablation-protocol-similarity``.
+    """
+
+    root: Path
+    layout_root: Path
+    scanned_at: datetime = Field(default_factory=_utc_now)
+    candidate_source: str | None = None
+    preview_available: bool = False
+    reference_policy: str = "full_ocscore"
+    metric: str = ""
+    include_catalog_only: bool = False
+    protocol_count: int = Field(default=0, ge=0)
+    protocols: tuple[WorkbenchAblationProtocolSimilarityEntry, ...] = ()
+    protocol_order: tuple[str, ...] = ()
+    similarity_matrix: tuple[tuple[float, ...], ...] = ()
+    cluster_labels: tuple[int, ...] = ()
+    cluster_summaries: tuple[WorkbenchAblationProtocolClusterSummary, ...] = ()
+    reference_diffs: tuple[WorkbenchAblationProtocolReferenceDiff, ...] = ()
+    issue_count: int = Field(default=0, ge=0)
+    issues: tuple[InventoryIssue, ...] = ()
+    message: str = ""
+
+
 class WorkbenchArtifactEntry(WorkbenchModel):
     """One artifact row in a cross-run Workbench artifact index."""
 
@@ -1705,6 +1776,7 @@ class WorkbenchOCScoreRunContext(WorkbenchModel):
 
     planned_replica_count: int = Field(default=0, ge=0)
     detected_replica_count: int = Field(default=0, ge=0)
+    completed_replica_count: int = Field(default=0, ge=0)
     pdbbind_split_strategy: str = ""
     pdbbind_split_summary: str = ""
     dudez_bedroc_alpha: float | None = None
@@ -1880,6 +1952,11 @@ __all__ = [
     "VSCampaignSpec",
     "WorkbenchAblationAnalysis",
     "WorkbenchAblationCandidate",
+    "WorkbenchAblationProtocolClusterSummary",
+    "WorkbenchAblationProtocolFamilyState",
+    "WorkbenchAblationProtocolReferenceDiff",
+    "WorkbenchAblationProtocolSimilarity",
+    "WorkbenchAblationProtocolSimilarityEntry",
     "WorkbenchAnalysisReport",
     "EvidenceKind",
     "WorkbenchArtifactEntry",

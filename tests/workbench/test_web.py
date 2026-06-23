@@ -94,8 +94,11 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b"color-legend-grid" in style
     assert b"metric-legend" in style
     assert b"metricStatMarkup" in script
+    assert b"learnedSfMetricMark" in script
+    assert b"LEARNED_SF_BASELINE_NAMES" in script
     assert b"metric-stat" in style
     assert b"metric-cell-mu" in style
+    assert b"metric-cell-synth" in style
     assert b"metric-stat-aggregate" in style
     assert b"metric-std" in style
     assert b"cv-panel" in body
@@ -135,6 +138,15 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b"findExternalBaselineByEntryId" in script
     assert b"data-comparison-export" in script
     assert b"comparison-charts" in body
+    assert b"Protocol similarity</span>" in body
+    assert b"protocol-similarity-heatmap" in body
+    assert b"loadProtocolSimilarity" in script
+    assert b"/api/ablation-protocol-similarity" in script
+    assert b"protocol-similarity-families" in body
+    assert b"protocol-similarity-legend" in body
+    assert b"reflowProtocolSimilarityPlot" in script
+    assert b"Cluster 1" in script or b"protocolSimilarityClusterCategories" in script
+    assert b"protocol-similarity-export" in body
     assert b"result-scope-select" in body
     assert b"comparison-baseline-select" in body
     assert b"Workspace Issues" in body
@@ -250,6 +262,24 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
   }
   if (exported.layout.legend.visible === false) {
     throw new Error('export must include a plot legend for visible categories');
+  }
+  var learnedItem = {
+    external: true,
+    baseline_family: 'learned_sf',
+    entry: { baseline_name: 'lr_sf', baseline_family: 'learned_sf', metric_summary: { test_bedroc: { mean: 0.42, count: 1 } } }
+  };
+  var learnedMarkup = metricStatMarkup(learnedItem.entry.metric_summary, 'test_bedroc', learnedItem);
+  if (!learnedMarkup || learnedMarkup.indexOf('metric-cell-synth') === -1 || learnedMarkup.indexOf('\u2248') === -1) {
+    throw new Error('learned SF baseline cells must show the approximate mark');
+  }
+  var synthItem = {
+    external: true,
+    synthesized: true,
+    entry: { baseline_name: 'sf_mean', baseline_family: 'sf_consensus', synthesized: true, metric_summary: { test_bedroc: { mean: 0.42, count: 1 } } }
+  };
+  var synthMarkup = metricStatMarkup(synthItem.entry.metric_summary, 'test_bedroc', synthItem);
+  if (synthMarkup && synthMarkup.indexOf('metric-cell-synth') !== -1) {
+    throw new Error('sf_mean/median/max/min consensus rows must not show the learned-SF mark');
   }
   var simple = buildSimpleBarPlotlySpec(rows, metric);
   if (simple.layout.barmode !== 'overlay') throw new Error('buildSimpleBarPlotlySpec must set barmode overlay');

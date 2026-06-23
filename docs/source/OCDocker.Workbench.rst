@@ -28,6 +28,7 @@ Submodules
    OCDocker.Workbench.Adoption
    OCDocker.Workbench.Ablation
    OCDocker.Workbench.AblationDesign
+   OCDocker.Workbench.AblationProtocolSimilarity
    OCDocker.Workbench.Artifacts
    OCDocker.Workbench.Bundle
    OCDocker.Workbench.Comparison

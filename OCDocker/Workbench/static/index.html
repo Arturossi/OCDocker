@@ -140,7 +140,7 @@
               <span class="legend-item"><span class="legend-mark delta-pos-mark">+</span> better than reference</span>
               <span class="legend-item"><span class="legend-mark delta-neg-mark">−</span> worse than reference</span>
               <span class="legend-item"><span class="legend-mark noise-mark">~</span> |Δ| &lt; σ (within replica noise)</span>
-              <span class="legend-item"><span class="legend-mark synth-mark">≈</span> synthesized SF consensus (approximate)</span>
+              <span class="legend-item"><span class="legend-mark synth-mark">≈</span> learned SF classifier (lr / rf / xgb / …)</span>
             </div>
           </div>
           <div id="comparison-table" class="table-wrap"></div>
@@ -158,7 +158,7 @@
               <span class="legend-item"><span class="legend-mark delta-pos-mark">+</span> better than reference</span>
               <span class="legend-item"><span class="legend-mark delta-neg-mark">−</span> worse than reference</span>
               <span class="legend-item"><span class="legend-mark noise-mark">~</span> |Δ| &lt; σ (within replica noise)</span>
-              <span class="legend-item"><span class="legend-mark synth-mark">≈</span> synthesized SF consensus (approximate)</span>
+              <span class="legend-item"><span class="legend-mark synth-mark">≈</span> learned SF classifier (lr / rf / xgb / …)</span>
             </div>
           </div>
         </div>
@@ -172,6 +172,32 @@
         </div>
         <div id="comparison-charts-zone" class="zone-body">
           <div id="comparison-charts" class="decision-plots"></div>
+        </div>
+      </div>
+      <div class="zone-block zone-collapsible" data-zone="protocolSimilarity">
+        <div class="zone-head zone-head-split">
+          <button type="button" class="zone-toggle" aria-expanded="true" aria-controls="protocol-similarity-zone">
+            <span class="zone-chevron" aria-hidden="true">▾</span>
+            <span class="zone-title">Protocol similarity</span>
+          </button>
+          <span id="protocol-similarity-summary" class="muted"></span>
+        </div>
+        <div id="protocol-similarity-zone" class="zone-body">
+          <div class="protocol-similarity-toolbar">
+            <div id="protocol-similarity-export" class="export-actions"></div>
+          </div>
+          <p id="protocol-similarity-message" class="muted protocol-similarity-note" hidden></p>
+          <div id="protocol-similarity-heatmap-wrap" class="protocol-similarity-heatmap-wrap" hidden>
+            <div id="protocol-similarity-heatmap" class="plotly-host plotly-host-heatmap" role="img" aria-label="Protocol similarity heatmap"></div>
+          </div>
+          <div id="protocol-similarity-reference-wrap" class="protocol-similarity-reference-wrap" hidden>
+            <label for="protocol-similarity-reference">Diff vs protocol</label>
+            <select id="protocol-similarity-reference"></select>
+          </div>
+          <div id="protocol-similarity-diffs" class="protocol-similarity-diffs" hidden></div>
+          <div id="protocol-similarity-overview" class="table-wrap protocol-similarity-overview" hidden></div>
+          <div id="protocol-similarity-clusters" class="protocol-similarity-clusters" hidden></div>
+          <div id="protocol-similarity-families" class="table-wrap protocol-similarity-families" hidden></div>
         </div>
       </div>
     </section>

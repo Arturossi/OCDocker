@@ -435,7 +435,7 @@ def _policy_catalog_entry(policy: Any) -> dict[str, Any]:
 
 
 def _discover_candidate_features(layout_root: Path) -> tuple[list[str], str | None]:
-    '''Load candidate model features from workspace replica metadata when present.
+    '''Load candidate model features from one replica metadata file when present.
 
     Parameters
     ----------
@@ -461,19 +461,20 @@ def _discover_candidate_features(layout_root: Path) -> tuple[list[str], str | No
         replica_dirs = sorted(
             path for path in study_root.iterdir() if path.is_dir() and path.name.startswith("replica")
         )
-        for replica_dir in replica_dirs:
-            metadata_path = replica_dir / metadata_name
-            if not metadata_path.is_file():
-                continue
-            try:
-                payload = json.loads(metadata_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError, TypeError, ValueError):
-                continue
-            if not isinstance(payload, dict):
-                continue
-            candidates = payload.get("candidate_features_before_policy")
-            if isinstance(candidates, list) and candidates:
-                return [str(item) for item in candidates], str(metadata_path)
+        if not replica_dirs:
+            continue
+        metadata_path = replica_dirs[0] / metadata_name
+        if not metadata_path.is_file():
+            continue
+        try:
+            payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            continue
+        if not isinstance(payload, dict):
+            continue
+        candidates = payload.get("candidate_features_before_policy")
+        if isinstance(candidates, list) and candidates:
+            return [str(item) for item in candidates], str(metadata_path)
     return [], None
 
 

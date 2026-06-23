@@ -1,0 +1,14 @@
+name: ligand_plus_scoring_function_no_pmi_no_plants
+description: Ligand descriptors and non-PLANTS scoring-function features, excluding PMI descriptors.
+
+include_patterns:
+  - "ligand_*"
+  - "vina_*"
+  - "smina_*"
+  - "gnina_*"
+  - "oddt_*"
+
+exclude_features:
+  - ligand_PMI1
+  - ligand_PMI2
+  - ligand_PMI3

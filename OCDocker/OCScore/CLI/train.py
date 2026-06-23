@@ -654,7 +654,11 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
             "no_shape_core_no_receptor_surface_counts, no_shape_core_no_receptor_surface_size, "
             "ligand_plus_scoring_function_no_shape_core, ligand_plus_scoring_function_no_shape_size, "
             "ligand_plus_scoring_function_no_shape_size_no_autocorr2d, "
-            "ligand_plus_scoring_function_no_pmi, ligand_plus_scoring_function_no_plants, and "
+            "ligand_plus_scoring_function_no_pmi, "
+            "ligand_plus_scoring_function_no_pmi_no_plants, "
+            "ligand_plus_scoring_function_no_pmi_no_autocorr2d, "
+            "ligand_plus_scoring_function_no_pmi_no_shape_size_no_autocorr2d_no_vsa, "
+            "ligand_plus_scoring_function_no_plants, and "
             "ligand_plus_scoring_function_clean_receptor."
         ),
     )

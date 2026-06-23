@@ -769,6 +769,69 @@ main { padding-top: 16px; padding-bottom: 32px; }
 .protocol-variants { display: flex; flex-wrap: wrap; gap: 6px; }
 .protocol-variant { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--protocol-variant-bg); color: var(--ink); }
 .protocol-variant.active { background: var(--protocol-variant-active-bg); color: var(--accent); border: 1px solid var(--accent-soft-border); }
+.protocol-similarity-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.protocol-similarity-toolbar .export-actions { margin-left: auto; }
+.protocol-similarity-checkbox {
+  display: none;
+}
+.protocol-similarity-note { margin: 0 0 10px; font-size: 12px; }
+.protocol-similarity-heatmap-wrap { margin-bottom: 12px; }
+.protocol-similarity-reference-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+.protocol-similarity-reference-wrap select {
+  min-width: 220px;
+  max-width: 100%;
+}
+.protocol-similarity-overview { margin-bottom: 12px; font-size: 12px; }
+.protocol-similarity-overview .protocol-similarity-family-delta { max-width: 180px; overflow-wrap: anywhere; }
+.protocol-similarity-diff-title { margin: 0 0 8px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.plotly-host-heatmap { min-height: 320px; }
+.protocol-similarity-clusters {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.protocol-similarity-cluster {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: grid;
+  gap: 4px;
+}
+.protocol-similarity-cluster-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: baseline;
+  font-size: 12px;
+}
+.protocol-similarity-cluster-head strong { font-size: 13px; }
+.protocol-similarity-families table { font-size: 11px; }
+.protocol-similarity-families .family-present { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.protocol-similarity-families .family-absent { color: var(--muted); }
+.protocol-similarity-families .family-partial { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.protocol-similarity-diff-card {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.protocol-similarity-diff-card h4 { margin: 0 0 6px; font-size: 12px; }
+.protocol-similarity-diff-grid { display: grid; gap: 4px; }
+.protocol-similarity-diff-grid span { overflow-wrap: anywhere; }
 .metric-legend {
   display: flex;
   flex-wrap: wrap;
@@ -902,6 +965,7 @@ main { padding-top: 16px; padding-bottom: 32px; }
 .metric-stat-aggregate { gap: 2px; }
 .metric-stat-line { display: inline-flex; align-items: baseline; gap: 4px; justify-content: flex-end; }
 .metric-cell-mu { font-size: 9px; font-weight: 800; color: var(--accent); line-height: 1; }
+.metric-cell-synth { font-size: 9px; font-weight: 800; color: var(--warn); line-height: 1; }
 .metric-mean { font-weight: 700; font-variant-numeric: tabular-nums; }
 .metric-std { font-size: 10px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
 .decision-plots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; align-items: start; }
@@ -933,6 +997,7 @@ th, td { padding: 9px 10px; border-bottom: 1px solid var(--table-border); text-a
 th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
 th.numeric, td.numeric { text-align: right; font-variant-numeric: tabular-nums; vertical-align: middle; }
 th.delta-col, td.delta-col { width: 1%; white-space: nowrap; }
+td.replica-partial { color: var(--muted); }
 td.rank-top { background: var(--rank-top-bg); box-shadow: inset 4px 0 0 var(--rank-top-edge); font-weight: 700; }
 td.rank-second { background: var(--rank-second-bg); box-shadow: inset 4px 0 0 var(--rank-second-edge); }
 td.rank-third { background: var(--rank-third-bg); box-shadow: inset 4px 0 0 var(--rank-third-edge); }

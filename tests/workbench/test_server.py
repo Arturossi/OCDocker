@@ -33,6 +33,15 @@ See the LICENSE file for full terms.
 ## Private ##
 
 
+def _mark_replica_stages_complete(replica_dir) -> None:
+    pdbbind = replica_dir / "pdbbind"
+    pdbbind.mkdir(exist_ok=True)
+    (pdbbind / "pdbbind_best.pt").write_bytes(b"pt")
+    dudez = replica_dir / "dudez"
+    dudez.mkdir(exist_ok=True)
+    (dudez / "dudez_best.pt").write_bytes(b"pt")
+
+
 def _write_api_ocscore_root(root) -> None:
     '''Write a synthetic OCScore root for API tests.
 
@@ -45,6 +54,7 @@ def _write_api_ocscore_root(root) -> None:
     replica = root / "replica_1"
     replica.mkdir()
     (replica / "metrics.csv").write_text("metric,value\nBEDROC,0.77\n", encoding="utf-8")
+    _mark_replica_stages_complete(replica)
     ablation = root / "ablation" / "no_ligand" / "replica_1"
     ablation.mkdir(parents=True)
     (ablation / "metrics.csv").write_text("metric,value\nBEDROC,0.52\n", encoding="utf-8")

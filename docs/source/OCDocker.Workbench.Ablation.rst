@@ -24,3 +24,8 @@ The same payload is exposed by the local API at ``/api/ablations`` and by the
 browser dashboard decision view at ``/app``. The dashboard renders the ablation table, a
 centered delta bar chart for the selected rank metric, and a metric-direction
 heatmap for the selected decision metrics.
+
+Expanded feature-set similarity across protocols—Jaccard on policy-expanded
+columns, family rollups, and cluster overlays—is provided separately by
+:mod:`OCDocker.Workbench.AblationProtocolSimilarity` at
+``/api/ablation-protocol-similarity``.

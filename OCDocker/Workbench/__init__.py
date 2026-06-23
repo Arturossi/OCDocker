@@ -18,6 +18,7 @@ from OCDocker.Workbench.Adoption import build_adoption_plan
 from OCDocker.Workbench.Adoption import write_adoption_workspace
 from OCDocker.Workbench.Ablation import build_ablation_analysis
 from OCDocker.Workbench.Ablation import parse_ablation_metric
+from OCDocker.Workbench.AblationProtocolSimilarity import build_ablation_protocol_similarity_analysis
 from OCDocker.Workbench.Artifacts import build_artifact_index
 from OCDocker.Workbench.Bundle import build_run_bundle
 from OCDocker.Workbench.Comparison import build_run_comparison
@@ -226,6 +227,7 @@ __all__ = [
     "available_schema_names",
     "parse_ablation_metric",
     "build_ablation_analysis",
+    "build_ablation_protocol_similarity_analysis",
     "available_template_names",
     "write_adoption_workspace",
     "build_adoption_plan",

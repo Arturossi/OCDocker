@@ -32,6 +32,7 @@ from OCDocker.Workbench.OptunaDashboard import OptunaDashboardManager
 from OCDocker.Workbench.Schema import build_schema_catalog
 from OCDocker.Workbench.AblationDesign import build_ablation_design_context
 from OCDocker.Workbench.AblationDesign import handle_ablation_design_post
+from OCDocker.Workbench.AblationProtocolSimilarity import build_ablation_protocol_similarity_analysis
 from OCDocker.Workbench.Templates import build_template_payload
 from OCDocker.Workbench.Web import build_workbench_web_asset
 from OCDocker.Workbench.Web import is_workbench_web_asset_path
@@ -122,6 +123,7 @@ def _endpoint_index(root: Path) -> dict[str, Any]:
             "/api/ablation-design/preview",
             "/api/ablation-design/plan",
             "/api/ablation-design/write",
+            "/api/ablation-protocol-similarity",
             "/api/schema",
             "/api/template",
         ],
@@ -415,6 +417,20 @@ def build_workbench_api_payload(
         )
     if path == "/api/ablation-design":
         return build_ablation_design_context(root_path)
+    if path == "/api/ablation-protocol-similarity":
+        metric_values = _values(request_query, "metric")
+        reference_values = _values(request_query, "reference")
+        catalog_values = _values(request_query, "include_catalog_only")
+        include_catalog_only = catalog_values[0].strip().lower() in {"1", "true", "yes"} if catalog_values else False
+        return _model_payload(
+            build_ablation_protocol_similarity_analysis(
+                root_path,
+                reference_policy=reference_values[0] if reference_values else None,
+                metric=metric_values[0] if metric_values else None,
+                include_catalog_only=include_catalog_only,
+                max_depth=max_depth,
+            )
+        )
     if path == "/api/ablation-design/features":
         raise WorkbenchAPIError(
             "Use POST /api/ablation-design/features with input paths in the JSON body.",

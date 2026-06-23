@@ -4,9 +4,9 @@ Example: Complete OCScore Pipeline
 
 This example demonstrates the complete pipeline to obtain OCScore results from scratch:
 1. Receptor and ligand preparation
-2. Docking with multiple engines (Vina, PLANTS)
+2. Docking with multiple engines (Vina, PLANTS, GNINA)
 3. Pose clustering to find representative poses
-4. Rescoring with multiple scoring functions (ODDT, PLANTS, Vina, SMINA)
+4. Rescoring with multiple scoring functions (ODDT, PLANTS, Vina, SMINA, GNINA)
 5. Feature extraction (receptor and ligand descriptors)
 6. Model inference using trained OCScore model
 
@@ -101,6 +101,28 @@ SAVE_TO_FILE = True  # Set to False to only store results in memory
 N_JOBS = 4                  # Number of parallel jobs (cores) to use. Set to -1 for all available cores
 USE_MULTIPROCESSING = True  # Set to False to process ligands sequentially
 
+# Pipeline stage toggles — enable each engine independently
+RUN_VINA_DOCKING = True
+RUN_PLANTS_DOCKING = True
+RUN_GNINA_DOCKING = True
+
+RUN_ODDT_RESCORING = True
+RUN_PLANTS_RESCORING = True
+RUN_VINA_RESCORING = True
+RUN_SMINA_RESCORING = True
+RUN_GNINA_RESCORING = True
+
+# When True, partial reruns keep scores from disabled engines (read from disk/cache).
+# Use this to add GNINA (or any engine) to an already-completed protocol without losing other scores.
+MERGE_EXISTING_RESCORING = True
+
+# Example — GNINA rescoring only on an already-docked/scored ligand folder:
+#   RUN_VINA_DOCKING = RUN_PLANTS_DOCKING = RUN_GNINA_DOCKING = False
+#   RUN_ODDT_RESCORING = RUN_PLANTS_RESCORING = RUN_VINA_RESCORING = RUN_SMINA_RESCORING = False
+#   RUN_GNINA_RESCORING = True
+#   MERGE_EXISTING_RESCORING = True
+# Existing vina/smina/plants/oddt outputs are left untouched; only gninaFiles/rescoring is written.
+
 # Checkpoint/resume configuration
 # When enabled, each ligand writes a per-ligand checkpoint and can resume from the
 # last completed stage. This is backward-compatible with runs done before this code:
@@ -175,6 +197,7 @@ else:
     os.environ.pop('OCDOCKER_NO_AUTO_BOOTSTRAP', None)
 
 # Now import other OCDocker modules (they won't trigger auto-bootstrap since we already bootstrapped)
+import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina
@@ -194,6 +217,8 @@ ocsec.allow_unsafe_runtime(deserialization=True, script_exec=False)
 
 def main():
     '''Main function to process all ligands.'''
+
+    _validate_pipeline_config()
     
     # OCDocker auto-bootstraps on import, so configuration is already loaded
     # If you need to verify bootstrap or use custom settings, you can:
@@ -215,6 +240,13 @@ def main():
     print(f"Receptor: {RECEPTOR_NAME}")
     print(f"Number of ligands: {len(ligand_tasks)}")
     print(f"Use mask: {USE_MASK}")
+    print(f"Merge existing rescoring: {MERGE_EXISTING_RESCORING}")
+    print(f"Docking: vina={RUN_VINA_DOCKING}, plants={RUN_PLANTS_DOCKING}, gnina={RUN_GNINA_DOCKING}")
+    print(
+        "Rescoring: "
+        f"oddt={RUN_ODDT_RESCORING}, plants={RUN_PLANTS_RESCORING}, "
+        f"vina={RUN_VINA_RESCORING}, smina={RUN_SMINA_RESCORING}, gnina={RUN_GNINA_RESCORING}"
+    )
     print(f"Multiprocessing: {USE_MULTIPROCESSING}")
     if USE_MULTIPROCESSING:
         print(f"Number of jobs: {N_JOBS}")
@@ -488,6 +520,18 @@ def map_rescoring_key_to_db_column(key: str, engine: Optional[str] = None) -> st
         'plants_chemplp': 'PLANTS_CHEMPLP',
         'plants_plp': 'PLANTS_PLP',
         'plants_plp95': 'PLANTS_PLP95',
+        # GNINA mappings
+        'gnina_vina_rescoring': 'GNINA_VINA',
+        'gnina_vinardo_rescoring': 'GNINA_VINARDO',
+        'gnina_dkoes_scoring_rescoring': 'GNINA_SCORING_DKOES',
+        'gnina_scoring_dkoes_rescoring': 'GNINA_SCORING_DKOES',  # Alternative format
+        'gnina_old_scoring_dkoes_rescoring': 'GNINA_OLD_SCORING_DKOES',
+        'gnina_fast_dkoes_rescoring': 'GNINA_FAST_DKOES',
+        'gnina_ad4_scoring_rescoring': 'GNINA_SCORING_AD4',
+        'gnina_dkoes_fast': 'GNINA_FAST_DKOES',
+        'gnina_dkoes_scoring_old': 'GNINA_OLD_SCORING_DKOES',
+        'gnina_dkoes_fast_rescoring': 'GNINA_FAST_DKOES',
+        'gnina_dkoes_scoring_old_rescoring': 'GNINA_OLD_SCORING_DKOES',
         # ODDT mappings (these come from the dataframe columns, already prefixed with oddt_)
         'oddt_rfscore_v1': 'ODDT_RFSCORE_V1',
         'oddt_rfscore_v2': 'ODDT_RFSCORE_V2',
@@ -538,7 +582,7 @@ def map_rescoring_key_to_db_column(key: str, engine: Optional[str] = None) -> st
                 scoring_function = '_'.join(scoring_function_parts)
                 
                 # Use provided engine if available, otherwise try to detect
-                engines_to_try = [engine] if engine else ['vina', 'smina']
+                engines_to_try = [engine] if engine else ['vina', 'smina', 'gnina']
                 
                 # Try to match with known formats
                 for eng in engines_to_try:
@@ -554,6 +598,18 @@ def map_rescoring_key_to_db_column(key: str, engine: Optional[str] = None) -> st
                     # Use provided engine
                     if engine == 'vina':
                         return f'VINA_{scoring_function.upper()}'
+                    elif engine == 'gnina':
+                        sf_mapping = {
+                            'dkoes_scoring': 'SCORING_DKOES',
+                            'scoring_dkoes': 'SCORING_DKOES',
+                            'old_scoring_dkoes': 'OLD_SCORING_DKOES',
+                            'dkoes_scoring_old': 'OLD_SCORING_DKOES',
+                            'fast_dkoes': 'FAST_DKOES',
+                            'ad4_scoring': 'SCORING_AD4',
+                        }
+                        if scoring_function in sf_mapping:
+                            return f'GNINA_{sf_mapping[scoring_function]}'
+                        return f'GNINA_{scoring_function.upper()}'
                     elif engine == 'smina':
                         sf_mapping = {
                             'dkoes_scoring': 'SCORING_DKOES',
@@ -588,6 +644,8 @@ def map_rescoring_key_to_db_column(key: str, engine: Optional[str] = None) -> st
                 # Use engine if provided, otherwise default to vina_vina
                 if engine == 'smina':
                     return 'SMINA_VINARDO'  # Default SMINA scoring function
+                if engine == 'gnina':
+                    return 'GNINA_VINARDO'  # Default GNINA scoring function
                 return 'VINA_VINA'  # Default VINA scoring function
     
     # Handle old format: VINA/SMINA rescoring keys (remove _rescoring suffix if present)
@@ -599,6 +657,22 @@ def map_rescoring_key_to_db_column(key: str, engine: Optional[str] = None) -> st
         if key_without_suffix.startswith('vina_'):
             sf = key_without_suffix.replace('vina_', '')
             return f'VINA_{sf.upper()}'
+        elif key_without_suffix.startswith('gnina_'):
+            sf = key_without_suffix.replace('gnina_', '')
+            sf_mapping = {
+                'dkoes_scoring': 'SCORING_DKOES',
+                'scoring_dkoes': 'SCORING_DKOES',
+                'old_scoring_dkoes': 'OLD_SCORING_DKOES',
+                'dkoes_scoring_old': 'OLD_SCORING_DKOES',
+                'fast_dkoes': 'FAST_DKOES',
+                'dkoes_fast': 'FAST_DKOES',
+                'ad4_scoring': 'SCORING_AD4',
+                'vina': 'VINA',
+                'vinardo': 'VINARDO',
+            }
+            if sf in sf_mapping:
+                return f'GNINA_{sf_mapping[sf]}'
+            return f'GNINA_{sf.upper()}'
         elif key_without_suffix.startswith('smina_'):
             sf = key_without_suffix.replace('smina_', '')
             # Handle special SMINA scoring function names
@@ -626,6 +700,287 @@ def map_rescoring_key_to_db_column(key: str, engine: Optional[str] = None) -> st
 CHECKPOINT_STAGE_DOCKING = "docking"
 CHECKPOINT_STAGE_RESCORING = "rescoring"
 CHECKPOINT_STAGE_FEATURES = "features"
+
+
+def _enabled_docking_engines() -> Tuple[str, ...]:
+    engines = []
+    if RUN_VINA_DOCKING:
+        engines.append("vina")
+    if RUN_PLANTS_DOCKING:
+        engines.append("plants")
+    if RUN_GNINA_DOCKING:
+        engines.append("gnina")
+    return tuple(engines)
+
+
+def _enabled_rescoring_engines() -> Tuple[str, ...]:
+    engines = []
+    if RUN_ODDT_RESCORING:
+        engines.append("oddt")
+    if RUN_PLANTS_RESCORING:
+        engines.append("plants")
+    if RUN_VINA_RESCORING:
+        engines.append("vina")
+    if RUN_SMINA_RESCORING:
+        engines.append("smina")
+    if RUN_GNINA_RESCORING:
+        engines.append("gnina")
+    return tuple(engines)
+
+
+def _validate_pipeline_config() -> None:
+    if not _enabled_rescoring_engines():
+        raise ValueError(
+            "At least one rescoring engine must be enabled (ODDT, PLANTS, Vina, SMINA, or GNINA)."
+        )
+    if RUN_ODDT_RESCORING:
+        has_prepared_receptor = bool(PREPARED_RECEPTOR_PDBQT and os.path.isfile(PREPARED_RECEPTOR_PDBQT))
+        has_pdbqt_preparer = any([
+            RUN_VINA_DOCKING,
+            RUN_VINA_RESCORING,
+            RUN_SMINA_RESCORING,
+            RUN_GNINA_DOCKING,
+            RUN_GNINA_RESCORING,
+        ])
+        if not has_prepared_receptor and not has_pdbqt_preparer:
+            raise ValueError(
+                "ODDT rescoring requires PREPARED_RECEPTOR_PDBQT or a PDBQT-capable engine "
+                "(Vina, SMINA, or GNINA docking/rescoring)."
+            )
+
+
+def _docking_outputs_ready(vina_poses: list, plants_poses: list, gnina_poses: list) -> bool:
+    if not _enabled_docking_engines():
+        return bool(vina_poses or plants_poses or gnina_poses)
+    ready = True
+    if RUN_VINA_DOCKING:
+        ready = ready and bool(vina_poses)
+    if RUN_PLANTS_DOCKING:
+        ready = ready and bool(plants_poses)
+    if RUN_GNINA_DOCKING:
+        ready = ready and bool(gnina_poses)
+    return ready
+
+
+def _checkpoint_medoid(checkpoint: Dict[str, Any]) -> Optional[str]:
+    stage_data = checkpoint.get("stage_data", {})
+    if not isinstance(stage_data, dict):
+        return None
+    rescoring_data = stage_data.get(CHECKPOINT_STAGE_RESCORING, {})
+    if not isinstance(rescoring_data, dict):
+        return None
+    medoid = rescoring_data.get("medoid")
+    if isinstance(medoid, str) and medoid and os.path.isfile(medoid):
+        return medoid
+    return None
+
+
+def _rescoring_engine_outputs_present(
+    ligand_path: str,
+    ligand_name: str,
+    engine: str,
+    vina_ligand: Optional[ocvina.Vina] = None,
+    plants_ligand: Optional[ocplants.PLANTS] = None,
+    smina_ligand: Optional[ocsmina.Smina] = None,
+    gnina_ligand: Optional[ocgnina.Gnina] = None,
+) -> bool:
+    if engine == "oddt":
+        return os.path.isfile(os.path.join(ligand_path, "oddt", f"{ligand_name}.csv"))
+    if engine == "plants":
+        if plants_ligand is None:
+            return False
+        try:
+            return bool(plants_ligand.read_rescore_logs(f"{ligand_path}/plantsFiles"))
+        except Exception:
+            return False
+    if engine == "vina":
+        if vina_ligand is None:
+            return False
+        try:
+            return bool(vina_ligand.read_rescore_logs(f"{ligand_path}/vinaFiles/rescoring"))
+        except Exception:
+            return False
+    if engine == "smina":
+        if smina_ligand is None:
+            return False
+        try:
+            return bool(smina_ligand.read_rescore_logs(f"{ligand_path}/sminaFiles/rescoring"))
+        except Exception:
+            return False
+    if engine == "gnina":
+        if gnina_ligand is None:
+            return False
+        try:
+            return bool(gnina_ligand.read_rescore_logs(f"{ligand_path}/gninaFiles/rescoring"))
+        except Exception:
+            return False
+    return False
+
+
+def _enabled_rescoring_outputs_present(
+    ligand_path: str,
+    ligand_name: str,
+    vina_ligand: Optional[ocvina.Vina] = None,
+    plants_ligand: Optional[ocplants.PLANTS] = None,
+    smina_ligand: Optional[ocsmina.Smina] = None,
+    gnina_ligand: Optional[ocgnina.Gnina] = None,
+) -> bool:
+    enabled = _enabled_rescoring_engines()
+    if not enabled:
+        return True
+    return all(
+        _rescoring_engine_outputs_present(
+            ligand_path,
+            ligand_name,
+            engine,
+            vina_ligand,
+            plants_ligand,
+            smina_ligand,
+            gnina_ligand,
+        )
+        for engine in enabled
+    )
+
+
+def _read_preserved_rescoring_outputs(
+    ligand_path: str,
+    ligand_name: str,
+    vina_ligand: Optional[ocvina.Vina] = None,
+    plants_ligand: Optional[ocplants.PLANTS] = None,
+    smina_ligand: Optional[ocsmina.Smina] = None,
+    gnina_ligand: Optional[ocgnina.Gnina] = None,
+) -> Dict[str, Any]:
+    """Read on-disk rescoring for engines that are disabled this run."""
+    if not MERGE_EXISTING_RESCORING:
+        return {}
+
+    preserved_engines = tuple(
+        engine for engine in ("oddt", "plants", "vina", "smina", "gnina")
+        if engine not in _enabled_rescoring_engines()
+    )
+    if not preserved_engines:
+        return {}
+
+    preserved: Dict[str, Any] = {}
+    for engine in preserved_engines:
+        if not _rescoring_engine_outputs_present(
+            ligand_path,
+            ligand_name,
+            engine,
+            vina_ligand,
+            plants_ligand,
+            smina_ligand,
+            gnina_ligand,
+        ):
+            continue
+        partial = _read_single_engine_rescoring(
+            ligand_path,
+            ligand_name,
+            engine,
+            vina_ligand,
+            plants_ligand,
+            smina_ligand,
+            gnina_ligand,
+        )
+        if partial:
+            preserved.update(partial)
+    return preserved
+
+
+def _read_single_engine_rescoring(
+    ligand_path: str,
+    ligand_name: str,
+    engine: str,
+    vina_ligand: Optional[ocvina.Vina] = None,
+    plants_ligand: Optional[ocplants.PLANTS] = None,
+    smina_ligand: Optional[ocsmina.Smina] = None,
+    gnina_ligand: Optional[ocgnina.Gnina] = None,
+) -> Dict[str, Any]:
+    result: Dict[str, Any] = {}
+    if engine == "oddt":
+        oddt_csv = os.path.join(ligand_path, "oddt", f"{ligand_name}.csv")
+        if not os.path.isfile(oddt_csv):
+            return result
+        try:
+            oddt_df = pd.read_csv(oddt_csv)
+            oddt_dict = ocoddt.df_to_dict(oddt_df)
+            if not oddt_dict:
+                return result
+            first_key = list(oddt_dict.keys())[0]
+            oddt_scores = oddt_dict[first_key]
+            if isinstance(oddt_scores, dict):
+                for key, value in oddt_scores.items():
+                    result[map_rescoring_key_to_db_column(f"oddt_{key}")] = value
+        except Exception:
+            return result
+    elif engine == "plants" and plants_ligand is not None:
+        try:
+            plants_rescoring = plants_ligand.read_rescore_logs(f"{ligand_path}/plantsFiles")
+            if plants_rescoring:
+                _add_plants_scores_to_rescoring_result(plants_rescoring, result)
+        except Exception:
+            return result
+    elif engine == "vina" and vina_ligand is not None:
+        try:
+            vina_rescoring = vina_ligand.read_rescore_logs(f"{ligand_path}/vinaFiles/rescoring")
+            for key, value in (vina_rescoring or {}).items():
+                result[map_rescoring_key_to_db_column(key, engine="vina")] = _value_from_rescore_entry(value)
+        except Exception:
+            return result
+    elif engine == "smina" and smina_ligand is not None:
+        try:
+            smina_rescoring = smina_ligand.read_rescore_logs(f"{ligand_path}/sminaFiles/rescoring")
+            for key, value in (smina_rescoring or {}).items():
+                result[map_rescoring_key_to_db_column(key, engine="smina")] = _value_from_rescore_entry(value)
+        except Exception:
+            return result
+    elif engine == "gnina" and gnina_ligand is not None:
+        try:
+            gnina_rescoring = gnina_ligand.read_rescore_logs(f"{ligand_path}/gninaFiles/rescoring")
+            for key, value in (gnina_rescoring or {}).items():
+                result[map_rescoring_key_to_db_column(key, engine="gnina")] = _value_from_rescore_entry(value)
+        except Exception:
+            return result
+    return _normalize_sf_names(result)
+
+
+def _merge_rescoring_results(*parts: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    merged: Dict[str, Any] = {}
+    for part in parts:
+        if isinstance(part, dict):
+            merged.update(part)
+    return merged
+
+
+def _engine_output_dir_exists(ligand_path: str, engine: str) -> bool:
+    dirs = {
+        "vina": f"{ligand_path}/vinaFiles",
+        "plants": f"{ligand_path}/plantsFiles",
+        "gnina": f"{ligand_path}/gninaFiles",
+        "smina": f"{ligand_path}/sminaFiles",
+    }
+    path = dirs.get(engine, "")
+    return bool(path and os.path.isdir(path))
+
+
+def _prepare_receptor_pdbqt_for_oddt(
+    vina_ligand: Optional[ocvina.Vina],
+    smina_ligand: Optional[ocsmina.Smina],
+    gnina_ligand: Optional[ocgnina.Gnina],
+) -> str:
+    if PREPARED_RECEPTOR_PDBQT and os.path.isfile(PREPARED_RECEPTOR_PDBQT):
+        return PREPARED_RECEPTOR_PDBQT
+    for ligand_obj in (vina_ligand, smina_ligand, gnina_ligand):
+        if ligand_obj is None:
+            continue
+        ligand_obj.run_prepare_receptor(overwrite=False)
+        prepared = getattr(ligand_obj, "prepared_receptor", "")
+        if prepared and os.path.isfile(prepared):
+            return prepared
+    raise ValueError(
+        "ODDT rescoring requires a prepared receptor (PDBQT). "
+        "Set PREPARED_RECEPTOR_PDBQT or enable Vina, SMINA, or GNINA rescoring."
+    )
 
 
 def _checkpoint_path(ligand_path: str) -> str:
@@ -798,69 +1153,48 @@ def _add_plants_scores_to_rescoring_result(plants_rescoring: Dict[str, Any], res
 def _read_rescoring_outputs(
     ligand_path: str,
     ligand_name: str,
-    vina_ligand: ocvina.Vina,
-    plants_ligand: ocplants.PLANTS,
-    smina_ligand: ocsmina.Smina,
+    vina_ligand: Optional[ocvina.Vina] = None,
+    plants_ligand: Optional[ocplants.PLANTS] = None,
+    smina_ligand: Optional[ocsmina.Smina] = None,
+    gnina_ligand: Optional[ocgnina.Gnina] = None,
+    engines: Optional[Tuple[str, ...]] = None,
 ) -> Optional[Dict[str, Any]]:
+    enabled = engines or _enabled_rescoring_engines()
+    if not enabled:
+        return {}
+
     rescoring_result: Dict[str, Any] = {}
-
-    oddt_csv = os.path.join(ligand_path, "oddt", f"{ligand_name}.csv")
-    if not os.path.isfile(oddt_csv):
-        return None
-    try:
-        oddt_df = pd.read_csv(oddt_csv)
-        oddt_dict = ocoddt.df_to_dict(oddt_df)
-        if not oddt_dict:
+    for engine in enabled:
+        partial = _read_single_engine_rescoring(
+            ligand_path,
+            ligand_name,
+            engine,
+            vina_ligand,
+            plants_ligand,
+            smina_ligand,
+            gnina_ligand,
+        )
+        if not partial:
             return None
-        first_key = list(oddt_dict.keys())[0]
-        oddt_scores = oddt_dict[first_key]
-        if not isinstance(oddt_scores, dict):
-            return None
-        for key, value in oddt_scores.items():
-            db_column_name = map_rescoring_key_to_db_column(f"oddt_{key}")
-            rescoring_result[db_column_name] = value
-    except Exception:
-        return None
+        rescoring_result.update(partial)
 
-    try:
-        plants_rescoring = plants_ligand.read_rescore_logs(f"{ligand_path}/plantsFiles")
-    except Exception:
+    if not rescoring_result:
         return None
-    if not plants_rescoring:
-        return None
-    _add_plants_scores_to_rescoring_result(plants_rescoring, rescoring_result)
-
-    try:
-        vina_rescoring = vina_ligand.read_rescore_logs(f"{ligand_path}/vinaFiles/rescoring")
-    except Exception:
-        return None
-    if not vina_rescoring:
-        return None
-    for key, value in vina_rescoring.items():
-        db_column_name = map_rescoring_key_to_db_column(key, engine="vina")
-        rescoring_result[db_column_name] = _value_from_rescore_entry(value)
-
-    try:
-        smina_rescoring = smina_ligand.read_rescore_logs(f"{ligand_path}/sminaFiles/rescoring")
-    except Exception:
-        return None
-    if not smina_rescoring:
-        return None
-    for key, value in smina_rescoring.items():
-        db_column_name = map_rescoring_key_to_db_column(key, engine="smina")
-        rescoring_result[db_column_name] = _value_from_rescore_entry(value)
 
     return _normalize_sf_names(rescoring_result)
 
 
-def _run_docking_stage(ligand_path: str, vina_ligand: ocvina.Vina, plants_ligand: ocplants.PLANTS) -> Tuple[list, list]:
-    # Vina
+def _run_vina_docking(ligand_path: str, vina_ligand: ocvina.Vina) -> list:
     vina_ligand.run_prepare_receptor(overwrite=True)
     vina_ligand.run_prepare_ligand(overwrite=True)
     vina_ligand.run_docking(overwrite=True)
     vina_ligand.split_poses()
 
-    vina_poses_dir = os.path.dirname(vina_ligand.output_vina) if hasattr(vina_ligand, "output_vina") else f"{ligand_path}/vinaFiles"
+    vina_poses_dir = (
+        os.path.dirname(vina_ligand.output_vina)
+        if hasattr(vina_ligand, "output_vina")
+        else f"{ligand_path}/vinaFiles"
+    )
     vina_pattern = f"{vina_poses_dir}/*_split_*.pdbqt"
     pose_files_found = False
     for _ in range(50):
@@ -875,13 +1209,19 @@ def _run_docking_stage(ligand_path: str, vina_ligand: ocvina.Vina, plants_ligand
     vina_poses = vina_ligand.get_docked_poses()
     if vina_poses and not wait_for_files_ready(vina_poses, max_wait=5.0):
         print("Warning: Some Vina pose files may not be fully ready, but proceeding...")
+    return vina_poses or []
 
-    # PLANTS
+
+def _run_plants_docking(ligand_path: str, plants_ligand: ocplants.PLANTS) -> list:
     plants_ligand.run_prepare_receptor(overwrite=True)
     plants_ligand.run_prepare_ligand(overwrite=True)
     plants_ligand.run_docking(overwrite=True)
 
-    plants_output_dir = plants_ligand.output_plants if hasattr(plants_ligand, "output_plants") else f"{ligand_path}/plantsFiles"
+    plants_output_dir = (
+        plants_ligand.output_plants
+        if hasattr(plants_ligand, "output_plants")
+        else f"{ligand_path}/plantsFiles"
+    )
     plants_run_dir = os.path.join(plants_output_dir, "run")
     plants_pattern = f"{plants_run_dir}/*.mol2"
     plants_files_found = False
@@ -898,25 +1238,102 @@ def _run_docking_stage(ligand_path: str, vina_ligand: ocvina.Vina, plants_ligand
         print("Warning: No stable PLANTS output files found after waiting, proceeding anyway...")
 
     time.sleep(0.5)
-    time.sleep(0.5)
     plants_poses = plants_ligand.get_docked_poses()
     if plants_poses and not wait_for_files_ready(plants_poses, max_wait=3.0):
         print("Warning: Some PLANTS pose files may not be fully ready, but proceeding...")
-
-    if not vina_poses or not plants_poses:
-        raise ValueError("Docking did not generate valid pose files for both Vina and PLANTS.")
-
-    return vina_poses, plants_poses
+    return plants_poses or []
 
 
-def _load_existing_docking_poses(vina_ligand: ocvina.Vina, plants_ligand: ocplants.PLANTS) -> Tuple[list, list]:
-    vina_poses = vina_ligand.get_docked_poses()
-    plants_poses = plants_ligand.get_docked_poses()
-    if vina_poses:
-        _ = wait_for_files_ready(vina_poses, max_wait=2.0)
-    if plants_poses:
-        _ = wait_for_files_ready(plants_poses, max_wait=2.0)
-    return vina_poses, plants_poses
+def _run_gnina_docking(ligand_path: str, gnina_ligand: ocgnina.Gnina) -> list:
+    gnina_ligand.run_prepare_receptor(overwrite=True)
+    gnina_ligand.run_prepare_ligand(overwrite=True)
+    gnina_ligand.run_docking(overwrite=True)
+    gnina_ligand.split_poses()
+
+    gnina_poses_dir = (
+        os.path.dirname(gnina_ligand.output_gnina)
+        if hasattr(gnina_ligand, "output_gnina")
+        else f"{ligand_path}/gninaFiles"
+    )
+    gnina_pattern = f"{gnina_poses_dir}/*_split_*.pdbqt"
+    pose_files_found = False
+    for _ in range(50):
+        found_files = glob(gnina_pattern)
+        if found_files and wait_for_files_ready(found_files, max_wait=2.0):
+            pose_files_found = True
+            break
+        time.sleep(0.2)
+    if not pose_files_found:
+        print("Warning: No stable pose files found for GNINA after waiting, proceeding anyway...")
+    time.sleep(0.5)
+    gnina_poses = gnina_ligand.get_docked_poses()
+    if gnina_poses and not wait_for_files_ready(gnina_poses, max_wait=5.0):
+        print("Warning: Some GNINA pose files may not be fully ready, but proceeding...")
+    return gnina_poses or []
+
+
+def _run_docking_stage(
+    ligand_path: str,
+    vina_ligand: Optional[ocvina.Vina] = None,
+    plants_ligand: Optional[ocplants.PLANTS] = None,
+    gnina_ligand: Optional[ocgnina.Gnina] = None,
+) -> Tuple[list, list, list]:
+    vina_poses: list = []
+    plants_poses: list = []
+    gnina_poses: list = []
+
+    if RUN_VINA_DOCKING:
+        if vina_ligand is None:
+            raise ValueError("Vina docking is enabled but no Vina ligand object was provided.")
+        vina_poses = _run_vina_docking(ligand_path, vina_ligand)
+        if not vina_poses:
+            raise ValueError("Vina docking did not generate valid pose files.")
+
+    if RUN_PLANTS_DOCKING:
+        if plants_ligand is None:
+            raise ValueError("PLANTS docking is enabled but no PLANTS ligand object was provided.")
+        plants_poses = _run_plants_docking(ligand_path, plants_ligand)
+        if not plants_poses:
+            raise ValueError("PLANTS docking did not generate valid pose files.")
+
+    if RUN_GNINA_DOCKING:
+        if gnina_ligand is None:
+            raise ValueError("GNINA docking is enabled but no GNINA ligand object was provided.")
+        gnina_poses = _run_gnina_docking(ligand_path, gnina_ligand)
+        if not gnina_poses:
+            raise ValueError("GNINA docking did not generate valid pose files.")
+
+    if not _docking_outputs_ready(vina_poses, plants_poses, gnina_poses):
+        raise ValueError(
+            f"Docking did not generate valid pose files for enabled engines: {', '.join(_enabled_docking_engines())}."
+        )
+
+    return vina_poses, plants_poses, gnina_poses
+
+
+def _load_existing_docking_poses(
+    vina_ligand: Optional[ocvina.Vina] = None,
+    plants_ligand: Optional[ocplants.PLANTS] = None,
+    gnina_ligand: Optional[ocgnina.Gnina] = None,
+) -> Tuple[list, list, list]:
+    vina_poses: list = []
+    plants_poses: list = []
+    gnina_poses: list = []
+
+    if vina_ligand is not None:
+        vina_poses = vina_ligand.get_docked_poses() or []
+        if vina_poses:
+            _ = wait_for_files_ready(vina_poses, max_wait=2.0)
+    if plants_ligand is not None:
+        plants_poses = plants_ligand.get_docked_poses() or []
+        if plants_poses:
+            _ = wait_for_files_ready(plants_poses, max_wait=2.0)
+    if gnina_ligand is not None:
+        gnina_poses = gnina_ligand.get_docked_poses() or []
+        if gnina_poses:
+            _ = wait_for_files_ready(gnina_poses, max_wait=2.0)
+
+    return vina_poses, plants_poses, gnina_poses
 
 
 def _select_representative_medoid(
@@ -926,8 +1343,11 @@ def _select_representative_medoid(
     plants_poses: list,
     vina_ligand: ocvina.Vina,
     plants_ligand: ocplants.PLANTS,
+    gnina_poses: Optional[list] = None,
+    gnina_ligand: Optional[ocgnina.Gnina] = None,
 ) -> str:
-    poses_list = vina_poses + plants_poses
+    gnina_poses = gnina_poses or []
+    poses_list = vina_poses + plants_poses + gnina_poses
 
     valid_poses = []
     max_retries = 5
@@ -946,6 +1366,8 @@ def _select_representative_medoid(
 
     if not valid_poses:
         raise ValueError(f"No valid pose files found for ligand {ligand_name} after validation")
+    if len(valid_poses) == 1:
+        return valid_poses[0]
     if len(valid_poses) < 2:
         raise ValueError(f"Need at least 2 valid poses for RMSD calculation, found {len(valid_poses)} for ligand {ligand_name}")
 
@@ -970,6 +1392,8 @@ def _select_representative_medoid(
             else:
                 print(f"Warning: Could not convert {pose_file} to MOL2 format, skipping for RMSD calculation")
 
+    if len(mol2_poses) == 1:
+        return mol2_to_original_map.get(mol2_poses[0], mol2_poses[0])
     if len(mol2_poses) < 2:
         raise ValueError(f"Need at least 2 valid MOL2 poses for RMSD calculation, found {len(mol2_poses)} for ligand {ligand_name}")
     if not wait_for_files_ready(mol2_poses, max_wait=5.0):
@@ -985,6 +1409,8 @@ def _select_representative_medoid(
             pose_engine_map[mol2_pose] = "vina"
         elif original_pose in plants_poses:
             pose_engine_map[mol2_pose] = "plants"
+        elif original_pose in gnina_poses:
+            pose_engine_map[mol2_pose] = "gnina"
 
     clusters = ocrmsdclust.cluster_rmsd(
         rmsd_matrix,
@@ -1001,6 +1427,8 @@ def _select_representative_medoid(
             medoids_dict[medoid] = vina_ligand.read_log(onlyBest=False)[ocvina.get_pose_index_from_file_path(medoid)]
         elif medoid in plants_poses:
             medoids_dict[medoid] = plants_ligand.read_log(onlyBest=False)[ocplants.get_pose_index_from_file_path(medoid)]
+        elif medoid in gnina_poses and gnina_ligand is not None:
+            medoids_dict[medoid] = gnina_ligand.read_log(onlyBest=False)[ocgnina.get_pose_index_from_file_path(medoid)]
 
     if not medoids_dict:
         raise ValueError(f"Could not determine medoid for ligand {ligand_name}")
@@ -1013,64 +1441,100 @@ def _run_rescoring_stage(
     ligand_name: str,
     ligand: ocl.Ligand,
     medoid: str,
-    vina_ligand: ocvina.Vina,
-    plants_ligand: ocplants.PLANTS,
-    smina_ligand: ocsmina.Smina,
+    vina_ligand: Optional[ocvina.Vina] = None,
+    plants_ligand: Optional[ocplants.PLANTS] = None,
+    smina_ligand: Optional[ocsmina.Smina] = None,
+    gnina_ligand: Optional[ocgnina.Gnina] = None,
 ) -> Dict[str, Any]:
-    oddt_outdir = os.path.join(ligand_path, "oddt")
-    try:
-        from joblib import parallel_backend
-        with parallel_backend("threading"):
+    if not _enabled_rescoring_engines():
+        return {}
+
+    if RUN_ODDT_RESCORING:
+        prepared_receptor = _prepare_receptor_pdbqt_for_oddt(vina_ligand, smina_ligand, gnina_ligand)
+        oddt_outdir = os.path.join(ligand_path, "oddt")
+        try:
+            from joblib import parallel_backend
+            with parallel_backend("threading"):
+                _ = ocoddt.run_oddt(
+                    prepared_receptor,
+                    medoid,
+                    ligand.name,
+                    oddt_outdir,
+                    overwrite=True,
+                )
+        except ImportError:
             _ = ocoddt.run_oddt(
-                vina_ligand.prepared_receptor,
+                prepared_receptor,
                 medoid,
                 ligand.name,
                 oddt_outdir,
                 overwrite=True,
             )
-    except ImportError:
-        _ = ocoddt.run_oddt(
-            vina_ligand.prepared_receptor,
-            medoid,
-            ligand.name,
-            oddt_outdir,
-            overwrite=True,
-        )
 
     medoid_extension = os.path.splitext(medoid)[1].lower()
-    if medoid_extension != ".mol2":
-        plants_input = medoid.replace(medoid_extension, ".mol2")
-        occonversion.convert_mols(medoid, plants_input, overwrite=True)
-    else:
-        plants_input = medoid
 
-    plants_pose_list = f"{ligand_path}/plantsFiles/plants_pose_list.txt"
-    ocplants.write_pose_list(plants_input, plants_pose_list)
-    plants_ligand.run_rescore(plants_pose_list, logFile="", overwrite=True)
-    time.sleep(0.3)
+    if RUN_PLANTS_RESCORING:
+        if plants_ligand is None:
+            raise ValueError("PLANTS rescoring is enabled but no PLANTS ligand object was provided.")
+        if medoid_extension != ".mol2":
+            plants_input = medoid.replace(medoid_extension, ".mol2")
+            occonversion.convert_mols(medoid, plants_input, overwrite=True)
+        else:
+            plants_input = medoid
+        plants_pose_list = f"{ligand_path}/plantsFiles/plants_pose_list.txt"
+        ocplants.write_pose_list(plants_input, plants_pose_list)
+        plants_ligand.run_rescore(plants_pose_list, logFile="", overwrite=True)
+        time.sleep(0.3)
 
-    if medoid_extension != ".pdbqt":
-        vina_smina_input = medoid.replace(medoid_extension, ".pdbqt")
-        occonversion.convert_mols(medoid, vina_smina_input, overwrite=True)
-    else:
-        vina_smina_input = medoid
+    pdbqt_engines = RUN_VINA_RESCORING or RUN_SMINA_RESCORING or RUN_GNINA_RESCORING
+    if pdbqt_engines:
+        if medoid_extension != ".pdbqt":
+            vina_smina_input = medoid.replace(medoid_extension, ".pdbqt")
+            occonversion.convert_mols(medoid, vina_smina_input, overwrite=True)
+        else:
+            vina_smina_input = medoid
 
-    vina_ligand.run_rescore(
-        f"{ligand_path}/vinaFiles/rescoring",
-        vina_smina_input,
-        overwrite=True,
-        splitLigand=False,
+        if RUN_VINA_RESCORING:
+            if vina_ligand is None:
+                raise ValueError("Vina rescoring is enabled but no Vina ligand object was provided.")
+            vina_ligand.run_rescore(
+                f"{ligand_path}/vinaFiles/rescoring",
+                vina_smina_input,
+                overwrite=True,
+                splitLigand=False,
+            )
+        if RUN_SMINA_RESCORING:
+            if smina_ligand is None:
+                raise ValueError("SMINA rescoring is enabled but no SMINA ligand object was provided.")
+            smina_ligand.run_rescore(
+                f"{ligand_path}/sminaFiles/rescoring",
+                vina_smina_input,
+                overwrite=True,
+                splitLigand=False,
+            )
+        if RUN_GNINA_RESCORING:
+            if gnina_ligand is None:
+                raise ValueError("GNINA rescoring is enabled but no GNINA ligand object was provided.")
+            gnina_ligand.run_rescore(
+                f"{ligand_path}/gninaFiles/rescoring",
+                vina_smina_input,
+                overwrite=True,
+                splitLigand=False,
+            )
+
+    rescoring_result = _read_rescoring_outputs(
+        ligand_path,
+        ligand_name,
+        vina_ligand,
+        plants_ligand,
+        smina_ligand,
+        gnina_ligand,
     )
-    smina_ligand.run_rescore(
-        f"{ligand_path}/sminaFiles/rescoring",
-        vina_smina_input,
-        overwrite=True,
-        splitLigand=False,
-    )
-
-    rescoring_result = _read_rescoring_outputs(ligand_path, ligand_name, vina_ligand, plants_ligand, smina_ligand)
     if rescoring_result is None:
-        raise ValueError(f"Rescoring outputs are incomplete or invalid for ligand {ligand_name}")
+        raise ValueError(
+            f"Rescoring outputs are incomplete or invalid for ligand {ligand_name} "
+            f"(enabled: {', '.join(_enabled_rescoring_engines())})."
+        )
     return rescoring_result
 
 
@@ -1078,27 +1542,44 @@ def _infer_completed_stages(
     ligand_path: str,
     ligand_name: str,
     checkpoint: Dict[str, Any],
-    vina_ligand: ocvina.Vina,
-    plants_ligand: ocplants.PLANTS,
-    smina_ligand: ocsmina.Smina,
+    vina_ligand: Optional[ocvina.Vina] = None,
+    plants_ligand: Optional[ocplants.PLANTS] = None,
+    smina_ligand: Optional[ocsmina.Smina] = None,
+    gnina_ligand: Optional[ocgnina.Gnina] = None,
 ) -> None:
     if _is_stage_complete(checkpoint, CHECKPOINT_STAGE_FEATURES) and _is_stage_complete(checkpoint, CHECKPOINT_STAGE_RESCORING):
         return
 
-    cached_features = _load_cached_features(ligand_path)
-    if isinstance(cached_features, dict) and not _is_stage_complete(checkpoint, CHECKPOINT_STAGE_FEATURES):
+    if (
+        isinstance(_load_cached_features(ligand_path), dict)
+        and _enabled_rescoring_outputs_present(
+            ligand_path,
+            ligand_name,
+            vina_ligand,
+            plants_ligand,
+            smina_ligand,
+            gnina_ligand,
+        )
+        and not _is_stage_complete(checkpoint, CHECKPOINT_STAGE_FEATURES)
+    ):
         _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_FEATURES)
 
-    rescoring_result = _read_rescoring_outputs(ligand_path, ligand_name, vina_ligand, plants_ligand, smina_ligand)
-    if rescoring_result is not None:
+    if _enabled_rescoring_outputs_present(
+        ligand_path,
+        ligand_name,
+        vina_ligand,
+        plants_ligand,
+        smina_ligand,
+        gnina_ligand,
+    ):
         if not _is_stage_complete(checkpoint, CHECKPOINT_STAGE_RESCORING):
             _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_RESCORING)
         if not _is_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING):
             _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING)
         return
 
-    vina_poses, plants_poses = _load_existing_docking_poses(vina_ligand, plants_ligand)
-    if vina_poses and plants_poses and not _is_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING):
+    vina_poses, plants_poses, gnina_poses = _load_existing_docking_poses(vina_ligand, plants_ligand, gnina_ligand)
+    if _docking_outputs_ready(vina_poses, plants_poses, gnina_poses) and not _is_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING):
         _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING)
 
 
@@ -1127,85 +1608,205 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
         ligand = ocl.Ligand(f"{ligand_path}/{ligand_name}.smi", name=ligand_name)
         ligand.create_box(centroid=BOX_CENTER, save_path=f"{ligand_path}/boxes/")
 
-        vina_ligand = ocvina.Vina(
-            f"{ligand_path}/vinaFiles/conf_vina.txt",
-            f"{ligand_path}/boxes/box0.pdb",
-            receptor, PREPARED_RECEPTOR_PDBQT,
-            ligand, f"{ligand_path}/prepared_ligand.pdbqt",
-            f"{ligand_path}/vinaFiles/vina.log", f"{ligand_path}/vinaFiles/vina.pdbqt",
-            name=f"Vina {receptor.name}-{ligand_name}",
-        )
-        plants_ligand = ocplants.PLANTS(
-            f"{ligand_path}/plantsFiles/conf_plants.txt",
-            f"{ligand_path}/boxes/box0.pdb",
-            receptor, PREPARED_RECEPTOR_MOL2,
-            ligand, f"{ligand_path}/prepared_ligand.mol2",
-            f"{ligand_path}/plantsFiles/plants.log", f"{ligand_path}/plantsFiles",
-            name=f"Plants {receptor.name}-{ligand_name}",
-        )
-        smina_ligand = ocsmina.Smina(
-            f"{ligand_path}/sminaFiles/conf_smina.txt",
-            f"{ligand_path}/boxes/box0.pdb",
-            receptor, PREPARED_RECEPTOR_PDBQT,
-            ligand, f"{ligand_path}/prepared_ligand.pdbqt",
-            f"{ligand_path}/sminaFiles/smina.log", f"{ligand_path}/sminaFiles/smina.pdbqt",
-            name=f"Smina {receptor.name}-{ligand_name}",
-        )
+        vina_ligand: Optional[ocvina.Vina] = None
+        if (
+            RUN_VINA_DOCKING
+            or RUN_VINA_RESCORING
+            or (MERGE_EXISTING_RESCORING and _engine_output_dir_exists(ligand_path, "vina"))
+        ):
+            os.makedirs(f"{ligand_path}/vinaFiles", exist_ok=True)
+            vina_ligand = ocvina.Vina(
+                f"{ligand_path}/vinaFiles/conf_vina.txt",
+                f"{ligand_path}/boxes/box0.pdb",
+                receptor, PREPARED_RECEPTOR_PDBQT,
+                ligand, f"{ligand_path}/prepared_ligand.pdbqt",
+                f"{ligand_path}/vinaFiles/vina.log", f"{ligand_path}/vinaFiles/vina.pdbqt",
+                name=f"Vina {receptor.name}-{ligand_name}",
+            )
+
+        plants_ligand: Optional[ocplants.PLANTS] = None
+        if (
+            RUN_PLANTS_DOCKING
+            or RUN_PLANTS_RESCORING
+            or (MERGE_EXISTING_RESCORING and _engine_output_dir_exists(ligand_path, "plants"))
+        ):
+            os.makedirs(f"{ligand_path}/plantsFiles", exist_ok=True)
+            plants_ligand = ocplants.PLANTS(
+                f"{ligand_path}/plantsFiles/conf_plants.txt",
+                f"{ligand_path}/boxes/box0.pdb",
+                receptor, PREPARED_RECEPTOR_MOL2,
+                ligand, f"{ligand_path}/prepared_ligand.mol2",
+                f"{ligand_path}/plantsFiles/plants.log", f"{ligand_path}/plantsFiles",
+                name=f"Plants {receptor.name}-{ligand_name}",
+            )
+
+        smina_ligand: Optional[ocsmina.Smina] = None
+        if RUN_SMINA_RESCORING or (
+            MERGE_EXISTING_RESCORING and _engine_output_dir_exists(ligand_path, "smina")
+        ):
+            os.makedirs(f"{ligand_path}/sminaFiles", exist_ok=True)
+            smina_ligand = ocsmina.Smina(
+                f"{ligand_path}/sminaFiles/conf_smina.txt",
+                f"{ligand_path}/boxes/box0.pdb",
+                receptor, PREPARED_RECEPTOR_PDBQT,
+                ligand, f"{ligand_path}/prepared_ligand.pdbqt",
+                f"{ligand_path}/sminaFiles/smina.log", f"{ligand_path}/sminaFiles/smina.pdbqt",
+                name=f"Smina {receptor.name}-{ligand_name}",
+            )
+
+        gnina_ligand: Optional[ocgnina.Gnina] = None
+        if RUN_GNINA_DOCKING or RUN_GNINA_RESCORING:
+            os.makedirs(f"{ligand_path}/gninaFiles", exist_ok=True)
+            gnina_ligand = ocgnina.Gnina(
+                f"{ligand_path}/gninaFiles/conf_gnina.txt",
+                f"{ligand_path}/boxes/box0.pdb",
+                receptor, PREPARED_RECEPTOR_PDBQT,
+                ligand, f"{ligand_path}/prepared_ligand.pdbqt",
+                f"{ligand_path}/gninaFiles/gnina.log", f"{ligand_path}/gninaFiles/gnina.pdbqt",
+                name=f"Gnina {receptor.name}-{ligand_name}",
+            )
+
+        # ODDT-only: create a minimal PDBQT preparer when no prepared receptor path is configured
+        if (
+            RUN_ODDT_RESCORING
+            and not (PREPARED_RECEPTOR_PDBQT and os.path.isfile(PREPARED_RECEPTOR_PDBQT))
+            and vina_ligand is None
+            and smina_ligand is None
+            and gnina_ligand is None
+        ):
+            os.makedirs(f"{ligand_path}/vinaFiles", exist_ok=True)
+            vina_ligand = ocvina.Vina(
+                f"{ligand_path}/vinaFiles/conf_vina.txt",
+                f"{ligand_path}/boxes/box0.pdb",
+                receptor, PREPARED_RECEPTOR_PDBQT,
+                ligand, f"{ligand_path}/prepared_ligand.pdbqt",
+                f"{ligand_path}/vinaFiles/vina.log", f"{ligand_path}/vinaFiles/vina.pdbqt",
+                name=f"Vina {receptor.name}-{ligand_name}",
+            )
 
         current_stage = "checkpoint"
         checkpoint = _load_checkpoint(ligand_path, ligand_name)
         resume_enabled = ENABLE_LIGAND_CHECKPOINT
         if resume_enabled:
-            _infer_completed_stages(ligand_path, ligand_name, checkpoint, vina_ligand, plants_ligand, smina_ligand)
+            _infer_completed_stages(
+                ligand_path,
+                ligand_name,
+                checkpoint,
+                vina_ligand,
+                plants_ligand,
+                smina_ligand,
+                gnina_ligand,
+            )
             _save_checkpoint(ligand_path, checkpoint)
 
         if resume_enabled and _is_stage_complete(checkpoint, CHECKPOINT_STAGE_FEATURES):
             cached_features = _load_cached_features(ligand_path)
-            if isinstance(cached_features, dict):
+            if (
+                isinstance(cached_features, dict)
+                and _enabled_rescoring_outputs_present(
+                    ligand_path,
+                    ligand_name,
+                    vina_ligand,
+                    plants_ligand,
+                    smina_ligand,
+                    gnina_ligand,
+                )
+            ):
                 print(f"[{ligand_name}] Resume: using cached features.")
                 return cached_features
+            print(f"[{ligand_name}] Cached features are stale or missing newly enabled rescoring outputs. Refreshing.")
             _clear_stage(checkpoint, CHECKPOINT_STAGE_FEATURES)
             _save_checkpoint(ligand_path, checkpoint)
 
         rescoring_result: Optional[Dict[str, Any]] = None
         if resume_enabled and _is_stage_complete(checkpoint, CHECKPOINT_STAGE_RESCORING):
-            rescoring_result = _read_rescoring_outputs(ligand_path, ligand_name, vina_ligand, plants_ligand, smina_ligand)
-            if rescoring_result is None:
-                print(f"[{ligand_name}] Checkpoint says rescoring complete, but outputs are missing/corrupted. Recomputing.")
+            if _enabled_rescoring_outputs_present(
+                ligand_path,
+                ligand_name,
+                vina_ligand,
+                plants_ligand,
+                smina_ligand,
+                gnina_ligand,
+            ):
+                rescoring_result = _read_rescoring_outputs(
+                    ligand_path,
+                    ligand_name,
+                    vina_ligand,
+                    plants_ligand,
+                    smina_ligand,
+                    gnina_ligand,
+                )
+                if rescoring_result is None:
+                    print(f"[{ligand_name}] Checkpoint says rescoring complete, but outputs are missing/corrupted. Recomputing.")
+                    _clear_stage(checkpoint, CHECKPOINT_STAGE_RESCORING)
+                    _clear_stage(checkpoint, CHECKPOINT_STAGE_FEATURES)
+                    _save_checkpoint(ligand_path, checkpoint)
+                else:
+                    print(f"[{ligand_name}] Resume: using existing rescoring outputs for enabled engines.")
+            else:
+                print(f"[{ligand_name}] Newly enabled rescoring engine(s) missing outputs. Running rescoring.")
                 _clear_stage(checkpoint, CHECKPOINT_STAGE_RESCORING)
                 _clear_stage(checkpoint, CHECKPOINT_STAGE_FEATURES)
                 _save_checkpoint(ligand_path, checkpoint)
-            else:
-                print(f"[{ligand_name}] Resume: using existing rescoring outputs.")
 
         if rescoring_result is None:
             vina_poses: list = []
             plants_poses: list = []
+            gnina_poses: list = []
+            medoid = _checkpoint_medoid(checkpoint)
 
-            if resume_enabled and _is_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING):
-                vina_poses, plants_poses = _load_existing_docking_poses(vina_ligand, plants_ligand)
-                if not vina_poses or not plants_poses:
-                    print(f"[{ligand_name}] Checkpoint says docking complete, but poses are missing. Re-running docking.")
-                    _clear_stage(checkpoint, CHECKPOINT_STAGE_DOCKING)
-                    _save_checkpoint(ligand_path, checkpoint)
-                else:
-                    print(f"[{ligand_name}] Resume: using existing docking outputs.")
+            if medoid is None:
+                if resume_enabled and _is_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING):
+                    vina_poses, plants_poses, gnina_poses = _load_existing_docking_poses(
+                        vina_ligand,
+                        plants_ligand,
+                        gnina_ligand,
+                    )
+                    if not _docking_outputs_ready(vina_poses, plants_poses, gnina_poses):
+                        print(f"[{ligand_name}] Checkpoint says docking complete, but poses are missing. Re-running docking.")
+                        _clear_stage(checkpoint, CHECKPOINT_STAGE_DOCKING)
+                        _save_checkpoint(ligand_path, checkpoint)
+                    else:
+                        print(f"[{ligand_name}] Resume: using existing docking outputs.")
 
-            if not vina_poses or not plants_poses:
-                current_stage = CHECKPOINT_STAGE_DOCKING
-                vina_poses, plants_poses = _run_docking_stage(ligand_path, vina_ligand, plants_ligand)
-                _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING)
-                _save_checkpoint(ligand_path, checkpoint)
+                if not _docking_outputs_ready(vina_poses, plants_poses, gnina_poses):
+                    if not _enabled_docking_engines():
+                        vina_poses, plants_poses, gnina_poses = _load_existing_docking_poses(
+                            vina_ligand,
+                            plants_ligand,
+                            gnina_ligand,
+                        )
+                    if not _docking_outputs_ready(vina_poses, plants_poses, gnina_poses):
+                        if not _enabled_docking_engines():
+                            raise ValueError(
+                                f"No docking poses found for {ligand_name}. "
+                                "Enable a docking engine or run docking first."
+                            )
+                        current_stage = CHECKPOINT_STAGE_DOCKING
+                        vina_poses, plants_poses, gnina_poses = _run_docking_stage(
+                            ligand_path,
+                            vina_ligand,
+                            plants_ligand,
+                            gnina_ligand,
+                        )
+                        _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_DOCKING)
+                        _save_checkpoint(ligand_path, checkpoint)
 
-            current_stage = CHECKPOINT_STAGE_RESCORING
-            medoid = _select_representative_medoid(
-                ligand_path,
-                ligand_name,
-                vina_poses,
-                plants_poses,
-                vina_ligand,
-                plants_ligand,
-            )
+                current_stage = CHECKPOINT_STAGE_RESCORING
+                medoid = _select_representative_medoid(
+                    ligand_path,
+                    ligand_name,
+                    vina_poses,
+                    plants_poses,
+                    vina_ligand,
+                    plants_ligand,
+                    gnina_poses=gnina_poses,
+                    gnina_ligand=gnina_ligand,
+                )
+            else:
+                current_stage = CHECKPOINT_STAGE_RESCORING
+                print(f"[{ligand_name}] Resume: using checkpoint medoid {medoid}.")
+
             rescoring_result = _run_rescoring_stage(
                 ligand_path,
                 ligand_name,
@@ -1214,15 +1815,29 @@ def process_single_ligand(ligand_path: str, ligand_name: str, receptor: ocr.Rece
                 vina_ligand,
                 plants_ligand,
                 smina_ligand,
+                gnina_ligand,
             )
             _mark_stage_complete(checkpoint, CHECKPOINT_STAGE_RESCORING, stage_data={"medoid": medoid})
             _save_checkpoint(ligand_path, checkpoint)
 
+        preserved_rescoring = _read_preserved_rescoring_outputs(
+            ligand_path,
+            ligand_name,
+            vina_ligand,
+            plants_ligand,
+            smina_ligand,
+            gnina_ligand,
+        )
+        rescoring_result = _merge_rescoring_results(preserved_rescoring, rescoring_result)
+
         current_stage = CHECKPOINT_STAGE_FEATURES
+        cached_features = _load_cached_features(ligand_path) if MERGE_EXISTING_RESCORING else None
         receptor_descriptors = receptor.get_descriptors()
         ligand_descriptors = ligand.get_descriptors()
 
         all_features: Dict[str, Any] = {}
+        if isinstance(cached_features, dict):
+            all_features.update(cached_features)
         all_features.update(rescoring_result if rescoring_result is not None else {})
         all_features.update(receptor_descriptors)
         all_features.update(ligand_descriptors)

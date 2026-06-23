@@ -34,6 +34,7 @@ const state = {
     protocol: false,
     comparisonTable: false,
     comparisonCharts: false,
+    protocolSimilarity: false,
     cvTable: false,
     detailReplicas: false,
     detailCharts: false,
@@ -55,9 +56,14 @@ const state = {
   ablationDesignFeatureFilter: "",
   ablationDesignWildcardPattern: "",
   rankPlotExpandLabels: false,
+  protocolSimilarity: null,
+  protocolSimilarityLoading: false,
+  protocolSimilarityReference: null,
+  protocolSimilarityPlotPayload: null,
   _persistedSelectedStudyName: null,
 };
 let ablationDesignPreviewTimer = null;
+let protocolSimilarityTimer = null;
 let uiStateHydrated = false;
 const $ = (id) => document.getElementById(id);
 
@@ -114,6 +120,9 @@ function loadPersistedUiState() {
     if (typeof saved.rankPlotExpandLabels === "boolean") {
       state.rankPlotExpandLabels = saved.rankPlotExpandLabels;
     }
+    if (typeof saved.protocolSimilarityReference === "string" && saved.protocolSimilarityReference) {
+      state.protocolSimilarityReference = saved.protocolSimilarityReference;
+    }
     if (saved.selectedMetric) state.selectedMetric = saved.selectedMetric;
     if (saved.comparisonSort) state.comparisonSort = saved.comparisonSort;
     if (saved.detailReplicaSort) state.detailReplicaSort = saved.detailReplicaSort;
@@ -140,6 +149,7 @@ function persistUiState() {
     ablationDesign: readAblationDesignDraft(),
     ablationDesignWildcardPattern: state.ablationDesignWildcardPattern || "",
     rankPlotExpandLabels: Boolean(state.rankPlotExpandLabels),
+    protocolSimilarityReference: state.protocolSimilarityReference || null,
     selectedMetric: state.selectedMetric,
     comparisonSort: state.comparisonSort,
     detailReplicaSort: state.detailReplicaSort,
@@ -436,6 +446,8 @@ function studyDisplayName(study) {
   return study.study_name || study.baseline_name || "";
 }
 
+const LEARNED_SF_BASELINE_NAMES = new Set(["lr_sf", "rf_sf", "xgb_sf", "lgbm_sf", "shuffled_lr_sf"]);
+
 const ABLATION_DESCRIPTIONS = {
   full_ocscore: "Full OCScore feature set after standard metadata/target exclusion.",
   no_pmi: "Remove direct PMI descriptors to test direct PMI dependence.",
@@ -591,6 +603,30 @@ function entryPaletteStyle(item) {
   return `background:${fill};border-color:${fill};color:#202833`;
 }
 
+function replicaProgressSummary(study) {
+  if (!study) {
+    return { text: "—", sortValue: 0, title: "", className: "", numeric: false };
+  }
+  const expected = Number(study.expected_replica_count) || 0;
+  const completed = Number(study.completed_count) || 0;
+  const detected = Number(study.detected_replica_count) || 0;
+  if (!expected) {
+    return { text: "—", sortValue: 0, title: "", className: "", numeric: false };
+  }
+  const text = `${completed}/${expected}`;
+  const titleParts = [`${completed} of ${expected} replicas completed`];
+  if (detected > completed) {
+    titleParts.push(`${detected} replica folders present`);
+  }
+  return {
+    text,
+    sortValue: completed,
+    title: titleParts.join(" · "),
+    className: completed >= expected ? "" : "replica-partial",
+    numeric: true,
+  };
+}
+
 function modelCell(item) {
   const label = modelDisplayName(item);
   const refBadge = isReferenceEntry(item) ? '<span class="role-badge reference">Reference</span>' : "";
@@ -639,7 +675,7 @@ function comparisonMetricCell(item, metricName, rankLookup, total) {
 function comparisonSortValue(item, key, metricName) {
   if (key === "model") return modelDisplayName(item) || "";
   if (key === "kind") return item.kind || "";
-  if (key === "replicas") return item.study?.detected_replica_count || 0;
+  if (key === "replicas") return replicaProgressSummary(item.study).sortValue;
   if (key === "delta") return metricDecisionDelta(item.entry, metricName);
   if (key.startsWith("metric:")) return metricValue(item.entry, key.slice(7));
   return "";
@@ -660,11 +696,19 @@ function sortedComparisonEntries(entries, metricName) {
   });
 }
 
+function isLearnedSfBaseline(item) {
+  const family = item?.baseline_family || item?.entry?.baseline_family || "";
+  if (family === "learned_sf") return true;
+  const name = item?.entry?.baseline_name || item?.study?.baseline_name || "";
+  return LEARNED_SF_BASELINE_NAMES.has(name);
+}
+
 function kindBadge(item) {
   const tip = escapeHtml(modelDescription(item));
-  const synthClass = item.synthesized ? " synthesized-baseline" : "";
-  const label = item.synthesized ? `${item.kind} · approx` : item.kind;
-  const style = item.synthesized ? "" : ` style="${entryPaletteStyle(item)}"`;
+  const learned = isLearnedSfBaseline(item);
+  const synthClass = learned ? " synthesized-baseline" : "";
+  const label = learned ? `${item.kind} · ML` : item.kind;
+  const style = learned ? "" : ` style="${entryPaletteStyle(item)}"`;
   return `<span class="kind-badge${synthClass}"${style} title="${tip}">${escapeHtml(label)}</span>`;
 }
 
@@ -832,6 +876,7 @@ function externalBaselineFamilyLabel(family) {
 
 function externalBaselineKindLabel(family) {
   if (family === "scoring_function") return "SF";
+  if (family === "learned_sf") return "Learned SF";
   return "Other consensus";
 }
 
@@ -961,8 +1006,18 @@ function isReplicaAggregateCell(item, metric) {
   return Number(metric?.count) > 1;
 }
 
+function isLearnedSfBaselineCell(item) {
+  return isLearnedSfBaseline(item);
+}
+
+function learnedSfMetricMark(item) {
+  if (!isLearnedSfBaselineCell(item)) return "";
+  return '<span class="metric-cell-synth" title="Learned SF classifier (lr / rf / xgb / …)">≈</span>';
+}
+
 function metricStatTitle(metric, item) {
   if (!metric) return "";
+  if (isLearnedSfBaselineCell(item)) return "Learned SF classifier trained on docking-score columns";
   if (item?.external) return "Precomputed external baseline value";
   const count = Number(metric.count) || 0;
   const parts = [];
@@ -978,19 +1033,28 @@ function metricStatMarkup(summary, metricName, item) {
   const metric = metricSummaryLookup(summary, metricName);
   if (!metric || !Number.isFinite(Number(metric.mean))) return null;
   const valueText = numeric(metric.mean);
+  const synthMark = learnedSfMetricMark(item);
   if (!isReplicaAggregateCell(item, metric)) {
-    const hint = item?.external ? "External baseline value" : Number(metric.count) === 1 ? "Single replica value" : "Value";
-    return `<span class="metric-stat metric-stat-value" title="${escapeHtml(hint)}">${valueText}</span>`;
+    const hint = isLearnedSfBaselineCell(item)
+      ? "Learned SF classifier trained on docking-score columns"
+      : item?.external ? "External baseline value" : Number(metric.count) === 1 ? "Single replica value" : "Value";
+    const valueInner = synthMark
+      ? `<span class="metric-stat-line">${synthMark}<span class="metric-mean">${valueText}</span></span>`
+      : valueText;
+    return `<span class="metric-stat metric-stat-value" title="${escapeHtml(hint)}">${valueInner}</span>`;
   }
   const std = Number(metric.std);
   const stdMarkup = Number.isFinite(std)
     ? `<span class="metric-std" title="Standard deviation (σ) across ${metric.count} replicas">σ ${numeric(std)}</span>`
     : "";
-  return `<span class="metric-stat metric-stat-aggregate" title="${escapeHtml(metricStatTitle(metric, item))}"><span class="metric-stat-line"><span class="metric-cell-mu">μ</span><span class="metric-mean">${valueText}</span></span>${stdMarkup}</span>`;
+  return `<span class="metric-stat metric-stat-aggregate" title="${escapeHtml(metricStatTitle(metric, item))}"><span class="metric-stat-line">${synthMark}<span class="metric-cell-mu">μ</span><span class="metric-mean">${valueText}</span></span>${stdMarkup}</span>`;
 }
 
 function plotMetricLabel(metric) {
-  return metric.label || metric.name;
+  if (typeof metric === "string") {
+    return metricMeta(metric).label || metric;
+  }
+  return metric?.label || metric?.name || "metric";
 }
 
 function plotMetricValueDisplay(entry, metricName) {
@@ -1294,7 +1358,7 @@ function syncRankPlotHtmlLegend(payload) {
 }
 
 function bindRankPlotLegendButtons() {
-  document.querySelectorAll("button[data-rank-legend-key]").forEach((button) => {
+  document.querySelectorAll("button[data-rank-legend-key]:not([data-protocol-similarity-legend])").forEach((button) => {
     if (button.dataset.bound === "true") return;
     button.dataset.bound = "true";
     button.addEventListener("click", () => {
@@ -1321,9 +1385,8 @@ async function mountPendingPlotlyCharts() {
   state.pendingPlotly = [];
   for (const item of queue) {
     const host = document.getElementById(item.divId);
-    if (!host) continue;
+    if (!host || !item.spec) continue;
     const payload = state.plotExports[item.key];
-    if (!payload) continue;
     if (!window.Plotly) {
       host.innerHTML = '<span class="path">Plotly failed to load. Check your network connection and refresh.</span>';
       continue;
@@ -1331,12 +1394,14 @@ async function mountPendingPlotlyCharts() {
     if (host.data) Plotly.purge(host);
     await Plotly.newPlot(host, item.spec.data, item.spec.layout, item.spec.config);
     syncPlotlyHostHeight(host, host.layout || item.spec.layout);
-    payload.plotlyDivId = item.divId;
-    if (payload.plotKind === "rank") {
-      payload.plotRankSpec = item.spec;
-      rankPlotCategoryVisibilityState(payload);
-      bindRankPlotInteractions(host, payload);
-      syncRankPlotHtmlLegend(payload);
+    if (payload) {
+      payload.plotlyDivId = item.divId;
+      if (payload.plotKind === "rank") {
+        payload.plotRankSpec = item.spec;
+        rankPlotCategoryVisibilityState(payload);
+        bindRankPlotInteractions(host, payload);
+        syncRankPlotHtmlLegend(payload);
+      }
     }
   }
   requestAnimationFrame(() => {
@@ -1607,6 +1672,7 @@ function renderGlobalControls() {
     persistUiState();
     renderComparisonTable();
     renderComparisonCharts();
+    scheduleProtocolSimilarityLoad();
     if (state.selectedStudy) renderDetailPlots(state.selectedStudy);
   };
 }
@@ -1693,7 +1759,15 @@ function renderComparisonTable() {
     sortedEntries.map((item) => [
       modelCell(item),
       kindBadge(item),
-      { value: item.study?.detected_replica_count ? `${item.study.detected_replica_count}/${item.study.expected_replica_count || item.study.detected_replica_count}` : "—", numeric: !!item.study?.detected_replica_count, title: modelDescription(item) },
+      (() => {
+        const progress = replicaProgressSummary(item.study);
+        return {
+          value: progress.text,
+          numeric: progress.numeric,
+          className: progress.className,
+          title: progress.title || modelDescription(item),
+        };
+      })(),
       comparisonDeltaCell(item, selectedMetric),
       ...metricHeaders.map((metric) => comparisonMetricCell(item, metric.name, metricRanks[metric.name], metricRanks[metric.name].size)),
     ]),
@@ -1794,7 +1868,7 @@ function collectDeltaPlotRows(metricName) {
       if (delta === null) return null;
       const std = item.external ? null : entryMetricStd(item.entry, metricName);
       const withinNoise = std !== null && Math.abs(delta) < std;
-      const label = modelDisplayName(item) + (item.synthesized ? " (approx)" : "") + (withinNoise ? " · ~noise" : "");
+      const label = modelDisplayName(item) + (isLearnedSfBaseline(item) ? " (ML)" : "") + (withinNoise ? " · ~noise" : "");
       return {
         label,
         value: delta,
@@ -2003,7 +2077,10 @@ function comparisonExportRows(metricHeaders, sortedEntries, selectedMetric) {
       model: modelDisplayName(item),
       type: item.kind,
       reference: isReferenceEntry(item) ? "yes" : "no",
-      replicas: item.study?.detected_replica_count ?? "",
+      replicas: (() => {
+        const progress = replicaProgressSummary(item.study);
+        return progress.numeric ? progress.text : "";
+      })(),
       delta: "",
     };
     if (!isReferenceEntry(item)) {
@@ -2203,6 +2280,8 @@ function registerPlotExport(key, title, rows, asset, options = {}) {
 
 function bindPlotExportButtons() {
   document.querySelectorAll("button[data-export-key]").forEach((button) => {
+    if (button.dataset.exportBound === "true") return;
+    button.dataset.exportBound = "true";
     button.addEventListener("click", async () => {
       const payload = state.plotExports[button.dataset.exportKey];
       if (!payload) return;
@@ -2316,7 +2395,7 @@ function generatedRankPlot(metricName) {
     .filter(Boolean)
     .sort((left, right) => metric.direction === "min" ? left.value - right.value : right.value - left.value)
     .map((row) => ({
-      label: studyDisplayName(row.entry) + (row.entry.synthesized ? " (approx)" : ""),
+      label: studyDisplayName(row.entry) + (row.entry.baseline_family === "learned_sf" ? " (ML)" : ""),
       value: row.value,
       std: row.std,
       count: row.count,
@@ -4029,7 +4108,7 @@ function renderRunContext(payload = state.workspace) {
   const baseline = summarizeBaselineSources(context.baseline_sources || []);
   const items = [
     ...runContextSelectionItems(),
-    ["Repl", `${context.detected_replica_count}/${context.planned_replica_count}`],
+    ["Repl", `${context.completed_replica_count ?? 0}/${context.planned_replica_count}`],
     ["Split", splitShort],
     ["Rank", "DUDEz test"],
     ["Reg", "PDBbind val/test"],
@@ -4106,6 +4185,666 @@ function renderIssues(payload) {
   `).join("");
 }
 
+function protocolSimilarityMetricToken() {
+  const metricName = ensureSelectedMetric();
+  if (!metricName) return "";
+  const meta = metricMeta(metricName);
+  const mode = meta.direction === "min" ? "min" : "max";
+  return `${metricName}:${mode}`;
+}
+
+function scheduleProtocolSimilarityLoad() {
+  window.clearTimeout(protocolSimilarityTimer);
+  protocolSimilarityTimer = window.setTimeout(() => {
+    void loadProtocolSimilarity();
+  }, 180);
+}
+
+function bindProtocolSimilarityControls() {
+  const select = $("protocol-similarity-reference");
+  if (!select || select.dataset.bound === "true") return;
+  select.dataset.bound = "true";
+  select.addEventListener("change", () => {
+    state.protocolSimilarityReference = select.value || null;
+    persistUiState();
+    scheduleProtocolSimilarityLoad();
+  });
+}
+
+function renderProtocolSimilarityReferenceSelect(payload) {
+  const wrap = $("protocol-similarity-reference-wrap");
+  const select = $("protocol-similarity-reference");
+  if (!wrap || !select || !payload) return;
+  const names = protocolSimilarityAllNames(payload);
+  if (!names.length) {
+    wrap.hidden = true;
+    return;
+  }
+  wrap.hidden = false;
+  const selected = (state.protocolSimilarityReference && names.includes(state.protocolSimilarityReference))
+    ? state.protocolSimilarityReference
+    : (payload.reference_policy && names.includes(payload.reference_policy) ? payload.reference_policy : names[0]);
+  select.innerHTML = names.map((name) => (
+    `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`
+  )).join("");
+  select.value = selected;
+  if (selected !== state.protocolSimilarityReference) {
+    state.protocolSimilarityReference = selected;
+  }
+}
+
+function protocolSimilarityAllNames(payload) {
+  return payload?.protocol_order || [];
+}
+
+function protocolSimilarityFilteredTableNames(payload, visibility) {
+  const order = protocolSimilarityAllNames(payload);
+  const categories = protocolSimilarityClusterCategories(payload);
+  if (!categories.length) return order;
+  const allShown = categories.every((category) => protocolSimilarityFilterShown(visibility, category.key));
+  if (allShown) return order;
+  const visible = new Set();
+  categories.forEach((category) => {
+    if (!protocolSimilarityFilterShown(visibility, category.key)) return;
+    category.protocols.forEach((name) => visible.add(name));
+  });
+  return order.filter((name) => visible.has(name));
+}
+
+const PROTOCOL_SIMILARITY_LEGEND_KEY = "protocol-similarity";
+const PROTOCOL_SIMILARITY_CLUSTER_COLORS = [
+  "#2F6FDE",
+  "#12B886",
+  "#F59F00",
+  "#E64980",
+  "#7950F2",
+  "#22B8CF",
+  "#94D82D",
+  "#FF6B6B",
+  "#868E96",
+  "#FAB005",
+];
+
+function protocolSimilarityEntry(payload, policyName) {
+  return (payload?.protocols || []).find((item) => item.policy_name === policyName) || null;
+}
+
+function protocolSimilarityClusterCategories(payload) {
+  const order = payload?.protocol_order || [];
+  const labels = payload?.cluster_labels || [];
+  const clusters = new Map();
+  order.forEach((name, index) => {
+    const clusterId = labels[index];
+    if (clusterId === undefined) return;
+    if (!clusters.has(clusterId)) clusters.set(clusterId, []);
+    clusters.get(clusterId).push(name);
+  });
+  return [...clusters.entries()]
+    .sort((left, right) => left[0] - right[0])
+    .map(([clusterId, protocols], index) => ({
+      key: `cluster-${clusterId}`,
+      clusterId,
+      label: `Cluster ${clusterId + 1}`,
+      count: protocols.length,
+      protocols,
+      color: PROTOCOL_SIMILARITY_CLUSTER_COLORS[index % PROTOCOL_SIMILARITY_CLUSTER_COLORS.length],
+    }));
+}
+
+function protocolSimilarityPayloadKey(payload) {
+  return `${payload.protocol_count}:${payload.reference_policy}:${(payload.protocol_order || []).join("|")}`;
+}
+
+function ensureProtocolSimilarityPlotPayload(payload) {
+  const sourceKey = protocolSimilarityPayloadKey(payload);
+  const categories = protocolSimilarityClusterCategories(payload);
+  if (!state.protocolSimilarityPlotPayload || state.protocolSimilarityPlotPayload.sourceKey !== sourceKey) {
+    state.protocolSimilarityPlotPayload = {
+      sourceKey,
+      payload,
+      categories,
+      categoryVisibility: Object.fromEntries(categories.map((category) => [category.key, true])),
+      plotKey: PROTOCOL_SIMILARITY_LEGEND_KEY,
+    };
+  } else {
+    state.protocolSimilarityPlotPayload.payload = payload;
+    state.protocolSimilarityPlotPayload.categories = categories;
+    categories.forEach((category) => {
+      if (state.protocolSimilarityPlotPayload.categoryVisibility[category.key] === undefined) {
+        state.protocolSimilarityPlotPayload.categoryVisibility[category.key] = true;
+      }
+    });
+  }
+  return state.protocolSimilarityPlotPayload;
+}
+
+function protocolSimilarityFilterVisibilityState(plotPayload) {
+  const categories = plotPayload.categories || [];
+  if (!plotPayload.categoryVisibility) {
+    plotPayload.categoryVisibility = Object.fromEntries(categories.map((category) => [category.key, true]));
+  }
+  categories.forEach((category) => {
+    if (plotPayload.categoryVisibility[category.key] === undefined) {
+      plotPayload.categoryVisibility[category.key] = true;
+    }
+  });
+  return plotPayload.categoryVisibility;
+}
+
+function protocolSimilarityFilterShown(visibility, categoryKey) {
+  return visibility[categoryKey] !== false;
+}
+
+function protocolSimilarityVisibleNames(payload, visibility) {
+  return protocolSimilarityFilteredTableNames(payload, visibility);
+}
+
+function protocolSimilarityExportRows(payload, visibleNames) {
+  const clusterMap = protocolSimilarityClusterMap(payload);
+  const reference = payload.reference_policy;
+  return (visibleNames || payload.protocol_order || []).map((name) => {
+    const entry = protocolSimilarityEntry(payload, name) || {};
+    return {
+      protocol: name,
+      cluster: clusterMap.has(name) ? clusterMap.get(name) + 1 : "",
+      similarity_to_reference: protocolSimilarityToReference(payload, name),
+      expanded_features: entry.expanded_feature_count ?? "",
+      metric: entry.metric_value ?? "",
+      has_run: entry.run_id ? "yes" : "no",
+      diff_vs: reference,
+    };
+  });
+}
+
+function renderProtocolSimilarityExportActions(plotPayload, visibleNames) {
+  const exportNode = $("protocol-similarity-export");
+  if (!exportNode) return;
+  const payload = plotPayload.payload;
+  const title = "Protocol similarity";
+  state.plotExports[PROTOCOL_SIMILARITY_LEGEND_KEY] = {
+    title,
+    rows: protocolSimilarityExportRows(payload, visibleNames),
+    engine: "plotly",
+    plotlyDivId: "protocol-similarity-heatmap",
+  };
+  exportNode.innerHTML = registerPlotExport(
+    PROTOCOL_SIMILARITY_LEGEND_KEY,
+    title,
+    state.plotExports[PROTOCOL_SIMILARITY_LEGEND_KEY].rows,
+    "plotly",
+  );
+  bindPlotExportButtons();
+}
+
+function protocolSimilarityFilteredMatrix(payload, visibleNames) {
+  const order = payload.protocol_order || [];
+  const matrix = payload.similarity_matrix || [];
+  const indices = visibleNames.map((name) => order.indexOf(name));
+  return indices.map((rowIndex) => indices.map((colIndex) => matrix[rowIndex]?.[colIndex] ?? 0));
+}
+
+function protocolSimilarityLegendMarkup(plotPayload) {
+  const categories = plotPayload.categories || [];
+  if (!categories.length) return "";
+  const buttons = categories.map((category) => (
+    `<button type="button" class="rank-legend-button" data-protocol-similarity-legend="true" data-rank-legend-key="${escapeHtml(plotPayload.plotKey)}" data-rank-legend-category="${escapeHtml(category.key)}" aria-pressed="true">
+      <span class="legend-swatch" style="background:${category.color};border-color:${category.color};"></span>
+      <span>${escapeHtml(category.label)} · ${category.count}</span>
+    </button>`
+  )).join("");
+  return `<div class="rank-plot-legend metric-legend" role="toolbar" aria-label="Filter protocol table by cluster">${buttons}</div>`;
+}
+
+function syncProtocolSimilarityLegend(plotPayload) {
+  if (!plotPayload?.plotKey) return;
+  const visibility = protocolSimilarityFilterVisibilityState(plotPayload);
+  document.querySelectorAll(`button[data-rank-legend-key="${plotPayload.plotKey}"]`).forEach((button) => {
+    const shown = protocolSimilarityFilterShown(visibility, button.dataset.rankLegendCategory);
+    button.classList.toggle("is-hidden", !shown);
+    button.setAttribute("aria-pressed", shown ? "true" : "false");
+  });
+}
+
+function toggleProtocolSimilarityCategory(plotPayload, categoryKey) {
+  const categories = plotPayload.categories || [];
+  const visibility = protocolSimilarityFilterVisibilityState(plotPayload);
+  visibility[categoryKey] = !protocolSimilarityFilterShown(visibility, categoryKey);
+  if (!categories.some((entry) => protocolSimilarityFilterShown(visibility, entry.key))) {
+    visibility[categoryKey] = true;
+  }
+  return visibility;
+}
+
+function bindProtocolSimilarityLegendButtons() {
+  document.querySelectorAll("button[data-protocol-similarity-legend]").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+      const plotPayload = state.protocolSimilarityPlotPayload;
+      if (!plotPayload || plotPayload.plotKey !== button.dataset.rankLegendKey) return;
+      toggleProtocolSimilarityCategory(plotPayload, button.dataset.rankLegendCategory);
+      void reflowProtocolSimilarityPlot(plotPayload);
+    });
+  });
+}
+
+function disambiguatePlotLabels(labels) {
+  const counts = new Map();
+  return labels.map((label) => {
+    const text = String(label || "");
+    const count = counts.get(text) || 0;
+    counts.set(text, count + 1);
+    if (count === 0) return text;
+    const suffix = ` [${count + 1}]`;
+    const budget = Math.max(16, 48 - suffix.length);
+    const head = text.length <= budget ? text : `${text.slice(0, budget - 1)}…`;
+    return `${head}${suffix}`;
+  });
+}
+
+function buildProtocolSimilarityHeatmapSpec(payload, visibleNames) {
+  const labels = visibleNames || payload.protocol_order || [];
+  const matrix = visibleNames
+    ? protocolSimilarityFilteredMatrix(payload, visibleNames)
+    : (payload.similarity_matrix || []);
+  const size = labels.length;
+  const plotLabels = disambiguatePlotLabels(labels);
+  const height = Math.max(320, 48 + size * 22);
+  const marginLeft = Math.min(420, Math.max(160, ...plotLabels.map((label) => label.length * 6)));
+  const marginBottom = Math.min(420, Math.max(140, ...plotLabels.map((label) => label.length * 4)));
+  return {
+    data: [{
+      type: "heatmap",
+      z: matrix,
+      x: plotLabels,
+      y: plotLabels,
+      customdata: labels.map((label) => [label, label]),
+      zmin: 0,
+      zmax: 1,
+      colorscale: "Viridis",
+      hovertemplate: "%{customdata[0]} vs %{customdata[1]}<br>similarity: %{z:.3f}<extra></extra>",
+    }],
+    layout: {
+      title: { text: "Expanded feature similarity", font: { size: 13, color: "#667085" } },
+      margin: { l: marginLeft, r: 24, t: 48, b: marginBottom },
+      height,
+      paper_bgcolor: "rgba(0,0,0,0)",
+      plot_bgcolor: "rgba(0,0,0,0)",
+      xaxis: { tickangle: -45, tickfont: { size: 9, color: "#667085" } },
+      yaxis: { tickfont: { size: 9, color: "#667085" }, autorange: "reversed" },
+    },
+    config: { responsive: true, displaylogo: false, modeBarButtonsToRemove: ["lasso2d", "select2d"] },
+  };
+}
+
+async function reflowProtocolSimilarityPlot(plotPayload) {
+  const payload = plotPayload.payload;
+  const protocolNames = protocolSimilarityAllNames(payload);
+  const host = $("protocol-similarity-heatmap");
+  renderProtocolSimilarityReferenceSelect(payload);
+  renderProtocolSimilarityFilteredSections(payload, protocolNames);
+  renderProtocolSimilarityExportActions(plotPayload, protocolNames);
+  if (!host || !window.Plotly) return;
+  if (!protocolNames.length) {
+    host.innerHTML = '<span class="path">No protocols to compare.</span>';
+    return;
+  }
+  const spec = buildProtocolSimilarityHeatmapSpec(payload, protocolNames);
+  if (host.data) {
+    await Plotly.react(host, spec.data, spec.layout, spec.config);
+  } else {
+    await Plotly.newPlot(host, spec.data, spec.layout, spec.config);
+  }
+  syncPlotlyHostHeight(host, spec.layout);
+  requestAnimationFrame(() => resizePlotlyHosts(host.parentElement));
+}
+
+function protocolSimilarityFamilyRows(payload, visibleNames) {
+  const protocolNames = visibleNames || payload.protocol_order || [];
+  const familyIds = uniqueSorted(
+    (payload.protocols || []).flatMap((entry) => (entry.families || []).map((family) => family.family_id)),
+  );
+  return familyIds.map((familyId) => ({
+    familyId,
+    cells: protocolNames.map((policyName) => {
+      const entry = (payload.protocols || []).find((item) => item.policy_name === policyName);
+      const family = (entry?.families || []).find((item) => item.family_id === familyId);
+      if (!family) return { className: "family-absent", label: "—" };
+      if (!family.present) return { className: "family-absent", label: "0" };
+      if (family.member_count >= family.total_members) {
+        return { className: "family-present", label: String(family.member_count) };
+      }
+      return { className: "family-partial", label: `${family.member_count}/${family.total_members}` };
+    }),
+  }));
+}
+
+function protocolSimilarityFilteredClusterSummaries(payload, visibleNames) {
+  const visibleSet = new Set(visibleNames);
+  const clusterMap = protocolSimilarityClusterMap(payload);
+  const metricValues = Object.fromEntries(
+    (payload.protocols || []).map((entry) => [entry.policy_name, entry.metric_value]),
+  );
+  const byCluster = new Map();
+  visibleNames.forEach((name) => {
+    const clusterId = clusterMap.get(name);
+    if (clusterId === undefined) return;
+    if (!byCluster.has(clusterId)) byCluster.set(clusterId, []);
+    byCluster.get(clusterId).push(name);
+  });
+  return [...byCluster.entries()]
+    .sort((left, right) => left[0] - right[0])
+    .map(([clusterId, policyNames]) => {
+      const names = [...policyNames].sort();
+      const presentValues = names
+        .map((name) => metricValues[name])
+        .filter((value) => value !== null && value !== undefined);
+      return {
+        cluster_id: clusterId,
+        policy_names: names,
+        mean_metric: presentValues.length ? presentValues.reduce((sum, value) => sum + value, 0) / presentValues.length : null,
+        metric_count: presentValues.length,
+        missing_metric_count: names.length - presentValues.length,
+      };
+    });
+}
+
+function protocolSimilarityToReference(payload, policyName) {
+  const order = payload?.protocol_order || [];
+  const reference = payload?.reference_policy;
+  const row = order.indexOf(policyName);
+  const col = order.indexOf(reference);
+  if (row < 0 || col < 0) return null;
+  const value = payload?.similarity_matrix?.[row]?.[col];
+  return Number.isFinite(Number(value)) ? Number(value) : null;
+}
+
+function protocolSimilarityClusterMap(payload) {
+  const order = payload?.protocol_order || [];
+  const labels = payload?.cluster_labels || [];
+  const map = new Map();
+  order.forEach((name, index) => {
+    if (labels[index] !== undefined) map.set(name, labels[index]);
+  });
+  return map;
+}
+
+function protocolSimilarityClusterMeanSimilarity(payload, cluster) {
+  const order = payload?.protocol_order || [];
+  const matrix = payload?.similarity_matrix || [];
+  const indices = (cluster?.policy_names || [])
+    .map((name) => order.indexOf(name))
+    .filter((index) => index >= 0);
+  if (indices.length < 2) return null;
+  let sum = 0;
+  let count = 0;
+  for (let left = 0; left < indices.length; left += 1) {
+    for (let right = left + 1; right < indices.length; right += 1) {
+      const value = matrix[indices[left]]?.[indices[right]];
+      if (Number.isFinite(Number(value))) {
+        sum += Number(value);
+        count += 1;
+      }
+    }
+  }
+  return count ? sum / count : null;
+}
+
+function protocolSimilarityDiffLookup(payload, policyName) {
+  return (payload?.reference_diffs || []).find((item) => item.policy_name === policyName) || null;
+}
+
+function protocolSimilarityMetricsAvailable(payload) {
+  return (payload?.protocols || []).filter((entry) => entry.metric_value !== null && entry.metric_value !== undefined).length;
+}
+
+function renderProtocolSimilarityOverview(payload, visibleNames) {
+  const node = $("protocol-similarity-overview");
+  if (!node) return;
+  const metricName = ensureSelectedMetric();
+  const metricLabel = plotMetricLabel(metricName || payload.metric || "metric");
+  const clusterMap = protocolSimilarityClusterMap(payload);
+  const reference = payload.reference_policy;
+  const names = visibleNames || payload.protocol_order || [];
+  const rows = names.map((policyName) => {
+    const entry = protocolSimilarityEntry(payload, policyName) || {};
+    const diff = protocolSimilarityDiffLookup(payload, policyName);
+    const sim = protocolSimilarityToReference(payload, policyName);
+    const removedFamilies = (diff?.removed_families || []).join(", ") || "—";
+    const addedFamilies = (diff?.added_families || []).join(", ") || "—";
+    const metricValue = entry.metric_value;
+    const metricCell = metricValue === null || metricValue === undefined
+      ? '<span class="muted">—</span>'
+      : numeric(metricValue);
+    const clusterLabel = clusterMap.has(policyName) ? `Cluster ${clusterMap.get(policyName) + 1}` : "—";
+    const sourceStatus = entry.run_id
+      ? " · completed"
+      : (entry.study_present ? " · partial" : "");
+    return `
+      <tr>
+        <th scope="row">${escapeHtml(policyName)}${policyName === reference ? ' <span class="muted">(ref)</span>' : ""}</th>
+        <td>${clusterMap.has(policyName) ? clusterMap.get(policyName) + 1 : "—"}</td>
+        <td>${sim === null ? "—" : sim.toFixed(3)}</td>
+        <td>${entry.expanded_feature_count ?? "—"}</td>
+        <td class="protocol-similarity-family-delta">${escapeHtml(removedFamilies)}</td>
+        <td class="protocol-similarity-family-delta">${escapeHtml(addedFamilies)}</td>
+        <td>${metricCell}</td>
+        <td>${escapeHtml(clusterLabel)}${sourceStatus ? `<span class="muted">${escapeHtml(sourceStatus)}</span>` : ""}</td>
+      </tr>
+    `;
+  }).join("");
+  node.hidden = false;
+  node.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Protocol</th>
+          <th scope="col">Cluster</th>
+          <th scope="col">Sim to ref</th>
+          <th scope="col">Features</th>
+          <th scope="col">Families removed vs ref</th>
+          <th scope="col">Families added vs ref</th>
+          <th scope="col">${escapeHtml(metricLabel)}</th>
+          <th scope="col">Source</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function renderProtocolSimilarityFilteredSections(payload, visibleNames) {
+  const overviewNode = $("protocol-similarity-overview");
+  const clustersNode = $("protocol-similarity-clusters");
+  const familiesNode = $("protocol-similarity-families");
+  const diffsNode = $("protocol-similarity-diffs");
+  if (!visibleNames.length) {
+    if (overviewNode) overviewNode.hidden = true;
+    if (clustersNode) clustersNode.hidden = true;
+    if (familiesNode) familiesNode.hidden = true;
+    if (diffsNode) diffsNode.hidden = true;
+    return;
+  }
+
+  renderProtocolSimilarityOverview(payload, visibleNames);
+
+  if (clustersNode) {
+    clustersNode.hidden = false;
+    const metricLabel = plotMetricLabel(ensureSelectedMetric() || payload.metric || "metric");
+    const clusters = protocolSimilarityFilteredClusterSummaries(payload, visibleNames);
+    clustersNode.innerHTML = clusters.map((cluster) => {
+      const meanSim = protocolSimilarityClusterMeanSimilarity(payload, cluster);
+      const outcomeText = cluster.mean_metric === null || cluster.mean_metric === undefined
+        ? `mean ${metricLabel}: —`
+        : `mean ${metricLabel}: ${numeric(cluster.mean_metric)}`;
+      const cohesionText = meanSim === null ? "" : `<span>mean similarity: ${meanSim.toFixed(3)}</span>`;
+      return `
+      <article class="protocol-similarity-cluster">
+        <div class="protocol-similarity-cluster-head">
+          <strong>Cluster ${cluster.cluster_id + 1}</strong>
+          <span>${outcomeText}</span>
+          ${cohesionText}
+          <span>${cluster.metric_count}/${cluster.policy_names.length} with metric</span>
+        </div>
+        <div class="muted">${escapeHtml(cluster.policy_names.join(", "))}</div>
+      </article>
+    `;
+    }).join("");
+  }
+
+  if (familiesNode) {
+    familiesNode.hidden = false;
+    const rows = protocolSimilarityFamilyRows(payload, visibleNames);
+    const headers = visibleNames.map((name) => `<th>${escapeHtml(compactPlotLabel(name, 20))}</th>`).join("");
+    const body = rows.map((row) => `
+      <tr>
+        <th scope="row">${escapeHtml(row.familyId)}</th>
+        ${row.cells.map((cell) => `<td class="${cell.className}">${escapeHtml(cell.label)}</td>`).join("")}
+      </tr>
+    `).join("");
+    familiesNode.innerHTML = `
+      <table>
+        <thead><tr><th scope="col">Family</th>${headers}</tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    `;
+  }
+
+  if (diffsNode) {
+    diffsNode.hidden = false;
+    const reference = payload.reference_policy;
+    const rankedDiffs = (payload.reference_diffs || [])
+      .filter((diff) => diff.policy_name !== reference && visibleNames.includes(diff.policy_name))
+      .map((diff) => ({
+        diff,
+        sim: protocolSimilarityToReference(payload, diff.policy_name),
+        deltaFamilies: (diff.removed_families?.length || 0) + (diff.added_families?.length || 0),
+      }))
+      .sort((left, right) => {
+        const simLeft = left.sim ?? 1;
+        const simRight = right.sim ?? 1;
+        if (simLeft !== simRight) return simLeft - simRight;
+        return right.deltaFamilies - left.deltaFamilies;
+      })
+      .slice(0, 8);
+    diffsNode.innerHTML = `
+      <h4 class="protocol-similarity-diff-title">Largest family diffs vs ${escapeHtml(reference)} (reference baseline)</h4>
+      ${rankedDiffs.map(({ diff, sim }) => `
+      <article class="protocol-similarity-diff-card">
+        <h4>${escapeHtml(diff.policy_name)} · sim ${sim === null ? "—" : sim.toFixed(3)}</h4>
+        <div class="protocol-similarity-diff-grid">
+          <span><strong>Removed families:</strong> ${escapeHtml((diff.removed_families || []).join(", ") || "—")}</span>
+          <span><strong>Added families:</strong> ${escapeHtml((diff.added_families || []).join(", ") || "—")}</span>
+          <span><strong>Shared features:</strong> ${diff.shared_feature_count}</span>
+        </div>
+      </article>
+    `).join("")}
+    `;
+  }
+}
+
+function renderProtocolSimilarityPanel() {
+  bindProtocolSimilarityControls();
+  const summary = $("protocol-similarity-summary");
+  const message = $("protocol-similarity-message");
+  const heatmapWrap = $("protocol-similarity-heatmap-wrap");
+  const heatmapHost = $("protocol-similarity-heatmap");
+  const referenceWrap = $("protocol-similarity-reference-wrap");
+  const overviewNode = $("protocol-similarity-overview");
+  const clustersNode = $("protocol-similarity-clusters");
+  const familiesNode = $("protocol-similarity-families");
+  const diffsNode = $("protocol-similarity-diffs");
+  if (!summary || !message || !heatmapWrap || !heatmapHost) return;
+
+  if (state.protocolSimilarityLoading) {
+    summary.textContent = "Loading expanded protocol comparison…";
+    message.hidden = true;
+    heatmapWrap.hidden = true;
+    if (referenceWrap) referenceWrap.hidden = true;
+    if (overviewNode) overviewNode.hidden = true;
+    if (clustersNode) clustersNode.hidden = true;
+    if (familiesNode) familiesNode.hidden = true;
+    if (diffsNode) diffsNode.hidden = true;
+    return;
+  }
+
+  const payload = state.protocolSimilarity;
+  if (!payload) {
+    summary.textContent = "Similarity uses expanded feature sets (patterns like ligand_* resolve to columns).";
+    message.hidden = true;
+    heatmapWrap.hidden = true;
+    if (referenceWrap) referenceWrap.hidden = true;
+    if (overviewNode) overviewNode.hidden = true;
+    if (clustersNode) clustersNode.hidden = true;
+    if (familiesNode) familiesNode.hidden = true;
+    if (diffsNode) diffsNode.hidden = true;
+    return;
+  }
+
+  const sourceNote = payload.candidate_source ? ` · candidates from ${pathBasename(payload.candidate_source)}` : "";
+  const heatmapCount = protocolSimilarityAllNames(payload).length;
+  const metricsAvailable = protocolSimilarityMetricsAvailable(payload);
+  const executedCount = (payload.protocols || []).filter((entry) => entry.run_id).length;
+  const metricNote = payload.metric
+    ? ` · ${metricsAvailable}/${heatmapCount} with ${plotMetricLabel(ensureSelectedMetric() || payload.metric)}`
+    : "";
+  summary.textContent = payload.preview_available
+    ? `${heatmapCount} protocols · ${executedCount} completed · ${protocolSimilarityClusterCategories(payload).length} clusters${sourceNote}${metricNote}`
+    : "Candidate features unavailable";
+
+  if (!payload.preview_available || heatmapCount === 0) {
+    message.hidden = false;
+    message.textContent = payload.message || "No protocols to compare.";
+    heatmapWrap.hidden = true;
+    if (referenceWrap) referenceWrap.hidden = true;
+    if (overviewNode) overviewNode.hidden = true;
+    if (clustersNode) clustersNode.hidden = true;
+    if (familiesNode) familiesNode.hidden = true;
+    if (diffsNode) diffsNode.hidden = true;
+    return;
+  }
+
+  message.hidden = false;
+  const notes = [];
+  if (payload.message) {
+    notes.push(payload.message);
+  }
+  if (metricsAvailable < heatmapCount) {
+    notes.push(`Metrics for ${metricsAvailable}/${heatmapCount} protocols.`);
+  }
+  message.textContent = notes.join(" ");
+  message.hidden = notes.length === 0;
+
+  const plotPayload = ensureProtocolSimilarityPlotPayload(payload);
+  heatmapWrap.hidden = false;
+  void reflowProtocolSimilarityPlot(plotPayload);
+}
+
+async function loadProtocolSimilarity() {
+  bindProtocolSimilarityControls();
+  state.protocolSimilarityLoading = true;
+  renderProtocolSimilarityPanel();
+  try {
+    const params = {
+      include_catalog_only: "false",
+      metric: protocolSimilarityMetricToken() || undefined,
+    };
+    if (state.protocolSimilarityReference) {
+      params.reference = state.protocolSimilarityReference;
+    }
+    state.protocolSimilarity = await api("/api/ablation-protocol-similarity", params);
+  } catch (error) {
+    state.protocolSimilarity = {
+      preview_available: false,
+      protocol_count: 0,
+      message: error.message || String(error),
+    };
+  } finally {
+    state.protocolSimilarityLoading = false;
+    renderProtocolSimilarityPanel();
+  }
+}
+
 function renderWorkspace(payload) {
   state.workspace = payload;
   restoreSelectedStudyFromPersisted();
@@ -4125,6 +4864,7 @@ function renderWorkspace(payload) {
   renderComparisonTable();
   renderComparisonCharts();
   renderCrossValidationPanel();
+  scheduleProtocolSimilarityLoad();
   if (state.selectedStudy) {
     const selected = allStudies().find((study) => study.study_name === state.selectedStudy.study_name);
     renderDetail(selected || null);

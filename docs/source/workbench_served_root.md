@@ -34,6 +34,18 @@ The response includes `candidate_features`, grouped columns, `metadata_columns`,
 
 Designed policies can be written into the workspace (not the bundled package) via **Write to workspace** in the Design tab, which calls `POST /api/ablation-design/write`. Shipped policies under `OCScore/Protocols/Ablations/` remain read-only; workspace copies live under paths such as `{layout_root}/Ablations/my_policy.yml`.
 
+## Protocol similarity (Ablation tab)
+
+The **Protocol similarity** zone compares bundled and workspace ablation policies after **pattern expansion**. The heatmap and PNG/Copy/SVG export always include every protocol. A cluster legend filters the overview table and family grid below; family diffs are computed against the default ``full_ocscore`` reference baseline.
+
+Query parameters for `GET /api/ablation-protocol-similarity`:
+
+- `metric` — comparison metric token, e.g. `auc:max`
+- `reference` — reference policy for add/remove diffs (default `full_ocscore`)
+- `include_catalog_only` — `true` to include policies without workspace runs
+
+Candidate features resolve from replica `feature_policy_metadata.json` when present, otherwise from `raw_prepare` headers (same path as Design tab discovery).
+
 ## Related endpoints
 
 | Endpoint | Purpose |
@@ -42,3 +54,4 @@ Designed policies can be written into the workspace (not the bundled package) vi
 | `POST /api/ablation-design/preview` | Apply draft rules to candidate features |
 | `POST /api/ablation-design/plan` | Training command + preflight |
 | `POST /api/ablation-design/write` | Save policy YAML into the served workspace |
+| `GET /api/ablation-protocol-similarity` | Expanded feature similarity, family rollups, cluster metrics |

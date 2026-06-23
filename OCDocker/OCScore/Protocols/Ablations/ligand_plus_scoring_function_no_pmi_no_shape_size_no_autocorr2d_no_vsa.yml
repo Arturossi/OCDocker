@@ -1,0 +1,60 @@
+name: ligand_plus_scoring_function_no_pmi_no_shape_size_no_autocorr2d_no_vsa
+description: Ligand + SF without PMI, ligand shape/size/topology descriptors, AUTOCORR2D descriptors, and VSA-family descriptors.
+
+include_patterns:
+  - "ligand_*"
+  - "plants_*"
+  - "vina_*"
+  - "smina_*"
+  - "gnina_*"
+  - "oddt_*"
+
+exclude_patterns:
+  - "ligand_AUTOCORR2D_*"
+  - "ligand_EState_VSA*"
+  - "ligand_PEOE_VSA*"
+  - "ligand_SMR_VSA*"
+  - "ligand_SlogP_VSA*"
+  - "ligand_VSA_EState*"
+
+exclude_features:
+  - ligand_PMI1
+  - ligand_PMI2
+  - ligand_PMI3
+  - ligand_NPR1
+  - ligand_NPR2
+  - ligand_Asphericity
+  - ligand_Eccentricity
+  - ligand_InertialShapeFactor
+  - ligand_RadiusOfGyration
+  - ligand_SpherocityIndex
+  - ligand_BertzCT
+  - ligand_MolWt
+  - ligand_ExactMolWt
+  - ligand_HeavyAtomMolWt
+  - ligand_HeavyAtomCount
+  - ligand_NumValenceElectrons
+  - ligand_FpDensityMorgan1
+  - ligand_FpDensityMorgan2
+  - ligand_FpDensityMorgan3
+  - ligand_LabuteASA
+  - ligand_TPSA
+  - ligand_MolLogP
+  - ligand_MolMR
+  - ligand_NHOHCount
+  - ligand_NOCount
+  - ligand_NumRotatableBonds
+  - ligand_RingCount
+  - ligand_NumAromaticRings
+  - ligand_NumAromaticCarbocycles
+  - ligand_NumAromaticHeterocycles
+  - ligand_NumAliphaticRings
+  - ligand_NumAliphaticCarbocycles
+  - ligand_NumAliphaticHeterocycles
+  - ligand_NumSaturatedRings
+  - ligand_NumSaturatedCarbocycles
+  - ligand_NumSaturatedHeterocycles
+  - ligand_NumHAcceptors
+  - ligand_NumHDonors
+  - ligand_NumHeteroatoms
+  - ligand_FractionCSP3

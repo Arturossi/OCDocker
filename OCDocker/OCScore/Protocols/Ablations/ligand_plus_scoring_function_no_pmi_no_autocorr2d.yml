@@ -1,0 +1,18 @@
+name: ligand_plus_scoring_function_no_pmi_no_autocorr2d
+description: Ligand descriptors and scoring-function features, excluding PMI and AUTOCORR2D descriptors.
+
+include_patterns:
+  - "ligand_*"
+  - "plants_*"
+  - "vina_*"
+  - "smina_*"
+  - "gnina_*"
+  - "oddt_*"
+
+exclude_patterns:
+  - "ligand_AUTOCORR2D_*"
+
+exclude_features:
+  - ligand_PMI1
+  - ligand_PMI2
+  - ligand_PMI3

@@ -191,6 +191,9 @@ Interpretation table:
 | `ligand_plus_scoring_function_no_shape_size` | Tests ligand descriptors plus docking scores after removing shape and ligand size/topology proxies. |
 | `ligand_plus_scoring_function_no_shape_size_no_autocorr2d` | Tests ligand descriptors plus docking scores after removing shape/size proxies and AUTOCORR2D descriptors. |
 | `ligand_plus_scoring_function_no_pmi` | Tests ligand descriptors plus docking scores after removing PMI descriptors only. |
+| `ligand_plus_scoring_function_no_pmi_no_plants` | Tests ligand descriptors plus non-PLANTS docking scores after removing PMI descriptors. |
+| `ligand_plus_scoring_function_no_pmi_no_autocorr2d` | Tests ligand descriptors plus docking scores after removing PMI and AUTOCORR2D descriptors. |
+| `ligand_plus_scoring_function_no_pmi_no_shape_size_no_autocorr2d_no_vsa` | Tests ligand descriptors plus docking scores after removing PMI, shape/size, AUTOCORR2D, and VSA-family descriptors. |
 | `ligand_plus_scoring_function_no_plants` | Tests ligand descriptors plus non-PLANTS scoring-function columns. |
 | `ligand_plus_scoring_function_clean_receptor` | Tests ligand plus scoring-function columns with receptor descriptors but without receptor amino-acid counts and length proxies. |
 | `no_scoring_function` | Tests whether the model depends on docking/scoring-function columns. |

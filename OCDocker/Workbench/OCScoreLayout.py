@@ -822,6 +822,105 @@ def _log_has_failure(path: Path, *, max_bytes: int) -> bool:
     return any(marker in text for marker in FAILED_LOG_MARKERS)
 
 
+REPLICA_STAGE_NAMES = ("pdbbind_optuna", "dudez_optuna")
+
+
+def _read_replica_protocol_log(replica_path: Path) -> dict[str, Any] | None:
+    '''Return parsed ``protocol_log.json`` for one replica when readable.'''
+
+    protocol_log_path = replica_path / "protocol_log.json"
+    if not protocol_log_path.is_file():
+        return None
+    try:
+        payload = json.loads(protocol_log_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _protocol_stage_result(payload: dict[str, Any], stage_name: str) -> dict[str, Any] | None:
+    stages = payload.get("stages")
+    if not isinstance(stages, list):
+        return None
+    for entry in stages:
+        if not isinstance(entry, dict) or entry.get("name") != stage_name:
+            continue
+        result = entry.get("result")
+        return result if isinstance(result, dict) else None
+    return None
+
+
+def _stage_result_complete(stage_result: dict[str, Any]) -> bool:
+    checkpoint = stage_result.get("checkpoint_path")
+    if isinstance(checkpoint, str) and checkpoint and Path(checkpoint).is_file():
+        return True
+    export_dir = stage_result.get("best_model_export_dir")
+    if isinstance(export_dir, str) and export_dir and Path(export_dir).is_dir():
+        return True
+    if stage_result.get("test_metrics") or stage_result.get("validation_metrics"):
+        return True
+    return False
+
+
+def _replica_stage_complete_from_protocol(replica_path: Path, stage_name: str) -> bool:
+    payload = _read_replica_protocol_log(replica_path)
+    if payload is None:
+        return False
+    stage_result = _protocol_stage_result(payload, stage_name)
+    if stage_result is None:
+        return False
+    return _stage_result_complete(stage_result)
+
+
+def _replica_pdbbind_complete(replica_path: Path) -> bool:
+    if _replica_stage_complete_from_protocol(replica_path, "pdbbind_optuna"):
+        return True
+    pdbbind_dir = replica_path / "pdbbind"
+    if (pdbbind_dir / "pdbbind_best.pt").is_file():
+        return True
+    return (pdbbind_dir / "best_model").is_dir()
+
+
+def _replica_dudez_complete(replica_path: Path) -> bool:
+    if _replica_stage_complete_from_protocol(replica_path, "dudez_optuna"):
+        return True
+    dudez_dir = replica_path / "dudez"
+    if (dudez_dir / "dudez_best.pt").is_file():
+        return True
+    if (dudez_dir / "summary.json").is_file():
+        return True
+    summary_path = replica_path / "summary.json"
+    if summary_path.is_file():
+        try:
+            payload = json.loads(summary_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            payload = None
+        if isinstance(payload, dict):
+            metrics = payload.get("aggregate_summary", {}).get("metrics", {})
+            if isinstance(metrics, dict) and any("dudez" in str(name).lower() for name in metrics):
+                return True
+    return False
+
+
+def _replica_pipeline_complete(replica_path: Path) -> bool:
+    return _replica_pdbbind_complete(replica_path) and _replica_dudez_complete(replica_path)
+
+
+def _resolve_replica_status(
+    replica_path: Path,
+    log_files: tuple[Path, ...],
+    *,
+    max_metric_file_bytes: int,
+) -> str:
+    '''Classify replica progress: missing, failed, completed, or running.'''
+
+    if any(_log_has_failure(path, max_bytes=max_metric_file_bytes) for path in log_files):
+        return "failed"
+    if _replica_pipeline_complete(replica_path):
+        return "completed"
+    return "running"
+
+
 def _read_replica_metrics(
     replica_path: Path,
     *,
@@ -1049,16 +1148,11 @@ def _build_replica(
     figures = _build_figures(replica_path, policy_name=policy_name, replica_name=replica_path.name, max_depth=max_depth)
     optuna_db = replica_path / DEFAULT_OPTUNA_DB_FILENAME
     optuna_storage_path = optuna_db.resolve() if optuna_db.is_file() else None
-    if any(_log_has_failure(path, max_bytes=max_metric_file_bytes) for path in log_files):
-        status = "failed"
-    elif metrics:
-        status = "completed"
-    elif not files:
-        status = "empty"
-    elif log_files:
-        status = "running"
-    else:
-        status = "unknown"
+    status = _resolve_replica_status(
+        replica_path,
+        log_files,
+        max_metric_file_bytes=max_metric_file_bytes,
+    )
     return WorkbenchOCScoreReplica(
         role=role,
         study_name=study_name,
@@ -1967,6 +2061,7 @@ def _build_run_context(
     return WorkbenchOCScoreRunContext(
         planned_replica_count=baseline_study.expected_replica_count,
         detected_replica_count=baseline_study.detected_replica_count,
+        completed_replica_count=baseline_study.completed_count,
         pdbbind_split_strategy=protocol.pdbbind_split_strategy if protocol is not None else "",
         pdbbind_split_summary=split_summary,
         dudez_bedroc_alpha=protocol.dudez_bedroc_alpha if protocol is not None else None,
