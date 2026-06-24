@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=80", "wheel"]
+requires = ["setuptools>=80", "wheel>=0.47.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
@@ -33,7 +33,6 @@ dependencies = [
 
 classifiers = [
   "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: BSD License",
   "Operating System :: POSIX :: Linux",
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
@@ -89,7 +88,7 @@ build = [
   "build>=1.2.2.post1",
   "setuptools>=80.8.0",
   "twine>=6.1.0",
-  "wheel>=0.44.0",
+  "wheel>=0.47.0",
 ]
 cloud = [
   "boto3>=1.35.31",

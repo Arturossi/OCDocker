@@ -512,7 +512,7 @@ dependencies:
   - wayland-protocols=1.37=hd8ed1ab_0
   - wcwidth=0.2.13=pyhd8ed1ab_0
   - werkzeug=3.1.2=pyhd8ed1ab_0
-  - wheel=0.44.0=pyhd8ed1ab_0
+  - wheel=0.47.0=pyhd8ed1ab_0
   - wrapt=1.16.0=py311h9ecbd09_1
   - x264=1!161.3030=h7f98852_1
   - x265=3.5=h924138e_3
