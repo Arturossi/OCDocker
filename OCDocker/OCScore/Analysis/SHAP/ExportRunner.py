@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, List, Mapping, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -79,20 +79,46 @@ def _transform_features(X_df: pd.DataFrame, scaler: Any) -> pd.DataFrame:
     return pd.DataFrame(values, columns=list(X_df.columns))
 
 
-def _require_split_indices(split_indices: dict[str, np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
+def _require_split_indices(
+        split_indices: dict[str, np.ndarray],
+        eval_split: str,
+    ) -> tuple[np.ndarray, np.ndarray]:
+    '''Return validation background indices and requested evaluation indices.
+
+    Parameters
+    ----------
+    split_indices : dict[str, np.ndarray]
+        Exported split-index mapping.
+    eval_split : str
+        Evaluation split name. Supported values are ``validation`` and ``test``.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        Validation background indices and evaluation indices.
+    '''
+
     if not split_indices:
         raise ValueError(
             "Export bundle is missing split_indices.npz. "
             "Re-export the model or provide a bundle with validation/test indices."
         )
     val_idx = split_indices.get("validation_indices")
-    test_idx = split_indices.get("test_indices")
-    if val_idx is None or test_idx is None:
+    if val_idx is None:
         raise ValueError(
-            "split_indices.npz must contain validation_indices and test_indices "
-            "for export SHAP (validation background, test evaluation)."
+            "split_indices.npz must contain validation_indices "
+            "for export SHAP validation background."
         )
-    return np.asarray(val_idx), np.asarray(test_idx)
+    if eval_split == "validation":
+        return np.asarray(val_idx), np.asarray(val_idx)
+    if eval_split == "test":
+        test_idx = split_indices.get("test_indices")
+        if test_idx is None:
+            raise ValueError(
+                "split_indices.npz must contain test_indices for export SHAP test evaluation."
+            )
+        return np.asarray(val_idx), np.asarray(test_idx)
+    raise ValueError("eval_split must be 'validation' or 'test'")
 
 
 def _prepare_feature_frames(
@@ -100,18 +126,79 @@ def _prepare_feature_frames(
         selected_features: List[str],
         split_indices: dict[str, np.ndarray],
         scaler: Any,
-    ) -> tuple[pd.DataFrame, pd.DataFrame, List[str]]:
+        eval_split: str,
+    ) -> tuple[pd.DataFrame, pd.DataFrame, List[str], pd.DataFrame]:
+    '''Prepare validation background and requested evaluation feature frames.
+
+    Parameters
+    ----------
+    dataframe : pd.DataFrame
+        Task-specific dataframe.
+    selected_features : list[str]
+        Exported selected features.
+    split_indices : dict[str, np.ndarray]
+        Exported split indices.
+    scaler : Any
+        Optional fitted scaler.
+    eval_split : str
+        Evaluation split name.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, pd.DataFrame, list[str], pd.DataFrame]
+        Background frame, evaluation frame, feature names, and evaluation
+        metadata rows.
+    '''
+
     missing = [column for column in selected_features if column not in dataframe.columns]
     if missing:
         preview = ", ".join(missing[:5])
         suffix = "..." if len(missing) > 5 else ""
         raise ValueError(f"Dataframe is missing selected export features: {preview}{suffix}")
 
-    val_idx, test_idx = _require_split_indices(split_indices)
+    val_idx, eval_idx = _require_split_indices(split_indices, eval_split)
     feature_frame = dataframe[selected_features]
     X_background = _transform_features(feature_frame.iloc[val_idx].reset_index(drop=True), scaler)
-    X_eval = _transform_features(feature_frame.iloc[test_idx].reset_index(drop=True), scaler)
-    return X_background, X_eval, list(selected_features)
+    X_eval = _transform_features(feature_frame.iloc[eval_idx].reset_index(drop=True), scaler)
+    eval_metadata = dataframe.iloc[eval_idx].reset_index(drop=True)
+    return X_background, X_eval, list(selected_features), eval_metadata
+
+
+def _align_table_to_eval_rows(
+        table: Union[str, Path, Sequence[Any], pd.Series, pd.DataFrame],
+        eval_indices: np.ndarray,
+    ) -> pd.DataFrame:
+    '''Align a full dataset table to SHAP evaluation rows.
+
+    Parameters
+    ----------
+    table : str | Path | sequence | pd.Series | pd.DataFrame
+        Full dataset metadata table.
+    eval_indices : np.ndarray
+        Evaluation indices from the exported split.
+
+    Returns
+    -------
+    pd.DataFrame
+        Metadata table aligned to SHAP rows.
+    '''
+
+    if isinstance(table, (str, Path)):
+        frame = pd.read_csv(table)
+    elif isinstance(table, pd.DataFrame):
+        frame = table.copy()
+    elif isinstance(table, pd.Series):
+        frame = table.to_frame(name=table.name or "label")
+    else:
+        frame = pd.DataFrame({"label": list(table)})
+    if len(frame) >= int(np.max(eval_indices)) + 1:
+        return frame.iloc[eval_indices].reset_index(drop=True)
+    if len(frame) == len(eval_indices):
+        return frame.reset_index(drop=True)
+    raise ValueError(
+        "Metadata/label table must be either the full modeling dataframe "
+        "or already aligned to the selected SHAP evaluation split."
+    )
 
 
 ## Public ##
@@ -127,10 +214,21 @@ def run_export_shap_analysis(
         stratify_by: Optional[List[str]] = None,
         seed: int = 0,
         save_csv: bool = True,
+        policy: str = "policy",
+        top_n: int = 20,
+        family_spec: Optional[Union[str, Path, Mapping[str, Any]]] = None,
+        dependence_features: Optional[Sequence[str]] = None,
+        sample_metadata: Optional[Union[str, Path, pd.DataFrame]] = None,
+        target_column: Optional[str] = None,
+        labels: Optional[Union[str, Path, Sequence[Any], pd.Series, pd.DataFrame]] = None,
+        label_column: Optional[str] = None,
+        eval_split: str = "validation",
+        include_log_importance_plots: bool = True,
+        filter_zero_rows_log: bool = True,
     ) -> OutputPaths:
     '''Run SHAP on an exported staged-model bundle.
 
-    Uses validation rows for the SHAP background and test rows for evaluation,
+    Uses validation rows for the SHAP background and validation rows for evaluation,
     matching the saved ``split_indices.npz`` from export.
 
     Parameters
@@ -146,7 +244,7 @@ def run_export_shap_analysis(
     background_size : int | None, optional
         Subsample size for validation background.
     eval_size : int | None, optional
-        Subsample size for test evaluation.
+        Subsample size for the selected SHAP evaluation split.
     explainer : str, optional
         ``gradient``, ``deep``, ``kernel``, or ``permutation`` SHAP explainer, by default ``gradient``.
     stratify_by : list[str] | None, optional
@@ -155,6 +253,30 @@ def run_export_shap_analysis(
         Random seed for subsampling, by default 0.
     save_csv : bool, optional
         Write ``shap_values.csv`` when True, by default True.
+    policy : str, optional
+        File-name policy prefix for reusable SHAP plots, by default "policy".
+    top_n : int, optional
+        Number of visible features in global plots, by default 20.
+    family_spec : str | Path | mapping | None, optional
+        Feature-family specification.
+    dependence_features : sequence[str] | None, optional
+        Features for dependence plots.
+    sample_metadata : str | Path | pd.DataFrame | None, optional
+        Sample metadata for target-family heatmap.
+    target_column : str | None, optional
+        Target column in sample metadata.
+    labels : str | Path | sequence | pd.Series | pd.DataFrame | None, optional
+        Labels for active-vs-decoy family distribution.
+    label_column : str | None, optional
+        Label column when labels are provided as a table.
+    eval_split : str, optional
+        Split to explain with SHAP. Supported values are ``validation`` and
+        ``test``. Default is ``validation``.
+    include_log_importance_plots : bool, optional
+        Save log-scale feature and family importance companion plots.
+    filter_zero_rows_log : bool, optional
+        Remove zero rows from log-scale plots when True. When False, zero rows
+        are plotted with a small positive floor.
 
     Returns
     -------
@@ -169,12 +291,25 @@ def run_export_shap_analysis(
     bundle = ocexport.load_exported_model(export_path, device=device or "cpu")
     task = str(bundle["retrain_config"]["task"])
     selected_features = list(bundle["selected_features"])
-    X_background, X_eval, feature_names = _prepare_feature_frames(
+    X_background, X_eval, feature_names, eval_metadata = _prepare_feature_frames(
         dataframe,
         selected_features,
         bundle["split_indices"],
         bundle.get("scaler"),
+        eval_split,
     )
+    _, eval_indices = _require_split_indices(bundle["split_indices"], eval_split)
+    aligned_sample_metadata = None
+    if sample_metadata is not None:
+        aligned_sample_metadata = _align_table_to_eval_rows(sample_metadata, eval_indices)
+    elif target_column is not None:
+        aligned_sample_metadata = eval_metadata
+
+    aligned_labels = None
+    if labels is not None:
+        aligned_labels = _align_table_to_eval_rows(labels, eval_indices)
+    elif label_column is not None:
+        aligned_labels = eval_metadata
 
     model = bundle["model"]
     model.eval()
@@ -197,15 +332,31 @@ def run_export_shap_analysis(
         shap_csv = str(output_path / "shap_values.csv")
         pd.DataFrame(shap_2d, columns=feature_names).to_csv(shap_csv, index=False)
 
-    imp_png = str(output_path / "shap_feature_importance.png")
-    bee_png = str(output_path / "shap_beeswarm_plot.png")
-    shap_plots.feature_importance_barh(shap_2d, feature_names, out_png=imp_png, top_k=20)
-    shap_plots.beeswarm(shap_2d, X_eval.iloc[: shap_2d.shape[0]], out_png=bee_png, rng_seed=seed)
+    plot_artifacts = shap_plots.save_shap_plot_suite(
+        shap_2d,
+        feature_names,
+        output_path,
+        policy=policy,
+        feature_matrix=X_eval.iloc[: shap_2d.shape[0]],
+        dependence_features=dependence_features,
+        family_spec=family_spec,
+        sample_metadata=aligned_sample_metadata,
+        target_column=target_column,
+        labels=aligned_labels,
+        label_column=label_column,
+        top_n=top_n,
+        rng_seed=seed,
+        include_log_importance_plots=include_log_importance_plots,
+        filter_zero_rows_log=filter_zero_rows_log,
+    )
 
     shap_report = {
         "export_dir": str(export_path.resolve()),
         "task": task,
         "explainer": explainer,
+        "eval_split": eval_split,
+        "include_log_importance_plots": bool(include_log_importance_plots),
+        "filter_zero_rows_log": bool(filter_zero_rows_log),
         "selected_features": selected_features,
         "selected_features_hash": hash_feature_list(selected_features),
         "n_selected_features": len(selected_features),
@@ -219,10 +370,11 @@ def run_export_shap_analysis(
 
     return OutputPaths(
         out_dir=str(output_path.resolve()),
-        feature_importance_png=imp_png,
-        beeswarm_png=bee_png,
+        feature_importance_png=str(plot_artifacts.get("feature_importance_png", "")),
+        beeswarm_png=str(plot_artifacts.get("beeswarm_png", "")),
         shap_values_npy=shap_npy,
         shap_values_csv=shap_csv,
+        artifacts=plot_artifacts,
     )
 
 

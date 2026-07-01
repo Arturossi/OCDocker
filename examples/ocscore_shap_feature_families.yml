@@ -1,0 +1,64 @@
+families:
+  PMI:
+    - ligand_PMI*
+  AUTOCORR2D:
+    - ligand_AUTOCORR2D_*
+  VSA/EState:
+    - ligand_EState_VSA*
+    - ligand_PEOE_VSA*
+    - ligand_SMR_VSA*
+    - ligand_SlogP_VSA*
+    - ligand_VSA_EState*
+  shape/size/topology:
+    - ligand_NPR*
+    - ligand_Asphericity
+    - ligand_Eccentricity
+    - ligand_InertialShapeFactor
+    - ligand_RadiusOfGyration
+    - ligand_SpherocityIndex
+    - ligand_BertzCT
+    - ligand_MolWt
+    - ligand_ExactMolWt
+    - ligand_HeavyAtomMolWt
+    - ligand_HeavyAtomCount
+    - ligand_TPSA
+    - ligand_MolLogP
+    - ligand_MolMR
+    - ligand_RingCount
+    - ligand_Num*Ring*
+    - ligand_Num*Cycle*
+    - ligand_NumHAcceptors
+    - ligand_NumHDonors
+    - ligand_NumHeteroatoms
+    - ligand_NumValenceElectrons
+    - ligand_FractionCSP3
+  fragments:
+    - ligand_fr_*
+  BCUT2D:
+    - ligand_BCUT2D_*
+  Chi/Kappa/topological indices:
+    - ligand_Chi*
+    - ligand_Kappa*
+    - ligand_BalabanJ
+    - ligand_HallKierAlpha
+  partial-charge / scalar EState:
+    - ligand_*PartialCharge
+    - ligand_MaxEStateIndex
+    - ligand_MinEStateIndex
+    - ligand_MaxAbsEStateIndex
+    - ligand_MinAbsEStateIndex
+  PLANTS:
+    - plants_*
+  Vina/Smina:
+    - vina_*
+    - smina_*
+  GNINA:
+    - gnina_*
+  ODDT:
+    - oddt_*
+  receptor:
+    - receptor_*
+  other ligand:
+    - ligand_*
+  other:
+    - "*"

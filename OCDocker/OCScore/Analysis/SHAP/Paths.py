@@ -10,8 +10,8 @@ Output path container for export SHAP artifacts.
 ###############################################################################
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Any, Optional
 
 # License
 ###############################################################################
@@ -35,6 +35,7 @@ class OutputPaths:
     beeswarm_png: str
     shap_values_npy: str
     shap_values_csv: Optional[str] = None
+    artifacts: dict[str, Any] = field(default_factory=dict)
 
 
 __all__ = ["OutputPaths"]

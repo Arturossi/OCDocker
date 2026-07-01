@@ -67,6 +67,8 @@ def _fake_bundle(model, selected_features, split_indices, task="dudez_screening"
 
 @pytest.mark.order(430)
 def test_export_shap_happy_path_with_mocked_explainer(monkeypatch, tmp_path):
+    '''Export SHAP should write values, report, and plot artifacts.'''
+
     features = ["f0", "f1"]
     params = {
         "encoder_architecture_index": 0,
@@ -89,30 +91,56 @@ def test_export_shap_happy_path_with_mocked_explainer(monkeypatch, tmp_path):
     }
     bundle = _fake_bundle(model, features, split_indices)
     monkeypatch.setattr(ocexpshap.ocexport, "load_exported_model", lambda *_a, **_k: bundle)
+    seen = {}
+
+    def fake_compute_shap_values(**kwargs):
+        seen["eval_f0"] = kwargs["X_eval"]["f0"].tolist()
+        return np.array([[0.1, -0.1], [0.2, -0.2], [0.3, -0.3]])
+
     monkeypatch.setattr(
         ocexpshap,
         "compute_shap_values",
-        lambda **_k: np.array([[0.1, -0.1], [0.2, -0.2], [0.3, -0.3]]),
+        fake_compute_shap_values,
     )
-    monkeypatch.setattr(ocexpshap.shap_plots, "feature_importance_barh", lambda *_a, **_k: None)
-    monkeypatch.setattr(ocexpshap.shap_plots, "beeswarm", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        ocexpshap.shap_plots,
+        "save_shap_plot_suite",
+        lambda *_a, **_k: seen.update(
+            {
+                "metadata_receptor": _k["sample_metadata"]["receptor"].tolist(),
+                "label_kind": _k["labels"]["kind"].tolist(),
+            }
+        )
+        or {
+            "feature_importance_png": str(tmp_path / "shap_out" / "policy_shap_feature_importance.png"),
+            "beeswarm_png": str(tmp_path / "shap_out" / "policy_shap_beeswarm.png"),
+        },
+    )
 
     out = ocexpshap.run_export_shap_analysis(
         tmp_path / "export",
         _tiny_dudez_dataframe(),
         tmp_path / "shap_out",
+        target_column="receptor",
+        label_column="kind",
     )
 
     assert (tmp_path / "shap_out" / "shap_values.npy").exists()
     assert (tmp_path / "shap_out" / "shap_values.csv").exists()
     report = json.loads((tmp_path / "shap_out" / "shap_report.json").read_text(encoding="utf-8"))
     assert report["feature_policy"]["feature_policy_name"] == "shape_only"
+    assert report["eval_split"] == "validation"
     assert report["selected_features"] == features
+    assert seen["eval_f0"] == pytest.approx(_tiny_dudez_dataframe()["f0"].iloc[[0, 1, 2]].tolist())
+    assert seen["metadata_receptor"] == _tiny_dudez_dataframe()["receptor"].iloc[[0, 1, 2]].tolist()
+    assert seen["label_kind"] == _tiny_dudez_dataframe()["kind"].iloc[[0, 1, 2]].tolist()
     assert out.shap_values_csv is not None
 
 
 @pytest.mark.order(431)
 def test_export_shap_missing_split_indices_raises(monkeypatch, tmp_path):
+    '''Export SHAP should require validation and test split indices.'''
+
     features = ["f0", "f1"]
     model = SimpleNamespace()
     bundle = _fake_bundle(model, features, split_indices={})
@@ -128,6 +156,8 @@ def test_export_shap_missing_split_indices_raises(monkeypatch, tmp_path):
 
 @pytest.mark.order(432)
 def test_export_shap_missing_feature_columns_raises(monkeypatch, tmp_path):
+    '''Export SHAP should reject dataframes missing selected features.'''
+
     features = ["f0", "f1", "missing_feature"]
     model = SimpleNamespace()
     split_indices = {
@@ -147,6 +177,8 @@ def test_export_shap_missing_feature_columns_raises(monkeypatch, tmp_path):
 
 @pytest.mark.order(433)
 def test_export_shap_wrapper_exposes_scalar_nn_output():
+    '''SHAP wrapper should expose one scalar model output per row.'''
+
     params = {
         "encoder_architecture_index": 0,
         "encoder_hidden_sizes": [4],

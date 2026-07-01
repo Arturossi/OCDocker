@@ -496,18 +496,28 @@ def _cmd_shap(args: argparse.Namespace) -> None:
         explainer=args.explainer,
         seed=int(args.seed),
         save_csv=not args.no_csv,
+        policy=args.policy,
+        top_n=int(args.top_n),
+        family_spec=args.family_spec,
+        dependence_features=args.dependence_features,
+        sample_metadata=args.sample_metadata,
+        target_column=args.target_column,
+        labels=args.labels,
+        label_column=args.label_column,
+        eval_split=args.eval_split,
+        include_log_importance_plots=not args.no_log_importance_plots,
+        filter_zero_rows_log=not args.keep_zero_rows_log,
     )
+    artifacts = dict(result.artifacts)
+    artifacts["shap_values_npy"] = result.shap_values_npy
+    if result.shap_values_csv is not None:
+        artifacts["shap_values_csv"] = result.shap_values_csv
     _print_summary(
         {
             "status": "shap_complete",
             "export_dir": str(export_path.resolve()),
             "output_dir": result.out_dir,
-            "artifacts": {
-                "feature_importance_png": result.feature_importance_png,
-                "beeswarm_png": result.beeswarm_png,
-                "shap_values_npy": result.shap_values_npy,
-                "shap_values_csv": result.shap_values_csv,
-            },
+            "artifacts": artifacts,
         }
     )
 
@@ -911,7 +921,7 @@ def _register_export_commands(
         help="Run SHAP on an exported best_model bundle",
         description=(
             "Pipeline-native SHAP for exported best_model/ bundles "
-            "(validation background, test evaluation)."
+            "(validation background, configurable evaluation split)."
         ),
     )
     shap_parser.add_argument(
@@ -939,7 +949,14 @@ def _register_export_commands(
         help="Validation background sample size",
     )
     shap_parser.add_argument(
-        "--eval-size", type=int, default=None, help="Test evaluation sample size"
+        "--eval-size", type=int, default=None, help="SHAP evaluation sample size"
+    )
+    shap_parser.add_argument(
+        "--eval-split",
+        type=str,
+        default="validation",
+        choices=("validation", "test"),
+        help="Split used for SHAP explanations",
     )
     shap_parser.add_argument(
         "--explainer",
@@ -950,6 +967,64 @@ def _register_export_commands(
     )
     shap_parser.add_argument(
         "--seed", type=int, default=0, help="Random seed for SHAP subsampling"
+    )
+    shap_parser.add_argument(
+        "--policy",
+        type=str,
+        default="policy",
+        help="Policy label used as the SHAP artifact filename prefix",
+    )
+    shap_parser.add_argument(
+        "--top-n",
+        type=int,
+        default=20,
+        help="Number of top features shown in global SHAP plots",
+    )
+    shap_parser.add_argument(
+        "--family-spec",
+        type=str,
+        default=None,
+        help="JSON/YAML feature-family specification for SHAP aggregation",
+    )
+    shap_parser.add_argument(
+        "--no-log-importance-plots",
+        action="store_true",
+        help="Do not generate log-scale SHAP importance and heatmap companion plots",
+    )
+    shap_parser.add_argument(
+        "--keep-zero-rows-log",
+        action="store_true",
+        help="Keep zero rows/cells in log plots using a small positive plotting floor",
+    )
+    shap_parser.add_argument(
+        "--dependence-features",
+        nargs="*",
+        default=None,
+        help="Feature names for SHAP dependence plots",
+    )
+    shap_parser.add_argument(
+        "--sample-metadata",
+        type=str,
+        default=None,
+        help="Sample metadata CSV for target-family SHAP heatmaps",
+    )
+    shap_parser.add_argument(
+        "--target-column",
+        type=str,
+        default=None,
+        help="Target column in --sample-metadata",
+    )
+    shap_parser.add_argument(
+        "--labels",
+        type=str,
+        default=None,
+        help="Label CSV for active-vs-decoy SHAP family distributions",
+    )
+    shap_parser.add_argument(
+        "--label-column",
+        type=str,
+        default=None,
+        help="Label column in --labels",
     )
     shap_parser.add_argument(
         "--no-csv",

@@ -13,6 +13,8 @@
 # Stage 1 is skipped automatically when raw_prepare/merged_input_dataset.csv exists.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # =============================================================================
 # Configuration — edit these before running
 # =============================================================================
@@ -66,6 +68,11 @@ DUDEZ_CV_PLOT_METRICS="BEDROC,ROC-AUC,PR-AUC,EF1%,EF5%,NDCG@1%,NDCG@5%"
 
 # --- Stage 3f: SHAP ---
 SHAP_EXPLAINER="gradient"  # gradient | deep | kernel | permutation
+SHAP_EVAL_SPLIT="validation"
+SHAP_TOP_N="20"
+SHAP_FAMILY_SPEC="${SCRIPT_DIR}/ocscore_shap_feature_families.yml"
+SHAP_LOG_IMPORTANCE_PLOTS="true"
+SHAP_FILTER_ZERO_ROWS_LOG="true"
 
 # --- Strict validation + reporting (Stage 2) ---
 GENERATE_FINAL_REPORT="true"
@@ -107,6 +114,15 @@ ARCHITECTURE_DECODER_ARGS=()
 case "${ARCHITECTURE_PLOT_INCLUDE_DECODER,,}" in
   true|1|yes) ARCHITECTURE_DECODER_ARGS=(--show-decoder) ;;
   *) ;;
+esac
+SHAP_LOG_ARGS=()
+case "${SHAP_LOG_IMPORTANCE_PLOTS,,}" in
+  true|1|yes) ;;
+  *) SHAP_LOG_ARGS+=(--no-log-importance-plots) ;;
+esac
+case "${SHAP_FILTER_ZERO_ROWS_LOG,,}" in
+  true|1|yes) ;;
+  *) SHAP_LOG_ARGS+=(--keep-zero-rows-log) ;;
 esac
 
 LOG_COLOR="${LOG_COLOR:-true}"
@@ -353,6 +369,11 @@ architecture_plots:
 
 shap:
   explainer: ${SHAP_EXPLAINER}
+  eval_split: ${SHAP_EVAL_SPLIT}
+  top_n: ${SHAP_TOP_N}
+  family_spec: ${SHAP_FAMILY_SPEC}
+  log_importance_plots: ${SHAP_LOG_IMPORTANCE_PLOTS}
+  filter_zero_rows_log: ${SHAP_FILTER_ZERO_ROWS_LOG}
   seed: ${TRAIN_SEED}
 EOF
 }
@@ -604,13 +625,18 @@ PY
     --metrics "$DUDEZ_CV_PLOT_METRICS" \
     --dpi "$PLOT_DPI"
 
-  log_step "ANALYSIS | ${protocol_label} | SHAP" "explainer=${SHAP_EXPLAINER}" "device=${DEVICE}"
+  log_step "ANALYSIS | ${protocol_label} | SHAP" "explainer=${SHAP_EXPLAINER}" "eval_split=${SHAP_EVAL_SPLIT}" "device=${DEVICE}"
   "${OCDOCKER[@]}" ocscore shap \
     --export-dir "$pdb_export" \
     --pdbbind-csv "$pdb_csv" \
     --seed "$TRAIN_SEED" \
     --device "$DEVICE" \
     --explainer "$SHAP_EXPLAINER" \
+    --eval-split "$SHAP_EVAL_SPLIT" \
+    --policy "${protocol_label}_pdbbind" \
+    --top-n "$SHAP_TOP_N" \
+    --family-spec "$SHAP_FAMILY_SPEC" \
+    "${SHAP_LOG_ARGS[@]}" \
     --output-dir "${output_base}/pdbbind/shap"
 
   "${OCDOCKER[@]}" ocscore shap \
@@ -619,6 +645,13 @@ PY
     --seed "$TRAIN_SEED" \
     --device "$DEVICE" \
     --explainer "$SHAP_EXPLAINER" \
+    --eval-split "$SHAP_EVAL_SPLIT" \
+    --policy "${protocol_label}_dudez" \
+    --top-n "$SHAP_TOP_N" \
+    --family-spec "$SHAP_FAMILY_SPEC" \
+    "${SHAP_LOG_ARGS[@]}" \
+    --target-column receptor \
+    --label-column kind \
     --output-dir "${output_base}/dudez/shap"
 
   if [ "$run_score" = true ]; then
@@ -714,6 +747,11 @@ run_replica_task_analysis() {
       --seed "$TRAIN_SEED" \
       --device "$DEVICE" \
       --explainer "$SHAP_EXPLAINER" \
+      --eval-split "$SHAP_EVAL_SPLIT" \
+      --policy "${protocol_label}_${replica_name}_${task}" \
+      --top-n "$SHAP_TOP_N" \
+      --family-spec "$SHAP_FAMILY_SPEC" \
+      "${SHAP_LOG_ARGS[@]}" \
       --output-dir "$shap_dir"
   else
     "${OCDOCKER[@]}" ocscore shap \
@@ -722,6 +760,13 @@ run_replica_task_analysis() {
       --seed "$TRAIN_SEED" \
       --device "$DEVICE" \
       --explainer "$SHAP_EXPLAINER" \
+      --eval-split "$SHAP_EVAL_SPLIT" \
+      --policy "${protocol_label}_${replica_name}_${task}" \
+      --top-n "$SHAP_TOP_N" \
+      --family-spec "$SHAP_FAMILY_SPEC" \
+      "${SHAP_LOG_ARGS[@]}" \
+      --target-column receptor \
+      --label-column kind \
       --output-dir "$shap_dir"
   fi
 

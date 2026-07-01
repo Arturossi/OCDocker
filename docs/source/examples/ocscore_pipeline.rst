@@ -63,6 +63,33 @@ Examples 14–16 are also available as ``ocdocker ocscore`` subcommands (require
 
 See :doc:`../usage` for the full command list.
 
+Reusable SHAP Plots
+-------------------
+
+The SHAP plotting utilities are reusable and policy-agnostic. Use
+``OCDocker.OCScore.Analysis.SHAP.Plots.save_shap_plot_suite`` with in-memory
+arrays, or ``save_shap_plot_suite_from_paths`` with explicit SHAP, feature,
+metadata, and label paths.
+
+The default feature-family suggestion is available as an editable example:
+
+.. literalinclude:: ../../../examples/ocscore_shap_feature_families.yml
+   :language: yaml
+   :caption: Default suggested SHAP feature families
+
+Example CLI usage:
+
+.. code-block:: bash
+
+   ocdocker ocscore shap \
+       --export-dir /path/to/best_model \
+       --reduction-archive /path/to/reduction.tar.gz \
+       --output-dir /path/to/shap \
+       --policy full \
+       --eval-split validation \
+       --family-spec examples/ocscore_shap_feature_families.yml \
+       --dependence-features ligand_PMI1 plants_plp
+
 Configuration
 -------------
 

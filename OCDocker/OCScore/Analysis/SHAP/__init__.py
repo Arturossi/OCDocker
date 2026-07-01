@@ -10,6 +10,12 @@ Pipeline-native SHAP for exported ``best_model/`` bundles.
 ###############################################################################
 from .ExportRunner import run_export_shap_analysis
 from .Paths import OutputPaths
+from .Plots import (
+    DEFAULT_FEATURE_FAMILIES,
+    assign_feature_families,
+    save_shap_plot_suite,
+    save_shap_plot_suite_from_paths,
+)
 
 # License
 ###############################################################################
@@ -20,4 +26,11 @@ SPDX-License-Identifier: BSD-3-Clause
 See the LICENSE file for full terms.
 '''
 
-__all__ = ["run_export_shap_analysis", "OutputPaths"]
+__all__ = [
+    "DEFAULT_FEATURE_FAMILIES",
+    "OutputPaths",
+    "assign_feature_families",
+    "run_export_shap_analysis",
+    "save_shap_plot_suite",
+    "save_shap_plot_suite_from_paths",
+]

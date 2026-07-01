@@ -111,6 +111,25 @@ snakemake -s examples/20_Snakefile_ocdocker_granular_pipeline.smk --cores 12 --c
 
 This is more granular than example 19 and is the recommended template for scheduler/HPC runs where partial resume and per-stage resources matter.
 
+### DUDEz SHAP Dependence Plots (`21_ocscore_shap_dependence_plots.py`)
+
+Generates selected DUDEz SHAP dependence plots from existing OCScore artifacts. It does not retrain models or recompute SHAP values. The script loads saved `shap_values.csv`, aligns the DUDEz feature matrix to the saved validation split, and skips unavailable features cleanly for ablation protocols.
+
+Run with defaults:
+
+```bash
+PYTHONPATH=/path/to/OCDocker python examples/21_ocscore_shap_dependence_plots.py --output-root /path/to/OCScore/output
+```
+
+Override policies or features:
+
+```bash
+python examples/21_ocscore_shap_dependence_plots.py \
+  --output-root /path/to/OCScore/output \
+  --policies full ligand_plus_scoring_function_no_pmi ligand_only \
+  --features ligand_PMI2 ligand_BertzCT ligand_TPSA
+```
+
 ## Python API Examples
 
 ### 6. Vina Docking (`05_python_api_vina.py`)
