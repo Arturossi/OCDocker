@@ -10,10 +10,12 @@ Local subprocess launcher and tracker for Workbench API jobs.
 ###############################################################################
 from __future__ import annotations
 
+import json
 import os
 import shlex
 import signal
 import subprocess
+import sys
 import uuid
 
 from datetime import datetime
@@ -51,6 +53,13 @@ JOB_KIND_COMMAND_PREFIX: dict[WorkbenchJobKind, tuple[str, ...]] = {
     "ocscore_reduce": ("ocscore", "reduce"),
 }
 CAMPAIGN_ROW_KINDS = ("vs", "pipeline")
+CAMPAIGN_ENGINES = ("shell", "snakemake")
+DEFAULT_CAMPAIGN_ENGINE = "shell"
+DEFAULT_CAMPAIGN_CORES = 4
+# Invoked as `[sys.executable, "-m", "snakemake", ...]` rather than a bare "snakemake" on
+# PATH, so it always resolves to the same interpreter/environment running the Workbench API.
+SNAKEMAKE_INVOCATION: tuple[str, ...] = (sys.executable, "-m", "snakemake")
+BUNDLED_VS_CAMPAIGN_SNAKEFILE = Path(__file__).resolve().parent / "Snakefiles" / "vs_campaign.smk"
 
 # Classes
 ###############################################################################
@@ -102,6 +111,9 @@ class JobManager:
         *,
         cwd: str | Path | None = None,
         manifest: Sequence[dict[str, Any]] | None = None,
+        engine: str = DEFAULT_CAMPAIGN_ENGINE,
+        cores: int = DEFAULT_CAMPAIGN_CORES,
+        results_dir: str | None = None,
     ) -> dict[str, Any]:
         '''Compute the command a job would run, without launching it.
 
@@ -109,8 +121,7 @@ class JobManager:
         ----------
         kind : WorkbenchJobKind
             Job kind. Selects the ``ocdocker`` subcommand prefix, or (for
-            ``"vs_campaign"``) the per-row subcommand used inside the
-            generated batch script.
+            ``"vs_campaign"``) the execution engine building the batch command.
         args : Sequence[str]
             Extra command-line arguments appended after the subcommand
             prefix (or, for ``"vs_campaign"``, appended to every row).
@@ -120,6 +131,16 @@ class JobManager:
             Required for ``kind="vs_campaign"``: one entry per sample
             (``sample``, ``receptor``, ``ligand``, ``box``, ``engines``,
             optional ``rescoring_engines``). Ignored for other kinds.
+        engine : str
+            ``"shell"`` (default, a generated POSIX loop) or ``"snakemake"``
+            (the bundled multi-sample Snakefile, real DAG orchestration).
+            Only meaningful for ``kind="vs_campaign"``.
+        cores : int
+            ``--cores`` passed to Snakemake. Only meaningful for
+            ``engine="snakemake"``.
+        results_dir : str or None
+            Shared base output directory; each row writes to
+            ``<results_dir>/<sample>``. Only meaningful for ``kind="vs_campaign"``.
 
         Returns
         -------
@@ -129,11 +150,13 @@ class JobManager:
         Raises
         ------
         JobError
-            If ``kind`` is unsupported, ``cwd`` does not exist, or (for
-            ``"vs_campaign"``) ``manifest`` is missing or malformed.
+            If ``kind``/``engine`` is unsupported, ``cwd`` does not exist, or
+            (for ``"vs_campaign"``) ``manifest`` is missing or malformed.
         '''
 
-        command, resolved_cwd = self._resolve(kind, args, cwd=cwd, manifest=manifest)
+        command, resolved_cwd = self._resolve(
+            kind, args, cwd=cwd, manifest=manifest, engine=engine, cores=cores, results_dir=results_dir,
+        )
         return {"kind": kind, "command": list(command), "cwd": str(resolved_cwd)}
 
     def launch(
@@ -143,6 +166,9 @@ class JobManager:
         *,
         cwd: str | Path | None = None,
         manifest: Sequence[dict[str, Any]] | None = None,
+        engine: str = DEFAULT_CAMPAIGN_ENGINE,
+        cores: int = DEFAULT_CAMPAIGN_CORES,
+        results_dir: str | None = None,
     ) -> WorkbenchJobRecord:
         '''Launch one tracked job as a background subprocess.
 
@@ -150,8 +176,7 @@ class JobManager:
         ----------
         kind : WorkbenchJobKind
             Job kind. Selects the ``ocdocker`` subcommand prefix, or (for
-            ``"vs_campaign"``) the per-row subcommand used inside the
-            generated batch script.
+            ``"vs_campaign"``) the execution engine building the batch command.
         args : Sequence[str]
             Extra command-line arguments appended after the subcommand
             prefix (or, for ``"vs_campaign"``, appended to every row).
@@ -159,6 +184,12 @@ class JobManager:
             Working directory for the launched process. Defaults to the served root.
         manifest : Sequence[dict[str, Any]] or None
             Required for ``kind="vs_campaign"``: see :meth:`plan`.
+        engine : str
+            ``"shell"`` or ``"snakemake"``: see :meth:`plan`.
+        cores : int
+            ``--cores`` passed to Snakemake: see :meth:`plan`.
+        results_dir : str or None
+            Shared base output directory: see :meth:`plan`.
 
         Returns
         -------
@@ -168,12 +199,14 @@ class JobManager:
         Raises
         ------
         JobError
-            If ``kind`` is unsupported, ``cwd`` does not exist, ``manifest`` is
-            missing/malformed for ``"vs_campaign"``, or the subprocess could
-            not be launched.
+            If ``kind``/``engine`` is unsupported, ``cwd`` does not exist,
+            ``manifest`` is missing/malformed for ``"vs_campaign"``, or the
+            subprocess could not be launched.
         '''
 
-        command, resolved_cwd = self._resolve(kind, args, cwd=cwd, manifest=manifest)
+        command, resolved_cwd = self._resolve(
+            kind, args, cwd=cwd, manifest=manifest, engine=engine, cores=cores, results_dir=results_dir,
+        )
         job_id = uuid.uuid4().hex[:12]
         job_dir = self.jobs_dir / job_id
         job_dir.mkdir(parents=True)
@@ -316,14 +349,24 @@ class JobManager:
         *,
         cwd: str | Path | None,
         manifest: Sequence[dict[str, Any]] | None = None,
+        engine: str = DEFAULT_CAMPAIGN_ENGINE,
+        cores: int = DEFAULT_CAMPAIGN_CORES,
+        results_dir: str | None = None,
     ) -> tuple[tuple[str, ...], Path]:
         resolved_cwd = Path(cwd).resolve() if cwd is not None else self.root
         if not resolved_cwd.is_dir():
             raise JobError(f"Job working directory does not exist: {resolved_cwd}")
 
         if kind == "vs_campaign":
-            script = build_campaign_script(manifest, args, executable=self.executable)
-            return ("/bin/sh", "-c", script), resolved_cwd
+            if engine == "shell":
+                script = build_campaign_script(manifest, args, executable=self.executable, results_dir=results_dir)
+                return ("/bin/sh", "-c", script), resolved_cwd
+            if engine == "snakemake":
+                command = build_campaign_snakemake_command(
+                    manifest, args, executable=self.executable, cores=cores, results_dir=results_dir,
+                )
+                return command, resolved_cwd
+            raise JobError(f"Unsupported vs_campaign engine {engine!r}. Expected one of: {CAMPAIGN_ENGINES}.")
 
         prefix = JOB_KIND_COMMAND_PREFIX.get(kind)
         if prefix is None:
@@ -413,7 +456,13 @@ def _pid_alive(pid: int | None) -> bool:
 ## Public ##
 
 
-def build_campaign_script(manifest: Sequence[dict[str, Any]] | None, args: Sequence[str], *, executable: str = "ocdocker") -> str:
+def build_campaign_script(
+    manifest: Sequence[dict[str, Any]] | None,
+    args: Sequence[str],
+    *,
+    executable: str = "ocdocker",
+    results_dir: str | None = None,
+) -> str:
     '''Build a POSIX shell script that runs one ``ocdocker`` command per manifest row.
 
     Shared by :meth:`JobManager.launch`/:meth:`JobManager.plan` (to actually
@@ -432,6 +481,12 @@ def build_campaign_script(manifest: Sequence[dict[str, Any]] | None, args: Seque
         Flags appended to every row's command (common to the whole batch).
     executable : str
         ``ocdocker`` executable invoked for each row.
+    results_dir : str or None
+        When given, every row gets its own ``--outdir <results_dir>/<sample>``
+        — a *shared literal* ``--outdir`` in ``args`` would make every row
+        overwrite the same directory, since ``ocdocker vs``/``pipeline``
+        write straight under ``--outdir`` with no per-sample nesting of
+        their own.
 
     Returns
     -------
@@ -471,6 +526,8 @@ def build_campaign_script(manifest: Sequence[dict[str, Any]] | None, args: Seque
             rescoring_engines = [str(item) for item in (row.get("rescoring_engines") or []) if str(item).strip()]
             if rescoring_engines:
                 row_command.extend(["--rescoring-engines", ",".join(rescoring_engines)])
+        if results_dir:
+            row_command.extend(["--outdir", f"{results_dir}/{sample}"])
         row_command.extend(common_args)
 
         quoted = " ".join(shlex.quote(part) for part in row_command)
@@ -482,11 +539,107 @@ def build_campaign_script(manifest: Sequence[dict[str, Any]] | None, args: Seque
     return "\n".join(lines)
 
 
+def build_campaign_snakemake_command(
+    manifest: Sequence[dict[str, Any]] | None,
+    args: Sequence[str],
+    *,
+    executable: str = "ocdocker",
+    cores: int = DEFAULT_CAMPAIGN_CORES,
+    results_dir: str | None = None,
+) -> tuple[str, ...]:
+    '''Build the ``snakemake`` argv for a vs_campaign job using the bundled multi-sample Snakefile.
+
+    Shared by :meth:`JobManager.launch`/:meth:`JobManager.plan` (to actually
+    build/preview a ``"vs_campaign"``, ``engine="snakemake"`` job's command)
+    and :func:`OCDocker.Workbench.VSDesign.plan_vs_campaign` (to preview the
+    same command before a job is ever created). Unlike
+    :func:`build_campaign_script`, real Snakemake DAG orchestration handles
+    parallelism (``--cores``) and continuing past a failing sample
+    (``--keep-going``) itself — this only builds the invocation.
+
+    Parameters
+    ----------
+    manifest : Sequence[dict[str, Any]] or None
+        One entry per sample: ``sample``, ``row_kind`` (``"vs"`` or
+        ``"pipeline"``), ``receptor``, ``ligand``, ``box``, ``engines``
+        (non-empty), optional ``rescoring_engines``.
+    args : Sequence[str]
+        Flags appended to every row's command (common to the whole batch),
+        passed to the Snakefile as its ``common_args`` config value.
+    executable : str
+        ``ocdocker`` executable invoked for each row (Snakefile
+        ``ocdocker_command`` config value).
+    cores : int
+        ``--cores`` passed to Snakemake.
+    results_dir : str or None
+        Shared base output directory (Snakefile ``results_dir`` config
+        value, default ``"results"``); each sample's output and
+        ``.campaign_done`` marker land under ``<results_dir>/<sample>``.
+
+    Returns
+    -------
+    tuple[str, ...]
+        ``snakemake`` argv, ready for :meth:`JobManager._spawn`.
+
+    Raises
+    ------
+    JobError
+        If ``manifest`` is empty or a row is missing a required field.
+    '''
+
+    if not manifest:
+        raise JobError("vs_campaign jobs require a non-empty manifest.")
+
+    samples: dict[str, dict[str, Any]] = {}
+    for index, row in enumerate(manifest, start=1):
+        row_kind = str(row.get("row_kind") or "vs")
+        if row_kind not in CAMPAIGN_ROW_KINDS:
+            raise JobError(f"Manifest row {index} has an unsupported row_kind: {row_kind!r}.")
+        sample = str(row.get("sample") or f"row-{index}")
+        for key in ("receptor", "ligand", "box"):
+            if not row.get(key):
+                raise JobError(f"Manifest row {index} ({sample}) is missing {key!r}.")
+        engines = [str(item) for item in (row.get("engines") or []) if str(item).strip()]
+        if not engines:
+            raise JobError(f"Manifest row {index} ({sample}) has no engines.")
+
+        sample_config: dict[str, Any] = {
+            "receptor": str(row["receptor"]),
+            "ligand": str(row["ligand"]),
+            "box": str(row["box"]),
+            "row_kind": row_kind,
+            "engines": engines,
+        }
+        rescoring_engines = [str(item) for item in (row.get("rescoring_engines") or []) if str(item).strip()]
+        if rescoring_engines:
+            sample_config["rescoring_engines"] = rescoring_engines
+        samples[sample] = sample_config
+
+    samples_config = f"samples={json.dumps(samples, separators=(',', ':'))}"
+    common_args_config = f"common_args={json.dumps([str(item) for item in args], separators=(',', ':'))}"
+    config_args = ["--config", samples_config, f"ocdocker_command={executable}", common_args_config]
+    if results_dir:
+        config_args.append(f"results_dir={results_dir}")
+    return (
+        *SNAKEMAKE_INVOCATION,
+        "-s", str(BUNDLED_VS_CAMPAIGN_SNAKEFILE),
+        "--cores", str(cores),
+        "--keep-going",
+        "--rerun-incomplete",
+        *config_args,
+    )
+
+
 __all__ = [
+    "BUNDLED_VS_CAMPAIGN_SNAKEFILE",
+    "CAMPAIGN_ENGINES",
     "CAMPAIGN_ROW_KINDS",
+    "DEFAULT_CAMPAIGN_CORES",
+    "DEFAULT_CAMPAIGN_ENGINE",
     "JOB_KIND_COMMAND_PREFIX",
     "WORKBENCH_JOBS_DIRNAME",
     "JobError",
     "JobManager",
     "build_campaign_script",
+    "build_campaign_snakemake_command",
 ]

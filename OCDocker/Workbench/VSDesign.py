@@ -22,7 +22,11 @@ import shlex
 from pathlib import Path
 from typing import Any
 
+from OCDocker.Workbench.Jobs import CAMPAIGN_ENGINES
+from OCDocker.Workbench.Jobs import DEFAULT_CAMPAIGN_CORES
+from OCDocker.Workbench.Jobs import DEFAULT_CAMPAIGN_ENGINE
 from OCDocker.Workbench.Jobs import build_campaign_script
+from OCDocker.Workbench.Jobs import build_campaign_snakemake_command
 from OCDocker.Workbench.Models import VALID_DOCKING_ENGINES
 from OCDocker.Workbench.Models import VALID_RESCORING_ENGINES
 
@@ -663,39 +667,62 @@ def plan_vs_campaign(root: str | Path, body: dict[str, Any]) -> dict[str, Any]:
         Served Workbench root, used to resolve relative paths.
     body : dict[str, Any]
         Same ``manifest`` shape as :func:`preview_vs_campaign`, plus optional
-        common flags applied to every row: ``outdir``, ``timeout``, ``store_db``,
-        and ``cwd`` (the campaign job's working directory).
+        common settings: ``engine`` (``"shell"`` default, or ``"snakemake"``
+        for real DAG orchestration — see
+        :func:`OCDocker.Workbench.Jobs.build_campaign_snakemake_command`),
+        ``cores`` (``engine="snakemake"`` only, default
+        :data:`OCDocker.Workbench.Jobs.DEFAULT_CAMPAIGN_CORES`), ``outdir``
+        (shared base output directory — every row still writes to its own
+        ``<outdir>/<sample>``, never a single shared directory), ``timeout``,
+        ``store_db``, and ``cwd`` (the campaign job's working directory).
 
     Returns
     -------
     dict[str, Any]
-        ``{"kind": "vs_campaign", "manifest", "args", "cwd", "shell_command"}``
-        — ready to pass directly to
-        :meth:`OCDocker.Workbench.Jobs.JobManager.launch` (or the
-        ``run_job``/``plan_job`` API and MCP tools).
+        ``{"kind": "vs_campaign", "engine", "manifest", "args", "cwd", "shell_command"}``
+        (plus ``"cores"`` for ``engine="snakemake"``) — ready to pass
+        directly to :meth:`OCDocker.Workbench.Jobs.JobManager.launch` (or
+        the ``run_job``/``plan_job`` API and MCP tools).
 
     Raises
     ------
     ValueError
-        If the draft is not valid (call :func:`preview_vs_campaign` first).
+        If the draft is not valid (call :func:`preview_vs_campaign` first)
+        or ``engine`` is unrecognized.
     '''
 
     preview = preview_vs_campaign(root, body)
     if not preview["valid"]:
         raise ValueError("Cannot plan an invalid VS campaign: " + "; ".join(preview["errors"]))
 
+    engine = str(body.get("engine") or DEFAULT_CAMPAIGN_ENGINE)
+    if engine not in CAMPAIGN_ENGINES:
+        raise ValueError(f"Unknown VS campaign engine {engine!r}. Expected one of: {CAMPAIGN_ENGINES}.")
+
     rows = preview["resolved"]["rows"]
     args: list[str] = []
-    if body.get("outdir"):
-        args.extend(["--outdir", str(body["outdir"])])
     if body.get("timeout") is not None:
         args.extend(["--timeout", str(body["timeout"])])
     if body.get("store_db"):
         args.append("--store-db")
 
+    results_dir = str(body["outdir"]) if body.get("outdir") else None
     cwd = str(body.get("cwd")) if body.get("cwd") else None
-    shell_command = build_campaign_script(rows, args)
-    return {"kind": "vs_campaign", "manifest": rows, "args": args, "cwd": cwd, "shell_command": shell_command}
+
+    if engine == "snakemake":
+        cores = int(body.get("cores") or DEFAULT_CAMPAIGN_CORES)
+        command = build_campaign_snakemake_command(rows, args, cores=cores, results_dir=results_dir)
+        shell_command = " ".join(shlex.quote(part) for part in command)
+        return {
+            "kind": "vs_campaign", "engine": engine, "manifest": rows, "args": args,
+            "cores": cores, "results_dir": results_dir, "cwd": cwd, "shell_command": shell_command,
+        }
+
+    shell_command = build_campaign_script(rows, args, results_dir=results_dir)
+    return {
+        "kind": "vs_campaign", "engine": engine, "manifest": rows, "args": args,
+        "results_dir": results_dir, "cwd": cwd, "shell_command": shell_command,
+    }
 
 
 __all__ = [

@@ -74,6 +74,7 @@ const state = {
   jobToken: "",
   selectedJobId: null,
   jobLogs: null,
+  jobCampaignProgress: null,
   _persistedSelectedStudyName: null,
 };
 let ablationDesignPreviewTimer = null;
@@ -464,6 +465,11 @@ async function launchJob() {
       toast("Campaign manifest must contain at least one row.");
       return;
     }
+    body.engine = $("jobs-launch-engine").value;
+    const cores = $("jobs-launch-cores").value.trim();
+    if (cores) body.cores = Number(cores);
+    const resultsDir = $("jobs-launch-results-dir").value.trim();
+    if (resultsDir) body.results_dir = resultsDir;
   }
   button.disabled = true;
   try {
@@ -499,7 +505,38 @@ async function loadJobLogs(jobId) {
     toast(error.message || String(error));
     state.jobLogs = null;
   }
+  const job = (state.jobs || []).find((item) => item.job_id === jobId);
+  if (job && job.kind === "vs_campaign") {
+    try {
+      state.jobCampaignProgress = await api(`/api/jobs/${encodeURIComponent(jobId)}/campaign-progress`);
+    } catch (_error) {
+      state.jobCampaignProgress = null;
+    }
+  } else {
+    state.jobCampaignProgress = null;
+  }
   renderJobLogs();
+}
+
+function renderJobCampaignProgress() {
+  const container = $("jobs-campaign-progress");
+  const progress = state.jobCampaignProgress;
+  if (!progress || progress.engine === "unknown") {
+    container.hidden = true;
+    return;
+  }
+  container.hidden = false;
+  const overall = progress.overall;
+  const outcomeNote = overall && overall.succeeded !== undefined
+    ? ` (${overall.succeeded} succeeded, ${overall.failed} failed)`
+    : "";
+  $("jobs-campaign-progress-summary").textContent = overall
+    ? `${progress.engine} engine · ${overall.completed_steps}/${overall.total_steps} steps (${overall.percent}%)${outcomeNote}`
+    : `${progress.engine} engine · starting…`;
+  const entries = Object.entries(progress.samples || {});
+  $("jobs-campaign-progress-samples").innerHTML = entries.map(([name, info]) => (
+    `<span class="jobs-campaign-sample ${escapeHtml(info.status)}">${escapeHtml(name)}: ${escapeHtml(info.status)}</span>`
+  )).join("");
 }
 
 function renderJobLogs() {
@@ -512,6 +549,7 @@ function renderJobLogs() {
   $("jobs-logs-title").textContent = `Logs · ${state.selectedJobId}`;
   $("jobs-logs-stdout").textContent = state.jobLogs.stdout?.text || "(empty)";
   $("jobs-logs-stderr").textContent = state.jobLogs.stderr?.text || "(empty)";
+  renderJobCampaignProgress();
 }
 
 function renderJobTokenStatus() {
@@ -542,6 +580,7 @@ function bindJobsPanel() {
   $("jobs-logs-close").addEventListener("click", () => {
     state.selectedJobId = null;
     state.jobLogs = null;
+    state.jobCampaignProgress = null;
     renderJobLogs();
   });
 }
@@ -4470,8 +4509,19 @@ function readVsCampaignManifest() {
   return JSON.parse(raw);
 }
 
+function toggleVsCampaignEngineFields() {
+  const engine = $("vs-campaign-engine").value;
+  document.querySelectorAll("[data-vs-campaign-engine-fields]").forEach((node) => {
+    node.hidden = node.dataset.vsCampaignEngineFields !== engine;
+  });
+}
+
 function readVsCampaignCommonSettings() {
-  const settings = {};
+  const settings = { engine: $("vs-campaign-engine").value };
+  if (settings.engine === "snakemake") {
+    const cores = $("vs-campaign-cores").value.trim();
+    if (cores) settings.cores = Number(cores);
+  }
   const outdir = $("vs-campaign-outdir").value.trim();
   if (outdir) settings.outdir = outdir;
   const cwd = $("vs-campaign-cwd").value.trim();
@@ -4575,6 +4625,9 @@ function sendVsCampaignPlanToJobs() {
   $("jobs-launch-args").value = (plan.args || []).join("\n");
   $("jobs-launch-cwd").value = plan.cwd || "";
   $("jobs-launch-manifest").value = JSON.stringify(plan.manifest, null, 2);
+  $("jobs-launch-engine").value = plan.engine || "shell";
+  $("jobs-launch-cores").value = plan.cores || "";
+  $("jobs-launch-results-dir").value = plan.results_dir || "";
   setActiveTab("jobs");
   toast(`Campaign plan (${plan.manifest.length} row(s)) loaded into the Jobs tab — review and click Launch job.`);
 }
@@ -4596,11 +4649,13 @@ function bindVsDesignPanel() {
   $("vs-design-plan")?.addEventListener("click", () => void planVsDesign());
   $("vs-design-send-to-jobs")?.addEventListener("click", sendVsDesignPlanToJobs);
   $("vs-campaign-discover")?.addEventListener("click", () => void discoverVsCampaignCandidates());
+  $("vs-campaign-engine")?.addEventListener("change", toggleVsCampaignEngineFields);
   $("vs-campaign-preview")?.addEventListener("click", () => void previewVsCampaign());
   $("vs-campaign-plan")?.addEventListener("click", () => void planVsCampaign());
   $("vs-campaign-send-to-jobs")?.addEventListener("click", sendVsCampaignPlanToJobs);
   toggleVsDesignKindFields();
   toggleVsDesignMode();
+  toggleVsCampaignEngineFields();
 }
 
 function pathBasename(path) {

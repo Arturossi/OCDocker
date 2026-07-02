@@ -94,6 +94,7 @@ def test_build_ocdocker_mcp_server_registers_curated_tools() -> None:
         "list_jobs",
         "get_job",
         "get_job_logs",
+        "get_campaign_progress",
         "plan_job",
         "run_job",
         "cancel_job",
@@ -355,3 +356,101 @@ def test_run_job_vs_campaign_without_confirm_does_not_resolve_token(live_workben
         server.call_tool("run_job", {"kind": "vs_campaign", "manifest": manifest, "confirm": False}),
     )
     assert payload["launched"] is False
+
+
+def test_plan_job_threads_engine_and_cores_for_snakemake_campaign(live_workbench_api, tmp_path) -> None:
+    '''plan_job(kind="vs_campaign", engine="snakemake", cores=N) builds a real snakemake command.
+
+    Parameters
+    ----------
+    live_workbench_api : str
+        Base URL of a running Workbench API (fixture).
+    tmp_path : pathlib.Path
+        Temporary served root (same one the fixture served).
+    '''
+
+    pytest.importorskip("snakemake")
+
+    sample_dir = tmp_path / "input" / "sample_001"
+    sample_dir.mkdir(parents=True)
+    (sample_dir / "receptor.pdbqt").write_text("ATOM", encoding="utf-8")
+    (sample_dir / "ligand.pdbqt").write_text("MOL", encoding="utf-8")
+    (sample_dir / "box.txt").write_text("REMARK", encoding="utf-8")
+    manifest = [{
+        "sample": "sample_001", "row_kind": "vs",
+        "receptor": str(sample_dir / "receptor.pdbqt"),
+        "ligand": str(sample_dir / "ligand.pdbqt"),
+        "box": str(sample_dir / "box.txt"),
+        "engines": ["vina"],
+    }]
+
+    server = build_ocdocker_mcp_server(base_url=live_workbench_api)
+    _content, payload = asyncio.run(
+        server.call_tool("plan_job", {"kind": "vs_campaign", "manifest": manifest, "engine": "snakemake", "cores": 5}),
+    )
+
+    assert "snakemake" in payload["command"]
+    assert "--cores" in payload["command"]
+    assert payload["command"][payload["command"].index("--cores") + 1] == "5"
+
+
+def test_get_campaign_progress_reports_structured_status(live_workbench_api, tmp_path, monkeypatch) -> None:
+    '''get_campaign_progress reports structured per-sample status for a launched campaign.
+
+    Parameters
+    ----------
+    live_workbench_api : str
+        Base URL of a running Workbench API (fixture).
+    tmp_path : pathlib.Path
+        Temporary served root (same one the fixture served).
+    monkeypatch : pytest.MonkeyPatch
+        Used to pin the job bearer token for this test.
+    '''
+
+    pytest.importorskip("snakemake")
+
+    monkeypatch.setenv("OCDOCKER_WORKBENCH_TOKEN", "mcp-test-token")
+    sample_dir = tmp_path / "input" / "sample_001"
+    sample_dir.mkdir(parents=True)
+    (sample_dir / "receptor.pdbqt").write_text("ATOM", encoding="utf-8")
+    (sample_dir / "ligand.pdbqt").write_text("MOL", encoding="utf-8")
+    (sample_dir / "box.txt").write_text("REMARK", encoding="utf-8")
+    manifest = [{
+        "sample": "sample_001", "row_kind": "vs",
+        "receptor": str(sample_dir / "receptor.pdbqt"),
+        "ligand": str(sample_dir / "ligand.pdbqt"),
+        "box": str(sample_dir / "box.txt"),
+        "engines": ["vina"],
+    }]
+
+    async def _run():
+        server = build_ocdocker_mcp_server(base_url=live_workbench_api)
+        _content, launched = await server.call_tool(
+            "run_job", {"kind": "vs_campaign", "manifest": manifest, "engine": "snakemake", "confirm": True},
+        )
+        job_id = launched["job"]["job_id"]
+        for _ in range(100):
+            _content, record = await server.call_tool("get_job", {"job_id": job_id})
+            if record["status"] != "running":
+                break
+            await asyncio.sleep(0.1)
+        _content, progress = await server.call_tool("get_campaign_progress", {"job_id": job_id})
+        return progress
+
+    progress = asyncio.run(_run())
+    assert progress["engine"] == "snakemake"
+    assert "sample_001" in progress["samples"]
+
+
+def test_get_campaign_progress_unknown_job_raises(live_workbench_api) -> None:
+    '''get_campaign_progress surfaces an unknown job id as a structured tool error.
+
+    Parameters
+    ----------
+    live_workbench_api : str
+        Base URL of a running Workbench API (fixture).
+    '''
+
+    server = build_ocdocker_mcp_server(base_url=live_workbench_api)
+    with pytest.raises(ToolError, match="Unknown job id"):
+        asyncio.run(server.call_tool("get_campaign_progress", {"job_id": "does-not-exist"}))

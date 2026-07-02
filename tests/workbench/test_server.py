@@ -10,6 +10,8 @@ Tests for the strict OCScore Workbench HTTP API payload layer.
 ###############################################################################
 from __future__ import annotations
 
+import time
+
 from pathlib import Path
 
 import pytest
@@ -412,3 +414,149 @@ def test_post_jobs_launches_vs_campaign_with_manifest(tmp_path, monkeypatch) -> 
     assert response.status_code == 201
     assert response.json()["kind"] == "vs_campaign"
     assert response.json()["command"][:2] == ["/bin/sh", "-c"]
+
+
+def test_vs_campaign_plan_snakemake_engine_returns_real_argv(tmp_path) -> None:
+    '''POST /api/vs-campaign/plan with engine="snakemake" returns a real snakemake command.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    pytest.importorskip("snakemake")
+
+    input_dir = _write_vs_campaign_samples(tmp_path)
+    app = build_workbench_api_app(tmp_path, max_depth=6)
+    client = TestClient(app)
+    manifest = client.get("/api/vs-campaign", params={"input_dir": str(input_dir)}).json()["manifest"]
+
+    response = client.post(
+        "/api/vs-campaign/plan",
+        json={"manifest": manifest, "engine": "snakemake", "cores": 5, "outdir": "runs"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["engine"] == "snakemake"
+    assert payload["cores"] == 5
+    assert payload["results_dir"] == "runs"
+    assert "snakemake" in payload["shell_command"]
+
+
+def test_post_jobs_launches_vs_campaign_with_snakemake_engine(tmp_path, monkeypatch) -> None:
+    '''POST /api/jobs threads engine/cores/results_dir through to the launched job.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    monkeypatch : pytest.MonkeyPatch
+        Used to pin the job bearer token for this test.
+    '''
+
+    pytest.importorskip("snakemake")
+
+    monkeypatch.setenv("OCDOCKER_WORKBENCH_TOKEN", "test-token")
+    input_dir = _write_vs_campaign_samples(tmp_path)
+    app = build_workbench_api_app(tmp_path, max_depth=6)
+    client = TestClient(app)
+    manifest = client.get("/api/vs-campaign", params={"input_dir": str(input_dir)}).json()["manifest"]
+
+    response = client.post(
+        "/api/jobs",
+        json={"kind": "vs_campaign", "args": [], "manifest": manifest, "engine": "snakemake", "cores": 2, "results_dir": "runs"},
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 201
+    command = response.json()["command"]
+    assert "snakemake" in command
+    assert "results_dir=runs" in command
+
+
+def test_campaign_progress_endpoint_reports_structured_status(tmp_path, monkeypatch) -> None:
+    '''GET /api/jobs/{job_id}/campaign-progress returns structured per-sample status.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    monkeypatch : pytest.MonkeyPatch
+        Used to pin the job bearer token for this test.
+    '''
+
+    pytest.importorskip("snakemake")
+
+    monkeypatch.setenv("OCDOCKER_WORKBENCH_TOKEN", "test-token")
+    input_dir = _write_vs_campaign_samples(tmp_path)
+    app = build_workbench_api_app(tmp_path, max_depth=6)
+    client = TestClient(app)
+    manifest = client.get("/api/vs-campaign", params={"input_dir": str(input_dir)}).json()["manifest"]
+
+    launch = client.post(
+        "/api/jobs",
+        json={"kind": "vs_campaign", "args": [], "manifest": manifest, "engine": "snakemake", "cores": 2},
+        headers={"Authorization": "Bearer test-token"},
+    )
+    job_id = launch.json()["job_id"]
+
+    for _ in range(100):
+        record = client.get(f"/api/jobs/{job_id}").json()
+        if record["status"] != "running":
+            break
+        time.sleep(0.1)
+
+    response = client.get(f"/api/jobs/{job_id}/campaign-progress")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["engine"] == "snakemake"
+    assert set(payload["samples"]) == {"sample_001", "sample_002"}
+
+
+def test_campaign_progress_endpoint_degrades_gracefully_for_non_campaign_jobs(tmp_path, monkeypatch) -> None:
+    '''The endpoint returns engine "unknown" for a non-vs_campaign job, not an error.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    monkeypatch : pytest.MonkeyPatch
+        Used to pin the job bearer token for this test.
+    '''
+
+    monkeypatch.setenv("OCDOCKER_WORKBENCH_TOKEN", "test-token")
+    app = build_workbench_api_app(tmp_path, max_depth=6)
+    client = TestClient(app)
+
+    launch = client.post("/api/jobs", json={"kind": "vs", "args": ["--help"]}, headers={"Authorization": "Bearer test-token"})
+    job_id = launch.json()["job_id"]
+    for _ in range(50):
+        record = client.get(f"/api/jobs/{job_id}").json()
+        if record["status"] != "running":
+            break
+        time.sleep(0.05)
+
+    response = client.get(f"/api/jobs/{job_id}/campaign-progress")
+
+    assert response.status_code == 200
+    assert response.json()["engine"] == "unknown"
+
+
+def test_campaign_progress_endpoint_unknown_job_returns_404(tmp_path) -> None:
+    '''The endpoint returns 404 for an unknown job id, matching /api/jobs/{job_id}.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    app = build_workbench_api_app(tmp_path, max_depth=6)
+    client = TestClient(app)
+
+    response = client.get("/api/jobs/does-not-exist/campaign-progress")
+
+    assert response.status_code == 404

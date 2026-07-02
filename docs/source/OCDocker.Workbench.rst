@@ -22,11 +22,21 @@ receptor/ligand/box per draft). ``/api/vs-campaign`` does the same for
 multi-sample batches: discover an ``input/{sample}/...`` layout (or a
 hand-authored manifest), validate every row, and preview the generated
 script — one tracked ``vs_campaign`` job that runs every row and continues
-past an individual failure. Job-execute endpoints (``/api/jobs*``) can
-launch, track, and cancel ``vs``, ``pipeline``, ``ocscore train``,
-``ocscore reduce``, and ``vs_campaign`` runs as local subprocesses; these
-endpoints require a bearer token while inspection endpoints remain
-read-only and unauthenticated.
+past an individual failure. Campaigns support two execution engines: a
+zero-dependency sequential shell loop (default), or ``engine="snakemake"``
+for real DAG orchestration (parallel via ``--cores``, resumable via
+``--rerun-incomplete``) using the bundled multi-sample Snakefile
+(:mod:`OCDocker.Workbench.Jobs`,
+``OCDocker/Workbench/Snakefiles/vs_campaign.smk``). While a campaign runs,
+``GET /api/jobs/{job_id}/campaign-progress``
+(:mod:`OCDocker.Workbench.CampaignProgress`) reports structured per-sample
+status parsed from the job's own log — reliable pending/running/done/failed
+per sample for the Snakemake engine, aggregate counts only for the shell
+engine. Job-execute endpoints (``/api/jobs*``) can launch, track, and
+cancel ``vs``, ``pipeline``, ``ocscore train``, ``ocscore reduce``, and
+``vs_campaign`` runs as local subprocesses; these endpoints require a
+bearer token while inspection endpoints remain read-only and
+unauthenticated.
 
 Submodules
 ----------
@@ -41,6 +51,7 @@ Submodules
    OCDocker.Workbench.Artifacts
    OCDocker.Workbench.Auth
    OCDocker.Workbench.Bundle
+   OCDocker.Workbench.CampaignProgress
    OCDocker.Workbench.Comparison
    OCDocker.Workbench.Decision
    OCDocker.Workbench.Evidence

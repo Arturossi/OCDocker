@@ -143,7 +143,12 @@ Runtime extras
    itself lives in ``[docking]``; plots live in ``[analysis]``.
 
 ``workflow``
-   Snakemake integration and logging plugins.
+   Snakemake integration and logging plugins. Also enables the
+   ``vs_campaign`` job kind's ``engine="snakemake"`` option (real DAG
+   orchestration for multi-sample batches, see :doc:`OCDocker.Workbench` and
+   :doc:`OCDocker.MCP`) — invoked as ``python -m snakemake`` against the
+   same interpreter running ``ocdocker workbench serve``, not a bare
+   ``snakemake`` resolved from ``PATH``.
 
    * ``snakemake``, ``snakemake-logger-plugin-snkmt``
 

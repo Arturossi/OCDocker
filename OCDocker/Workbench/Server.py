@@ -11,6 +11,7 @@ FastAPI-backed local HTTP API for the OCDocker Workbench dashboard.
 from __future__ import annotations
 
 import json
+import re
 import secrets
 
 from contextlib import asynccontextmanager
@@ -33,6 +34,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from OCDocker.Workbench.Auth import resolve_workbench_job_token
 from OCDocker.Workbench.Auth import workbench_job_token_path
 from OCDocker.Workbench.IO import model_to_data
+from OCDocker.Workbench.CampaignProgress import CAMPAIGN_PROGRESS_LOG_BYTE_LIMIT
+from OCDocker.Workbench.CampaignProgress import CAMPAIGN_PROGRESS_LOG_LINE_LIMIT
+from OCDocker.Workbench.CampaignProgress import parse_campaign_progress
+from OCDocker.Workbench.Jobs import DEFAULT_CAMPAIGN_CORES
+from OCDocker.Workbench.Jobs import DEFAULT_CAMPAIGN_ENGINE
 from OCDocker.Workbench.Jobs import JOB_KIND_COMMAND_PREFIX
 from OCDocker.Workbench.Jobs import JobError
 from OCDocker.Workbench.Jobs import JobManager
@@ -120,6 +126,13 @@ class JobCreateRequest(BaseModel):
     cwd: str | None = None
     manifest: list[dict[str, Any]] | None = None
     """Required for ``kind="vs_campaign"``; ignored for every other kind."""
+    engine: str = DEFAULT_CAMPAIGN_ENGINE
+    """``"shell"`` or ``"snakemake"``; only meaningful for ``kind="vs_campaign"``."""
+    cores: int = DEFAULT_CAMPAIGN_CORES
+    """``--cores`` passed to Snakemake; only meaningful for ``engine="snakemake"``."""
+    results_dir: str | None = None
+    """Shared base output directory (each row still writes to its own
+    ``<results_dir>/<sample>``); only meaningful for ``kind="vs_campaign"``."""
 
 
 # Functions
@@ -171,6 +184,7 @@ def _endpoint_index(root: Path) -> dict[str, Any]:
             "/api/jobs/plan",
             "/api/jobs/{job_id}",
             "/api/jobs/{job_id}/logs",
+            "/api/jobs/{job_id}/campaign-progress",
             "/api/jobs/{job_id}/cancel",
         ],
         "optuna_dashboard": {
@@ -386,6 +400,34 @@ def _figure_asset(root: Path, query: QueryMap) -> tuple[bytes, str]:
     if not any(_is_relative_to(resolved, allowed_root) for allowed_root in _allowed_asset_roots(root)):
         raise WorkbenchAPIError("Figure asset is outside the served OCScore root.", status_code=403)
     return resolved.read_bytes(), content_type
+
+
+def _campaign_expected_samples(record: Any) -> list[str] | None:
+    '''Best-effort recovery of a vs_campaign job's sample names from its stored command.
+
+    Parameters
+    ----------
+    record : Any
+        Tracked ``WorkbenchJobRecord``.
+
+    Returns
+    -------
+    list[str] or None
+        Sample names, or None if they could not be recovered (never raises).
+    '''
+
+    if record.kind != "vs_campaign":
+        return None
+    command = record.command
+    for part in command:
+        if part.startswith("samples="):
+            try:
+                return list(json.loads(part[len("samples="):]))
+            except (ValueError, TypeError):
+                return None
+    if command[:2] == ("/bin/sh", "-c") and len(command) >= 3:
+        return re.findall(r"^echo '\[sample \d+/\d+\] (.+?)'$", command[2], re.MULTILINE)
+    return None
 
 
 def _model_payload(model: Any) -> dict[str, Any]:
@@ -860,14 +902,20 @@ def build_workbench_api_app(
     async def post_job(payload: JobCreateRequest) -> dict[str, Any]:
         '''Launch a new tracked Workbench job (requires a bearer token).'''
 
-        record = job_manager.launch(payload.kind, payload.args, cwd=payload.cwd, manifest=payload.manifest)
+        record = job_manager.launch(
+            payload.kind, payload.args, cwd=payload.cwd, manifest=payload.manifest,
+            engine=payload.engine, cores=payload.cores, results_dir=payload.results_dir,
+        )
         return _model_payload(record)
 
     @app.post("/api/jobs/plan")
     async def post_job_plan(payload: JobCreateRequest) -> dict[str, Any]:
         '''Preview the command a job would run, without launching it.'''
 
-        return job_manager.plan(payload.kind, payload.args, cwd=payload.cwd, manifest=payload.manifest)
+        return job_manager.plan(
+            payload.kind, payload.args, cwd=payload.cwd, manifest=payload.manifest,
+            engine=payload.engine, cores=payload.cores, results_dir=payload.results_dir,
+        )
 
     @app.get("/api/jobs")
     async def get_jobs() -> dict[str, Any]:
@@ -891,6 +939,21 @@ def build_workbench_api_app(
 
         stdout_preview, stderr_preview = job_manager.logs(job_id, lines=lines, max_bytes=max_bytes)
         return {"stdout": _model_payload(stdout_preview), "stderr": _model_payload(stderr_preview)}
+
+    @app.get("/api/jobs/{job_id}/campaign-progress")
+    async def get_job_campaign_progress(job_id: str) -> dict[str, Any]:
+        '''Return structured per-sample progress for one tracked vs_campaign job.
+
+        Works for any job kind, degrading to ``engine: "unknown"`` when the
+        log text does not match either execution engine's format.
+        '''
+
+        record = job_manager.get(job_id)
+        stdout_preview, stderr_preview = job_manager.logs(
+            job_id, lines=CAMPAIGN_PROGRESS_LOG_LINE_LIMIT, max_bytes=CAMPAIGN_PROGRESS_LOG_BYTE_LIMIT,
+        )
+        log_text = f"{stdout_preview.text}\n{stderr_preview.text}"
+        return parse_campaign_progress(log_text, expected_samples=_campaign_expected_samples(record))
 
     @app.post("/api/jobs/{job_id}/cancel", dependencies=[Depends(_require_job_token)])
     async def post_job_cancel(job_id: str) -> dict[str, Any]:

@@ -4,6 +4,27 @@ Changelog
 Unreleased
 ----------
 
+Snakemake execution engine and structured progress for VS campaigns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``vs_campaign`` jobs gained a second execution engine, chosen via
+``engine="shell"`` (default, unchanged) or ``engine="snakemake"`` on
+``plan_vs_campaign``/``run_job``/``plan_job`` and the Workbench VS tab's
+Batch mode: real Snakemake DAG orchestration (parallel via ``cores``,
+resumable via ``--rerun-incomplete``) using a bundled config-driven
+multi-sample Snakefile
+(:func:`OCDocker.Workbench.Jobs.build_campaign_snakemake_command`,
+``OCDocker/Workbench/Snakefiles/vs_campaign.smk`` — reads a ``samples``
+dict, so discovered receptor/ligand/box files never need to be relocated
+into a fixed directory layout). Both engines also gained structured
+per-sample progress, parsed from the job's own log text: new
+``GET /api/jobs/{job_id}/campaign-progress`` endpoint
+(:mod:`OCDocker.Workbench.CampaignProgress`), MCP tool
+``get_campaign_progress``, and a live progress view in the Workbench Jobs
+tab's log panel. Also fixed: a shared ``outdir`` across every campaign row
+now correctly nests per sample (``<outdir>/<sample>``) instead of every row
+writing to the same directory.
+
 VS campaign batches (multi-sample)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -13,10 +34,12 @@ New ``vs_campaign`` job kind (:func:`OCDocker.Workbench.Jobs.build_campaign_scri
 run many receptor/ligand/box samples as **one** tracked job: discover an
 ``input/{sample}/...`` layout (or hand-author a manifest), validate every
 row, and launch the whole batch with a single ``run_job(confirm=True)`` — no
-per-row confirmations, no Snakemake dependency. The generated shell script
-continues past a failing row and reports an aggregate pass/fail count, so one
-bad sample doesn't abort the rest. The Workbench VS tab gained a
-"Single target" / "Batch" mode toggle exposing the same flow in the browser.
+per-row confirmations, no dependency beyond OCDocker itself with the default
+shell engine (see above for the optional Snakemake engine). The generated
+shell script continues past a failing row and reports an aggregate pass/fail
+count, so one bad sample doesn't abort the rest. The Workbench VS tab gained
+a "Single target" / "Batch" mode toggle exposing the same flow in the
+browser.
 
 VS/pipeline design assistant
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

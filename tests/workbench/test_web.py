@@ -70,6 +70,11 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b"sendVsCampaignPlanToJobs" in script
     assert b"toggleJobsKindFields" in script
     assert b"jobs-launch-manifest" in body
+    assert b"vs-campaign-engine" in body
+    assert b"jobs-launch-engine" in body
+    assert b"jobs-campaign-progress" in body
+    assert b"renderJobCampaignProgress" in script
+    assert b"campaign-progress" in script
     assert b"setActiveTab" in script
     assert b"bindAppTabs" in script
     assert b"bindCollapsibleZones" in script

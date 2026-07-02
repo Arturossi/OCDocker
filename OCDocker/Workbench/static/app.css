@@ -1200,12 +1200,21 @@ body.figure-lightbox-open { overflow: hidden; }
 .jobs-launch-actions { margin-top: 14px; }
 .jobs-log { margin: 8px 0 16px; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; overflow: auto; max-height: 280px; }
 .badge.cancelled { background: var(--badge-missing-bg); color: var(--warn); }
+.jobs-campaign-progress { margin: 0 0 16px; }
+.jobs-campaign-progress[hidden] { display: none; }
+.jobs-campaign-progress-summary { margin: 4px 0 8px; }
+.jobs-campaign-progress-samples { display: flex; flex-wrap: wrap; gap: 6px; }
+.jobs-campaign-sample { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-size: 12px; font-weight: 600; }
+.jobs-campaign-sample.pending { color: var(--muted); }
+.jobs-campaign-sample.running { color: var(--accent); border-color: var(--accent); }
+.jobs-campaign-sample.done { color: #5cb85c; border-color: #5cb85c; }
+.jobs-campaign-sample.failed { color: #d9534f; border-color: #d9534f; }
 .vs-design-scope { margin-top: 12px; }
 .vs-design-mode-panel { margin-top: 0; }
 .vs-design-mode-select { min-width: 220px; }
 .vs-design-note { margin: 6px 0 12px; max-width: 72ch; }
 .vs-design-fields { display: grid; gap: 14px; margin-top: 10px; }
-.vs-design-fields[hidden] { display: none; }
+.vs-design-fields[hidden] { display: none !important; }
 .vs-design-fields-discover, .vs-design-fields-candidates { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .vs-design-fields-run, .vs-design-fields-vs, .vs-design-fields-pipeline, .vs-design-fields-common { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .vs-design-field-wide { grid-column: 1 / -1; }
@@ -1243,8 +1252,9 @@ body.figure-lightbox-open { overflow: hidden; }
 .vs-design-preview-details div.error { border-color: #d9534f; }
 .vs-design-preview-details div.warning { border-color: #d4a017; }
 .vs-design-code { margin: 14px 0 0; padding: 14px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; overflow: auto; max-height: 320px; }
-[data-vs-design-mode-panel][hidden] { display: none; }
-[data-jobs-kind-fields][hidden] { display: none; }
+[data-vs-design-mode-panel][hidden] { display: none !important; }
+[data-jobs-kind-fields][hidden] { display: none !important; }
+[data-vs-campaign-engine-fields][hidden] { display: none !important; }
 @media (max-width: 880px) {
   .vs-design-fields-discover, .vs-design-fields-candidates, .vs-design-fields-run, .vs-design-fields-vs, .vs-design-fields-pipeline, .vs-design-fields-common { grid-template-columns: 1fr; }
 }

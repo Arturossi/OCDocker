@@ -509,3 +509,77 @@ def test_plan_vs_campaign_raises_on_invalid_manifest(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="Cannot plan an invalid VS campaign"):
         plan_vs_campaign(tmp_path, {"manifest": []})
+
+
+def test_plan_vs_campaign_defaults_to_shell_engine(tmp_path) -> None:
+    '''plan_vs_campaign defaults to the shell engine when engine is omitted.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    input_dir = _write_campaign_samples(tmp_path, ["sample_001"])
+    context = discover_vs_campaign_candidates(tmp_path, input_dir=input_dir)
+
+    plan = plan_vs_campaign(tmp_path, {"manifest": context["manifest"]})
+
+    assert plan["engine"] == "shell"
+    assert plan["kind"] == "vs_campaign"
+
+
+def test_plan_vs_campaign_snakemake_engine(tmp_path) -> None:
+    '''plan_vs_campaign with engine="snakemake" builds a real snakemake command.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    pytest.importorskip("snakemake")
+
+    input_dir = _write_campaign_samples(tmp_path, ["sample_001", "sample_002"])
+    context = discover_vs_campaign_candidates(tmp_path, input_dir=input_dir)
+
+    plan = plan_vs_campaign(tmp_path, {"manifest": context["manifest"], "engine": "snakemake", "cores": 6})
+
+    assert plan["engine"] == "snakemake"
+    assert plan["cores"] == 6
+    assert "snakemake" in plan["shell_command"]
+    assert "--cores 6" in plan["shell_command"]
+
+
+def test_plan_vs_campaign_rejects_unknown_engine(tmp_path) -> None:
+    '''plan_vs_campaign rejects an unrecognized engine name.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    input_dir = _write_campaign_samples(tmp_path, ["sample_001"])
+    context = discover_vs_campaign_candidates(tmp_path, input_dir=input_dir)
+
+    with pytest.raises(ValueError, match="Unknown VS campaign engine"):
+        plan_vs_campaign(tmp_path, {"manifest": context["manifest"], "engine": "bogus"})
+
+
+def test_plan_vs_campaign_outdir_nests_per_sample(tmp_path) -> None:
+    '''outdir becomes a shared base directory, not one literal --outdir for every row.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    input_dir = _write_campaign_samples(tmp_path, ["sample_001", "sample_002"])
+    context = discover_vs_campaign_candidates(tmp_path, input_dir=input_dir)
+
+    plan = plan_vs_campaign(tmp_path, {"manifest": context["manifest"], "outdir": "runs"})
+
+    assert "--outdir runs/sample_001" in plan["shell_command"]
+    assert "--outdir runs/sample_002" in plan["shell_command"]

@@ -640,8 +640,19 @@
           <textarea id="vs-campaign-manifest" rows="10" spellcheck="false" placeholder="[]"></textarea>
         </label>
         <div class="vs-design-fields vs-design-fields-common">
+          <label class="field vs-design-field" for="vs-campaign-engine">
+            <span>Execution engine</span>
+            <select id="vs-campaign-engine">
+              <option value="shell">shell (sequential, no dependencies)</option>
+              <option value="snakemake">snakemake (parallel DAG, resumable)</option>
+            </select>
+          </label>
+          <label class="field vs-design-field" for="vs-campaign-cores" data-vs-campaign-engine-fields="snakemake" hidden>
+            <span>Cores (--cores)</span>
+            <input id="vs-campaign-cores" type="number" step="1" min="1" placeholder="4">
+          </label>
           <label class="field vs-design-field vs-design-field-wide" for="vs-campaign-outdir">
-            <span>Output directory (optional, shared by every row)</span>
+            <span>Output directory (optional, shared base — each row still writes to its own &lt;dir&gt;/&lt;sample&gt;)</span>
             <input id="vs-campaign-outdir" type="text" spellcheck="false" placeholder="defaults to ./ocdocker_out">
           </label>
           <label class="field vs-design-field vs-design-field-wide" for="vs-campaign-cwd">
@@ -727,6 +738,21 @@
             <span>Campaign manifest (JSON array, vs_campaign only)</span>
             <textarea id="jobs-launch-manifest" rows="6" spellcheck="false" placeholder="[]"></textarea>
           </label>
+          <label class="field" for="jobs-launch-engine" data-jobs-kind-fields="vs_campaign" hidden>
+            <span>Campaign engine</span>
+            <select id="jobs-launch-engine">
+              <option value="shell">shell</option>
+              <option value="snakemake">snakemake</option>
+            </select>
+          </label>
+          <label class="field" for="jobs-launch-cores" data-jobs-kind-fields="vs_campaign" hidden>
+            <span>Cores (snakemake only)</span>
+            <input id="jobs-launch-cores" type="number" step="1" min="1" placeholder="4">
+          </label>
+          <label class="field jobs-field-wide" for="jobs-launch-results-dir" data-jobs-kind-fields="vs_campaign" hidden>
+            <span>Shared base output directory (optional, vs_campaign only)</span>
+            <input id="jobs-launch-results-dir" type="text" spellcheck="false" placeholder="each row still writes to its own &lt;dir&gt;/&lt;sample&gt;">
+          </label>
         </div>
         <div class="jobs-launch-actions">
           <button id="jobs-launch" type="button">Launch job</button>
@@ -758,6 +784,11 @@
             <button id="jobs-logs-close" type="button" class="button-secondary">Close</button>
           </div>
           <div id="jobs-logs-zone" class="zone-body">
+            <div id="jobs-campaign-progress" class="jobs-campaign-progress" hidden>
+              <h4>Campaign progress</h4>
+              <div id="jobs-campaign-progress-summary" class="muted"></div>
+              <div id="jobs-campaign-progress-samples" class="jobs-campaign-progress-samples"></div>
+            </div>
             <h4>stdout</h4>
             <pre id="jobs-logs-stdout" class="jobs-log"></pre>
             <h4>stderr</h4>

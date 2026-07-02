@@ -88,7 +88,7 @@ understands the confirmation-gating contract before it calls anything:
 Tool reference
 ---------------
 
-Eighteen tools are registered, in two groups. All tools return the parsed JSON
+Nineteen tools are registered, in two groups. All tools return the parsed JSON
 body of the underlying Workbench API response (a plain ``dict``); tool
 functions never raise a raw ``httpx`` exception — every failure surfaces as
 :class:`OCDocker.MCP.Server.OCDockerMCPError` (see `Error handling`_ below).
@@ -145,8 +145,11 @@ functions never raise a raw ``httpx`` exception — every failure surfaces as
    * - ``get_job_logs``
      - ``job_id: str``, ``lines: int = 80``
      - ``GET /api/jobs/{job_id}/logs``
+   * - ``get_campaign_progress``
+     - ``job_id: str``
+     - ``GET /api/jobs/{job_id}/campaign-progress``
    * - ``plan_job``
-     - ``kind: WorkbenchJobKind``, ``args: list[str] | None``, ``cwd: str | None``, ``manifest: list[dict] | None``
+     - ``kind: WorkbenchJobKind``, ``args: list[str] | None``, ``cwd: str | None``, ``manifest: list[dict] | None``, ``engine: str = "shell"``, ``cores: int = 4``, ``results_dir: str | None``
      - ``POST /api/jobs/plan``
 
 .. list-table:: Execute tools (confirmation-gated, bearer-token-authenticated)
@@ -157,7 +160,7 @@ functions never raise a raw ``httpx`` exception — every failure surfaces as
      - Parameters
      - Workbench API endpoint
    * - ``run_job``
-     - ``kind: WorkbenchJobKind``, ``args: list[str] | None``, ``cwd: str | None``, ``manifest: list[dict] | None``, ``confirm: bool = False``
+     - ``kind: WorkbenchJobKind``, ``args: list[str] | None``, ``cwd: str | None``, ``manifest: list[dict] | None``, ``engine: str = "shell"``, ``cores: int = 4``, ``results_dir: str | None``, ``confirm: bool = False``
      - ``POST /api/jobs/plan`` (confirm=False) or ``POST /api/jobs`` (confirm=True)
    * - ``cancel_job``
      - ``job_id: str``, ``confirm: bool = False``
@@ -252,18 +255,33 @@ Batch campaigns
 ~~~~~~~~~~~~~~~~
 
 A campaign runs many receptor/ligand/box samples as **one** tracked job — no
-per-row confirmations, no Snakemake dependency. Its manifest reuses the same
-row shape :func:`discover_vs_campaign_candidates` produces: ``sample``,
-``row_kind`` (``"vs"`` or ``"pipeline"`` — rows may mix both), ``receptor``,
-``ligand``, ``box``, ``engines`` (list), optional ``rescoring_engines``
-(list). Under the hood, ``kind="vs_campaign"`` resolves to a generated POSIX
-shell script (:func:`OCDocker.Workbench.Jobs.build_campaign_script`) that
-runs one ``ocdocker vs``/``pipeline`` invocation per row, logging
-``[sample i/N] <name>`` markers before each, **continuing past a failing
-row** rather than aborting the batch, and exiting non-zero only if any row
-failed — so the job's own ``completed``/``failed`` status reflects the whole
-campaign while per-row detail lives in the log text
-(``get_job_logs``/``GET /api/jobs/{job_id}/logs``, unchanged).
+per-row confirmations. Its manifest reuses the same row shape
+:func:`discover_vs_campaign_candidates` produces: ``sample``, ``row_kind``
+(``"vs"`` or ``"pipeline"`` — rows may mix both), ``receptor``, ``ligand``,
+``box``, ``engines`` (list), optional ``rescoring_engines`` (list).
+
+Two execution engines, chosen via ``engine`` on ``plan_vs_campaign``/
+``run_job``/``plan_job``:
+
+- ``engine="shell"`` (default, no extra dependency): a generated POSIX shell
+  script (:func:`OCDocker.Workbench.Jobs.build_campaign_script`) runs one
+  ``ocdocker vs``/``pipeline`` invocation per row sequentially, logging
+  ``[sample i/N] <name>`` markers before each, **continuing past a failing
+  row**, and exiting non-zero only if any row failed.
+- ``engine="snakemake"`` (requires the ``mcp``/``workflow`` extra's
+  Snakemake dependency): a bundled multi-sample Snakefile
+  (:func:`OCDocker.Workbench.Jobs.build_campaign_snakemake_command`,
+  ``OCDocker/Workbench/Snakefiles/vs_campaign.smk``) runs every row through
+  real Snakemake DAG orchestration — parallel via ``cores``, resumable via
+  ``--rerun-incomplete``, also continuing past a failing row
+  (``--keep-going``).
+
+Either way the job's own ``completed``/``failed`` status reflects the whole
+campaign. ``results_dir``, if given, is a shared **base** directory — every
+row still writes to its own ``<results_dir>/<sample>`` (a literal shared
+``--outdir`` across every row would make samples overwrite each other, since
+``ocdocker vs``/``pipeline`` write straight under ``--outdir`` with no
+nesting of their own).
 
 ``get_vs_campaign_context(input_dir=None)``
    Discover a draft multi-sample manifest from an ``input/{sample}/...``
@@ -287,15 +305,32 @@ campaign while per-row detail lives in the log text
 ``plan_vs_campaign(manifest, outdir=None)``
    Build the ``vs_campaign`` job payload for a valid manifest — call
    ``preview_vs_campaign`` first and show the user any errors/warnings,
-   especially for large manifests. On success returns ``{"kind":
-   "vs_campaign", "manifest", "args", "cwd", "shell_command"}``, ready to
-   hand directly to ``run_job`` (as ``kind``/``manifest``/``args``/``cwd``)
-   to launch the whole batch. ``outdir``, if given, is shared by every row
-   (each row still differentiates its own output via ``--name``, which
-   defaults to the ligand filename). Raises
+   especially for large manifests. Accepts the same ``engine``/``cores``
+   settings described above (via the request body's ``engine``/``cores``
+   fields; not yet exposed as direct MCP tool parameters — pass them through
+   ``run_job``/``plan_job`` instead when actually launching). On success
+   returns ``{"kind": "vs_campaign", "engine", "manifest", "args",
+   "results_dir", "cwd", "shell_command"}`` (plus ``"cores"`` for
+   ``engine="snakemake"``), ready to hand directly to ``run_job`` (as
+   ``kind``/``manifest``/``args``/``engine``/``cores``/``results_dir``/``cwd``)
+   to launch the whole batch. Raises
    :class:`~OCDocker.MCP.Server.OCDockerMCPError` if the manifest is
-   invalid. Same payload as ``POST /api/vs-campaign/plan``. See
+   invalid or ``engine`` is unrecognized. Same payload as
+   ``POST /api/vs-campaign/plan``. See
    :func:`OCDocker.Workbench.VSDesign.plan_vs_campaign`.
+
+``get_campaign_progress(job_id)``
+   Return structured per-sample progress for a tracked job, parsed live from
+   its own log text — no Snakemake internals, no extra process. Returns
+   ``{"engine": "snakemake" | "shell" | "unknown", "overall": {...} | None,
+   "samples": {name: {"status": "pending" | "running" | "done" | "failed"}}}``.
+   Degrades to ``engine: "unknown"`` for a non-``vs_campaign`` job or an
+   unrecognized log format — never an error. ``engine="snakemake"`` campaigns
+   get reliable per-sample status; ``engine="shell"`` campaigns only reliable
+   *aggregate* success/failure counts, since the shell loop never echoes an
+   individual row's outcome (see
+   :func:`OCDocker.Workbench.CampaignProgress.parse_campaign_progress`).
+   Same payload as ``GET /api/jobs/{job_id}/campaign-progress``.
 
 ``get_protocol_similarity(metric=None, reference=None)``
    Return pairwise Jaccard feature-similarity across ablation protocols,
@@ -324,21 +359,25 @@ campaign while per-row detail lives in the log text
    :class:`OCDocker.Workbench.Models.RunLogFilePreview`). ``lines`` caps how
    many trailing lines are returned per stream.
 
-``plan_job(kind, args=None, cwd=None, manifest=None)``
+``plan_job(kind, args=None, cwd=None, manifest=None, engine="shell", cores=4, results_dir=None)``
    Preview the exact command a job **would** run — ``{"kind", "command", "cwd"}``
    — without launching it and without any side effects. Always call this (or
    ``run_job`` with ``confirm=False``, which does the same thing) before
    ``run_job(..., confirm=True)`` and show the resulting command to the user.
    ``manifest`` is required for ``kind="vs_campaign"`` (see `Batch
-   campaigns`_) and ignored for every other kind.
+   campaigns`_) and ignored for every other kind. ``engine``, ``cores``, and
+   ``results_dir`` are also only meaningful for ``kind="vs_campaign"``.
 
 Execute tools
 ~~~~~~~~~~~~~
 
-``run_job(kind, args=None, cwd=None, manifest=None, confirm=False)``
+``run_job(kind, args=None, cwd=None, manifest=None, engine="shell", cores=4, results_dir=None, confirm=False)``
    Launch a tracked job as a background subprocess on the machine running the
    Workbench API. ``manifest`` is required for ``kind="vs_campaign"`` (build
-   one with ``plan_vs_campaign`` first) and ignored otherwise.
+   one with ``plan_vs_campaign`` first) and ignored otherwise. ``engine``
+   (``"shell"`` or ``"snakemake"``), ``cores`` (Snakemake ``--cores``), and
+   ``results_dir`` (shared base output directory, per-sample-nested) are
+   also only meaningful for ``kind="vs_campaign"`` — see `Batch campaigns`_.
 
    - ``confirm=False`` (the default): **launches nothing.** Returns
      ``{"launched": false, "message": "...", "plan": {...}}`` — identical to

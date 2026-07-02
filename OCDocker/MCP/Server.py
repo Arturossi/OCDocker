@@ -48,8 +48,11 @@ MCP_SERVER_INSTRUCTIONS = (
     "- then pass its kind/args/cwd to run_job. For a multi-sample batch, use get_vs_campaign_context "
     "to discover an input/{sample}/... layout (or hand-author a manifest), preview_vs_campaign to "
     "validate it, and plan_vs_campaign to get the vs_campaign job payload - then pass its "
-    "kind/manifest/args/cwd to run_job to launch every row as one tracked job (it continues past a "
-    "failing row and reports an aggregate pass/fail count). "
+    "kind/manifest/args/cwd to run_job to launch every row as one tracked job. Pass engine=\"snakemake\" "
+    "to plan_vs_campaign/run_job for real DAG orchestration (parallel via cores, resumable) instead of "
+    "the default sequential shell loop - both continue past a failing row. Use get_campaign_progress(job_id) "
+    "to check structured per-sample status while a campaign runs; engine=\"snakemake\" gives reliable "
+    "per-sample pending/running/done/failed state, engine=\"shell\" only reliable aggregate counts. "
     "Read/plan/preview tools are always safe to call. run_job and cancel_job execute real, "
     "possibly long-running work: call plan_job first, show the plan to the user, and only call "
     "run_job with confirm=True after they agree. Never set confirm=True without an explicit "
@@ -312,6 +315,9 @@ def build_ocdocker_mcp_server(*, base_url: str = DEFAULT_WORKBENCH_API_URL) -> F
         args: list[str] | None = None,
         cwd: str | None = None,
         manifest: list[dict[str, Any]] | None = None,
+        engine: str = "shell",
+        cores: int = 4,
+        results_dir: str | None = None,
     ) -> dict[str, Any]:
         '''Preview the exact command a job would run, without launching it.
 
@@ -322,13 +328,19 @@ def build_ocdocker_mcp_server(*, base_url: str = DEFAULT_WORKBENCH_API_URL) -> F
         "--output-dir", "runs/run-001"] — for "vs_campaign" they are common flags
         applied to every row instead. ``manifest`` is required for "vs_campaign"
         (build one with ``plan_vs_campaign`` first) and ignored otherwise.
+        ``engine`` ("shell" or "snakemake"), ``cores`` (Snakemake ``--cores``),
+        and ``results_dir`` (shared base output directory, per-sample-nested)
+        are only meaningful for "vs_campaign".
         '''
 
         return await _request(
             client,
             "POST",
             "/api/jobs/plan",
-            json={"kind": kind, "args": args or [], "cwd": cwd, "manifest": manifest},
+            json={
+                "kind": kind, "args": args or [], "cwd": cwd, "manifest": manifest,
+                "engine": engine, "cores": cores, "results_dir": results_dir,
+            },
         )
 
     @server.tool()
@@ -337,6 +349,9 @@ def build_ocdocker_mcp_server(*, base_url: str = DEFAULT_WORKBENCH_API_URL) -> F
         args: list[str] | None = None,
         cwd: str | None = None,
         manifest: list[dict[str, Any]] | None = None,
+        engine: str = "shell",
+        cores: int = 4,
+        results_dir: str | None = None,
         confirm: bool = False,
     ) -> dict[str, Any]:
         '''Launch a tracked job as a background subprocess. Requires explicit confirmation.
@@ -345,29 +360,38 @@ def build_ocdocker_mcp_server(*, base_url: str = DEFAULT_WORKBENCH_API_URL) -> F
         ``confirm=True`` after the user has explicitly agreed to run that specific
         job — without it, this returns the plan instead of launching anything.
         ``manifest`` is required for ``kind="vs_campaign"`` (a multi-sample batch
-        run as one tracked job) and ignored for every other kind.
+        run as one tracked job) and ignored for every other kind. ``engine``,
+        ``cores``, and ``results_dir`` are only meaningful for "vs_campaign" —
+        see ``plan_job``.
         '''
 
+        body = {
+            "kind": kind, "args": args or [], "cwd": cwd, "manifest": manifest,
+            "engine": engine, "cores": cores, "results_dir": results_dir,
+        }
         if not confirm:
-            plan = await _request(
-                client,
-                "POST",
-                "/api/jobs/plan",
-                json={"kind": kind, "args": args or [], "cwd": cwd, "manifest": manifest},
-            )
+            plan = await _request(client, "POST", "/api/jobs/plan", json=body)
             return {
                 "launched": False,
                 "message": "Not launched: call run_job again with confirm=True after the user agrees to this command.",
                 "plan": plan,
             }
-        record = await _request(
-            client,
-            "POST",
-            "/api/jobs",
-            json={"kind": kind, "args": args or [], "cwd": cwd, "manifest": manifest},
-            authorized=True,
-        )
+        record = await _request(client, "POST", "/api/jobs", json=body, authorized=True)
         return {"launched": True, "job": record}
+
+    @server.tool()
+    async def get_campaign_progress(job_id: str) -> dict[str, Any]:
+        '''Return structured per-sample progress for one tracked vs_campaign job.
+
+        Works for any job kind, degrading to ``{"engine": "unknown", ...}`` for
+        non-campaign jobs or unrecognized log formats — never an error. For
+        ``engine="snakemake"`` campaigns this reports real per-sample
+        pending/running/done/failed status; for ``engine="shell"`` campaigns
+        only aggregate success/failure counts are reliable (see
+        :func:`OCDocker.Workbench.CampaignProgress.parse_campaign_progress`).
+        '''
+
+        return await _request(client, "GET", f"/api/jobs/{job_id}/campaign-progress")
 
     @server.tool()
     async def cancel_job(job_id: str, confirm: bool = False) -> dict[str, Any]:

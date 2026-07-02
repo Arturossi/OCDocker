@@ -11,6 +11,7 @@ Tests for the Workbench job execution and tracking layer.
 from __future__ import annotations
 
 import stat
+import sys
 import time
 
 import pytest
@@ -375,3 +376,154 @@ def test_vs_campaign_common_args_applied_to_every_row(tmp_path) -> None:
     plan = manager.plan("vs_campaign", ["--store-db"], manifest=manifest)
 
     assert "--store-db" in plan["command"][2]
+
+
+def test_vs_campaign_snakemake_engine_plan_shape(tmp_path) -> None:
+    '''plan() with engine="snakemake" returns a real snakemake argv, not a shell script.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    pytest.importorskip("snakemake")
+
+    manager = JobManager(tmp_path, executable="true")
+    manifest = [{"sample": "s1", "row_kind": "vs", "receptor": "r.pdb", "ligand": "l.smi", "box": "b.pdb", "engines": ["vina"]}]
+
+    plan = manager.plan("vs_campaign", [], manifest=manifest, engine="snakemake", cores=3)
+
+    assert plan["command"][:3] == [sys.executable, "-m", "snakemake"]
+    assert "-s" in plan["command"]
+    assert "--cores" in plan["command"] and plan["command"][plan["command"].index("--cores") + 1] == "3"
+    assert any(part.startswith("samples=") for part in plan["command"])
+
+
+def test_vs_campaign_snakemake_engine_rejects_empty_manifest(tmp_path) -> None:
+    '''engine="snakemake" also refuses to build a command from an empty manifest.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    pytest.importorskip("snakemake")
+
+    manager = JobManager(tmp_path, executable="true")
+    with pytest.raises(JobError, match="non-empty manifest"):
+        manager.plan("vs_campaign", [], manifest=[], engine="snakemake")
+
+
+def test_vs_campaign_rejects_unsupported_engine(tmp_path) -> None:
+    '''An unrecognized engine name raises a structured JobError.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    manager = JobManager(tmp_path, executable="true")
+    manifest = [{"sample": "s1", "row_kind": "vs", "receptor": "r.pdb", "ligand": "l.smi", "box": "b.pdb", "engines": ["vina"]}]
+    with pytest.raises(JobError, match="Unsupported vs_campaign engine"):
+        manager.plan("vs_campaign", [], manifest=manifest, engine="bogus")
+
+
+def test_vs_campaign_snakemake_engine_runs_and_continues_past_failure(tmp_path) -> None:
+    '''engine="snakemake" runs every sample and continues past one failing.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    pytest.importorskip("snakemake")
+
+    fake = tmp_path / "fake_ocdocker.sh"
+    _write_ligand_gated_fake(fake)
+    manager = JobManager(tmp_path, executable=str(fake))
+    for name in ("r.pdb", "l1.smi", "bad_ligand.smi", "b.pdb"):
+        (tmp_path / name).write_text("x", encoding="utf-8")
+    manifest = [
+        {"sample": "s1", "row_kind": "vs", "receptor": str(tmp_path / "r.pdb"), "ligand": str(tmp_path / "l1.smi"), "box": str(tmp_path / "b.pdb"), "engines": ["vina"]},
+        {"sample": "s2", "row_kind": "vs", "receptor": str(tmp_path / "r.pdb"), "ligand": str(tmp_path / "bad_ligand.smi"), "box": str(tmp_path / "b.pdb"), "engines": ["vina"]},
+    ]
+
+    record = manager.launch("vs_campaign", [], manifest=manifest, engine="snakemake", cores=2)
+    _wait_for_status(manager, record.job_id, "failed")
+
+    assert (tmp_path / "results" / "s1" / ".campaign_done").is_file()
+    assert not (tmp_path / "results" / "s2" / ".campaign_done").is_file()
+
+
+def test_vs_campaign_snakemake_engine_all_succeed_reports_completed(tmp_path) -> None:
+    '''engine="snakemake" reports completed when every sample succeeds.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    pytest.importorskip("snakemake")
+
+    for name in ("r.pdb", "l1.smi", "l2.smi", "b.pdb"):
+        (tmp_path / name).write_text("x", encoding="utf-8")
+    manager = JobManager(tmp_path, executable="true")
+    manifest = [
+        {"sample": "s1", "row_kind": "vs", "receptor": str(tmp_path / "r.pdb"), "ligand": str(tmp_path / "l1.smi"), "box": str(tmp_path / "b.pdb"), "engines": ["vina"]},
+        {"sample": "s2", "row_kind": "vs", "receptor": str(tmp_path / "r.pdb"), "ligand": str(tmp_path / "l2.smi"), "box": str(tmp_path / "b.pdb"), "engines": ["vina"]},
+    ]
+
+    record = manager.launch("vs_campaign", [], manifest=manifest, engine="snakemake", cores=2)
+    _wait_for_status(manager, record.job_id, "completed")
+
+    assert (tmp_path / "results" / "s1" / ".campaign_done").is_file()
+    assert (tmp_path / "results" / "s2" / ".campaign_done").is_file()
+
+
+def test_vs_campaign_results_dir_nests_per_sample_shell_engine(tmp_path) -> None:
+    '''results_dir gets a per-sample subdirectory, not one shared --outdir.
+
+    Regression test: ocdocker vs/pipeline write straight under --outdir with
+    no nesting of their own, so a literal shared --outdir across every row
+    would make every sample overwrite the same directory.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    manager = JobManager(tmp_path, executable="true")
+    manifest = [
+        {"sample": "s1", "row_kind": "vs", "receptor": "r.pdb", "ligand": "l1.smi", "box": "b.pdb", "engines": ["vina"]},
+        {"sample": "s2", "row_kind": "vs", "receptor": "r.pdb", "ligand": "l2.smi", "box": "b.pdb", "engines": ["vina"]},
+    ]
+
+    plan = manager.plan("vs_campaign", [], manifest=manifest, results_dir="my_runs")
+
+    assert "--outdir my_runs/s1" in plan["command"][2]
+    assert "--outdir my_runs/s2" in plan["command"][2]
+
+
+def test_vs_campaign_results_dir_passed_to_snakemake_config(tmp_path) -> None:
+    '''results_dir is threaded into the Snakefile's results_dir config value.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    pytest.importorskip("snakemake")
+
+    manager = JobManager(tmp_path, executable="true")
+    manifest = [{"sample": "s1", "row_kind": "vs", "receptor": "r.pdb", "ligand": "l.smi", "box": "b.pdb", "engines": ["vina"]}]
+
+    plan = manager.plan("vs_campaign", [], manifest=manifest, engine="snakemake", results_dir="my_runs")
+
+    assert "results_dir=my_runs" in plan["command"]
