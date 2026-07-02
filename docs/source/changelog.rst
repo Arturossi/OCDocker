@@ -4,6 +4,20 @@ Changelog
 Unreleased
 ----------
 
+VS campaign batches (multi-sample)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+New ``vs_campaign`` job kind (:func:`OCDocker.Workbench.Jobs.build_campaign_script`),
+``/api/vs-campaign*`` endpoints, and matching MCP tools
+(``get_vs_campaign_context``, ``preview_vs_campaign``, ``plan_vs_campaign``)
+run many receptor/ligand/box samples as **one** tracked job: discover an
+``input/{sample}/...`` layout (or hand-author a manifest), validate every
+row, and launch the whole batch with a single ``run_job(confirm=True)`` — no
+per-row confirmations, no Snakemake dependency. The generated shell script
+continues past a failing row and reports an aggregate pass/fail count, so one
+bad sample doesn't abort the rest. The Workbench VS tab gained a
+"Single target" / "Batch" mode toggle exposing the same flow in the browser.
+
 VS/pipeline design assistant
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -14,8 +28,8 @@ for single-target ``vs``/``pipeline`` docking runs: discover receptor/ligand/box
 candidates in a workspace, validate a draft selection (paths, engine names),
 and preview the exact command before launching it through the existing
 ``run_job``/Jobs tab. Read-only and unauthenticated, like ablation design.
-Covers one receptor/one ligand/one box per draft only — OCDocker has no
-multi-compound library/batch screening command to design against yet.
+Covers one receptor/one ligand/one box per draft — for many samples in one
+job, see "VS campaign batches" above.
 
 MCP server for LLM-driven OCDocker orchestration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

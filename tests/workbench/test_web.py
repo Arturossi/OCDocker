@@ -63,7 +63,13 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b"bindVsDesignPanel" in script
     assert b"/api/vs-design" in script
     assert b"sendVsDesignPlanToJobs" in script
-    assert b"vs-design-discover-panel" in style
+    assert b"vs-design-scope" in style
+    assert b"vs-design-mode" in body
+    assert b"vs-campaign-manifest" in body
+    assert b"/api/vs-campaign" in script
+    assert b"sendVsCampaignPlanToJobs" in script
+    assert b"toggleJobsKindFields" in script
+    assert b"jobs-launch-manifest" in body
     assert b"setActiveTab" in script
     assert b"bindAppTabs" in script
     assert b"bindCollapsibleZones" in script

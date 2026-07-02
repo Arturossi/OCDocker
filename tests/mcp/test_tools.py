@@ -87,6 +87,9 @@ def test_build_ocdocker_mcp_server_registers_curated_tools() -> None:
         "get_vs_design_context",
         "preview_vs_design",
         "plan_vs_design",
+        "get_vs_campaign_context",
+        "preview_vs_campaign",
+        "plan_vs_campaign",
         "get_protocol_similarity",
         "list_jobs",
         "get_job",
@@ -261,3 +264,94 @@ def test_plan_vs_design_raises_for_invalid_draft(live_workbench_api) -> None:
     server = build_ocdocker_mcp_server(base_url=live_workbench_api)
     with pytest.raises(ToolError, match="Cannot plan an invalid VS design"):
         asyncio.run(server.call_tool("plan_vs_design", {"draft": {"kind": "vs", "engine": "bogus"}}))
+
+
+def test_vs_campaign_flow_discover_preview_plan_and_run(live_workbench_api, tmp_path) -> None:
+    '''get_vs_campaign_context / preview_vs_campaign / plan_vs_campaign / run_job work end to end.
+
+    Parameters
+    ----------
+    live_workbench_api : str
+        Base URL of a running Workbench API (fixture).
+    tmp_path : pathlib.Path
+        Temporary served root (same one the fixture served).
+    '''
+
+    input_dir = tmp_path / "input"
+    for sample in ("sample_001", "sample_002"):
+        sample_dir = input_dir / sample
+        sample_dir.mkdir(parents=True)
+        (sample_dir / "receptor.pdbqt").write_text("ATOM", encoding="utf-8")
+        (sample_dir / "ligand.pdbqt").write_text("MOL", encoding="utf-8")
+        (sample_dir / "box.txt").write_text("REMARK", encoding="utf-8")
+
+    async def _run():
+        server = build_ocdocker_mcp_server(base_url=live_workbench_api)
+        _content, context = await server.call_tool("get_vs_campaign_context", {"input_dir": str(input_dir)})
+        manifest = context["manifest"]
+        _content, preview = await server.call_tool("preview_vs_campaign", {"manifest": manifest})
+        _content, plan = await server.call_tool("plan_vs_campaign", {"manifest": manifest})
+        _content, launched = await server.call_tool(
+            "run_job", {"kind": "vs_campaign", "manifest": manifest, "confirm": True},
+        )
+        return context, preview, plan, launched
+
+    context, preview, plan, launched = asyncio.run(_run())
+    assert len(context["manifest"]) == 2
+    assert preview["valid"] is True
+    assert plan["kind"] == "vs_campaign"
+    assert len(plan["manifest"]) == 2
+    assert launched["launched"] is True
+    assert launched["job"]["kind"] == "vs_campaign"
+
+
+def test_plan_vs_campaign_raises_for_empty_manifest(live_workbench_api) -> None:
+    '''plan_vs_campaign surfaces an empty manifest as a structured tool error.
+
+    Parameters
+    ----------
+    live_workbench_api : str
+        Base URL of a running Workbench API (fixture).
+    '''
+
+    server = build_ocdocker_mcp_server(base_url=live_workbench_api)
+    with pytest.raises(ToolError, match="Cannot plan an invalid VS campaign"):
+        asyncio.run(server.call_tool("plan_vs_campaign", {"manifest": []}))
+
+
+def test_run_job_vs_campaign_without_confirm_does_not_resolve_token(live_workbench_api, tmp_path, monkeypatch) -> None:
+    '''run_job(kind="vs_campaign", confirm=False) previews without touching the job token.
+
+    Parameters
+    ----------
+    live_workbench_api : str
+        Base URL of a running Workbench API (fixture).
+    tmp_path : pathlib.Path
+        Temporary served root (same one the fixture served).
+    monkeypatch : pytest.MonkeyPatch
+        Used to fail the test if the job token is resolved.
+    '''
+
+    def _fail(*_args, **_kwargs):
+        raise AssertionError("resolve_workbench_job_token should not be called when confirm=False")
+
+    monkeypatch.setattr("OCDocker.MCP.Server.resolve_workbench_job_token", _fail)
+
+    sample_dir = tmp_path / "input" / "sample_001"
+    sample_dir.mkdir(parents=True)
+    (sample_dir / "receptor.pdbqt").write_text("ATOM", encoding="utf-8")
+    (sample_dir / "ligand.pdbqt").write_text("MOL", encoding="utf-8")
+    (sample_dir / "box.txt").write_text("REMARK", encoding="utf-8")
+    manifest = [{
+        "sample": "sample_001", "row_kind": "vs",
+        "receptor": str(sample_dir / "receptor.pdbqt"),
+        "ligand": str(sample_dir / "ligand.pdbqt"),
+        "box": str(sample_dir / "box.txt"),
+        "engines": ["vina"],
+    }]
+
+    server = build_ocdocker_mcp_server(base_url=live_workbench_api)
+    _content, payload = asyncio.run(
+        server.call_tool("run_job", {"kind": "vs_campaign", "manifest": manifest, "confirm": False}),
+    )
+    assert payload["launched"] is False

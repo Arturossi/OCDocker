@@ -18,11 +18,15 @@ read-only YAML plus ``ocdocker ocscore train`` command plans through
 ``/api/ablation-design``. ``/api/vs-design`` mirrors this for single-target
 ``vs``/``pipeline`` docking runs: discover receptor/ligand/box candidates,
 validate a draft selection, and preview the exact launch command (one
-receptor/ligand/box per draft — no multi-compound batch screening yet).
-Job-execute endpoints (``/api/jobs*``) can launch, track, and cancel ``vs``,
-``pipeline``, ``ocscore train``, and ``ocscore reduce`` runs as local
-subprocesses; these endpoints require a bearer token while inspection
-endpoints remain read-only and unauthenticated.
+receptor/ligand/box per draft). ``/api/vs-campaign`` does the same for
+multi-sample batches: discover an ``input/{sample}/...`` layout (or a
+hand-authored manifest), validate every row, and preview the generated
+script — one tracked ``vs_campaign`` job that runs every row and continues
+past an individual failure. Job-execute endpoints (``/api/jobs*``) can
+launch, track, and cancel ``vs``, ``pipeline``, ``ocscore train``,
+``ocscore reduce``, and ``vs_campaign`` runs as local subprocesses; these
+endpoints require a bearer token while inspection endpoints remain
+read-only and unauthenticated.
 
 Submodules
 ----------

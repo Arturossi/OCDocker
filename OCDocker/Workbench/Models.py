@@ -94,7 +94,7 @@ OCScoreExternalBaselineFamily = Literal[
 ]
 OCScoreReplicaStatus = Literal["missing", "empty", "running", "completed", "failed", "unknown"]
 OCScoreMetricDirection = Literal["max", "min"]
-WorkbenchJobKind = Literal["vs", "pipeline", "ocscore_train", "ocscore_reduce"]
+WorkbenchJobKind = Literal["vs", "pipeline", "ocscore_train", "ocscore_reduce", "vs_campaign"]
 
 
 # Functions

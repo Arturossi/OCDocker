@@ -88,7 +88,7 @@ understands the confirmation-gating contract before it calls anything:
 Tool reference
 ---------------
 
-Fifteen tools are registered, in two groups. All tools return the parsed JSON
+Eighteen tools are registered, in two groups. All tools return the parsed JSON
 body of the underlying Workbench API response (a plain ``dict``); tool
 functions never raise a raw ``httpx`` exception — every failure surfaces as
 :class:`OCDocker.MCP.Server.OCDockerMCPError` (see `Error handling`_ below).
@@ -124,6 +124,15 @@ functions never raise a raw ``httpx`` exception — every failure surfaces as
    * - ``plan_vs_design``
      - ``draft: dict``
      - ``POST /api/vs-design/plan``
+   * - ``get_vs_campaign_context``
+     - ``input_dir: str | None``
+     - ``GET /api/vs-campaign``
+   * - ``preview_vs_campaign``
+     - ``manifest: list[dict]``
+     - ``POST /api/vs-campaign/preview``
+   * - ``plan_vs_campaign``
+     - ``manifest: list[dict]``, ``outdir: str | None``
+     - ``POST /api/vs-campaign/plan``
    * - ``get_protocol_similarity``
      - ``metric: str | None``, ``reference: str | None``
      - ``GET /api/ablation-protocol-similarity``
@@ -137,7 +146,7 @@ functions never raise a raw ``httpx`` exception — every failure surfaces as
      - ``job_id: str``, ``lines: int = 80``
      - ``GET /api/jobs/{job_id}/logs``
    * - ``plan_job``
-     - ``kind: WorkbenchJobKind``, ``args: list[str] | None``, ``cwd: str | None``
+     - ``kind: WorkbenchJobKind``, ``args: list[str] | None``, ``cwd: str | None``, ``manifest: list[dict] | None``
      - ``POST /api/jobs/plan``
 
 .. list-table:: Execute tools (confirmation-gated, bearer-token-authenticated)
@@ -148,18 +157,21 @@ functions never raise a raw ``httpx`` exception — every failure surfaces as
      - Parameters
      - Workbench API endpoint
    * - ``run_job``
-     - ``kind: WorkbenchJobKind``, ``args: list[str] | None``, ``cwd: str | None``, ``confirm: bool = False``
+     - ``kind: WorkbenchJobKind``, ``args: list[str] | None``, ``cwd: str | None``, ``manifest: list[dict] | None``, ``confirm: bool = False``
      - ``POST /api/jobs/plan`` (confirm=False) or ``POST /api/jobs`` (confirm=True)
    * - ``cancel_job``
      - ``job_id: str``, ``confirm: bool = False``
      - ``GET /api/jobs/{job_id}`` (confirm=False) or ``POST /api/jobs/{job_id}/cancel`` (confirm=True)
 
-``WorkbenchJobKind`` is the literal type ``"vs" | "pipeline" | "ocscore_train" | "ocscore_reduce"``
-(:data:`OCDocker.Workbench.Models.WorkbenchJobKind`) — it selects which
-``ocdocker`` subcommand prefix a job runs (``ocdocker vs ...``,
-``ocdocker pipeline ...``, ``ocdocker ocscore train ...``, or
-``ocdocker ocscore reduce ...``). ``args`` are extra CLI flags appended after
-that prefix, e.g. ``["--protocol", "production.yml", "--output-dir", "runs/run-001"]``.
+``WorkbenchJobKind`` is the literal type ``"vs" | "pipeline" | "ocscore_train" |
+"ocscore_reduce" | "vs_campaign"`` (:data:`OCDocker.Workbench.Models.WorkbenchJobKind`)
+— it selects which ``ocdocker`` subcommand prefix a job runs (``ocdocker vs ...``,
+``ocdocker pipeline ...``, ``ocdocker ocscore train ...``, ``ocdocker ocscore
+reduce ...``), except ``"vs_campaign"``, which runs a generated shell script
+covering every row of ``manifest`` instead (see `Batch campaigns`_ below).
+``args`` are extra CLI flags appended after that prefix — or, for
+``"vs_campaign"``, common flags appended to every row's command — e.g.
+``["--protocol", "production.yml", "--output-dir", "runs/run-001"]``.
 
 Read and plan tools
 ~~~~~~~~~~~~~~~~~~~~
@@ -219,10 +231,10 @@ Read and plan tools
    ``engines``/``rescoring_engines`` (lists) for ``"pipeline"``. Checks
    path existence, extension sanity, and engine names against
    :data:`OCDocker.Workbench.Models.VALID_DOCKING_ENGINES`/
-   :data:`OCDocker.Workbench.Models.VALID_RESCORING_ENGINES`. Only
-   single-target design is supported — one receptor, one ligand, one box
-   per draft; OCDocker has no multi-compound library/batch screening
-   command today. Same payload as ``POST /api/vs-design/preview``. See
+   :data:`OCDocker.Workbench.Models.VALID_RESCORING_ENGINES`. Covers exactly
+   one receptor, one ligand, one box; for many samples in one job, see
+   `Batch campaigns`_ below. Same payload as
+   ``POST /api/vs-design/preview``. See
    :func:`OCDocker.Workbench.VSDesign.preview_vs_design`.
 
 ``plan_vs_design(draft)``
@@ -235,6 +247,55 @@ Read and plan tools
    Raises :class:`~OCDocker.MCP.Server.OCDockerMCPError` if the draft is
    invalid. Same payload as ``POST /api/vs-design/plan``. See
    :func:`OCDocker.Workbench.VSDesign.plan_vs_design`.
+
+Batch campaigns
+~~~~~~~~~~~~~~~~
+
+A campaign runs many receptor/ligand/box samples as **one** tracked job — no
+per-row confirmations, no Snakemake dependency. Its manifest reuses the same
+row shape :func:`discover_vs_campaign_candidates` produces: ``sample``,
+``row_kind`` (``"vs"`` or ``"pipeline"`` — rows may mix both), ``receptor``,
+``ligand``, ``box``, ``engines`` (list), optional ``rescoring_engines``
+(list). Under the hood, ``kind="vs_campaign"`` resolves to a generated POSIX
+shell script (:func:`OCDocker.Workbench.Jobs.build_campaign_script`) that
+runs one ``ocdocker vs``/``pipeline`` invocation per row, logging
+``[sample i/N] <name>`` markers before each, **continuing past a failing
+row** rather than aborting the batch, and exiting non-zero only if any row
+failed — so the job's own ``completed``/``failed`` status reflects the whole
+campaign while per-row detail lives in the log text
+(``get_job_logs``/``GET /api/jobs/{job_id}/logs``, unchanged).
+
+``get_vs_campaign_context(input_dir=None)``
+   Discover a draft multi-sample manifest from an ``input/{sample}/...``
+   layout — one subdirectory per sample, matching the convention used by
+   ``examples/19_Snakefile_ocdocker_pipeline.smk`` and
+   ``examples/20_Snakefile_ocdocker_granular_pipeline.smk``. When
+   ``input_dir`` is omitted, ``<served root>/input`` is used automatically if
+   present, otherwise the served root itself. Best-effort — a workspace not
+   organized this way returns an empty manifest with an explanatory issue,
+   not an error; a manifest can also be hand-authored directly for
+   ``preview_vs_campaign``. Same payload as ``GET /api/vs-campaign``. See
+   :func:`OCDocker.Workbench.VSDesign.discover_vs_campaign_candidates`.
+
+``preview_vs_campaign(manifest)``
+   Validate a draft manifest without running anything: path existence,
+   engine names, and duplicate sample names, per row (errors/warnings are
+   prefixed ``Row i (sample): ...``). Same payload as
+   ``POST /api/vs-campaign/preview``. See
+   :func:`OCDocker.Workbench.VSDesign.preview_vs_campaign`.
+
+``plan_vs_campaign(manifest, outdir=None)``
+   Build the ``vs_campaign`` job payload for a valid manifest — call
+   ``preview_vs_campaign`` first and show the user any errors/warnings,
+   especially for large manifests. On success returns ``{"kind":
+   "vs_campaign", "manifest", "args", "cwd", "shell_command"}``, ready to
+   hand directly to ``run_job`` (as ``kind``/``manifest``/``args``/``cwd``)
+   to launch the whole batch. ``outdir``, if given, is shared by every row
+   (each row still differentiates its own output via ``--name``, which
+   defaults to the ligand filename). Raises
+   :class:`~OCDocker.MCP.Server.OCDockerMCPError` if the manifest is
+   invalid. Same payload as ``POST /api/vs-campaign/plan``. See
+   :func:`OCDocker.Workbench.VSDesign.plan_vs_campaign`.
 
 ``get_protocol_similarity(metric=None, reference=None)``
    Return pairwise Jaccard feature-similarity across ablation protocols,
@@ -263,18 +324,21 @@ Read and plan tools
    :class:`OCDocker.Workbench.Models.RunLogFilePreview`). ``lines`` caps how
    many trailing lines are returned per stream.
 
-``plan_job(kind, args=None, cwd=None)``
+``plan_job(kind, args=None, cwd=None, manifest=None)``
    Preview the exact command a job **would** run — ``{"kind", "command", "cwd"}``
    — without launching it and without any side effects. Always call this (or
    ``run_job`` with ``confirm=False``, which does the same thing) before
    ``run_job(..., confirm=True)`` and show the resulting command to the user.
+   ``manifest`` is required for ``kind="vs_campaign"`` (see `Batch
+   campaigns`_) and ignored for every other kind.
 
 Execute tools
 ~~~~~~~~~~~~~
 
-``run_job(kind, args=None, cwd=None, confirm=False)``
+``run_job(kind, args=None, cwd=None, manifest=None, confirm=False)``
    Launch a tracked job as a background subprocess on the machine running the
-   Workbench API.
+   Workbench API. ``manifest`` is required for ``kind="vs_campaign"`` (build
+   one with ``plan_vs_campaign`` first) and ignored otherwise.
 
    - ``confirm=False`` (the default): **launches nothing.** Returns
      ``{"launched": false, "message": "...", "plan": {...}}`` — identical to

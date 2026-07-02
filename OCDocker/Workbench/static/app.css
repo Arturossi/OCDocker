@@ -1200,14 +1200,16 @@ body.figure-lightbox-open { overflow: hidden; }
 .jobs-launch-actions { margin-top: 14px; }
 .jobs-log { margin: 8px 0 16px; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; overflow: auto; max-height: 280px; }
 .badge.cancelled { background: var(--badge-missing-bg); color: var(--warn); }
-.vs-design-discover-panel, .vs-design-run-panel, .vs-design-output-panel { margin-top: 12px; }
+.vs-design-scope { margin-top: 12px; }
+.vs-design-mode-panel { margin-top: 0; }
+.vs-design-mode-select { min-width: 220px; }
 .vs-design-note { margin: 6px 0 12px; max-width: 72ch; }
 .vs-design-fields { display: grid; gap: 14px; margin-top: 10px; }
 .vs-design-fields[hidden] { display: none; }
 .vs-design-fields-discover, .vs-design-fields-candidates { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .vs-design-fields-run, .vs-design-fields-vs, .vs-design-fields-pipeline, .vs-design-fields-common { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .vs-design-field-wide { grid-column: 1 / -1; }
-.vs-design-panel .field.vs-design-field, .vs-design-discover-panel .field.vs-design-field, .vs-design-run-panel .field.vs-design-field {
+.vs-design-scope .field.vs-design-field {
   display: grid;
   gap: 6px;
   min-width: 0;
@@ -1215,8 +1217,7 @@ body.figure-lightbox-open { overflow: hidden; }
   font-weight: 700;
   color: var(--muted);
 }
-.vs-design-discover-panel input[type="text"], .vs-design-discover-panel select,
-.vs-design-run-panel input[type="text"], .vs-design-run-panel input[type="number"], .vs-design-run-panel select {
+.vs-design-scope input[type="text"], .vs-design-scope input[type="number"], .vs-design-scope select, .vs-design-scope textarea {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -1228,7 +1229,8 @@ body.figure-lightbox-open { overflow: hidden; }
   background: var(--surface-input);
   color: var(--ink);
 }
-.vs-design-discover-panel select, .vs-design-run-panel select { min-height: 44px; cursor: pointer; }
+.vs-design-scope textarea { min-height: 120px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; resize: vertical; }
+.vs-design-scope select { min-height: 44px; cursor: pointer; }
 .vs-design-checkbox { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer; align-self: end; }
 .vs-design-checkbox input { width: 16px; height: 16px; min-width: 16px; margin: 0; cursor: pointer; }
 .vs-design-discover-actions, .vs-design-actions { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
@@ -1241,6 +1243,8 @@ body.figure-lightbox-open { overflow: hidden; }
 .vs-design-preview-details div.error { border-color: #d9534f; }
 .vs-design-preview-details div.warning { border-color: #d4a017; }
 .vs-design-code { margin: 14px 0 0; padding: 14px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; overflow: auto; max-height: 320px; }
+[data-vs-design-mode-panel][hidden] { display: none; }
+[data-jobs-kind-fields][hidden] { display: none; }
 @media (max-width: 880px) {
   .vs-design-fields-discover, .vs-design-fields-candidates, .vs-design-fields-run, .vs-design-fields-vs, .vs-design-fields-pipeline, .vs-design-fields-common { grid-template-columns: 1fr; }
 }

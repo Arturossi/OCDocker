@@ -12,8 +12,11 @@ from __future__ import annotations
 
 import pytest
 
+from OCDocker.Workbench.VSDesign import discover_vs_campaign_candidates
 from OCDocker.Workbench.VSDesign import discover_vs_design_candidates
+from OCDocker.Workbench.VSDesign import plan_vs_campaign
 from OCDocker.Workbench.VSDesign import plan_vs_design
+from OCDocker.Workbench.VSDesign import preview_vs_campaign
 from OCDocker.Workbench.VSDesign import preview_vs_design
 
 # License
@@ -277,3 +280,232 @@ def test_plan_vs_design_raises_on_invalid_draft(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="Cannot plan an invalid VS design"):
         plan_vs_design(tmp_path, draft)
+
+
+def _write_campaign_samples(root, names) -> Path:
+    '''Write an ``input/{sample}/{receptor,ligand,box}`` layout for campaign tests.
+
+    Parameters
+    ----------
+    root : pathlib.Path
+        Temporary root.
+    names : Sequence[str]
+        Sample directory names to create, each with a complete receptor/ligand/box set.
+
+    Returns
+    -------
+    pathlib.Path
+        The created ``input/`` directory.
+    '''
+
+    input_dir = root / "input"
+    for name in names:
+        sample_dir = input_dir / name
+        sample_dir.mkdir(parents=True)
+        (sample_dir / "receptor.pdbqt").write_text("ATOM", encoding="utf-8")
+        (sample_dir / "ligand.pdbqt").write_text("MOL", encoding="utf-8")
+        (sample_dir / "box.txt").write_text("REMARK", encoding="utf-8")
+    return input_dir
+
+
+def test_discover_vs_campaign_candidates_finds_complete_samples(tmp_path) -> None:
+    '''Discovery builds one manifest row per complete sample directory.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    input_dir = _write_campaign_samples(tmp_path, ["sample_001", "sample_002"])
+
+    context = discover_vs_campaign_candidates(tmp_path, input_dir=input_dir)
+
+    assert len(context["manifest"]) == 2
+    assert {row["sample"] for row in context["manifest"]} == {"sample_001", "sample_002"}
+    assert context["issues"] == []
+
+
+def test_discover_vs_campaign_candidates_auto_detects_input_dir_by_default(tmp_path) -> None:
+    '''Without an explicit input_dir, discovery uses root/input, not root itself.
+
+    Regression test: root's only immediate child directory is "input" (not a
+    sample directory), so a naive scan of root's immediate children would
+    treat "input" itself as one bogus sample and pick one receptor/ligand/box
+    from across the *different* real samples nested inside it.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    _write_campaign_samples(tmp_path, ["sample_001", "sample_002"])
+
+    context = discover_vs_campaign_candidates(tmp_path)
+
+    assert context["scan_root"] == str(tmp_path / "input")
+    assert len(context["manifest"]) == 2
+    assert {row["sample"] for row in context["manifest"]} == {"sample_001", "sample_002"}
+
+
+def test_discover_vs_campaign_candidates_falls_back_to_root_without_input_dir(tmp_path) -> None:
+    '''When root/input does not exist, discovery scans root's immediate children directly.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    for name in ("sample_001",):
+        sample_dir = tmp_path / name
+        sample_dir.mkdir()
+        (sample_dir / "receptor.pdbqt").write_text("ATOM", encoding="utf-8")
+        (sample_dir / "ligand.pdbqt").write_text("MOL", encoding="utf-8")
+        (sample_dir / "box.txt").write_text("REMARK", encoding="utf-8")
+
+    context = discover_vs_campaign_candidates(tmp_path)
+
+    assert context["scan_root"] == str(tmp_path)
+    assert len(context["manifest"]) == 1
+    assert context["manifest"][0]["sample"] == "sample_001"
+
+
+def test_discover_vs_campaign_candidates_skips_incomplete_samples(tmp_path) -> None:
+    '''An incomplete sample directory is skipped with an explanatory issue.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    input_dir = _write_campaign_samples(tmp_path, ["sample_001"])
+    (input_dir / "sample_002").mkdir()
+    (input_dir / "sample_002" / "receptor.pdbqt").write_text("ATOM", encoding="utf-8")
+
+    context = discover_vs_campaign_candidates(tmp_path, input_dir=input_dir)
+
+    assert len(context["manifest"]) == 1
+    assert any("sample_002" in issue for issue in context["issues"])
+
+
+def test_discover_vs_campaign_candidates_empty_root_reports_issue(tmp_path) -> None:
+    '''An empty scan root returns an empty manifest with an issue, not an error.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    context = discover_vs_campaign_candidates(tmp_path)
+
+    assert context["manifest"] == []
+    assert context["issues"]
+
+
+def test_preview_vs_campaign_valid_manifest(tmp_path) -> None:
+    '''A valid manifest previews as valid with resolved rows.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    input_dir = _write_campaign_samples(tmp_path, ["sample_001", "sample_002"])
+    context = discover_vs_campaign_candidates(tmp_path, input_dir=input_dir)
+
+    preview = preview_vs_campaign(tmp_path, {"manifest": context["manifest"]})
+
+    assert preview["valid"] is True
+    assert len(preview["resolved"]["rows"]) == 2
+
+
+def test_preview_vs_campaign_rejects_empty_manifest(tmp_path) -> None:
+    '''An empty manifest is rejected with a clear error.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    preview = preview_vs_campaign(tmp_path, {"manifest": []})
+
+    assert preview["valid"] is False
+    assert any("at least one row" in error for error in preview["errors"])
+
+
+def test_preview_vs_campaign_rejects_duplicate_sample_names(tmp_path) -> None:
+    '''Two rows sharing a sample name are rejected.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    input_dir = _write_campaign_samples(tmp_path, ["sample_001"])
+    context = discover_vs_campaign_candidates(tmp_path, input_dir=input_dir)
+    manifest = context["manifest"] + [dict(context["manifest"][0])]
+
+    preview = preview_vs_campaign(tmp_path, {"manifest": manifest})
+
+    assert preview["valid"] is False
+    assert any("Duplicate sample name" in error for error in preview["errors"])
+
+
+def test_preview_vs_campaign_rejects_bad_engine_in_one_row(tmp_path) -> None:
+    '''An unknown engine in one row is rejected with a row-prefixed error.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    input_dir = _write_campaign_samples(tmp_path, ["sample_001"])
+    context = discover_vs_campaign_candidates(tmp_path, input_dir=input_dir)
+    manifest = [dict(context["manifest"][0], engines=["bogus"])]
+
+    preview = preview_vs_campaign(tmp_path, {"manifest": manifest})
+
+    assert preview["valid"] is False
+    assert any("Row 1 (sample_001)" in error and "bogus" in error for error in preview["errors"])
+
+
+def test_plan_vs_campaign_builds_script_for_every_row(tmp_path) -> None:
+    '''plan_vs_campaign builds a shell script covering every manifest row.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    input_dir = _write_campaign_samples(tmp_path, ["sample_001", "sample_002"])
+    context = discover_vs_campaign_candidates(tmp_path, input_dir=input_dir)
+
+    plan = plan_vs_campaign(tmp_path, {"manifest": context["manifest"], "store_db": True})
+
+    assert plan["kind"] == "vs_campaign"
+    assert len(plan["manifest"]) == 2
+    assert "--store-db" in plan["args"]
+    assert "sample_001" in plan["shell_command"]
+    assert "sample_002" in plan["shell_command"]
+
+
+def test_plan_vs_campaign_raises_on_invalid_manifest(tmp_path) -> None:
+    '''plan_vs_campaign refuses to build a script from an invalid manifest.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    with pytest.raises(ValueError, match="Cannot plan an invalid VS campaign"):
+        plan_vs_campaign(tmp_path, {"manifest": []})

@@ -10,6 +10,8 @@ Tests for the strict OCScore Workbench HTTP API payload layer.
 ###############################################################################
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from fastapi.testclient import TestClient
@@ -293,3 +295,120 @@ def test_vs_design_plan_on_invalid_draft_returns_400(tmp_path) -> None:
 
     assert response.status_code == 400
     assert response.json()["ok"] is False
+
+
+def _write_vs_campaign_samples(root) -> Path:
+    '''Write an ``input/{sample}/...`` layout for VS campaign API tests.
+
+    Parameters
+    ----------
+    root : pathlib.Path
+        Temporary root.
+
+    Returns
+    -------
+    pathlib.Path
+        The created ``input/`` directory.
+    '''
+
+    input_dir = root / "input"
+    for sample in ("sample_001", "sample_002"):
+        sample_dir = input_dir / sample
+        sample_dir.mkdir(parents=True)
+        (sample_dir / "receptor.pdbqt").write_text("ATOM", encoding="utf-8")
+        (sample_dir / "ligand.pdbqt").write_text("MOL", encoding="utf-8")
+        (sample_dir / "box.txt").write_text("REMARK", encoding="utf-8")
+    return input_dir
+
+
+def test_vs_campaign_endpoints_are_listed_in_index(tmp_path) -> None:
+    '''The endpoint index advertises the VS campaign routes.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    app = build_workbench_api_app(tmp_path, max_depth=6)
+    client = TestClient(app)
+
+    payload = client.get("/api/").json()
+    assert "/api/vs-campaign" in payload["endpoints"]
+    assert "/api/vs-campaign/preview" in payload["endpoints"]
+    assert "/api/vs-campaign/plan" in payload["endpoints"]
+
+
+def test_vs_campaign_discover_preview_plan_round_trip(tmp_path) -> None:
+    '''GET discover, then POST preview and plan, for a real multi-sample layout.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    input_dir = _write_vs_campaign_samples(tmp_path)
+    app = build_workbench_api_app(tmp_path, max_depth=6)
+    client = TestClient(app)
+
+    discover = client.get("/api/vs-campaign", params={"input_dir": str(input_dir)})
+    assert discover.status_code == 200
+    manifest = discover.json()["manifest"]
+    assert len(manifest) == 2
+
+    preview = client.post("/api/vs-campaign/preview", json={"manifest": manifest})
+    assert preview.status_code == 200
+    assert preview.json()["valid"] is True
+
+    plan = client.post("/api/vs-campaign/plan", json={"manifest": manifest})
+    assert plan.status_code == 200
+    assert plan.json()["kind"] == "vs_campaign"
+    assert len(plan.json()["manifest"]) == 2
+
+
+def test_vs_campaign_plan_on_empty_manifest_returns_400(tmp_path) -> None:
+    '''POST plan with an empty manifest returns a structured 400, not a 500.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    app = build_workbench_api_app(tmp_path, max_depth=6)
+    client = TestClient(app)
+
+    response = client.post("/api/vs-campaign/plan", json={"manifest": []})
+
+    assert response.status_code == 400
+    assert response.json()["ok"] is False
+
+
+def test_post_jobs_launches_vs_campaign_with_manifest(tmp_path, monkeypatch) -> None:
+    '''POST /api/jobs launches a vs_campaign job when a manifest is supplied.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    monkeypatch : pytest.MonkeyPatch
+        Used to pin the job bearer token for this test.
+    '''
+
+    monkeypatch.setenv("OCDOCKER_WORKBENCH_TOKEN", "test-token")
+    input_dir = _write_vs_campaign_samples(tmp_path)
+    app = build_workbench_api_app(tmp_path, max_depth=6)
+    client = TestClient(app)
+
+    manifest = client.get("/api/vs-campaign", params={"input_dir": str(input_dir)}).json()["manifest"]
+
+    response = client.post(
+        "/api/jobs",
+        json={"kind": "vs_campaign", "args": [], "manifest": manifest},
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["kind"] == "vs_campaign"
+    assert response.json()["command"][:2] == ["/bin/sh", "-c"]

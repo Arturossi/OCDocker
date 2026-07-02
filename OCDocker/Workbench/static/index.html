@@ -435,7 +435,20 @@
       </section>
     </section>
     <section id="panel-vs-design" class="tab-panel" role="tabpanel" aria-labelledby="tab-vs-design" data-tab-panel="vs-design" hidden>
-      <section class="panel vs-design-discover-panel">
+      <section class="panel vs-design-scope vs-design-mode-panel">
+        <div class="panel-head panel-head-split">
+          <h2>VS design</h2>
+          <label class="field vs-design-field vs-design-mode-select" for="vs-design-mode">
+            <span>Mode</span>
+            <select id="vs-design-mode">
+              <option value="single">Single target</option>
+              <option value="batch">Batch (multi-sample campaign)</option>
+            </select>
+          </label>
+        </div>
+      </section>
+      <div id="vs-design-mode-single" data-vs-design-mode-panel="single">
+      <section class="panel vs-design-scope vs-design-discover-panel">
         <div class="panel-head panel-head-split">
           <h2>Discover inputs</h2>
           <span id="vs-design-discover-summary" class="muted"></span>
@@ -471,7 +484,7 @@
         <div id="vs-design-discover-issues" class="vs-design-issues muted" hidden></div>
       </section>
 
-      <section class="panel vs-design-run-panel">
+      <section class="panel vs-design-scope vs-design-run-panel">
         <div class="panel-head">
           <h2>Run settings</h2>
         </div>
@@ -572,7 +585,7 @@
         </div>
       </section>
 
-      <section class="panel vs-design-output-panel">
+      <section class="panel vs-design-scope vs-design-output-panel">
         <div class="panel-head panel-head-split">
           <h2>Preview &amp; plan</h2>
           <div class="vs-design-actions">
@@ -587,6 +600,81 @@
         </div>
         <pre id="vs-design-command" class="vs-design-code" hidden></pre>
       </section>
+      </div>
+      <div id="vs-design-mode-batch" data-vs-design-mode-panel="batch" hidden>
+      <section class="panel vs-design-scope vs-campaign-discover-panel">
+        <div class="panel-head panel-head-split">
+          <h2>Discover campaign samples</h2>
+          <span id="vs-campaign-discover-summary" class="muted"></span>
+        </div>
+        <p class="muted vs-design-note">
+          Best-effort scan for an <code>input/{sample}/{receptor,ligand,box}</code> layout —
+          one subdirectory per sample, matching the bundled example Snakefiles. Missing that
+          layout, edit the manifest below by hand.
+        </p>
+        <div class="vs-design-fields vs-design-fields-discover">
+          <label class="field vs-design-field vs-design-field-wide" for="vs-campaign-input-dir">
+            <span>Scan subdirectory (optional)</span>
+            <input id="vs-campaign-input-dir" type="text" spellcheck="false" placeholder="defaults to <served root>/input">
+          </label>
+        </div>
+        <div class="vs-design-discover-actions">
+          <button id="vs-campaign-discover" type="button" class="button-secondary">Discover samples</button>
+        </div>
+        <div id="vs-campaign-discover-issues" class="vs-design-issues muted" hidden></div>
+      </section>
+
+      <section class="panel vs-design-scope vs-campaign-manifest-panel">
+        <div class="panel-head">
+          <h2>Manifest</h2>
+        </div>
+        <p class="muted vs-design-note">
+          One JSON object per sample: <code>sample</code>, <code>row_kind</code>
+          (<code>"vs"</code> or <code>"pipeline"</code>), <code>receptor</code>,
+          <code>ligand</code>, <code>box</code>, <code>engines</code> (list), optional
+          <code>rescoring_engines</code> (list). Rows may mix <code>vs</code> and
+          <code>pipeline</code>.
+        </p>
+        <label class="field vs-design-field vs-design-field-wide" for="vs-campaign-manifest">
+          <span>Manifest (JSON array)</span>
+          <textarea id="vs-campaign-manifest" rows="10" spellcheck="false" placeholder="[]"></textarea>
+        </label>
+        <div class="vs-design-fields vs-design-fields-common">
+          <label class="field vs-design-field vs-design-field-wide" for="vs-campaign-outdir">
+            <span>Output directory (optional, shared by every row)</span>
+            <input id="vs-campaign-outdir" type="text" spellcheck="false" placeholder="defaults to ./ocdocker_out">
+          </label>
+          <label class="field vs-design-field vs-design-field-wide" for="vs-campaign-cwd">
+            <span>Working directory (optional)</span>
+            <input id="vs-campaign-cwd" type="text" spellcheck="false" placeholder="defaults to the served root">
+          </label>
+          <label class="field vs-design-field" for="vs-campaign-timeout">
+            <span>Timeout, seconds (optional)</span>
+            <input id="vs-campaign-timeout" type="number" step="1" placeholder="OCDOCKER_TIMEOUT default">
+          </label>
+          <label class="field vs-design-checkbox" for="vs-campaign-store-db">
+            <input id="vs-campaign-store-db" type="checkbox">
+            <span>Store every row's run in the database</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel vs-design-scope vs-campaign-output-panel">
+        <div class="panel-head panel-head-split">
+          <h2>Preview &amp; plan</h2>
+          <div class="vs-design-actions">
+            <button id="vs-campaign-preview" type="button">Preview campaign</button>
+            <button id="vs-campaign-plan" type="button">Generate plan</button>
+            <button id="vs-campaign-send-to-jobs" type="button" class="button-secondary" disabled>Send to Jobs tab</button>
+          </div>
+        </div>
+        <div id="vs-campaign-preview-panel" class="vs-design-preview" hidden>
+          <div id="vs-campaign-preview-summary" class="vs-design-preview-summary"></div>
+          <div id="vs-campaign-preview-details" class="vs-design-preview-details"></div>
+        </div>
+        <pre id="vs-campaign-command" class="vs-design-code" hidden></pre>
+      </section>
+      </div>
     </section>
     <section id="panel-jobs" class="tab-panel" role="tabpanel" aria-labelledby="tab-jobs" data-tab-panel="jobs" hidden>
       <section class="panel jobs-token-panel">
@@ -624,6 +712,7 @@
               <option value="pipeline">pipeline</option>
               <option value="ocscore_train">ocscore_train</option>
               <option value="ocscore_reduce">ocscore_reduce</option>
+              <option value="vs_campaign">vs_campaign (batch)</option>
             </select>
           </label>
           <label class="field jobs-field-wide" for="jobs-launch-cwd">
@@ -633,6 +722,10 @@
           <label class="field jobs-field-wide" for="jobs-launch-args">
             <span>Arguments (one per line)</span>
             <textarea id="jobs-launch-args" rows="4" spellcheck="false" placeholder="--protocol&#10;production.yml&#10;--output-dir&#10;runs/run-001"></textarea>
+          </label>
+          <label class="field jobs-field-wide" for="jobs-launch-manifest" data-jobs-kind-fields="vs_campaign" hidden>
+            <span>Campaign manifest (JSON array, vs_campaign only)</span>
+            <textarea id="jobs-launch-manifest" rows="6" spellcheck="false" placeholder="[]"></textarea>
           </label>
         </div>
         <div class="jobs-launch-actions">

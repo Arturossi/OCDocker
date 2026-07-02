@@ -3,9 +3,10 @@
 # Description
 ###############################################################################
 '''
-Design assistant for single-target virtual-screening runs (``ocdocker vs`` and
+Design assistant for virtual-screening runs (``ocdocker vs`` and
 ``ocdocker pipeline``): discover receptor/ligand/box candidates, validate a
-draft selection, and plan the exact command to run. Mirrors
+draft selection, and plan the exact command to run — for one target
+(``*_vs_design*``) or a multi-sample batch (``*_vs_campaign*``). Mirrors
 :mod:`OCDocker.Workbench.AblationDesign`, but for docking runs instead of
 OCScore training. Read-only: nothing here writes files or executes commands —
 the plan output is handed to :meth:`OCDocker.Workbench.Jobs.JobManager.launch`
@@ -21,6 +22,7 @@ import shlex
 from pathlib import Path
 from typing import Any
 
+from OCDocker.Workbench.Jobs import build_campaign_script
 from OCDocker.Workbench.Models import VALID_DOCKING_ENGINES
 from OCDocker.Workbench.Models import VALID_RESCORING_ENGINES
 
@@ -38,6 +40,7 @@ See the LICENSE file for full terms.
 
 VS_DESIGN_KINDS = ("vs", "pipeline")
 DEFAULT_VS_DESIGN_SCAN_DEPTH = 6
+DEFAULT_VS_CAMPAIGN_SAMPLE_SCAN_DEPTH = 3
 DEFAULT_PIPELINE_ENGINES = ("vina", "smina", "plants")
 DEFAULT_VS_ENGINE = "vina"
 
@@ -286,6 +289,57 @@ def _resolve_rescoring_engines(raw: Any, errors: list[str]) -> tuple[str, ...]:
     return engines
 
 
+def _validate_campaign_row(root_path: Path, row: dict[str, Any], index: int) -> tuple[list[str], list[str], dict[str, Any]]:
+    '''Validate one manifest row of a VS campaign draft.
+
+    Parameters
+    ----------
+    root_path : pathlib.Path
+        Served Workbench root, used to resolve relative paths.
+    row : dict[str, Any]
+        Draft row: ``sample``, ``row_kind`` (``"vs"`` or ``"pipeline"``),
+        ``receptor``, ``ligand``, ``box``, ``engines``, optional
+        ``rescoring_engines``.
+    index : int
+        1-based row position, used to prefix error/warning messages.
+
+    Returns
+    -------
+    tuple[list[str], list[str], dict[str, Any]]
+        Row-prefixed errors, row-prefixed warnings, and the resolved row.
+    '''
+
+    row_errors: list[str] = []
+    row_warnings: list[str] = []
+    sample = str(row.get("sample") or f"row-{index}")
+    row_kind = str(row.get("row_kind") or "vs")
+    if row_kind not in VS_DESIGN_KINDS:
+        row_errors.append(f"row_kind must be one of {VS_DESIGN_KINDS}, got {row_kind!r}.")
+
+    receptor = _required_path(root_path, row, "receptor", row_errors, row_warnings, _RECEPTOR_EXTENSIONS)
+    ligand = _required_path(root_path, row, "ligand", row_errors, row_warnings, _LIGAND_EXTENSIONS)
+    box = _required_path(root_path, row, "box", row_errors, row_warnings, _BOX_EXTENSIONS)
+
+    default_engines = DEFAULT_PIPELINE_ENGINES if row_kind == "pipeline" else (DEFAULT_VS_ENGINE,)
+    engines = _resolve_docking_engines(row.get("engines"), row_errors) or default_engines
+    if row_kind == "vs" and len(engines) > 1:
+        row_warnings.append("vs rows only use the first engine listed; the rest are ignored.")
+    rescoring_engines = _resolve_rescoring_engines(row.get("rescoring_engines"), row_errors)
+
+    resolved_row = {
+        "sample": sample,
+        "row_kind": row_kind,
+        "receptor": str(receptor) if receptor else None,
+        "ligand": str(ligand) if ligand else None,
+        "box": str(box) if box else None,
+        "engines": list(engines),
+        "rescoring_engines": list(rescoring_engines) if rescoring_engines else None,
+    }
+    prefixed_errors = [f"Row {index} ({sample}): {message}" for message in row_errors]
+    prefixed_warnings = [f"Row {index} ({sample}): {message}" for message in row_warnings]
+    return prefixed_errors, prefixed_warnings, resolved_row
+
+
 ## Public ##
 
 
@@ -479,12 +533,181 @@ def plan_vs_design(root: str | Path, body: dict[str, Any]) -> dict[str, Any]:
     return {"kind": kind, "args": args, "cwd": cwd, "shell_command": shell_command}
 
 
+def discover_vs_campaign_candidates(
+    root: str | Path,
+    *,
+    input_dir: str | Path | None = None,
+    sample_scan_depth: int = DEFAULT_VS_CAMPAIGN_SAMPLE_SCAN_DEPTH,
+) -> dict[str, Any]:
+    '''Discover a draft multi-sample manifest from an ``input/{sample}/...`` layout.
+
+    Matches the convention used by ``examples/19_Snakefile_ocdocker_pipeline.smk``
+    and ``examples/20_Snakefile_ocdocker_granular_pipeline.smk``: one
+    subdirectory per sample directly under the scan root, each containing a
+    receptor/ligand/box file. Best-effort — a workspace not organized this
+    way yields an empty manifest with an explanatory issue, not an error; the
+    caller can still hand-author a manifest directly.
+
+    Parameters
+    ----------
+    root : str or pathlib.Path
+        Served Workbench root.
+    input_dir : str, pathlib.Path, or None
+        Optional subdirectory to scan instead of the whole served root
+        (typically an ``input/`` directory containing one folder per sample).
+        When omitted, ``root/input`` is used automatically if present,
+        otherwise ``root`` itself.
+    sample_scan_depth : int
+        Maximum directory depth below each sample directory to descend while
+        looking for its receptor/ligand/box files.
+
+    Returns
+    -------
+    dict[str, Any]
+        JSON-safe payload: ``manifest`` (list of draft rows), ``scan_root``,
+        ``issues``.
+    '''
+
+    if input_dir:
+        scan_root = Path(input_dir).expanduser().resolve()
+    else:
+        root_path = Path(root).expanduser().resolve()
+        default_input_dir = root_path / "input"
+        scan_root = default_input_dir if default_input_dir.is_dir() else root_path
+    issues: list[str] = []
+    if not scan_root.is_dir():
+        issues.append(f"Scan root does not exist or is not a directory: {scan_root}")
+        return {"manifest": [], "scan_root": str(scan_root), "issues": issues}
+
+    manifest: list[dict[str, Any]] = []
+    sample_dirs = sorted(
+        (child for child in scan_root.iterdir() if child.is_dir() and not _is_hidden(child)),
+        key=lambda child: child.name,
+    )
+    for sample_dir in sample_dirs:
+        receptor = ligand = box = None
+        for path in _iter_candidate_files(sample_dir, sample_scan_depth):
+            if box is None and _looks_like_box(path):
+                box = path
+            elif receptor is None and _looks_like_receptor(path):
+                receptor = path
+            elif ligand is None and _looks_like_ligand(path):
+                ligand = path
+        if receptor and ligand and box:
+            manifest.append({
+                "sample": sample_dir.name,
+                "row_kind": "vs",
+                "receptor": str(receptor),
+                "ligand": str(ligand),
+                "box": str(box),
+                "engines": [DEFAULT_VS_ENGINE],
+            })
+        else:
+            missing = [name for name, value in (("receptor", receptor), ("ligand", ligand), ("box", box)) if value is None]
+            issues.append(f"Sample {sample_dir.name!r} is missing {', '.join(missing)} — skipped.")
+
+    if not manifest:
+        issues.append("No complete sample directories (receptor + ligand + box) found under the scanned root.")
+
+    return {"manifest": manifest, "scan_root": str(scan_root), "issues": issues}
+
+
+def preview_vs_campaign(root: str | Path, body: dict[str, Any]) -> dict[str, Any]:
+    '''Validate a draft multi-sample VS campaign manifest without running anything.
+
+    Parameters
+    ----------
+    root : str or pathlib.Path
+        Served Workbench root, used to resolve relative paths.
+    body : dict[str, Any]
+        Draft campaign: ``manifest`` — a non-empty list of rows, each shaped
+        like :func:`discover_vs_campaign_candidates`'s output rows
+        (``sample``, ``row_kind``, ``receptor``, ``ligand``, ``box``,
+        ``engines``, optional ``rescoring_engines``).
+
+    Returns
+    -------
+    dict[str, Any]
+        ``{"valid", "errors", "warnings", "resolved": {"rows": [...]}}``.
+    '''
+
+    root_path = Path(root).expanduser().resolve()
+    manifest = body.get("manifest") or []
+    errors: list[str] = []
+    warnings: list[str] = []
+    resolved_rows: list[dict[str, Any]] = []
+
+    if not manifest:
+        errors.append("manifest must contain at least one row.")
+
+    seen_samples: set[str] = set()
+    for index, row in enumerate(manifest, start=1):
+        row_errors, row_warnings, resolved_row = _validate_campaign_row(root_path, row, index)
+        errors.extend(row_errors)
+        warnings.extend(row_warnings)
+        resolved_rows.append(resolved_row)
+        sample = resolved_row["sample"]
+        if sample in seen_samples:
+            errors.append(f"Duplicate sample name: {sample!r}.")
+        seen_samples.add(sample)
+
+    return {"valid": not errors, "errors": errors, "warnings": warnings, "resolved": {"rows": resolved_rows}}
+
+
+def plan_vs_campaign(root: str | Path, body: dict[str, Any]) -> dict[str, Any]:
+    '''Build the ``vs_campaign`` job payload for a valid draft manifest.
+
+    Parameters
+    ----------
+    root : str or pathlib.Path
+        Served Workbench root, used to resolve relative paths.
+    body : dict[str, Any]
+        Same ``manifest`` shape as :func:`preview_vs_campaign`, plus optional
+        common flags applied to every row: ``outdir``, ``timeout``, ``store_db``,
+        and ``cwd`` (the campaign job's working directory).
+
+    Returns
+    -------
+    dict[str, Any]
+        ``{"kind": "vs_campaign", "manifest", "args", "cwd", "shell_command"}``
+        — ready to pass directly to
+        :meth:`OCDocker.Workbench.Jobs.JobManager.launch` (or the
+        ``run_job``/``plan_job`` API and MCP tools).
+
+    Raises
+    ------
+    ValueError
+        If the draft is not valid (call :func:`preview_vs_campaign` first).
+    '''
+
+    preview = preview_vs_campaign(root, body)
+    if not preview["valid"]:
+        raise ValueError("Cannot plan an invalid VS campaign: " + "; ".join(preview["errors"]))
+
+    rows = preview["resolved"]["rows"]
+    args: list[str] = []
+    if body.get("outdir"):
+        args.extend(["--outdir", str(body["outdir"])])
+    if body.get("timeout") is not None:
+        args.extend(["--timeout", str(body["timeout"])])
+    if body.get("store_db"):
+        args.append("--store-db")
+
+    cwd = str(body.get("cwd")) if body.get("cwd") else None
+    shell_command = build_campaign_script(rows, args)
+    return {"kind": "vs_campaign", "manifest": rows, "args": args, "cwd": cwd, "shell_command": shell_command}
+
+
 __all__ = [
     "DEFAULT_PIPELINE_ENGINES",
+    "DEFAULT_VS_CAMPAIGN_SAMPLE_SCAN_DEPTH",
     "DEFAULT_VS_DESIGN_SCAN_DEPTH",
     "DEFAULT_VS_ENGINE",
     "VS_DESIGN_KINDS",
+    "discover_vs_campaign_candidates",
     "discover_vs_design_candidates",
+    "plan_vs_campaign",
     "plan_vs_design",
+    "preview_vs_campaign",
     "preview_vs_design",
 ]

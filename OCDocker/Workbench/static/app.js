@@ -61,6 +61,9 @@ const state = {
   vsDesignContext: null,
   vsDesignPreview: null,
   vsDesignPlan: null,
+  vsCampaignContext: null,
+  vsCampaignPreview: null,
+  vsCampaignPlan: null,
   rankPlotExpandLabels: false,
   protocolSimilarity: null,
   protocolSimilarityLoading: false,
@@ -447,13 +450,27 @@ async function launchJob() {
   const args = $("jobs-launch-args").value.split("\n").map((line) => line.trim()).filter(Boolean);
   const cwd = $("jobs-launch-cwd").value.trim();
   const button = $("jobs-launch");
+  const body = { kind, args };
+  if (cwd) body.cwd = cwd;
+  if (kind === "vs_campaign") {
+    const manifestRaw = $("jobs-launch-manifest").value.trim();
+    try {
+      body.manifest = manifestRaw ? JSON.parse(manifestRaw) : [];
+    } catch (_error) {
+      toast("Campaign manifest is not valid JSON.");
+      return;
+    }
+    if (!body.manifest.length) {
+      toast("Campaign manifest must contain at least one row.");
+      return;
+    }
+  }
   button.disabled = true;
   try {
-    const body = { kind, args };
-    if (cwd) body.cwd = cwd;
     const record = await apiPost("/api/jobs", body, jobAuthHeaders());
     toast(`Launched job ${record.job_id}`);
     $("jobs-launch-args").value = "";
+    $("jobs-launch-manifest").value = "";
     await loadJobs();
   } catch (error) {
     toast(error.message || String(error));
@@ -519,6 +536,8 @@ function bindJobsPanel() {
     renderJobTokenStatus();
     toast("Job token cleared");
   });
+  $("jobs-launch-kind").addEventListener("change", toggleJobsKindFields);
+  toggleJobsKindFields();
   $("jobs-launch").addEventListener("click", () => void launchJob());
   $("jobs-logs-close").addEventListener("click", () => {
     state.selectedJobId = null;
@@ -4409,7 +4428,159 @@ function sendVsDesignPlanToJobs() {
   toast("Plan loaded into the Jobs tab — review and click Launch job.");
 }
 
+function toggleVsDesignMode() {
+  const mode = $("vs-design-mode").value;
+  document.querySelectorAll("[data-vs-design-mode-panel]").forEach((node) => {
+    node.hidden = node.dataset.vsDesignModePanel !== mode;
+  });
+}
+
+function renderVsCampaignDiscover(context) {
+  state.vsCampaignContext = context;
+  const summary = $("vs-campaign-discover-summary");
+  const issuesNode = $("vs-campaign-discover-issues");
+  if (!context) {
+    if (summary) summary.textContent = "";
+    if (issuesNode) issuesNode.hidden = true;
+    return;
+  }
+  const manifest = context.manifest || [];
+  if (summary) summary.textContent = `${manifest.length} sample(s) discovered`;
+  if (manifest.length) $("vs-campaign-manifest").value = JSON.stringify(manifest, null, 2);
+  if (issuesNode) {
+    const issues = context.issues || [];
+    issuesNode.hidden = issues.length === 0;
+    issuesNode.textContent = issues.join(" ");
+  }
+}
+
+async function discoverVsCampaignCandidates() {
+  const inputDir = $("vs-campaign-input-dir").value.trim();
+  try {
+    const context = await api("/api/vs-campaign", inputDir ? { input_dir: inputDir } : {});
+    renderVsCampaignDiscover(context);
+  } catch (error) {
+    toast(error.message || String(error));
+  }
+}
+
+function readVsCampaignManifest() {
+  const raw = $("vs-campaign-manifest").value.trim();
+  if (!raw) return [];
+  return JSON.parse(raw);
+}
+
+function readVsCampaignCommonSettings() {
+  const settings = {};
+  const outdir = $("vs-campaign-outdir").value.trim();
+  if (outdir) settings.outdir = outdir;
+  const cwd = $("vs-campaign-cwd").value.trim();
+  if (cwd) settings.cwd = cwd;
+  const timeout = $("vs-campaign-timeout").value.trim();
+  if (timeout) settings.timeout = Number(timeout);
+  settings.store_db = $("vs-campaign-store-db").checked;
+  return settings;
+}
+
+function renderVsCampaignPreview(payload) {
+  state.vsCampaignPreview = payload;
+  const panel = $("vs-campaign-preview-panel");
+  if (!panel) return;
+  panel.hidden = false;
+
+  if (!payload || payload.valid === undefined) {
+    $("vs-campaign-preview-summary").textContent = payload?.error || "Preview failed.";
+    $("vs-campaign-preview-details").innerHTML = "";
+    return;
+  }
+
+  $("vs-campaign-preview-summary").textContent = payload.valid
+    ? `Manifest is valid — ${(payload.resolved?.rows || []).length} row(s).`
+    : `Manifest is invalid — ${payload.errors.length} error(s).`;
+
+  const details = [];
+  if (payload.errors?.length) details.push(["error", "Errors", payload.errors.join(" ")]);
+  if (payload.warnings?.length) details.push(["warning", "Warnings", payload.warnings.join(" ")]);
+  $("vs-campaign-preview-details").innerHTML = details.map(([cssClass, label, value]) => `
+    <div class="${cssClass}"><strong>${escapeHtml(label)}</strong>${escapeHtml(value)}</div>
+  `).join("");
+}
+
+async function previewVsCampaign() {
+  let manifest;
+  try {
+    manifest = readVsCampaignManifest();
+  } catch (_error) {
+    toast("Manifest is not valid JSON.");
+    return;
+  }
+  if (!manifest.length) {
+    toast("Manifest must contain at least one row.");
+    return;
+  }
+  try {
+    const payload = await apiPost("/api/vs-campaign/preview", { manifest });
+    renderVsCampaignPreview(payload);
+  } catch (error) {
+    renderVsCampaignPreview({ error: error.message || String(error) });
+  }
+}
+
+function renderVsCampaignPlan(payload) {
+  state.vsCampaignPlan = payload;
+  const commandNode = $("vs-campaign-command");
+  const sendButton = $("vs-campaign-send-to-jobs");
+  if (!commandNode) return;
+  commandNode.hidden = false;
+  commandNode.textContent = payload?.shell_command || payload?.error || "Plan failed.";
+  if (sendButton) sendButton.disabled = !payload?.manifest;
+}
+
+async function planVsCampaign() {
+  let manifest;
+  try {
+    manifest = readVsCampaignManifest();
+  } catch (_error) {
+    toast("Manifest is not valid JSON.");
+    return;
+  }
+  if (!manifest.length) {
+    toast("Manifest must contain at least one row.");
+    return;
+  }
+  try {
+    const payload = await apiPost("/api/vs-campaign/plan", { manifest, ...readVsCampaignCommonSettings() });
+    renderVsCampaignPlan(payload);
+    renderVsCampaignPreview({ valid: true, errors: [], warnings: [], resolved: { rows: payload.manifest || [] } });
+  } catch (error) {
+    renderVsCampaignPlan({ error: error.message || String(error) });
+  }
+}
+
+function toggleJobsKindFields() {
+  const kind = $("jobs-launch-kind").value;
+  document.querySelectorAll("[data-jobs-kind-fields]").forEach((node) => {
+    node.hidden = node.dataset.jobsKindFields !== kind;
+  });
+}
+
+function sendVsCampaignPlanToJobs() {
+  const plan = state.vsCampaignPlan;
+  if (!plan?.manifest) {
+    toast("Generate a plan first.");
+    return;
+  }
+  $("jobs-launch-kind").value = plan.kind;
+  toggleJobsKindFields();
+  $("jobs-launch-args").value = (plan.args || []).join("\n");
+  $("jobs-launch-cwd").value = plan.cwd || "";
+  $("jobs-launch-manifest").value = JSON.stringify(plan.manifest, null, 2);
+  setActiveTab("jobs");
+  toast(`Campaign plan (${plan.manifest.length} row(s)) loaded into the Jobs tab — review and click Launch job.`);
+}
+
 function bindVsDesignPanel() {
+  $("vs-design-mode")?.addEventListener("change", toggleVsDesignMode);
   $("vs-design-discover")?.addEventListener("click", () => void discoverVsDesignCandidates());
   $("vs-design-receptor-select")?.addEventListener("change", (event) => {
     if (event.target.value) $("vs-design-receptor").value = event.target.value;
@@ -4424,7 +4595,12 @@ function bindVsDesignPanel() {
   $("vs-design-preview")?.addEventListener("click", () => void previewVsDesign());
   $("vs-design-plan")?.addEventListener("click", () => void planVsDesign());
   $("vs-design-send-to-jobs")?.addEventListener("click", sendVsDesignPlanToJobs);
+  $("vs-campaign-discover")?.addEventListener("click", () => void discoverVsCampaignCandidates());
+  $("vs-campaign-preview")?.addEventListener("click", () => void previewVsCampaign());
+  $("vs-campaign-plan")?.addEventListener("click", () => void planVsCampaign());
+  $("vs-campaign-send-to-jobs")?.addEventListener("click", sendVsCampaignPlanToJobs);
   toggleVsDesignKindFields();
+  toggleVsDesignMode();
 }
 
 function pathBasename(path) {

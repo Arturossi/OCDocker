@@ -53,8 +53,11 @@ from OCDocker.Workbench.AblationDesign import build_ablation_design_context
 from OCDocker.Workbench.AblationDesign import handle_ablation_design_post
 from OCDocker.Workbench.AblationProtocolSimilarity import build_ablation_protocol_similarity_analysis
 from OCDocker.Workbench.Templates import build_template_payload
+from OCDocker.Workbench.VSDesign import discover_vs_campaign_candidates
 from OCDocker.Workbench.VSDesign import discover_vs_design_candidates
+from OCDocker.Workbench.VSDesign import plan_vs_campaign
 from OCDocker.Workbench.VSDesign import plan_vs_design
+from OCDocker.Workbench.VSDesign import preview_vs_campaign
 from OCDocker.Workbench.VSDesign import preview_vs_design
 from OCDocker.Workbench.Web import build_workbench_web_asset
 from OCDocker.Workbench.Web import is_workbench_web_asset_path
@@ -115,6 +118,8 @@ class JobCreateRequest(BaseModel):
     kind: WorkbenchJobKind
     args: list[str] = []
     cwd: str | None = None
+    manifest: list[dict[str, Any]] | None = None
+    """Required for ``kind="vs_campaign"``; ignored for every other kind."""
 
 
 # Functions
@@ -157,6 +162,9 @@ def _endpoint_index(root: Path) -> dict[str, Any]:
             "/api/vs-design",
             "/api/vs-design/preview",
             "/api/vs-design/plan",
+            "/api/vs-campaign",
+            "/api/vs-campaign/preview",
+            "/api/vs-campaign/plan",
             "/api/schema",
             "/api/template",
             "/api/jobs",
@@ -785,6 +793,26 @@ def build_workbench_api_app(
         body = await _read_json_body(request)
         return plan_vs_design(root_path, body)
 
+    @app.get("/api/vs-campaign")
+    async def get_vs_campaign(input_dir: str | None = Query(None)) -> dict[str, Any]:
+        '''Discover a draft multi-sample manifest from an `input/{sample}/...` layout.'''
+
+        return discover_vs_campaign_candidates(root_path, input_dir=input_dir)
+
+    @app.post("/api/vs-campaign/preview")
+    async def post_vs_campaign_preview(request: Request) -> dict[str, Any]:
+        '''Validate a draft multi-sample VS campaign manifest without running anything.'''
+
+        body = await _read_json_body(request)
+        return preview_vs_campaign(root_path, body)
+
+    @app.post("/api/vs-campaign/plan")
+    async def post_vs_campaign_plan(request: Request) -> dict[str, Any]:
+        '''Build the `vs_campaign` job payload for a valid draft manifest.'''
+
+        body = await _read_json_body(request)
+        return plan_vs_campaign(root_path, body)
+
     @app.get("/api/schema")
     async def get_schema(name: list[str] = Query(default=[])) -> dict[str, Any]:
         '''Return the JSON Schema catalog for Workbench models.'''
@@ -832,14 +860,14 @@ def build_workbench_api_app(
     async def post_job(payload: JobCreateRequest) -> dict[str, Any]:
         '''Launch a new tracked Workbench job (requires a bearer token).'''
 
-        record = job_manager.launch(payload.kind, payload.args, cwd=payload.cwd)
+        record = job_manager.launch(payload.kind, payload.args, cwd=payload.cwd, manifest=payload.manifest)
         return _model_payload(record)
 
     @app.post("/api/jobs/plan")
     async def post_job_plan(payload: JobCreateRequest) -> dict[str, Any]:
         '''Preview the command a job would run, without launching it.'''
 
-        return job_manager.plan(payload.kind, payload.args, cwd=payload.cwd)
+        return job_manager.plan(payload.kind, payload.args, cwd=payload.cwd, manifest=payload.manifest)
 
     @app.get("/api/jobs")
     async def get_jobs() -> dict[str, Any]:

@@ -74,6 +74,26 @@ def _write_ignoring_sleeper(path) -> None:
     path.chmod(path.stat().st_mode | stat.S_IEXEC)
 
 
+def _write_ligand_gated_fake(path) -> None:
+    '''Write a fake ocdocker executable that fails only for a "bad" ligand.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        Script path to write.
+    '''
+
+    path.write_text(
+        "#!/bin/sh\n"
+        "case \"$*\" in\n"
+        "  *bad_ligand*) echo 'simulated docking failure' >&2; exit 1 ;;\n"
+        "  *) echo \"ran: $*\"; exit 0 ;;\n"
+        "esac\n",
+        encoding="utf-8",
+    )
+    path.chmod(path.stat().st_mode | stat.S_IEXEC)
+
+
 ## Public ##
 
 
@@ -244,3 +264,114 @@ def test_job_manager_logs_returns_stdout_and_stderr_previews(tmp_path) -> None:
     stdout_preview, stderr_preview = manager.logs(record.job_id)
     assert stdout_preview.exists
     assert stderr_preview.exists
+
+
+def test_vs_campaign_runs_every_row_and_continues_past_failure(tmp_path) -> None:
+    '''A campaign with one failing row still runs every row and reports an aggregate.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    fake = tmp_path / "fake_ocdocker.sh"
+    _write_ligand_gated_fake(fake)
+    manager = JobManager(tmp_path, executable=str(fake))
+    manifest = [
+        {"sample": "s1", "row_kind": "vs", "receptor": "r.pdb", "ligand": "l1.smi", "box": "b.pdb", "engines": ["vina"]},
+        {"sample": "s2", "row_kind": "vs", "receptor": "r.pdb", "ligand": "bad_ligand.smi", "box": "b.pdb", "engines": ["vina"]},
+        {"sample": "s3", "row_kind": "pipeline", "receptor": "r.pdb", "ligand": "l3.smi", "box": "b.pdb", "engines": ["vina", "smina"]},
+    ]
+
+    record = manager.launch("vs_campaign", [], manifest=manifest)
+    _wait_for_status(manager, record.job_id, "failed")
+
+    stdout_preview, stderr_preview = manager.logs(record.job_id)
+    assert "[sample 1/3] s1" in stdout_preview.text
+    assert "[sample 2/3] s2" in stdout_preview.text
+    assert "[sample 3/3] s3" in stdout_preview.text
+    assert "2/3 succeeded, 1 failed" in stdout_preview.text
+    assert "simulated docking failure" in stderr_preview.text
+
+
+def test_vs_campaign_all_rows_succeed_reports_completed(tmp_path) -> None:
+    '''A campaign with no failing rows is reported as completed.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    manager = JobManager(tmp_path, executable="true")
+    manifest = [
+        {"sample": "s1", "row_kind": "vs", "receptor": "r.pdb", "ligand": "l1.smi", "box": "b.pdb", "engines": ["vina"]},
+        {"sample": "s2", "row_kind": "vs", "receptor": "r.pdb", "ligand": "l2.smi", "box": "b.pdb", "engines": ["vina"]},
+    ]
+
+    record = manager.launch("vs_campaign", [], manifest=manifest)
+    _wait_for_status(manager, record.job_id, "completed")
+
+    stdout_preview, _stderr_preview = manager.logs(record.job_id)
+    assert "2/2 succeeded, 0 failed" in stdout_preview.text
+
+
+def test_vs_campaign_rejects_empty_manifest(tmp_path) -> None:
+    '''Launching a vs_campaign job without a manifest raises a structured JobError.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    manager = JobManager(tmp_path, executable="true")
+    with pytest.raises(JobError, match="non-empty manifest"):
+        manager.launch("vs_campaign", [])
+
+
+def test_vs_campaign_rejects_row_missing_required_field(tmp_path) -> None:
+    '''A manifest row missing a required field raises a structured JobError.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    manager = JobManager(tmp_path, executable="true")
+    with pytest.raises(JobError, match="missing 'box'"):
+        manager.plan("vs_campaign", [], manifest=[{"sample": "s1", "receptor": "r.pdb", "ligand": "l.smi", "engines": ["vina"]}])
+
+
+def test_vs_campaign_rejects_unknown_row_kind(tmp_path) -> None:
+    '''A manifest row with an unsupported row_kind raises a structured JobError.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    manager = JobManager(tmp_path, executable="true")
+    bad_row = {"sample": "s1", "row_kind": "ocscore_train", "receptor": "r.pdb", "ligand": "l.smi", "box": "b.pdb", "engines": ["vina"]}
+    with pytest.raises(JobError, match="unsupported row_kind"):
+        manager.plan("vs_campaign", [], manifest=[bad_row])
+
+
+def test_vs_campaign_common_args_applied_to_every_row(tmp_path) -> None:
+    '''Common args passed to launch() are appended to every row command.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    manager = JobManager(tmp_path, executable="true")
+    manifest = [{"sample": "s1", "row_kind": "vs", "receptor": "r.pdb", "ligand": "l.smi", "box": "b.pdb", "engines": ["vina"]}]
+
+    plan = manager.plan("vs_campaign", ["--store-db"], manifest=manifest)
+
+    assert "--store-db" in plan["command"][2]

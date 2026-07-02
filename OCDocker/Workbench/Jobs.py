@@ -50,6 +50,7 @@ JOB_KIND_COMMAND_PREFIX: dict[WorkbenchJobKind, tuple[str, ...]] = {
     "ocscore_train": ("ocscore", "train"),
     "ocscore_reduce": ("ocscore", "reduce"),
 }
+CAMPAIGN_ROW_KINDS = ("vs", "pipeline")
 
 # Classes
 ###############################################################################
@@ -94,17 +95,31 @@ class JobManager:
         self.jobs_dir.mkdir(parents=True, exist_ok=True)
         self._processes: dict[str, subprocess.Popen[Any]] = {}
 
-    def plan(self, kind: WorkbenchJobKind, args: Sequence[str], *, cwd: str | Path | None = None) -> dict[str, Any]:
+    def plan(
+        self,
+        kind: WorkbenchJobKind,
+        args: Sequence[str],
+        *,
+        cwd: str | Path | None = None,
+        manifest: Sequence[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         '''Compute the command a job would run, without launching it.
 
         Parameters
         ----------
         kind : WorkbenchJobKind
-            Job kind. Selects the ``ocdocker`` subcommand prefix.
+            Job kind. Selects the ``ocdocker`` subcommand prefix, or (for
+            ``"vs_campaign"``) the per-row subcommand used inside the
+            generated batch script.
         args : Sequence[str]
-            Extra command-line arguments appended after the subcommand prefix.
+            Extra command-line arguments appended after the subcommand
+            prefix (or, for ``"vs_campaign"``, appended to every row).
         cwd : str, pathlib.Path, or None
             Working directory the job would run in. Defaults to the served root.
+        manifest : Sequence[dict[str, Any]] or None
+            Required for ``kind="vs_campaign"``: one entry per sample
+            (``sample``, ``receptor``, ``ligand``, ``box``, ``engines``,
+            optional ``rescoring_engines``). Ignored for other kinds.
 
         Returns
         -------
@@ -114,23 +129,36 @@ class JobManager:
         Raises
         ------
         JobError
-            If ``kind`` is unsupported or ``cwd`` does not exist.
+            If ``kind`` is unsupported, ``cwd`` does not exist, or (for
+            ``"vs_campaign"``) ``manifest`` is missing or malformed.
         '''
 
-        command, resolved_cwd = self._resolve(kind, args, cwd=cwd)
+        command, resolved_cwd = self._resolve(kind, args, cwd=cwd, manifest=manifest)
         return {"kind": kind, "command": list(command), "cwd": str(resolved_cwd)}
 
-    def launch(self, kind: WorkbenchJobKind, args: Sequence[str], *, cwd: str | Path | None = None) -> WorkbenchJobRecord:
+    def launch(
+        self,
+        kind: WorkbenchJobKind,
+        args: Sequence[str],
+        *,
+        cwd: str | Path | None = None,
+        manifest: Sequence[dict[str, Any]] | None = None,
+    ) -> WorkbenchJobRecord:
         '''Launch one tracked job as a background subprocess.
 
         Parameters
         ----------
         kind : WorkbenchJobKind
-            Job kind. Selects the ``ocdocker`` subcommand prefix.
+            Job kind. Selects the ``ocdocker`` subcommand prefix, or (for
+            ``"vs_campaign"``) the per-row subcommand used inside the
+            generated batch script.
         args : Sequence[str]
-            Extra command-line arguments appended after the subcommand prefix.
+            Extra command-line arguments appended after the subcommand
+            prefix (or, for ``"vs_campaign"``, appended to every row).
         cwd : str, pathlib.Path, or None
             Working directory for the launched process. Defaults to the served root.
+        manifest : Sequence[dict[str, Any]] or None
+            Required for ``kind="vs_campaign"``: see :meth:`plan`.
 
         Returns
         -------
@@ -140,11 +168,12 @@ class JobManager:
         Raises
         ------
         JobError
-            If ``kind`` is unsupported, ``cwd`` does not exist, or the subprocess
-            could not be launched.
+            If ``kind`` is unsupported, ``cwd`` does not exist, ``manifest`` is
+            missing/malformed for ``"vs_campaign"``, or the subprocess could
+            not be launched.
         '''
 
-        command, resolved_cwd = self._resolve(kind, args, cwd=cwd)
+        command, resolved_cwd = self._resolve(kind, args, cwd=cwd, manifest=manifest)
         job_id = uuid.uuid4().hex[:12]
         job_dir = self.jobs_dir / job_id
         job_dir.mkdir(parents=True)
@@ -280,15 +309,26 @@ class JobManager:
         self._processes.pop(job_id, None)
         return self._finalize(record, status="cancelled", return_code=None)
 
-    def _resolve(self, kind: WorkbenchJobKind, args: Sequence[str], *, cwd: str | Path | None) -> tuple[tuple[str, ...], Path]:
-        prefix = JOB_KIND_COMMAND_PREFIX.get(kind)
-        if prefix is None:
-            valid = ", ".join(sorted(JOB_KIND_COMMAND_PREFIX))
-            raise JobError(f"Unsupported job kind {kind!r}. Expected one of: {valid}.")
-
+    def _resolve(
+        self,
+        kind: WorkbenchJobKind,
+        args: Sequence[str],
+        *,
+        cwd: str | Path | None,
+        manifest: Sequence[dict[str, Any]] | None = None,
+    ) -> tuple[tuple[str, ...], Path]:
         resolved_cwd = Path(cwd).resolve() if cwd is not None else self.root
         if not resolved_cwd.is_dir():
             raise JobError(f"Job working directory does not exist: {resolved_cwd}")
+
+        if kind == "vs_campaign":
+            script = build_campaign_script(manifest, args, executable=self.executable)
+            return ("/bin/sh", "-c", script), resolved_cwd
+
+        prefix = JOB_KIND_COMMAND_PREFIX.get(kind)
+        if prefix is None:
+            valid = ", ".join(sorted((*JOB_KIND_COMMAND_PREFIX, "vs_campaign")))
+            raise JobError(f"Unsupported job kind {kind!r}. Expected one of: {valid}.")
 
         command = (self.executable, *prefix, *(str(item) for item in args))
         return command, resolved_cwd
@@ -370,9 +410,83 @@ def _pid_alive(pid: int | None) -> bool:
         return True
 
 
+## Public ##
+
+
+def build_campaign_script(manifest: Sequence[dict[str, Any]] | None, args: Sequence[str], *, executable: str = "ocdocker") -> str:
+    '''Build a POSIX shell script that runs one ``ocdocker`` command per manifest row.
+
+    Shared by :meth:`JobManager.launch`/:meth:`JobManager.plan` (to actually
+    build/preview a ``"vs_campaign"`` job's command) and
+    :func:`OCDocker.Workbench.VSDesign.plan_vs_campaign` (to preview the same
+    script before a job is ever created) — one source of truth for what a
+    campaign script looks like.
+
+    Parameters
+    ----------
+    manifest : Sequence[dict[str, Any]] or None
+        One entry per sample: ``sample``, ``row_kind`` (``"vs"`` or
+        ``"pipeline"``), ``receptor``, ``ligand``, ``box``, ``engines``
+        (non-empty), optional ``rescoring_engines``.
+    args : Sequence[str]
+        Flags appended to every row's command (common to the whole batch).
+    executable : str
+        ``ocdocker`` executable invoked for each row.
+
+    Returns
+    -------
+    str
+        Generated shell script. Continues past a failing row; exits
+        non-zero only if any row failed.
+
+    Raises
+    ------
+    JobError
+        If ``manifest`` is empty or a row is missing a required field.
+    '''
+
+    if not manifest:
+        raise JobError("vs_campaign jobs require a non-empty manifest.")
+
+    common_args = [str(item) for item in args]
+    lines = ["set -u", f"total={len(manifest)}", "failed=0"]
+    for index, row in enumerate(manifest, start=1):
+        row_kind = str(row.get("row_kind") or "vs")
+        if row_kind not in CAMPAIGN_ROW_KINDS:
+            raise JobError(f"Manifest row {index} has an unsupported row_kind: {row_kind!r}.")
+        prefix = JOB_KIND_COMMAND_PREFIX[row_kind]
+        sample = str(row.get("sample") or f"row-{index}")
+        for key in ("receptor", "ligand", "box"):
+            if not row.get(key):
+                raise JobError(f"Manifest row {index} ({sample}) is missing {key!r}.")
+        engines = [str(item) for item in (row.get("engines") or []) if str(item).strip()]
+        if not engines:
+            raise JobError(f"Manifest row {index} ({sample}) has no engines.")
+
+        row_command = [executable, *prefix, "--receptor", str(row["receptor"]), "--ligand", str(row["ligand"]), "--box", str(row["box"])]
+        if row_kind == "vs":
+            row_command.extend(["--engine", engines[0]])
+        else:
+            row_command.extend(["--engines", ",".join(engines)])
+            rescoring_engines = [str(item) for item in (row.get("rescoring_engines") or []) if str(item).strip()]
+            if rescoring_engines:
+                row_command.extend(["--rescoring-engines", ",".join(rescoring_engines)])
+        row_command.extend(common_args)
+
+        quoted = " ".join(shlex.quote(part) for part in row_command)
+        lines.append(f"echo '[sample {index}/{len(manifest)}] {shlex.quote(sample)}'")
+        lines.append(f"{quoted} || failed=$((failed+1))")
+
+    lines.append('echo "[vs_campaign] completed: $((total-failed))/${total} succeeded, ${failed} failed"')
+    lines.append('if [ "$failed" -gt 0 ]; then exit 1; fi')
+    return "\n".join(lines)
+
+
 __all__ = [
+    "CAMPAIGN_ROW_KINDS",
     "JOB_KIND_COMMAND_PREFIX",
     "WORKBENCH_JOBS_DIRNAME",
     "JobError",
     "JobManager",
+    "build_campaign_script",
 ]
