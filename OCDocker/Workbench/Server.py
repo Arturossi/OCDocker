@@ -53,6 +53,9 @@ from OCDocker.Workbench.AblationDesign import build_ablation_design_context
 from OCDocker.Workbench.AblationDesign import handle_ablation_design_post
 from OCDocker.Workbench.AblationProtocolSimilarity import build_ablation_protocol_similarity_analysis
 from OCDocker.Workbench.Templates import build_template_payload
+from OCDocker.Workbench.VSDesign import discover_vs_design_candidates
+from OCDocker.Workbench.VSDesign import plan_vs_design
+from OCDocker.Workbench.VSDesign import preview_vs_design
 from OCDocker.Workbench.Web import build_workbench_web_asset
 from OCDocker.Workbench.Web import is_workbench_web_asset_path
 from OCDocker.Workbench.Web import WORKBENCH_WEB_ROUTES
@@ -151,6 +154,9 @@ def _endpoint_index(root: Path) -> dict[str, Any]:
             "/api/ablation-design/plan",
             "/api/ablation-design/write",
             "/api/ablation-protocol-similarity",
+            "/api/vs-design",
+            "/api/vs-design/preview",
+            "/api/vs-design/plan",
             "/api/schema",
             "/api/template",
             "/api/jobs",
@@ -758,6 +764,26 @@ def build_workbench_api_app(
         if include_catalog_only is not None:
             query["include_catalog_only"] = [include_catalog_only]
         return build_workbench_api_payload(root_path, "/api/ablation-protocol-similarity", query, max_depth=max_depth)
+
+    @app.get("/api/vs-design")
+    async def get_vs_design(input_dir: str | None = Query(None)) -> dict[str, Any]:
+        '''Discover receptor/ligand/box candidates for a VS design under the served root.'''
+
+        return discover_vs_design_candidates(root_path, input_dir=input_dir, max_depth=max_depth)
+
+    @app.post("/api/vs-design/preview")
+    async def post_vs_design_preview(request: Request) -> dict[str, Any]:
+        '''Validate one draft VS design (receptor/ligand/box/engine) without running anything.'''
+
+        body = await _read_json_body(request)
+        return preview_vs_design(root_path, body)
+
+    @app.post("/api/vs-design/plan")
+    async def post_vs_design_plan(request: Request) -> dict[str, Any]:
+        '''Build the exact `ocdocker vs`/`pipeline` argv for a valid draft VS design.'''
+
+        body = await _read_json_body(request)
+        return plan_vs_design(root_path, body)
 
     @app.get("/api/schema")
     async def get_schema(name: list[str] = Query(default=[])) -> dict[str, Any]:

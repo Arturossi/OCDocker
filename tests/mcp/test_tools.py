@@ -84,6 +84,9 @@ def test_build_ocdocker_mcp_server_registers_curated_tools() -> None:
         "get_ablation_design_context",
         "preview_ablation_design",
         "plan_ablation_design",
+        "get_vs_design_context",
+        "preview_vs_design",
+        "plan_vs_design",
         "get_protocol_similarity",
         "list_jobs",
         "get_job",
@@ -206,3 +209,55 @@ def test_run_job_with_confirm_launches_and_cancel_without_confirm_previews(live_
     assert launched["launched"] is True
     assert preview["cancelled"] is False
     assert preview["job"]["job_id"] == job_id
+
+
+def test_vs_design_flow_discover_preview_plan(live_workbench_api, tmp_path) -> None:
+    '''get_vs_design_context / preview_vs_design / plan_vs_design work end to end.
+
+    Parameters
+    ----------
+    live_workbench_api : str
+        Base URL of a running Workbench API (fixture).
+    tmp_path : pathlib.Path
+        Temporary served root (same one the fixture served).
+    '''
+
+    (tmp_path / "receptor.pdb").write_text("ATOM", encoding="utf-8")
+    ligand_dir = tmp_path / "ligands"
+    ligand_dir.mkdir()
+    (ligand_dir / "ligand.smi").write_text("CCO", encoding="utf-8")
+    (tmp_path / "box.pdb").write_text("REMARK", encoding="utf-8")
+
+    async def _run():
+        server = build_ocdocker_mcp_server(base_url=live_workbench_api)
+        _content, context = await server.call_tool("get_vs_design_context", {})
+        draft = {
+            "kind": "vs",
+            "engine": "smina",
+            "receptor": context["candidates"]["receptors"][0]["path"],
+            "ligand": context["candidates"]["ligands"][0]["path"],
+            "box": context["candidates"]["boxes"][0]["path"],
+        }
+        _content, preview = await server.call_tool("preview_vs_design", {"draft": draft})
+        _content, plan = await server.call_tool("plan_vs_design", {"draft": draft})
+        return context, preview, plan
+
+    context, preview, plan = asyncio.run(_run())
+    assert len(context["candidates"]["receptors"]) == 1
+    assert preview["valid"] is True
+    assert plan["kind"] == "vs"
+    assert "--engine" in plan["args"]
+
+
+def test_plan_vs_design_raises_for_invalid_draft(live_workbench_api) -> None:
+    '''plan_vs_design surfaces an invalid draft as a structured tool error.
+
+    Parameters
+    ----------
+    live_workbench_api : str
+        Base URL of a running Workbench API (fixture).
+    '''
+
+    server = build_ocdocker_mcp_server(base_url=live_workbench_api)
+    with pytest.raises(ToolError, match="Cannot plan an invalid VS design"):
+        asyncio.run(server.call_tool("plan_vs_design", {"draft": {"kind": "vs", "engine": "bogus"}}))

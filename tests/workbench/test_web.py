@@ -56,6 +56,14 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b"bindAblationDesignPanel" in script
     assert b"/api/ablation-design" in script
     assert b"ablation-design-panel" in style
+    assert b"tab-vs-design" in body
+    assert b"panel-vs-design" in body
+    assert b">VS</button>" in body
+    assert b"Discover inputs" in body
+    assert b"bindVsDesignPanel" in script
+    assert b"/api/vs-design" in script
+    assert b"sendVsDesignPlanToJobs" in script
+    assert b"vs-design-discover-panel" in style
     assert b"setActiveTab" in script
     assert b"bindAppTabs" in script
     assert b"bindCollapsibleZones" in script

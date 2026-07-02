@@ -1200,6 +1200,50 @@ body.figure-lightbox-open { overflow: hidden; }
 .jobs-launch-actions { margin-top: 14px; }
 .jobs-log { margin: 8px 0 16px; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; overflow: auto; max-height: 280px; }
 .badge.cancelled { background: var(--badge-missing-bg); color: var(--warn); }
+.vs-design-discover-panel, .vs-design-run-panel, .vs-design-output-panel { margin-top: 12px; }
+.vs-design-note { margin: 6px 0 12px; max-width: 72ch; }
+.vs-design-fields { display: grid; gap: 14px; margin-top: 10px; }
+.vs-design-fields[hidden] { display: none; }
+.vs-design-fields-discover, .vs-design-fields-candidates { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.vs-design-fields-run, .vs-design-fields-vs, .vs-design-fields-pipeline, .vs-design-fields-common { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.vs-design-field-wide { grid-column: 1 / -1; }
+.vs-design-panel .field.vs-design-field, .vs-design-discover-panel .field.vs-design-field, .vs-design-run-panel .field.vs-design-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.vs-design-discover-panel input[type="text"], .vs-design-discover-panel select,
+.vs-design-run-panel input[type="text"], .vs-design-run-panel input[type="number"], .vs-design-run-panel select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-size: 14px;
+  line-height: 1.4;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-input);
+  color: var(--ink);
+}
+.vs-design-discover-panel select, .vs-design-run-panel select { min-height: 44px; cursor: pointer; }
+.vs-design-checkbox { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer; align-self: end; }
+.vs-design-checkbox input { width: 16px; height: 16px; min-width: 16px; margin: 0; cursor: pointer; }
+.vs-design-discover-actions, .vs-design-actions { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+.vs-design-issues { margin-top: 10px; }
+.vs-design-preview { margin-top: 14px; }
+.vs-design-preview-summary { font-size: 14px; line-height: 1.5; color: var(--text); margin-bottom: 10px; }
+.vs-design-preview-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; font-size: 13px; }
+.vs-design-preview-details div { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--bg); line-height: 1.45; word-break: break-word; }
+.vs-design-preview-details strong { display: block; margin-bottom: 6px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.vs-design-preview-details div.error { border-color: #d9534f; }
+.vs-design-preview-details div.warning { border-color: #d4a017; }
+.vs-design-code { margin: 14px 0 0; padding: 14px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; overflow: auto; max-height: 320px; }
+@media (max-width: 880px) {
+  .vs-design-fields-discover, .vs-design-fields-candidates, .vs-design-fields-run, .vs-design-fields-vs, .vs-design-fields-pipeline, .vs-design-fields-common { grid-template-columns: 1fr; }
+}
 @media (max-width: 880px) {
   .jobs-fields-token, .jobs-fields-launch { grid-template-columns: 1fr; }
 }

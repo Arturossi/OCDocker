@@ -43,6 +43,10 @@ MCP_SERVER_NAME = "ocdocker-workbench"
 MCP_SERVER_INSTRUCTIONS = (
     "Tools for inspecting an OCDocker Workbench workspace (OCScore studies, ablations, jobs) and for "
     "designing, launching, and monitoring vs/pipeline/ocscore_train/ocscore_reduce jobs. "
+    "For a single-target docking run, use get_vs_design_context to discover receptor/ligand/box "
+    "candidates, preview_vs_design to validate a draft, and plan_vs_design to get the exact command "
+    "- then pass its kind/args/cwd to run_job. There is no multi-target/library batch screening yet; "
+    "each design covers exactly one receptor, one ligand, and one box. "
     "Read/plan/preview tools are always safe to call. run_job and cancel_job execute real, "
     "possibly long-running work: call plan_job first, show the plan to the user, and only call "
     "run_job with confirm=True after they agree. Never set confirm=True without an explicit "
@@ -172,6 +176,49 @@ def build_ocdocker_mcp_server(*, base_url: str = DEFAULT_WORKBENCH_API_URL) -> F
         '''
 
         return await _request(client, "POST", "/api/ablation-design/plan", json=policy)
+
+    @server.tool()
+    async def get_vs_design_context(input_dir: str | None = None) -> dict[str, Any]:
+        '''Discover receptor/ligand/box candidates for designing a `vs`/`pipeline` run.
+
+        Best-effort scan by filename/extension heuristics, not a fixed layout —
+        there is no single canonical input location in OCDocker. Results are
+        candidates to choose from, not a requirement; an empty scan is not an
+        error. ``input_dir`` optionally narrows the scan to one subdirectory of
+        the served root instead of scanning the whole workspace.
+        '''
+
+        params: dict[str, Any] = {}
+        if input_dir is not None:
+            params["input_dir"] = input_dir
+        return await _request(client, "GET", "/api/vs-design", params=params)
+
+    @server.tool()
+    async def preview_vs_design(draft: dict[str, Any]) -> dict[str, Any]:
+        '''Validate one draft single-target VS design without running anything.
+
+        ``draft`` is an object with ``kind`` ("vs" or "pipeline"), ``receptor``,
+        ``ligand``, ``box`` (paths — absolute, or relative to the served root),
+        plus kind-specific fields: ``engine`` for "vs", or ``engines`` /
+        ``rescoring_engines`` (lists) for "pipeline". Only single-target design
+        is supported — one receptor, one ligand, one box per draft; there is no
+        multi-compound library/batch screening in OCDocker today.
+        '''
+
+        return await _request(client, "POST", "/api/vs-design/preview", json=draft)
+
+    @server.tool()
+    async def plan_vs_design(draft: dict[str, Any]) -> dict[str, Any]:
+        '''Build the exact `ocdocker vs`/`pipeline` command for a valid draft design.
+
+        Same ``draft`` body shape as ``preview_vs_design`` — call that first and
+        show the user any errors/warnings. On success, returns
+        ``{"kind", "args", "cwd", "shell_command"}`` ready to hand directly to
+        ``run_job`` (as ``kind``/``args``/``cwd``) to actually launch it, subject
+        to the same ``confirm=True`` gate as every other execute tool.
+        '''
+
+        return await _request(client, "POST", "/api/vs-design/plan", json=draft)
 
     @server.tool()
     async def get_protocol_similarity(metric: str | None = None, reference: str | None = None) -> dict[str, Any]:

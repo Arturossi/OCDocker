@@ -88,7 +88,7 @@ understands the confirmation-gating contract before it calls anything:
 Tool reference
 ---------------
 
-Twelve tools are registered, in two groups. All tools return the parsed JSON
+Fifteen tools are registered, in two groups. All tools return the parsed JSON
 body of the underlying Workbench API response (a plain ``dict``); tool
 functions never raise a raw ``httpx`` exception — every failure surfaces as
 :class:`OCDocker.MCP.Server.OCDockerMCPError` (see `Error handling`_ below).
@@ -115,6 +115,15 @@ functions never raise a raw ``httpx`` exception — every failure surfaces as
    * - ``plan_ablation_design``
      - ``policy: dict``
      - ``POST /api/ablation-design/plan``
+   * - ``get_vs_design_context``
+     - ``input_dir: str | None``
+     - ``GET /api/vs-design``
+   * - ``preview_vs_design``
+     - ``draft: dict``
+     - ``POST /api/vs-design/preview``
+   * - ``plan_vs_design``
+     - ``draft: dict``
+     - ``POST /api/vs-design/plan``
    * - ``get_protocol_similarity``
      - ``metric: str | None``, ``reference: str | None``
      - ``GET /api/ablation-protocol-similarity``
@@ -188,6 +197,44 @@ Read and plan tools
    policy file or launch training; use ``run_job`` with
    ``kind="ocscore_train"`` for that once the design is finalized. See
    :func:`OCDocker.Workbench.AblationDesign.plan_ablation_design`.
+
+``get_vs_design_context(input_dir=None)``
+   Discover receptor/ligand/box candidates for designing a single-target
+   ``vs``/``pipeline`` run. Best-effort, depth-limited scan by
+   filename/extension heuristics (receptor: ``.pdb``/``.pdbqt`` with
+   "receptor" in the name; ligand: ``.smi``/``.sdf``/``.mol2``/``.pdbqt``
+   with "ligand" in the name or parent directory; box: ``.pdb``/``.txt``
+   starting with "box") — there is no single fixed input layout in
+   OCDocker, so results are candidates to choose from, never a
+   requirement. ``input_dir`` optionally narrows the scan to one
+   subdirectory of the served root instead of the whole workspace. Same
+   payload as ``GET /api/vs-design``. See
+   :func:`OCDocker.Workbench.VSDesign.discover_vs_design_candidates`.
+
+``preview_vs_design(draft)``
+   Validate one draft single-target VS design without running anything.
+   ``draft`` is a JSON object with ``kind`` (``"vs"`` or ``"pipeline"``),
+   ``receptor``, ``ligand``, ``box`` (paths — absolute, or relative to the
+   served root), plus kind-specific fields: ``engine`` for ``"vs"``, or
+   ``engines``/``rescoring_engines`` (lists) for ``"pipeline"``. Checks
+   path existence, extension sanity, and engine names against
+   :data:`OCDocker.Workbench.Models.VALID_DOCKING_ENGINES`/
+   :data:`OCDocker.Workbench.Models.VALID_RESCORING_ENGINES`. Only
+   single-target design is supported — one receptor, one ligand, one box
+   per draft; OCDocker has no multi-compound library/batch screening
+   command today. Same payload as ``POST /api/vs-design/preview``. See
+   :func:`OCDocker.Workbench.VSDesign.preview_vs_design`.
+
+``plan_vs_design(draft)``
+   Build the exact ``ocdocker vs``/``pipeline`` argv for a valid draft
+   design. Same ``draft`` body shape as ``preview_vs_design`` — call that
+   first and show the user any errors/warnings. On success returns
+   ``{"kind", "args", "cwd", "shell_command"}``, ready to hand directly to
+   ``run_job`` (as ``kind``/``args``/``cwd``) to actually launch it,
+   subject to the same ``confirm=True`` gate as every other execute tool.
+   Raises :class:`~OCDocker.MCP.Server.OCDockerMCPError` if the draft is
+   invalid. Same payload as ``POST /api/vs-design/plan``. See
+   :func:`OCDocker.Workbench.VSDesign.plan_vs_design`.
 
 ``get_protocol_similarity(metric=None, reference=None)``
    Return pairwise Jaccard feature-similarity across ablation protocols,

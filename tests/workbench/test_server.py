@@ -186,3 +186,110 @@ def test_build_workbench_api_app_health_and_unknown_endpoint(tmp_path) -> None:
     missing = client.get("/api/does-not-exist")
     assert missing.status_code == 404
     assert missing.json()["ok"] is False
+
+
+def _write_vs_design_workspace(root) -> dict:
+    '''Write a synthetic receptor/ligand/box workspace for VS design API tests.
+
+    Parameters
+    ----------
+    root : pathlib.Path
+        Temporary root.
+
+    Returns
+    -------
+    dict
+        Absolute paths for the written receptor, ligand, and box files.
+    '''
+
+    receptor = root / "receptor.pdb"
+    receptor.write_text("ATOM", encoding="utf-8")
+    ligand_dir = root / "compounds" / "ligands" / "ligand"
+    ligand_dir.mkdir(parents=True)
+    ligand = ligand_dir / "ligand.smi"
+    ligand.write_text("CCO", encoding="utf-8")
+    box = root / "box.pdb"
+    box.write_text("REMARK", encoding="utf-8")
+    return {"receptor": str(receptor), "ligand": str(ligand), "box": str(box)}
+
+
+def test_vs_design_endpoints_are_listed_in_index(tmp_path) -> None:
+    '''The endpoint index advertises the VS design routes.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    app = build_workbench_api_app(tmp_path, max_depth=6)
+    client = TestClient(app)
+
+    payload = client.get("/api/").json()
+    assert "/api/vs-design" in payload["endpoints"]
+    assert "/api/vs-design/preview" in payload["endpoints"]
+    assert "/api/vs-design/plan" in payload["endpoints"]
+
+
+def test_get_vs_design_discovers_candidates(tmp_path) -> None:
+    '''GET /api/vs-design discovers receptor/ligand/box candidates.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    _write_vs_design_workspace(tmp_path)
+    app = build_workbench_api_app(tmp_path, max_depth=6)
+    client = TestClient(app)
+
+    response = client.get("/api/vs-design")
+
+    assert response.status_code == 200
+    candidates = response.json()["candidates"]
+    assert len(candidates["receptors"]) == 1
+    assert len(candidates["ligands"]) == 1
+    assert len(candidates["boxes"]) == 1
+
+
+def test_vs_design_preview_and_plan_round_trip(tmp_path) -> None:
+    '''POST preview then plan for a valid draft returns a launchable command.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    paths = _write_vs_design_workspace(tmp_path)
+    app = build_workbench_api_app(tmp_path, max_depth=6)
+    client = TestClient(app)
+    draft = {"kind": "vs", "engine": "smina", **paths}
+
+    preview = client.post("/api/vs-design/preview", json=draft)
+    assert preview.status_code == 200
+    assert preview.json()["valid"] is True
+
+    plan = client.post("/api/vs-design/plan", json=draft)
+    assert plan.status_code == 200
+    assert plan.json()["kind"] == "vs"
+    assert "--engine" in plan.json()["args"]
+
+
+def test_vs_design_plan_on_invalid_draft_returns_400(tmp_path) -> None:
+    '''POST plan on an invalid draft returns a structured 400, not a 500.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    app = build_workbench_api_app(tmp_path, max_depth=6)
+    client = TestClient(app)
+
+    response = client.post("/api/vs-design/plan", json={"kind": "vs", "engine": "bogus"})
+
+    assert response.status_code == 400
+    assert response.json()["ok"] is False

@@ -144,6 +144,9 @@ from OCDocker.Workbench.Status import inspect_run_status
 from OCDocker.Workbench.Templates import available_template_names
 from OCDocker.Workbench.Templates import build_template_payload
 from OCDocker.Workbench.Templates import build_template_spec
+from OCDocker.Workbench.VSDesign import discover_vs_design_candidates
+from OCDocker.Workbench.VSDesign import plan_vs_design
+from OCDocker.Workbench.VSDesign import preview_vs_design
 from OCDocker.Workbench.Web import build_workbench_web_asset
 from OCDocker.Workbench.Web import is_workbench_web_asset_path
 
@@ -320,10 +323,13 @@ __all__ = [
     "build_publication_export",
     "discover_result_manifest_paths",
     "discover_run_manifest_paths",
+    "discover_vs_design_candidates",
     "inspect_run_status",
     "is_workbench_web_asset_path",
     "model_to_data",
     "plan_command",
+    "plan_vs_design",
+    "preview_vs_design",
     "plan_ablation_design",
     "preview_ablation_design",
     "write_ablation_design_policy",

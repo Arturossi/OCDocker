@@ -4,6 +4,19 @@ Changelog
 Unreleased
 ----------
 
+VS/pipeline design assistant
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+New ``/api/vs-design*`` endpoints and matching MCP tools
+(``get_vs_design_context``, ``preview_vs_design``, ``plan_vs_design``,
+:mod:`OCDocker.Workbench.VSDesign`) mirror the existing ablation-design flow
+for single-target ``vs``/``pipeline`` docking runs: discover receptor/ligand/box
+candidates in a workspace, validate a draft selection (paths, engine names),
+and preview the exact command before launching it through the existing
+``run_job``/Jobs tab. Read-only and unauthenticated, like ablation design.
+Covers one receptor/one ligand/one box per draft only — OCDocker has no
+multi-compound library/batch screening command to design against yet.
+
 MCP server for LLM-driven OCDocker orchestration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
