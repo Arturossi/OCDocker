@@ -11,6 +11,8 @@ These tests keep pyproject optional extras and requirements.txt aligned.
 # Imports
 ###############################################################################
 import importlib
+import subprocess
+import sys
 import tomllib
 
 from pathlib import Path
@@ -245,7 +247,7 @@ def test_all_extra_is_superset_of_runtime_extras():
 
     extras = _load_pyproject()["project"]["optional-dependencies"]
     all_names = {_dep_name(dep) for dep in extras["all"]}
-    for group in ("analysis", "docking", "db", "ml", "workflow", "cloud", "gpu"):
+    for group in ("analysis", "docking", "db", "ml", "workflow", "cloud", "gpu", "api", "mcp"):
         group_names = {_dep_name(dep) for dep in extras[group]}
         missing = group_names - all_names
         assert not missing, f"all extra missing packages from {group}: {sorted(missing)}"
@@ -280,3 +282,34 @@ def test_python_version_metadata_is_aligned():
     environment_text = Path("environment.yml").read_text(encoding="utf-8")
     assert "python=3.11" in environment_text
     assert "pyproject.toml" in environment_text
+
+
+@pytest.mark.order(486)
+def test_cli_parser_builds_without_api_or_mcp_extras():
+    '''The CLI parser (all commands) builds without the api/mcp extras installed.
+
+    OCDocker.Workbench.Server requires FastAPI (the `api` extra) and
+    OCDocker.MCP.Server requires the mcp/httpx stack (the `mcp` extra). Neither
+    should be required just to build the argparse parser or run unrelated
+    commands like `ocdocker vs --help`.
+    '''
+
+    script = (
+        "import sys, builtins\n"
+        "blocked = {'fastapi', 'uvicorn', 'starlette', 'mcp', 'httpx'}\n"
+        "_orig_import = builtins.__import__\n"
+        "def _guard(name, *a, **k):\n"
+        "    if name.split('.')[0] in blocked:\n"
+        "        raise ModuleNotFoundError(name)\n"
+        "    return _orig_import(name, *a, **k)\n"
+        "builtins.__import__ = _guard\n"
+        "from OCDocker.CLI.parser import build_parser\n"
+        "parser = build_parser()\n"
+        "for argv in (['workbench', 'serve', '--help'], ['mcp', 'serve', '--help'], ['vs', '--help']):\n"
+        "    try:\n"
+        "        parser.parse_args(argv)\n"
+        "    except SystemExit as exc:\n"
+        "        assert exc.code == 0, f'{argv} exited {exc.code}'\n"
+    )
+    result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr

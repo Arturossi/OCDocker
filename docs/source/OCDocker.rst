@@ -12,6 +12,7 @@ Subpackages
    OCDocker.Docking
    OCDocker.CLI
    OCDocker.Console
+   OCDocker.MCP
    OCDocker.OCScore
    OCDocker.Processing
    OCDocker.Rescoring

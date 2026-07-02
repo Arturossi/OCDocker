@@ -15,9 +15,10 @@ figure sections through ``/api/ocscore-workspace``. The dashboard **Design**
 tab composes custom feature-policy ablations interactively: clone bundled
 policies, preview kept/excluded features against workspace metadata, and generate
 read-only YAML plus ``ocdocker ocscore train`` command plans through
-``/api/ablation-design``. Design and execution-control helpers remain guarded
-and explicit; the server does not launch or stop OCScore runs as part of
-read-only inspection.
+``/api/ablation-design``. Job-execute endpoints (``/api/jobs*``) can launch,
+track, and cancel ``vs``, ``pipeline``, ``ocscore train``, and
+``ocscore reduce`` runs as local subprocesses; these endpoints require a
+bearer token while inspection endpoints remain read-only and unauthenticated.
 
 Submodules
 ----------
@@ -30,12 +31,14 @@ Submodules
    OCDocker.Workbench.AblationDesign
    OCDocker.Workbench.AblationProtocolSimilarity
    OCDocker.Workbench.Artifacts
+   OCDocker.Workbench.Auth
    OCDocker.Workbench.Bundle
    OCDocker.Workbench.Comparison
    OCDocker.Workbench.Decision
    OCDocker.Workbench.Evidence
    OCDocker.Workbench.Export
    OCDocker.Workbench.IO
+   OCDocker.Workbench.Jobs
    OCDocker.Workbench.Launch
    OCDocker.Workbench.Leaderboard
    OCDocker.Workbench.MetricsMatrix

@@ -84,6 +84,10 @@ analysis = [
   "sympy>=1.13.3",
   "tifffile>=2024.9.20",
 ]
+api = [
+  "fastapi>=0.115.0",
+  "uvicorn>=0.32.0",
+]
 build = [
   "build>=1.2.2.post1",
   "setuptools>=80.8.0",
@@ -131,6 +135,9 @@ docs = [
 gpu = [
   "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
 ]
+mcp = [
+  "mcp>=1.28.0",
+]
 ml = [
   "numpy>=1.26.4",
   "optuna>=3.6.1",
@@ -157,6 +164,7 @@ all = [
   "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
   "dcor>=0.6",
   "dropbox>=12.0.2",
+  "fastapi>=0.115.0",
   "fsspec>=2024.10.0",
   "gmpy2>=2.1.5",
   "google-cloud-storage>=2.18.2",
@@ -167,6 +175,7 @@ all = [
   "lime>=0.2.0.1",
   "llvmlite>=0.43.0",
   "matplotlib>=3.9.2",
+  "mcp>=1.28.0",
   "mpmath>=1.3.0",
   "networkx>=3.3",
   "numba>=0.60.0",
@@ -200,6 +209,7 @@ all = [
   "torchsummary",
   "torchviz",
   "torchvision>=0.19.1",
+  "uvicorn>=0.32.0",
   "visualtorch>=0.2.3",
   "xgboost>=2.1.1",
 ]
@@ -209,6 +219,7 @@ full = [
   "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
   "dcor>=0.6",
   "dropbox>=12.0.2",
+  "fastapi>=0.115.0",
   "fsspec>=2024.10.0",
   "furo",
   "gmpy2>=2.1.5",
@@ -220,6 +231,7 @@ full = [
   "lime>=0.2.0.1",
   "llvmlite>=0.43.0",
   "matplotlib>=3.9.2",
+  "mcp>=1.28.0",
   "mpmath>=1.3.0",
   "myst-parser>=4.0.1",
   "networkx>=3.3",
@@ -257,6 +269,7 @@ full = [
   "torchsummary",
   "torchviz",
   "torchvision>=0.19.1",
+  "uvicorn>=0.32.0",
   "visualtorch>=0.2.3",
   "xgboost>=2.1.1",
 ]

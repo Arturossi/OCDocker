@@ -9,6 +9,7 @@ from OCDocker.CLI import console as cli_console
 from OCDocker.CLI import doctor as cli_doctor
 from OCDocker.CLI import init_config as cli_init_config
 from OCDocker.CLI import manifest as cli_manifest
+from OCDocker.CLI import mcp as cli_mcp
 from OCDocker.CLI import pipeline as cli_pipeline
 from OCDocker.CLI import script as cli_script
 from OCDocker.CLI import vs as cli_vs
@@ -143,6 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
     cli_vs.register_subparser(sub, parent)
     register_ocscore_subparser(sub)
     cli_workbench.register_subparser(sub)
+    cli_mcp.register_subparser(sub)
     cli_pipeline.register_subparser(sub, parent)
     cli_console.register_subparser(sub, parent)
     cli_script.register_subparser(sub, parent)

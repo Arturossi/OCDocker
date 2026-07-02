@@ -10,13 +10,12 @@ Tests for the strict OCScore Workbench HTTP API payload layer.
 ###############################################################################
 from __future__ import annotations
 
-import http.client
-import threading
-
 import pytest
 
+from fastapi.testclient import TestClient
+
 from OCDocker.Workbench import WorkbenchAPIError
-from OCDocker.Workbench import build_workbench_api_handler
+from OCDocker.Workbench import build_workbench_api_app
 from OCDocker.Workbench import build_workbench_api_payload
 
 # License
@@ -128,44 +127,30 @@ def test_build_workbench_api_payload_rejects_legacy_endpoint(tmp_path) -> None:
         build_workbench_api_payload(tmp_path, "/api/evidence")
 
 
-def test_build_workbench_api_handler_serves_figure_assets(tmp_path) -> None:
-    '''Workbench API handlers serve allowed OCScore figure assets.
+def test_build_workbench_api_app_serves_figure_assets(tmp_path) -> None:
+    '''Workbench API app serves allowed OCScore figure assets.
 
     Parameters
     ----------
     tmp_path : pathlib.Path
         Temporary test directory.
     '''
-
-    from http.server import ThreadingHTTPServer
-    from urllib.parse import quote
 
     image = tmp_path / "export" / "dudez" / "shap" / "shap_beeswarm_plot.png"
     image.parent.mkdir(parents=True)
     image.write_bytes(b"png")
 
-    handler = build_workbench_api_handler(tmp_path, max_depth=2)
-    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
-    thread.start()
-    try:
-        connection = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=5)
-        connection.request("GET", f"/api/figure-asset?path={quote(str(image))}")
-        response = connection.getresponse()
-        body = response.read()
-        connection.close()
-    finally:
-        httpd.shutdown()
-        httpd.server_close()
-        thread.join(timeout=5)
+    app = build_workbench_api_app(tmp_path, max_depth=2)
+    client = TestClient(app)
+    response = client.get("/api/figure-asset", params={"path": str(image)})
 
-    assert response.status == 200
-    assert response.getheader("Content-Type") == "image/png"
-    assert body == b"png"
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert response.content == b"png"
 
 
-def test_build_workbench_api_handler_serves_packaged_browser_assets(tmp_path) -> None:
-    '''Workbench API handlers serve packaged browser assets.
+def test_build_workbench_api_app_serves_packaged_browser_assets(tmp_path) -> None:
+    '''Workbench API app serves packaged browser assets.
 
     Parameters
     ----------
@@ -173,23 +158,31 @@ def test_build_workbench_api_handler_serves_packaged_browser_assets(tmp_path) ->
         Temporary test directory.
     '''
 
-    from http.server import ThreadingHTTPServer
+    app = build_workbench_api_app(tmp_path, max_depth=2)
+    client = TestClient(app)
+    response = client.get("/app")
 
-    handler = build_workbench_api_handler(tmp_path, max_depth=2)
-    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
-    thread.start()
-    try:
-        connection = http.client.HTTPConnection("127.0.0.1", httpd.server_port, timeout=5)
-        connection.request("GET", "/app")
-        response = connection.getresponse()
-        body = response.read()
-        connection.close()
-    finally:
-        httpd.shutdown()
-        httpd.server_close()
-        thread.join(timeout=5)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "text/html; charset=utf-8"
+    assert b"OCScore Control Dashboard" in response.content
 
-    assert response.status == 200
-    assert response.getheader("Content-Type") == "text/html; charset=utf-8"
-    assert b"OCScore Control Dashboard" in body
+
+def test_build_workbench_api_app_health_and_unknown_endpoint(tmp_path) -> None:
+    '''Workbench API app answers health checks and rejects unknown routes.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    app = build_workbench_api_app(tmp_path, max_depth=2)
+    client = TestClient(app)
+
+    health = client.get("/health")
+    assert health.status_code == 200
+    assert health.json()["ok"] is True
+
+    missing = client.get("/api/does-not-exist")
+    assert missing.status_code == 404
+    assert missing.json()["ok"] is False

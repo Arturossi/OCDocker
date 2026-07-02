@@ -924,7 +924,11 @@ def test_cmd_serve_invokes_server(tmp_path, monkeypatch, capsys) -> None:
             )
         )
 
-    monkeypatch.setattr(cli_workbench, "serve_workbench_api", fake_serve)
+    # serve_workbench_api is imported lazily inside cmd_serve (so the CLI parser
+    # doesn't require FastAPI to build); patch it at its source module instead.
+    from OCDocker.Workbench import Server as workbench_server
+
+    monkeypatch.setattr(workbench_server, "serve_workbench_api", fake_serve)
 
     rc = cli_workbench.cmd_serve(
         SimpleNamespace(

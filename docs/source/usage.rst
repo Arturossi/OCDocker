@@ -127,7 +127,7 @@ Commands
      # or:
      ocdocker init-config --conf OCDocker.yml
 
-- workbench: Validate specs, preflight specs, build run bundles, prepare launch plans, export publication scaffolds, emit starter templates and JSON Schemas, and serve a read-only strict OCScore dashboard over output roots with direct baseline replicas and ``ablation/`` or ``ablations/`` studies. The dashboard reports curated metrics as sortable ablation-table columns, replica status, ablation summaries, dataset/role/metric-filtered figure previews, explicit test/validation/combined generated metric-delta, rank, and replica-stability plots with SVG/CSV export, separated model-comparison versus selected-model figure sections, and a **Design** tab for composing custom feature-policy ablations without leaving the browser. Design preview and planning stay read-only: the UI emits policy YAML and ``ocdocker ocscore train`` commands but does not launch runs.
+- workbench: Validate specs, preflight specs, build run bundles, prepare launch plans, export publication scaffolds, emit starter templates and JSON Schemas, and serve a strict OCScore dashboard over output roots with direct baseline replicas and ``ablation/`` or ``ablations/`` studies. The dashboard reports curated metrics as sortable ablation-table columns, replica status, ablation summaries, dataset/role/metric-filtered figure previews, explicit test/validation/combined generated metric-delta, rank, and replica-stability plots with SVG/CSV export, separated model-comparison versus selected-model figure sections, and a **Design** tab for composing custom feature-policy ablations without leaving the browser. Design preview and planning stay read-only in the shipped dashboard: the UI emits policy YAML and ``ocdocker ocscore train`` commands but does not launch runs itself. The underlying API can launch runs directly via bearer-token-gated ``/api/jobs*`` endpoints (``vs``, ``pipeline``, ``ocscore train``, ``ocscore reduce``) for non-UI/automation clients; see :mod:`OCDocker.Workbench.Jobs`.
 
   .. code-block:: bash
 
@@ -138,6 +138,7 @@ Commands
      ocdocker workbench launch-plan runs/run-001 --script-output runs/run-001/run.sh
      ocdocker workbench export runs/run-001/run_manifest.yml exports/run-001
      # Serve an OCScore output root shaped as train/replica_* plus train/ablations/<study>/replica_*.
+     # Requires the `api` extra: pip install "ocdocker[api]" (FastAPI/uvicorn).
      ocdocker workbench serve /data/hd4tb/OCDocker/data/ocdb2/OCScore/output --host 127.0.0.1 --port 8765
      # Open http://127.0.0.1:8765/app after forwarding the port over SSH.
      # Dashboard UI sources: OCDocker/Workbench/static/ (index.html, app.css, app.js).
@@ -147,6 +148,16 @@ Commands
      # from raw PDBbind/DUDEz inputs (metadata stripped) and preview custom policies.
      ocdocker workbench schema ocscore_study --output ocscore_study.schema.json
      ocdocker workbench plan study.yml --run-id run-001 --output plan.json
+
+- mcp: Serve OCDocker over the Model Context Protocol (MCP) for LLM clients (Claude Code, Claude Desktop, ...), proxying tool calls to a running ``ocdocker workbench serve`` API over stdio. Workspace inspection, ablation design preview/plan, and job listing/logs are always-available read tools; ``run_job``/``cancel_job`` require the Workbench job bearer token and an explicit confirmation from the calling LLM before anything is launched or cancelled. See :mod:`OCDocker.MCP`.
+
+  .. code-block:: bash
+
+     # Requires the `mcp` extra: pip install "ocdocker[mcp]".
+     # Start the Workbench API first, in another terminal:
+     ocdocker workbench serve /path/to/OCScore/output
+     # Then, point an MCP client (e.g. Claude Code) at:
+     ocdocker mcp serve
 
 - manifest: Generate reproducibility manifest JSON with version metadata
 

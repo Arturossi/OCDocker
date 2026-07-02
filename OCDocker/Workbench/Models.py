@@ -94,6 +94,7 @@ OCScoreExternalBaselineFamily = Literal[
 ]
 OCScoreReplicaStatus = Literal["missing", "empty", "running", "completed", "failed", "unknown"]
 OCScoreMetricDirection = Literal["max", "min"]
+WorkbenchJobKind = Literal["vs", "pipeline", "ocscore_train", "ocscore_reduce"]
 
 
 # Functions
@@ -1160,6 +1161,96 @@ class RunStatusReport(WorkbenchModel):
     artifacts: tuple[RunPathStatus, ...] = ()
 
 
+class WorkbenchJobRecord(WorkbenchModel):
+    """Tracked Workbench job launched and monitored via the API.
+
+    Attributes
+    ----------
+    schema_version : int
+        Model field.
+    job_id : str
+        Model field.
+    kind : WorkbenchJobKind
+        Model field.
+    command : tuple[str, ...]
+        Model field.
+    cwd : Path
+        Model field.
+    status : RunStatus
+        Model field.
+    pid : int | None
+        Model field.
+    stdout_log : Path
+        Model field.
+    stderr_log : Path
+        Model field.
+    returncode_path : Path
+        Model field.
+    manifest_path : Path
+        Model field.
+    created_at : datetime
+        Model field.
+    updated_at : datetime
+        Model field.
+    finished_at : datetime | None
+        Model field.
+    return_code : int | None
+        Model field.
+    """
+
+    schema_version: int = 1
+    job_id: str
+    kind: WorkbenchJobKind
+    command: tuple[str, ...] = ()
+    cwd: Path
+    status: RunStatus = "defined"
+    pid: int | None = None
+    stdout_log: Path
+    stderr_log: Path
+    returncode_path: Path
+    manifest_path: Path
+    created_at: datetime = Field(default_factory=_utc_now)
+    updated_at: datetime = Field(default_factory=_utc_now)
+    finished_at: datetime | None = None
+    return_code: int | None = None
+
+    @field_validator("job_id")
+    @classmethod
+    def _validate_job_id(cls, value: str) -> str:
+        """Validate job id.
+
+        Parameters
+        ----------
+        value : str
+            Input value.
+
+        Returns
+        -------
+        str
+            Returned value.
+        """
+
+        return _clean_string(value, "job_id")
+
+    @field_validator("command", mode="before")
+    @classmethod
+    def _coerce_command(cls, value: Any) -> tuple[str, ...]:
+        """Coerce command.
+
+        Parameters
+        ----------
+        value : Any
+            Input value.
+
+        Returns
+        -------
+        tuple[str, ...]
+            Returned value.
+        """
+
+        return _string_tuple(value)
+
+
 class ResultSummary(WorkbenchModel):
     """Read-only summary of artifacts and metrics declared by a manifest."""
 
@@ -1963,6 +2054,8 @@ __all__ = [
     "WorkbenchArtifactIndex",
     "WorkbenchEvidenceEntry",
     "WorkbenchEvidenceIndex",
+    "WorkbenchJobKind",
+    "WorkbenchJobRecord",
     "WorkbenchComparison",
     "WorkbenchComparisonCandidate",
     "WorkbenchComparisonMetric",

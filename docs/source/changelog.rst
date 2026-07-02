@@ -4,6 +4,41 @@ Changelog
 Unreleased
 ----------
 
+MCP server for LLM-driven OCDocker orchestration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ocdocker mcp serve`` runs a Model Context Protocol server (:mod:`OCDocker.MCP`,
+new ``mcp`` optional extra) over stdio for LLM clients such as Claude Code and
+Claude Desktop. It is a thin adapter over a running ``ocdocker workbench serve``
+API: workspace inspection, ablation design preview/plan, protocol similarity,
+and job listing/logs are always-available read tools; ``run_job`` and
+``cancel_job`` require the Workbench job bearer token and an explicit
+``confirm=True`` from the calling LLM, so a job is never launched from one
+ambiguous instruction. See :doc:`optional_dependencies`.
+
+Workbench API can launch and track jobs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ocdocker workbench serve`` now exposes ``/api/jobs*`` endpoints that launch,
+list, poll, tail logs for, and cancel ``vs``, ``pipeline``, ``ocscore train``,
+and ``ocscore reduce`` runs as tracked local subprocesses
+(:mod:`OCDocker.Workbench.Jobs`). Job state is persisted under
+``<served root>/.ocdocker-jobs/`` and survives an API restart. Job-execute
+endpoints require a bearer token, auto-generated on first run at
+``~/.config/ocdocker/workbench_token`` or set via ``OCDOCKER_WORKBENCH_TOKEN``
+(:mod:`OCDocker.Workbench.Auth`); all existing read-only inspection endpoints
+are unchanged and remain unauthenticated.
+
+Workbench API migrated to FastAPI
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ocdocker workbench serve`` now runs on FastAPI/uvicorn instead of the stdlib
+``http.server``, behind the new ``api`` optional extra
+(``pip install "ocdocker[api]"``). All existing endpoints, response shapes, and
+the ``/app`` browser dashboard are unchanged; the server now also exposes an
+OpenAPI schema at ``/api/openapi.json``. See :doc:`optional_dependencies` and
+:doc:`usage`.
+
 Console and CLI separation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 

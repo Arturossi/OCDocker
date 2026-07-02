@@ -13,6 +13,8 @@
 #   pip install "ocdocker[ml]"
 #   pip install "ocdocker[analysis]"          # includes shap for OCScore export SHAP
 #   pip install "ocdocker[workflow]"
+#   pip install "ocdocker[api]"               # FastAPI/uvicorn for the Workbench API server
+#   pip install "ocdocker[mcp]"               # MCP server exposing the Workbench API to LLM clients
 #   pip install "ocdocker[all]"
 #   pip install "ocdocker[full]"              # all runtime + docs build
 #   pip install "ocdocker[dev]"               # pytest, ruff, mypy, pre-commit

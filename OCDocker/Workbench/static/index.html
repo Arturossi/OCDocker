@@ -78,6 +78,7 @@
     <nav class="app-tabs" role="tablist" aria-label="Dashboard sections">
       <button type="button" class="tab active" role="tab" id="tab-ablation" aria-selected="true" aria-controls="panel-ablation" data-tab="ablation">Ablation</button>
       <button type="button" class="tab" role="tab" id="tab-design" aria-selected="false" aria-controls="panel-design" data-tab="design">Design</button>
+      <button type="button" class="tab" role="tab" id="tab-jobs" aria-selected="false" aria-controls="panel-jobs" data-tab="jobs">Jobs</button>
     </nav>
   </div>
   <main>
@@ -429,6 +430,91 @@
             <div id="ablation-design-preflight" class="ablation-design-preflight" hidden></div>
             <pre id="ablation-design-command" class="ablation-design-code" hidden></pre>
           </section>
+        </div>
+      </section>
+    </section>
+    <section id="panel-jobs" class="tab-panel" role="tabpanel" aria-labelledby="tab-jobs" data-tab-panel="jobs" hidden>
+      <section class="panel jobs-token-panel">
+        <div class="panel-head panel-head-split">
+          <h2>Job token</h2>
+          <span id="jobs-token-status" class="muted"></span>
+        </div>
+        <p class="muted jobs-note">
+          Job-execute endpoints (<code>/api/jobs*</code>) require a bearer token. It is auto-generated on first
+          <code>ocdocker workbench serve</code> run at <code>~/.config/ocdocker/workbench_token</code>, or set via
+          <code>OCDOCKER_WORKBENCH_TOKEN</code>. Paste it below to launch or cancel jobs from this browser; it is
+          kept in this browser's local storage only and never sent anywhere but this API.
+        </p>
+        <div class="jobs-fields jobs-fields-token">
+          <label class="field" for="jobs-token-input">
+            <span>Bearer token</span>
+            <input id="jobs-token-input" type="password" autocomplete="off" spellcheck="false" placeholder="paste token">
+          </label>
+          <div class="jobs-token-actions">
+            <button id="jobs-token-save" type="button" class="button-secondary">Save token</button>
+            <button id="jobs-token-clear" type="button" class="button-secondary">Clear</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel jobs-launch-panel">
+        <div class="panel-head">
+          <h2>Launch a job</h2>
+        </div>
+        <div class="jobs-fields jobs-fields-launch">
+          <label class="field" for="jobs-launch-kind">
+            <span>Kind</span>
+            <select id="jobs-launch-kind">
+              <option value="vs">vs</option>
+              <option value="pipeline">pipeline</option>
+              <option value="ocscore_train">ocscore_train</option>
+              <option value="ocscore_reduce">ocscore_reduce</option>
+            </select>
+          </label>
+          <label class="field jobs-field-wide" for="jobs-launch-cwd">
+            <span>Working directory (optional)</span>
+            <input id="jobs-launch-cwd" type="text" spellcheck="false" placeholder="defaults to the served root">
+          </label>
+          <label class="field jobs-field-wide" for="jobs-launch-args">
+            <span>Arguments (one per line)</span>
+            <textarea id="jobs-launch-args" rows="4" spellcheck="false" placeholder="--protocol&#10;production.yml&#10;--output-dir&#10;runs/run-001"></textarea>
+          </label>
+        </div>
+        <div class="jobs-launch-actions">
+          <button id="jobs-launch" type="button">Launch job</button>
+        </div>
+      </section>
+
+      <section class="panel jobs-list-panel">
+        <div class="zone-block zone-collapsible" data-zone="jobsTable">
+          <div class="zone-head zone-head-split">
+            <button type="button" class="zone-toggle" aria-expanded="true" aria-controls="jobs-table-zone">
+              <span class="zone-chevron" aria-hidden="true">▾</span>
+              <span class="zone-title">Jobs</span>
+            </button>
+            <span id="jobs-summary" class="muted"></span>
+          </div>
+          <div id="jobs-table-zone" class="zone-body">
+            <div id="jobs-table" class="table-wrap"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel jobs-logs-panel" id="jobs-logs-panel" hidden>
+        <div class="zone-block zone-collapsible" data-zone="jobsLogs">
+          <div class="zone-head zone-head-split">
+            <button type="button" class="zone-toggle" aria-expanded="true" aria-controls="jobs-logs-zone">
+              <span class="zone-chevron" aria-hidden="true">▾</span>
+              <span class="zone-title" id="jobs-logs-title">Logs</span>
+            </button>
+            <button id="jobs-logs-close" type="button" class="button-secondary">Close</button>
+          </div>
+          <div id="jobs-logs-zone" class="zone-body">
+            <h4>stdout</h4>
+            <pre id="jobs-logs-stdout" class="jobs-log"></pre>
+            <h4>stderr</h4>
+            <pre id="jobs-logs-stderr" class="jobs-log"></pre>
+          </div>
         </div>
       </section>
     </section>

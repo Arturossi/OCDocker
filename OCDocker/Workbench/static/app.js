@@ -6,6 +6,7 @@ const COMBINED_SCOPE = "combined";
 const MODEL_COMPARISON_ROLES = new Set(["performance", "cv_mean_std", "cv_heatmap", "cv_fold_comparison", "per_target_validation", "optuna"]);
 const SELECTED_MODEL_ROLES = new Set(["shap", "shap_beeswarm", "shap_importance", "shap_dependence", "architecture"]);
 const UI_STATE_KEY = "ocscore-workbench-ui";
+const JOBS_POLL_INTERVAL_MS = 4000;
 const MODEL_CATEGORY_COLORS = {
   full_ocscore: "#7FD4B8",
   ablation: "#9BD4EF",
@@ -39,6 +40,8 @@ const state = {
     detailReplicas: false,
     detailCharts: false,
     detailFigures: false,
+    jobsTable: false,
+    jobsLogs: false,
   },
   plotCollapsed: {},
   comparisonSort: { key: "delta", direction: "desc" },
@@ -60,10 +63,16 @@ const state = {
   protocolSimilarityLoading: false,
   protocolSimilarityReference: null,
   protocolSimilarityPlotPayload: null,
+  jobs: [],
+  jobsLoading: false,
+  jobToken: "",
+  selectedJobId: null,
+  jobLogs: null,
   _persistedSelectedStudyName: null,
 };
 let ablationDesignPreviewTimer = null;
 let protocolSimilarityTimer = null;
+let jobsPollTimer = null;
 let uiStateHydrated = false;
 const $ = (id) => document.getElementById(id);
 
@@ -132,6 +141,7 @@ function loadPersistedUiState() {
       if (state.figureFilters.role === "recommended") state.figureFilters.role = "all";
     }
     if (saved.theme === "light" || saved.theme === "dark") state.theme = saved.theme;
+    if (typeof saved.jobToken === "string") state.jobToken = saved.jobToken;
     state._persistedSelectedStudyName = saved.selectedStudyName || null;
   } catch (_) {
     /* ignore corrupt saved state */
@@ -156,6 +166,7 @@ function persistUiState() {
     activeTab: state.activeTab,
     figureFilters: state.figureFilters,
     theme: state.theme,
+    jobToken: state.jobToken || "",
   }));
 }
 
@@ -208,6 +219,12 @@ function setActiveTab(tabId) {
     toolbar.hidden = toolbar.dataset.tabToolbar !== tabId;
   });
   if (tabId === "design") void ensureAblationDesignContext();
+  if (tabId === "jobs") {
+    void loadJobs();
+    startJobsPolling();
+  } else {
+    stopJobsPolling();
+  }
   persistUiState();
 }
 
@@ -320,15 +337,190 @@ async function api(path, params = {}) {
   return data;
 }
 
-async function apiPost(path, body = {}) {
+async function apiPost(path, body = {}, headers = {}) {
   const response = await fetch(path, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || response.statusText);
   return data;
+}
+
+function jobAuthHeaders() {
+  return state.jobToken ? { Authorization: `Bearer ${state.jobToken}` } : {};
+}
+
+function jobStatusBadge(status) {
+  const cssClass = status === "cancelled" ? "missing" : status;
+  return `<span class="badge ${escapeHtml(cssClass)}">${escapeHtml(status)}</span>`;
+}
+
+function jobActionsCell(job) {
+  const logsButton = `<button type="button" class="ghost-button job-logs" data-job-id="${escapeHtml(job.job_id)}">Logs</button>`;
+  const cancelButton = job.status === "running"
+    ? ` <button type="button" class="ghost-button job-cancel" data-job-id="${escapeHtml(job.job_id)}">Cancel</button>`
+    : "";
+  return `${logsButton}${cancelButton}`;
+}
+
+function bindJobActionButtons() {
+  const target = $("jobs-table");
+  target.querySelectorAll("button.job-logs").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => void loadJobLogs(button.dataset.jobId));
+  });
+  target.querySelectorAll("button.job-cancel").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => void cancelJob(button.dataset.jobId));
+  });
+}
+
+function renderJobsSummary() {
+  const summary = $("jobs-summary");
+  if (!summary) return;
+  const jobs = state.jobs || [];
+  if (state.jobsLoading && jobs.length === 0) {
+    summary.textContent = "Loading…";
+    return;
+  }
+  const running = jobs.filter((job) => job.status === "running").length;
+  summary.textContent = `${jobs.length} job${jobs.length === 1 ? "" : "s"} · ${running} running`;
+}
+
+function renderJobsTable() {
+  renderJobsSummary();
+  const target = $("jobs-table");
+  const jobs = state.jobs || [];
+  if (jobs.length === 0) {
+    target.innerHTML = `<p class="muted">${state.jobsLoading ? "Loading jobs…" : "No jobs launched yet."}</p>`;
+    return;
+  }
+  const headers = ["Job", "Kind", "Status", { label: "PID", numeric: true }, "Created", { label: "Exit", numeric: true }, "Actions"];
+  const rows = jobs.map((job) => [
+    { value: escapeHtml(job.job_id), title: (job.command || []).join(" ") },
+    escapeHtml(job.kind),
+    jobStatusBadge(job.status),
+    { value: job.pid ?? "-", numeric: true },
+    job.created_at ? new Date(job.created_at).toLocaleString() : "-",
+    { value: job.return_code ?? "-", numeric: true },
+    { value: jobActionsCell(job) },
+  ]);
+  table(target, headers, rows);
+  bindJobActionButtons();
+}
+
+async function loadJobs() {
+  state.jobsLoading = true;
+  renderJobsTable();
+  try {
+    const payload = await api("/api/jobs");
+    state.jobs = payload.jobs || [];
+  } catch (error) {
+    toast(error.message || String(error));
+  } finally {
+    state.jobsLoading = false;
+    renderJobsTable();
+  }
+}
+
+function startJobsPolling() {
+  stopJobsPolling();
+  jobsPollTimer = window.setInterval(() => void loadJobs(), JOBS_POLL_INTERVAL_MS);
+}
+
+function stopJobsPolling() {
+  if (!jobsPollTimer) return;
+  window.clearInterval(jobsPollTimer);
+  jobsPollTimer = null;
+}
+
+async function launchJob() {
+  const kind = $("jobs-launch-kind").value;
+  const args = $("jobs-launch-args").value.split("\n").map((line) => line.trim()).filter(Boolean);
+  const cwd = $("jobs-launch-cwd").value.trim();
+  const button = $("jobs-launch");
+  button.disabled = true;
+  try {
+    const body = { kind, args };
+    if (cwd) body.cwd = cwd;
+    const record = await apiPost("/api/jobs", body, jobAuthHeaders());
+    toast(`Launched job ${record.job_id}`);
+    $("jobs-launch-args").value = "";
+    await loadJobs();
+  } catch (error) {
+    toast(error.message || String(error));
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function cancelJob(jobId) {
+  if (!jobId) return;
+  try {
+    await apiPost(`/api/jobs/${encodeURIComponent(jobId)}/cancel`, {}, jobAuthHeaders());
+    toast(`Cancelled job ${jobId}`);
+    await loadJobs();
+  } catch (error) {
+    toast(error.message || String(error));
+  }
+}
+
+async function loadJobLogs(jobId) {
+  if (!jobId) return;
+  state.selectedJobId = jobId;
+  try {
+    state.jobLogs = await api(`/api/jobs/${encodeURIComponent(jobId)}/logs`);
+  } catch (error) {
+    toast(error.message || String(error));
+    state.jobLogs = null;
+  }
+  renderJobLogs();
+}
+
+function renderJobLogs() {
+  const panel = $("jobs-logs-panel");
+  if (!state.selectedJobId || !state.jobLogs) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  $("jobs-logs-title").textContent = `Logs · ${state.selectedJobId}`;
+  $("jobs-logs-stdout").textContent = state.jobLogs.stdout?.text || "(empty)";
+  $("jobs-logs-stderr").textContent = state.jobLogs.stderr?.text || "(empty)";
+}
+
+function renderJobTokenStatus() {
+  const node = $("jobs-token-status");
+  if (!node) return;
+  node.textContent = state.jobToken ? "Token configured" : "No token set — job launch/cancel will be rejected";
+}
+
+function bindJobsPanel() {
+  $("jobs-token-input").value = state.jobToken || "";
+  renderJobTokenStatus();
+  $("jobs-token-save").addEventListener("click", () => {
+    state.jobToken = $("jobs-token-input").value.trim();
+    persistUiState();
+    renderJobTokenStatus();
+    toast(state.jobToken ? "Job token saved" : "Job token cleared");
+  });
+  $("jobs-token-clear").addEventListener("click", () => {
+    state.jobToken = "";
+    $("jobs-token-input").value = "";
+    persistUiState();
+    renderJobTokenStatus();
+    toast("Job token cleared");
+  });
+  $("jobs-launch").addEventListener("click", () => void launchJob());
+  $("jobs-logs-close").addEventListener("click", () => {
+    state.selectedJobId = null;
+    state.jobLogs = null;
+    renderJobLogs();
+  });
 }
 
 function escapeHtml(value) {
@@ -4895,6 +5087,7 @@ $("refresh").addEventListener("click", refresh);
 loadPersistedUiState();
 bindThemeToggle();
 bindAblationDesignPanel();
+bindJobsPanel();
 bindAppTabs();
 bindCollapsibleZones();
 uiStateHydrated = true;

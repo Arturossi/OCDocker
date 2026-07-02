@@ -157,13 +157,30 @@ Runtime extras
 
    * ``cupy-cuda11x`` (platform marker excludes Darwin)
 
+``api``
+   FastAPI/uvicorn stack for the Workbench HTTP API.
+
+   * ``fastapi``, ``uvicorn``
+
+   Required for ``ocdocker workbench serve``. The Workbench browser dashboard
+   and JSON API are unavailable without this extra.
+
+``mcp``
+   MCP server exposing the Workbench API to LLM clients (Claude Code, Claude
+   Desktop, ...) over stdio.
+
+   * ``mcp``
+
+   Required for ``ocdocker mcp serve``. Requires a running
+   ``ocdocker workbench serve`` instance to connect to.
+
 Aggregate and tooling extras
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``all``
    Union of runtime extras: ``docking`` + ``db`` + ``ml`` + ``analysis`` +
-   ``workflow`` + ``cloud`` + ``gpu``. Use when you want every runtime feature
-   without documentation build tools.
+   ``workflow`` + ``cloud`` + ``gpu`` + ``api`` + ``mcp``. Use when you want
+   every runtime feature without documentation build tools.
 
 ``full``
    ``all`` plus ``docs`` (Sphinx, Furo, MyST, themes). Use to build this
@@ -219,6 +236,12 @@ Command and feature map
    * - Snakemake workflows
      - ``[workflow]``
      - External ``snakemake`` CLI still required on PATH
+   * - ``ocdocker workbench serve``
+     - ``[api]``
+     - FastAPI/uvicorn; dashboard is unavailable without it
+   * - ``ocdocker mcp serve``
+     - ``[mcp]``
+     - Connects to a running ``ocdocker workbench serve``; needs ``[api]`` there too
    * - Local Sphinx docs
      - ``[full]`` or ``[docs]`` + runtime as needed
      - See :doc:`installation`

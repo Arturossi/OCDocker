@@ -20,6 +20,8 @@ from OCDocker.Workbench.Ablation import build_ablation_analysis
 from OCDocker.Workbench.Ablation import parse_ablation_metric
 from OCDocker.Workbench.AblationProtocolSimilarity import build_ablation_protocol_similarity_analysis
 from OCDocker.Workbench.Artifacts import build_artifact_index
+from OCDocker.Workbench.Auth import resolve_workbench_job_token
+from OCDocker.Workbench.Auth import workbench_job_token_path
 from OCDocker.Workbench.Bundle import build_run_bundle
 from OCDocker.Workbench.Comparison import build_run_comparison
 from OCDocker.Workbench.Comparison import parse_comparison_metric
@@ -34,11 +36,14 @@ from OCDocker.Workbench.IO import read_result_manifest
 from OCDocker.Workbench.IO import read_run_manifest
 from OCDocker.Workbench.IO import read_spec
 from OCDocker.Workbench.IO import write_model
+from OCDocker.Workbench.Jobs import JobError
+from OCDocker.Workbench.Jobs import JobManager
 from OCDocker.Workbench.Launch import build_launch_script
 from OCDocker.Workbench.Launch import build_run_launch_plan
 from OCDocker.Workbench.Launch import write_launch_script
 from OCDocker.Workbench.Leaderboard import build_metric_leaderboard
 from OCDocker.Workbench.MetricsMatrix import build_metric_matrix
+from OCDocker.Workbench.Logs import build_log_file_preview
 from OCDocker.Workbench.Logs import preview_run_logs
 from OCDocker.Workbench.Models import ComparisonDirection
 from OCDocker.Workbench.Models import FeaturePolicySelection
@@ -98,6 +103,8 @@ from OCDocker.Workbench.Models import WorkbenchArtifactEntry
 from OCDocker.Workbench.Models import WorkbenchArtifactIndex
 from OCDocker.Workbench.Models import WorkbenchEvidenceEntry
 from OCDocker.Workbench.Models import WorkbenchEvidenceIndex
+from OCDocker.Workbench.Models import WorkbenchJobKind
+from OCDocker.Workbench.Models import WorkbenchJobRecord
 from OCDocker.Workbench.Models import WorkbenchComparison
 from OCDocker.Workbench.Models import WorkbenchComparisonCandidate
 from OCDocker.Workbench.Models import WorkbenchComparisonMetric
@@ -133,10 +140,6 @@ from OCDocker.Workbench.Results import summarize_results
 from OCDocker.Workbench.Schema import available_schema_names
 from OCDocker.Workbench.Schema import build_json_schema
 from OCDocker.Workbench.Schema import build_schema_catalog
-from OCDocker.Workbench.Server import WorkbenchAPIError
-from OCDocker.Workbench.Server import build_workbench_api_handler
-from OCDocker.Workbench.Server import build_workbench_api_payload
-from OCDocker.Workbench.Server import serve_workbench_api
 from OCDocker.Workbench.Status import inspect_run_status
 from OCDocker.Workbench.Templates import available_template_names
 from OCDocker.Workbench.Templates import build_template_payload
@@ -152,6 +155,51 @@ SPDX-License-Identifier: BSD-3-Clause
 
 See the LICENSE file for full terms.
 """
+
+# Functions
+###############################################################################
+## Private ##
+
+# Names re-exported from OCDocker.Workbench.Server, which requires FastAPI (the
+# `api` extra). Loaded lazily via __getattr__ so importing any other Workbench
+# submodule does not force FastAPI to be installed.
+_LAZY_SERVER_EXPORTS = frozenset(
+    {
+        "WorkbenchAPIError",
+        "build_workbench_api_app",
+        "build_workbench_api_payload",
+        "serve_workbench_api",
+    }
+)
+
+
+def __getattr__(name: str) -> object:
+    '''Lazily resolve names re-exported from OCDocker.Workbench.Server.
+
+    Parameters
+    ----------
+    name : str
+        Attribute name being accessed on this package.
+
+    Returns
+    -------
+    object
+        Resolved attribute.
+
+    Raises
+    ------
+    AttributeError
+        If ``name`` is not a known lazy export.
+    '''
+
+    if name in _LAZY_SERVER_EXPORTS:
+        from OCDocker.Workbench import Server
+
+        return getattr(Server, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+## Public ##
 
 
 __all__ = [
@@ -214,6 +262,8 @@ __all__ = [
     "WorkbenchArtifactIndex",
     "WorkbenchEvidenceEntry",
     "WorkbenchEvidenceIndex",
+    "WorkbenchJobKind",
+    "WorkbenchJobRecord",
     "WorkbenchComparison",
     "WorkbenchComparisonCandidate",
     "WorkbenchComparisonMetric",
@@ -259,7 +309,7 @@ __all__ = [
     "build_analysis_report",
     "build_workspace_overview",
     "build_schema_catalog",
-    "build_workbench_api_handler",
+    "build_workbench_api_app",
     "build_workbench_api_payload",
     "build_workbench_web_asset",
     "build_template_payload",
@@ -292,4 +342,9 @@ __all__ = [
     "summarize_results",
     "summarize_run_manifest",
     "write_model",
+    "build_log_file_preview",
+    "resolve_workbench_job_token",
+    "workbench_job_token_path",
+    "JobError",
+    "JobManager",
 ]

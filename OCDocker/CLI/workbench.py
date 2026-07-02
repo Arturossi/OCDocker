@@ -56,10 +56,7 @@ from OCDocker.Workbench.Registry import scan_workspace
 from OCDocker.Workbench.Results import summarize_results
 from OCDocker.Workbench.Schema import available_schema_names
 from OCDocker.Workbench.Schema import build_schema_catalog
-from OCDocker.Workbench.Server import DEFAULT_WORKBENCH_API_HOST
-from OCDocker.Workbench.Server import DEFAULT_WORKBENCH_API_PORT
 from OCDocker.Workbench.OCScoreLayout import MAX_OPTUNA_DASHBOARD_SLOT_COUNT
-from OCDocker.Workbench.Server import serve_workbench_api
 from OCDocker.Workbench.Status import inspect_run_status
 from OCDocker.Workbench.Templates import available_template_names
 from OCDocker.Workbench.Templates import build_template_payload
@@ -72,6 +69,14 @@ SPDX-License-Identifier: BSD-3-Clause
 
 See the LICENSE file for full terms.
 """
+
+# Constants
+###############################################################################
+
+# Duplicated from OCDocker.Workbench.Server so argparse defaults don't require
+# importing FastAPI just to build the CLI parser for unrelated commands.
+_DEFAULT_WORKBENCH_API_HOST = "127.0.0.1"
+_DEFAULT_WORKBENCH_API_PORT = 8765
 
 # Functions
 ###############################################################################
@@ -899,7 +904,11 @@ def cmd_schema(args: argparse.Namespace) -> int:
 
 
 def cmd_serve(args: argparse.Namespace) -> int:
-    '''Serve the read-only local Workbench API.
+    '''Serve the local Workbench API.
+
+    Inspection endpoints are read-only and unauthenticated. Job-execute
+    endpoints (``/api/jobs*``) require a bearer token; see
+    :func:`OCDocker.Workbench.Auth.resolve_workbench_job_token`.
 
     Parameters
     ----------
@@ -911,6 +920,8 @@ def cmd_serve(args: argparse.Namespace) -> int:
     int
         Process-style exit code.
     '''
+
+    from OCDocker.Workbench.Server import serve_workbench_api
 
     try:
         serve_workbench_api(
@@ -1030,7 +1041,9 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
             "Validate OCDocker Workbench specs, inspect manifests, and plan "
             "commands without executing runs.\n\n"
             "This command group is intended for GUI and automation integration. "
-            "It does not launch Snakemake, OCScore, or docking jobs."
+            "Every subcommand here only validates, inspects, or plans; the one "
+            "exception is `serve`, which starts an API that can launch and track "
+            "vs/pipeline/ocscore jobs (see `ocdocker workbench serve --help`)."
         ),
         help="Validate, inspect, and plan Workbench runs without execution",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -1753,21 +1766,25 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
         "serve",
         help="Serve a local Workbench API for GUI development",
         description=(
-            "Serve Workbench inspection payloads over a local HTTP API. The API "
-            "is read-only except for local Optuna dashboard launch/stop helpers. "
+            "Serve Workbench inspection payloads over a local HTTP API. Inspection "
+            "endpoints and local Optuna dashboard launch/stop helpers are read-only "
+            "or unauthenticated as before. Job-execute endpoints (/api/jobs*) require "
+            "a bearer token (auto-generated on first run; see "
+            "~/.config/ocdocker/workbench_token or the OCDOCKER_WORKBENCH_TOKEN "
+            "environment variable). "
             "For SSH workflows, bind to 127.0.0.1 and forward the selected port."
         ),
     )
     serve.add_argument("root", help="Workspace root or run directory to serve.")
     serve.add_argument(
         "--host",
-        default=DEFAULT_WORKBENCH_API_HOST,
+        default=_DEFAULT_WORKBENCH_API_HOST,
         help="Host interface to bind. Default: 127.0.0.1.",
     )
     serve.add_argument(
         "--port",
         type=int,
-        default=DEFAULT_WORKBENCH_API_PORT,
+        default=_DEFAULT_WORKBENCH_API_PORT,
         help="TCP port to bind. Default: 8765.",
     )
     serve.add_argument(

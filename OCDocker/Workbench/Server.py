@@ -3,7 +3,7 @@
 # Description
 ###############################################################################
 """
-Local HTTP API for the strict OCScore Workbench dashboard.
+FastAPI-backed local HTTP API for the OCDocker Workbench dashboard.
 """
 
 # Imports
@@ -11,15 +11,34 @@ Local HTTP API for the strict OCScore Workbench dashboard.
 from __future__ import annotations
 
 import json
+import secrets
 
-from http.server import BaseHTTPRequestHandler
-from http.server import ThreadingHTTPServer
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from typing import AsyncIterator
 
+from fastapi import Depends
+from fastapi import FastAPI
+from fastapi import Header
+from fastapi import Query
+from fastapi import Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.responses import Response
+from pydantic import BaseModel
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.base import BaseHTTPMiddleware
+
+from OCDocker.Workbench.Auth import resolve_workbench_job_token
+from OCDocker.Workbench.Auth import workbench_job_token_path
 from OCDocker.Workbench.IO import model_to_data
+from OCDocker.Workbench.Jobs import JOB_KIND_COMMAND_PREFIX
+from OCDocker.Workbench.Jobs import JobError
+from OCDocker.Workbench.Jobs import JobManager
+from OCDocker.Workbench.Logs import DEFAULT_LOG_BYTE_LIMIT
+from OCDocker.Workbench.Logs import DEFAULT_LOG_LINE_LIMIT
+from OCDocker.Workbench.Models import WorkbenchJobKind
 from OCDocker.Workbench.OCScoreLayout import DEFAULT_OCSCORE_MAX_METRIC_FILE_BYTES
 from OCDocker.Workbench.OCScoreLayout import DEFAULT_OCSCORE_SCAN_DEPTH
 from OCDocker.Workbench.OCScoreLayout import build_ocscore_workspace
@@ -36,6 +55,7 @@ from OCDocker.Workbench.AblationProtocolSimilarity import build_ablation_protoco
 from OCDocker.Workbench.Templates import build_template_payload
 from OCDocker.Workbench.Web import build_workbench_web_asset
 from OCDocker.Workbench.Web import is_workbench_web_asset_path
+from OCDocker.Workbench.Web import WORKBENCH_WEB_ROUTES
 
 # License
 ###############################################################################
@@ -64,7 +84,6 @@ FIGURE_ASSET_CONTENT_TYPES = {
     ".svg": "image/svg+xml; charset=utf-8",
     ".pdf": "application/pdf",
 }
-
 # Classes
 ###############################################################################
 
@@ -85,6 +104,14 @@ class WorkbenchAPIError(Exception):
 
         super().__init__(message)
         self.status_code = status_code
+
+
+class JobCreateRequest(BaseModel):
+    """Request body for ``POST /api/jobs``."""
+
+    kind: WorkbenchJobKind
+    args: list[str] = []
+    cwd: str | None = None
 
 
 # Functions
@@ -110,7 +137,7 @@ def _endpoint_index(root: Path) -> dict[str, Any]:
         "service": "ocdocker-workbench",
         "api_version": WORKBENCH_API_VERSION,
         "root": str(root),
-        "read_only": True,
+        "read_only": False,
         "web_app": "/app",
         "dashboard_model": "strict_ocscore_layout",
         "endpoints": [
@@ -126,6 +153,11 @@ def _endpoint_index(root: Path) -> dict[str, Any]:
             "/api/ablation-protocol-similarity",
             "/api/schema",
             "/api/template",
+            "/api/jobs",
+            "/api/jobs/plan",
+            "/api/jobs/{job_id}",
+            "/api/jobs/{job_id}/logs",
+            "/api/jobs/{job_id}/cancel",
         ],
         "optuna_dashboard": {
             "available": OptunaDashboardManager.is_available(),
@@ -136,6 +168,11 @@ def _endpoint_index(root: Path) -> dict[str, Any]:
             "min_slot_count": MIN_OPTUNA_DASHBOARD_SLOT_COUNT,
             "max_slot_count": MAX_OPTUNA_DASHBOARD_SLOT_COUNT,
             "scan_start_offset": 1,
+        },
+        "job_execution": {
+            "enabled": True,
+            "kinds": sorted(JOB_KIND_COMMAND_PREFIX),
+            "auth": "bearer_token",
         },
     }
 
@@ -398,7 +435,7 @@ def build_workbench_api_payload(
             "service": "ocdocker-workbench",
             "api_version": WORKBENCH_API_VERSION,
             "root": str(root_path),
-            "read_only": True,
+            "read_only": False,
             "dashboard_model": "strict_ocscore_layout",
         }
     if path == "/api/ocscore-workspace":
@@ -442,33 +479,6 @@ def build_workbench_api_payload(
     if path == "/api/template":
         return build_template_payload(_required(request_query, "name"))
     raise WorkbenchAPIError(f"Unknown Workbench API endpoint: {endpoint}", status_code=404)
-
-
-def _read_json_body(handler: BaseHTTPRequestHandler) -> dict[str, Any]:
-    '''Parse a JSON request body from one HTTP handler.
-
-    Parameters
-    ----------
-    handler : http.server.BaseHTTPRequestHandler
-        Active request handler.
-
-    Returns
-    -------
-    dict[str, Any]
-        Parsed JSON object.
-    '''
-
-    length = int(handler.headers.get("Content-Length", "0") or "0")
-    if length <= 0:
-        raise WorkbenchAPIError("Expected a JSON request body.", status_code=400)
-    raw = handler.rfile.read(length)
-    try:
-        payload = json.loads(raw.decode("utf-8"))
-    except json.JSONDecodeError as exc:
-        raise WorkbenchAPIError("Request body must be valid JSON.") from exc
-    if not isinstance(payload, dict):
-        raise WorkbenchAPIError("Request body must be a JSON object.", status_code=400)
-    return payload
 
 
 def _optuna_dashboard_payload(
@@ -518,7 +528,53 @@ def _optuna_dashboard_payload(
         raise WorkbenchAPIError(str(exc), status_code=exc.status_code) from exc
 
 
-def build_workbench_api_handler(
+def _require_job_token(authorization: str | None = Header(default=None)) -> None:
+    '''Require a valid bearer token on execute-capable job endpoints.
+
+    Parameters
+    ----------
+    authorization : str or None
+        Raw ``Authorization`` request header.
+
+    Raises
+    ------
+    WorkbenchAPIError
+        If the header is missing or does not match the configured job token.
+    '''
+
+    provided = ""
+    if authorization is not None and authorization.lower().startswith("bearer "):
+        provided = authorization[len("bearer "):].strip()
+    expected = resolve_workbench_job_token()
+    if not provided or not secrets.compare_digest(provided, expected):
+        raise WorkbenchAPIError("Missing or invalid bearer token.", status_code=401)
+
+
+class _NoStoreMiddleware(BaseHTTPMiddleware):
+    """Attach the ``Cache-Control: no-store`` header used by the stdlib server."""
+
+    async def dispatch(self, request: Request, call_next: Any) -> Response:
+        '''Add the shared no-store cache header to every response.
+
+        Parameters
+        ----------
+        request : starlette.requests.Request
+            Incoming request.
+        call_next : Any
+            Next handler in the middleware chain.
+
+        Returns
+        -------
+        starlette.responses.Response
+            Response with the shared header applied.
+        '''
+
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+
+def build_workbench_api_app(
     root: str | Path,
     *,
     max_depth: int = DEFAULT_OCSCORE_SCAN_DEPTH,
@@ -527,9 +583,8 @@ def build_workbench_api_handler(
     optuna_dashboard_port_start: int | None = None,
     optuna_dashboard_port_end: int | None = None,
     optuna_dashboard_slots: int | None = None,
-    verbose: bool = False,
-) -> type[BaseHTTPRequestHandler]:
-    '''Build an HTTP handler bound to one OCScore root.
+) -> FastAPI:
+    '''Build a FastAPI application bound to one OCScore root.
 
     Parameters
     ----------
@@ -537,18 +592,25 @@ def build_workbench_api_handler(
         Served OCScore root.
     max_depth : int
         Maximum recursive depth inside each replica.
+    server_port : int
+        TCP port the app will be served on (used to auto-select Optuna dashboard ports).
+    optuna_dashboard_host : str
+        Bind host used for local Optuna dashboard subprocesses.
+    optuna_dashboard_port_start : int or None
+        Explicit first Optuna dashboard port.
+    optuna_dashboard_port_end : int or None
+        Explicit last Optuna dashboard port.
+    optuna_dashboard_slots : int or None
+        Override Optuna dashboard slot count.
 
     Returns
     -------
-    type[http.server.BaseHTTPRequestHandler]
-        Configured request handler class.
+    fastapi.FastAPI
+        Configured application.
     '''
 
     root_path = Path(root)
-    resolved_optuna_slots = resolve_optuna_dashboard_slot_count(
-        root_path,
-        override=optuna_dashboard_slots,
-    )
+    resolved_optuna_slots = resolve_optuna_dashboard_slot_count(root_path, override=optuna_dashboard_slots)
     optuna_manager = OptunaDashboardManager(
         root_path,
         host=optuna_dashboard_host,
@@ -557,147 +619,276 @@ def build_workbench_api_handler(
         port_end=optuna_dashboard_port_end,
         slot_count=resolved_optuna_slots,
     )
+    job_manager = JobManager(root_path)
 
-    class WorkbenchRequestHandler(BaseHTTPRequestHandler):
-        """Request handler for one strict OCScore Workbench root."""
+    @asynccontextmanager
+    async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        '''Stop tracked Optuna dashboard subprocesses on application shutdown.'''
 
-        workbench_root = root_path
-        workbench_default_max_depth = max_depth
-        workbench_optuna_manager = optuna_manager
-        workbench_verbose = verbose
+        try:
+            yield
+        finally:
+            optuna_manager.stop_all()
 
-        def do_OPTIONS(self) -> None:
-            '''Return local CORS headers for browser-based GUI development.'''
+    app = FastAPI(
+        title="OCDocker Workbench API",
+        version=str(WORKBENCH_API_VERSION),
+        docs_url="/api/docs",
+        openapi_url="/api/openapi.json",
+        lifespan=_lifespan,
+    )
+    app.state.workbench_root = root_path
+    app.state.workbench_max_depth = max_depth
+    app.state.workbench_optuna_manager = optuna_manager
+    app.state.workbench_job_manager = job_manager
 
-            self.send_response(204)
-            self._send_common_headers()
-            self.end_headers()
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type"],
+    )
+    app.add_middleware(_NoStoreMiddleware)
 
-        def do_GET(self) -> None:
-            '''Handle one read-only API or web asset GET request.'''
+    @app.exception_handler(WorkbenchAPIError)
+    async def _workbench_error_handler(_request: Request, exc: WorkbenchAPIError) -> JSONResponse:
+        '''Translate a WorkbenchAPIError into the shared error response shape.'''
 
-            parsed = urlparse(self.path)
-            if is_workbench_web_asset_path(parsed.path):
-                content_type, body = build_workbench_web_asset(parsed.path)
-                self._send_bytes(body, content_type=content_type, status_code=200)
-                return
-            query = parse_qs(parsed.query, keep_blank_values=False)
-            try:
-                if parsed.path == "/api/figure-asset":
-                    body, content_type = _figure_asset(self.workbench_root, query)
-                    self._send_bytes(body, content_type=content_type, status_code=200)
-                    return
-                if parsed.path in {"/api/optuna-dashboard", "/api/optuna-dashboard/status"}:
-                    payload = _optuna_dashboard_payload(self.workbench_optuna_manager, parsed.path, query)
-                    self._send_json(payload, status_code=200)
-                    return
-                payload = build_workbench_api_payload(
-                    self.workbench_root,
-                    parsed.path,
-                    query,
-                    max_depth=self.workbench_default_max_depth,
-                )
-                self._send_json(payload, status_code=200)
-            except WorkbenchAPIError as exc:
-                self._send_json({"ok": False, "error": str(exc)}, status_code=exc.status_code)
-            except Exception as exc:
-                self._send_json({"ok": False, "error": str(exc)}, status_code=500)
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=exc.status_code)
 
-        def do_POST(self) -> None:
-            '''Handle local Optuna dashboard and ablation-design requests.'''
+    @app.exception_handler(JobError)
+    async def _job_error_handler(_request: Request, exc: JobError) -> JSONResponse:
+        '''Translate a JobError into the shared error response shape.'''
 
-            parsed = urlparse(self.path)
-            try:
-                if parsed.path in {
-                    "/api/ablation-design/preview",
-                    "/api/ablation-design/plan",
-                    "/api/ablation-design/features",
-                    "/api/ablation-design/write",
-                }:
-                    body = _read_json_body(self)
-                    payload = handle_ablation_design_post(self.workbench_root, parsed.path, body)
-                    self._send_json(payload, status_code=200)
-                    return
-                if parsed.path != "/api/optuna-dashboard":
-                    self._send_json({"ok": False, "error": "Unknown Workbench API endpoint."}, status_code=404)
-                    return
-                body = _read_json_body(self)
-                payload = _optuna_dashboard_payload(self.workbench_optuna_manager, parsed.path, {}, body)
-                self._send_json(payload, status_code=200)
-            except WorkbenchAPIError as exc:
-                self._send_json({"ok": False, "error": str(exc)}, status_code=exc.status_code)
-            except ValueError as exc:
-                self._send_json({"ok": False, "error": str(exc)}, status_code=400)
-            except FileExistsError as exc:
-                self._send_json({"ok": False, "error": str(exc)}, status_code=409)
-            except Exception as exc:
-                self._send_json({"ok": False, "error": str(exc)}, status_code=500)
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=exc.status_code)
 
-        def do_DELETE(self) -> None:
-            '''Handle local Optuna dashboard stop requests.'''
+    @app.exception_handler(ValueError)
+    async def _value_error_handler(_request: Request, exc: ValueError) -> JSONResponse:
+        '''Translate an unvalidated ValueError into a 400 error response.'''
 
-            parsed = urlparse(self.path)
-            if parsed.path != "/api/optuna-dashboard":
-                self._send_json({"ok": False, "error": "Unknown Workbench API endpoint."}, status_code=404)
-                return
-            query = parse_qs(parsed.query, keep_blank_values=False)
-            try:
-                payload = _optuna_dashboard_payload(self.workbench_optuna_manager, parsed.path, query)
-                self._send_json(payload, status_code=200)
-            except WorkbenchAPIError as exc:
-                self._send_json({"ok": False, "error": str(exc)}, status_code=exc.status_code)
-            except Exception as exc:
-                self._send_json({"ok": False, "error": str(exc)}, status_code=500)
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
 
-        def log_message(self, format: str, *args: Any) -> None:
-            '''Log HTTP requests when verbose mode is enabled.'''
+    @app.exception_handler(FileExistsError)
+    async def _file_exists_error_handler(_request: Request, exc: FileExistsError) -> JSONResponse:
+        '''Translate a FileExistsError into a 409 error response.'''
 
-            if self.workbench_verbose:
-                super().log_message(format, *args)
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=409)
 
-        def _send_common_headers(self) -> None:
-            '''Send headers shared by all API responses.'''
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+        '''Translate routing/HTTP errors into the shared error response shape.'''
 
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", "Content-Type")
-            self.send_header("Cache-Control", "no-store")
+        if exc.status_code == 404:
+            return JSONResponse(
+                {"ok": False, "error": f"Unknown Workbench API endpoint: {request.url.path}"},
+                status_code=404,
+            )
+        return JSONResponse({"ok": False, "error": str(exc.detail)}, status_code=exc.status_code)
 
-        def _send_json(self, payload: dict[str, Any], *, status_code: int) -> None:
-            '''Send a JSON response.
+    @app.exception_handler(Exception)
+    async def _unhandled_error_handler(_request: Request, exc: Exception) -> JSONResponse:
+        '''Translate any unhandled exception into a 500 error response.'''
 
-            Parameters
-            ----------
-            payload : dict[str, Any]
-                Response payload.
-            status_code : int
-                HTTP status code.
-            '''
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
 
-            body = json.dumps(payload, indent=2, sort_keys=True).encode("utf-8")
-            self._send_bytes(body, content_type="application/json; charset=utf-8", status_code=status_code)
+    @app.get("/")
+    @app.get("/api")
+    async def get_index() -> dict[str, Any]:
+        '''Return the Workbench API endpoint index.'''
 
-        def _send_bytes(self, body: bytes, *, content_type: str, status_code: int) -> None:
-            '''Send a byte response.
+        return build_workbench_api_payload(root_path, "/api", max_depth=max_depth)
 
-            Parameters
-            ----------
-            body : bytes
-                Response body.
-            content_type : str
-                Content type header.
-            status_code : int
-                HTTP status code.
-            '''
+    @app.get("/health")
+    @app.get("/api/health")
+    async def get_health() -> dict[str, Any]:
+        '''Return the Workbench API health payload.'''
 
-            self.send_response(status_code)
-            self._send_common_headers()
-            self.send_header("Content-Type", content_type)
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+        return build_workbench_api_payload(root_path, "/health", max_depth=max_depth)
 
-    return WorkbenchRequestHandler
+    @app.get("/api/ocscore-workspace")
+    async def get_ocscore_workspace(
+        replicas: int | None = Query(None),
+        max_metric_file_bytes: int | None = Query(None),
+        metric: list[str] = Query(default=[]),
+    ) -> dict[str, Any]:
+        '''Return the strict OCScore workspace summary for the served root.'''
+
+        query: QueryMap = {"metric": metric}
+        if replicas is not None:
+            query["replicas"] = [str(replicas)]
+        if max_metric_file_bytes is not None:
+            query["max_metric_file_bytes"] = [str(max_metric_file_bytes)]
+        return build_workbench_api_payload(root_path, "/api/ocscore-workspace", query, max_depth=max_depth)
+
+    @app.get("/api/ablation-design")
+    async def get_ablation_design() -> dict[str, Any]:
+        '''Return the catalog and workspace defaults for the ablation designer UI.'''
+
+        return build_workbench_api_payload(root_path, "/api/ablation-design", max_depth=max_depth)
+
+    @app.get("/api/ablation-design/features")
+    async def get_ablation_design_features() -> dict[str, Any]:
+        '''Reject GET on the features endpoint, which requires a POST body.'''
+
+        return build_workbench_api_payload(root_path, "/api/ablation-design/features", max_depth=max_depth)
+
+    @app.post("/api/ablation-design/preview")
+    @app.post("/api/ablation-design/plan")
+    @app.post("/api/ablation-design/features")
+    @app.post("/api/ablation-design/write")
+    async def post_ablation_design(request: Request) -> dict[str, Any]:
+        '''Dispatch one ablation-design POST endpoint (preview, plan, features, write).'''
+
+        body = await _read_json_body(request)
+        return handle_ablation_design_post(root_path, request.url.path, body)
+
+    @app.get("/api/ablation-protocol-similarity")
+    async def get_ablation_protocol_similarity(
+        metric: str | None = Query(None),
+        reference: str | None = Query(None),
+        include_catalog_only: str | None = Query(None),
+    ) -> dict[str, Any]:
+        '''Return the ablation protocol similarity analysis for the served root.'''
+
+        query: QueryMap = {}
+        if metric is not None:
+            query["metric"] = [metric]
+        if reference is not None:
+            query["reference"] = [reference]
+        if include_catalog_only is not None:
+            query["include_catalog_only"] = [include_catalog_only]
+        return build_workbench_api_payload(root_path, "/api/ablation-protocol-similarity", query, max_depth=max_depth)
+
+    @app.get("/api/schema")
+    async def get_schema(name: list[str] = Query(default=[])) -> dict[str, Any]:
+        '''Return the JSON Schema catalog for Workbench models.'''
+
+        query: QueryMap = {"name": name}
+        return build_workbench_api_payload(root_path, "/api/schema", query, max_depth=max_depth)
+
+    @app.get("/api/template")
+    async def get_template(name: str = Query(...)) -> dict[str, Any]:
+        '''Return one bundled starter spec template.'''
+
+        query: QueryMap = {"name": [name]}
+        return build_workbench_api_payload(root_path, "/api/template", query, max_depth=max_depth)
+
+    @app.get("/api/figure-asset")
+    async def get_figure_asset(path: str = Query(...)) -> Response:
+        '''Return one allowed dashboard figure asset from the served root.'''
+
+        body, content_type = _figure_asset(root_path, {"path": [path]})
+        return Response(content=body, media_type=content_type)
+
+    @app.get("/api/optuna-dashboard")
+    @app.get("/api/optuna-dashboard/status")
+    async def get_optuna_dashboard(request: Request, replica_path: str | None = Query(None)) -> dict[str, Any]:
+        '''Return local Optuna dashboard status for one or all replicas.'''
+
+        query: QueryMap = {"replica_path": [replica_path]} if replica_path else {}
+        return _optuna_dashboard_payload(optuna_manager, request.url.path, query)
+
+    @app.post("/api/optuna-dashboard")
+    async def post_optuna_dashboard(request: Request) -> dict[str, Any]:
+        '''Start a local Optuna dashboard subprocess for one replica.'''
+
+        body = await _read_json_body(request)
+        return _optuna_dashboard_payload(optuna_manager, request.url.path, {}, body)
+
+    @app.delete("/api/optuna-dashboard")
+    async def delete_optuna_dashboard(replica_path: str | None = Query(None)) -> dict[str, Any]:
+        '''Stop a local Optuna dashboard subprocess for one replica.'''
+
+        query: QueryMap = {"replica_path": [replica_path]} if replica_path else {}
+        return _optuna_dashboard_payload(optuna_manager, "/api/optuna-dashboard", query)
+
+    @app.post("/api/jobs", status_code=201, dependencies=[Depends(_require_job_token)])
+    async def post_job(payload: JobCreateRequest) -> dict[str, Any]:
+        '''Launch a new tracked Workbench job (requires a bearer token).'''
+
+        record = job_manager.launch(payload.kind, payload.args, cwd=payload.cwd)
+        return _model_payload(record)
+
+    @app.post("/api/jobs/plan")
+    async def post_job_plan(payload: JobCreateRequest) -> dict[str, Any]:
+        '''Preview the command a job would run, without launching it.'''
+
+        return job_manager.plan(payload.kind, payload.args, cwd=payload.cwd)
+
+    @app.get("/api/jobs")
+    async def get_jobs() -> dict[str, Any]:
+        '''List every tracked Workbench job.'''
+
+        return {"jobs": [_model_payload(record) for record in job_manager.list()]}
+
+    @app.get("/api/jobs/{job_id}")
+    async def get_job(job_id: str) -> dict[str, Any]:
+        '''Return one tracked Workbench job.'''
+
+        return _model_payload(job_manager.get(job_id))
+
+    @app.get("/api/jobs/{job_id}/logs")
+    async def get_job_logs(
+        job_id: str,
+        lines: int = Query(DEFAULT_LOG_LINE_LIMIT, ge=1),
+        max_bytes: int = Query(DEFAULT_LOG_BYTE_LIMIT, ge=1),
+    ) -> dict[str, Any]:
+        '''Return a bounded stdout/stderr tail for one tracked Workbench job.'''
+
+        stdout_preview, stderr_preview = job_manager.logs(job_id, lines=lines, max_bytes=max_bytes)
+        return {"stdout": _model_payload(stdout_preview), "stderr": _model_payload(stderr_preview)}
+
+    @app.post("/api/jobs/{job_id}/cancel", dependencies=[Depends(_require_job_token)])
+    async def post_job_cancel(job_id: str) -> dict[str, Any]:
+        '''Cancel one running tracked Workbench job (requires a bearer token).'''
+
+        return _model_payload(job_manager.cancel(job_id))
+
+    @app.get("/app")
+    @app.get("/app/")
+    @app.get("/app.css")
+    @app.get("/app.js")
+    @app.get("/app-favicon.png")
+    @app.get("/app-brand-logo.png")
+    async def get_web_asset(request: Request) -> Response:
+        '''Serve one packaged Workbench browser asset.'''
+
+        path = request.url.path
+        if not is_workbench_web_asset_path(path):
+            raise WorkbenchAPIError(f"Unknown Workbench web asset: {path}", status_code=404)
+        try:
+            content_type, body = build_workbench_web_asset(path)
+        except (KeyError, FileNotFoundError) as exc:
+            raise WorkbenchAPIError(str(exc), status_code=404) from exc
+        return Response(content=body, media_type=content_type)
+
+    return app
+
+
+async def _read_json_body(request: Request) -> dict[str, Any]:
+    '''Parse a JSON request body from one FastAPI request.
+
+    Parameters
+    ----------
+    request : fastapi.Request
+        Active request.
+
+    Returns
+    -------
+    dict[str, Any]
+        Parsed JSON object.
+    '''
+
+    raw = await request.body()
+    if not raw:
+        raise WorkbenchAPIError("Expected a JSON request body.", status_code=400)
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except json.JSONDecodeError as exc:
+        raise WorkbenchAPIError("Request body must be valid JSON.") from exc
+    if not isinstance(payload, dict):
+        raise WorkbenchAPIError("Request body must be a JSON object.", status_code=400)
+    return payload
 
 
 def serve_workbench_api(
@@ -712,7 +903,7 @@ def serve_workbench_api(
     optuna_dashboard_slots: int | None = None,
     verbose: bool = False,
 ) -> None:
-    '''Serve the strict OCScore Workbench API until interrupted.
+    '''Serve the OCDocker Workbench API until interrupted.
 
     Parameters
     ----------
@@ -726,7 +917,9 @@ def serve_workbench_api(
         Maximum recursive depth inside each replica.
     '''
 
-    handler = build_workbench_api_handler(
+    import uvicorn
+
+    app = build_workbench_api_app(
         root,
         max_depth=max_depth,
         server_port=port,
@@ -734,13 +927,13 @@ def serve_workbench_api(
         optuna_dashboard_port_start=optuna_dashboard_port_start,
         optuna_dashboard_port_end=optuna_dashboard_port_end,
         optuna_dashboard_slots=optuna_dashboard_slots,
-        verbose=verbose,
     )
-    server = ThreadingHTTPServer((host, port), handler)
-    optuna_manager = handler.workbench_optuna_manager
+    optuna_manager = app.state.workbench_optuna_manager
     try:
-        print(f"Workbench API serving {root} at http://{host}:{port} (read-only).")
+        print(f"Workbench API serving {root} at http://{host}:{port}.")
         print(f"Workbench browser dashboard: http://{host}:{port}/app")
+        resolve_workbench_job_token()
+        print(f"Job-execute endpoints (/api/jobs*) require a bearer token: {workbench_job_token_path()}")
         if OptunaDashboardManager.is_available():
             pool = optuna_manager.port_pool
             pool_label = ", ".join(str(item) for item in pool)
@@ -758,12 +951,11 @@ def serve_workbench_api(
                 )
         else:
             print('Optuna dashboards unavailable: install with pip install "ocdocker[ml]"')
-        server.serve_forever()
+        uvicorn.run(app, host=host, port=port, log_level="info" if verbose else "warning")
     except KeyboardInterrupt:
         print("\nWorkbench API stopped.")
     finally:
         optuna_manager.stop_all()
-        server.server_close()
 
 
 __all__ = [
@@ -771,7 +963,7 @@ __all__ = [
     "DEFAULT_WORKBENCH_API_PORT",
     "WORKBENCH_API_VERSION",
     "WorkbenchAPIError",
-    "build_workbench_api_handler",
+    "build_workbench_api_app",
     "build_workbench_api_payload",
     "serve_workbench_api",
 ]

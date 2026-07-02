@@ -165,15 +165,18 @@ def _decode_tail(path: Path, *, lines: int, max_bytes: int, encoding: str) -> tu
     return returned_lines, "\n".join(returned_lines), size_bytes, read_bytes, truncated
 
 
-def _log_preview(
+## Public ##
+
+
+def build_log_file_preview(
     base_path: Path,
     path: Path,
     *,
-    lines: int,
-    max_bytes: int,
-    encoding: str,
+    lines: int = DEFAULT_LOG_LINE_LIMIT,
+    max_bytes: int = DEFAULT_LOG_BYTE_LIMIT,
+    encoding: str = "utf-8",
 ) -> RunLogFilePreview:
-    '''Build a bounded preview for one declared log file.
+    '''Build a bounded preview for one log file, absolute or manifest-relative.
 
     Parameters
     ----------
@@ -257,9 +260,6 @@ def _log_preview(
     )
 
 
-## Public ##
-
-
 def preview_run_logs(
     target: str | Path,
     *,
@@ -291,7 +291,7 @@ def preview_run_logs(
     manifest = read_run_manifest(manifest_path)
     base_path = manifest_path.parent
     logs = tuple(
-        _log_preview(
+        build_log_file_preview(
             base_path,
             path,
             lines=lines,
@@ -316,5 +316,6 @@ def preview_run_logs(
 __all__ = [
     "DEFAULT_LOG_BYTE_LIMIT",
     "DEFAULT_LOG_LINE_LIMIT",
+    "build_log_file_preview",
     "preview_run_logs",
 ]
