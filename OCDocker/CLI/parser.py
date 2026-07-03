@@ -34,7 +34,7 @@ def _make_parent_parser() -> argparse.ArgumentParser:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the main argument parser with subcommands."""
+    '''Build the main argument parser with subcommands.'''
 
     parser = argparse.ArgumentParser(
         prog="ocdocker",

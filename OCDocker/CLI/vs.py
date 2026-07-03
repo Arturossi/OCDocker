@@ -331,6 +331,16 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
 
 
 def register_subparser(sub: argparse._SubParsersAction, parent: argparse.ArgumentParser) -> None:
+    '''Register the ``ocdocker vs`` command group.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        Main CLI subparser registry.
+    parent : argparse.ArgumentParser
+        Parent parser supplying shared global arguments.
+    '''
+
     p_vs = sub.add_parser(
         "vs",
         description=(

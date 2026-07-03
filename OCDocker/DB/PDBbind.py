@@ -49,9 +49,13 @@ class _LazyBaseDB:
     """Load baseDB only when docking/preparation helpers need it."""
 
     def prepare(self, *args, **kwargs):
+        '''Delegate to :func:`OCDocker.DB.baseDB.prepare`, importing it lazily.'''
+
         return _get_base_db().prepare(*args, **kwargs)
 
     def run_docking(self, *args, **kwargs):
+        '''Delegate to :func:`OCDocker.DB.baseDB.run_docking`, importing it lazily.'''
+
         return _get_base_db().run_docking(*args, **kwargs)
 
 

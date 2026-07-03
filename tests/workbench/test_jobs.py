@@ -510,6 +510,31 @@ def test_vs_campaign_results_dir_nests_per_sample_shell_engine(tmp_path) -> None
     assert "--outdir my_runs/s2" in plan["command"][2]
 
 
+def test_vs_campaign_shell_engine_isolates_samples_without_results_dir(tmp_path) -> None:
+    '''Omitting results_dir must still nest each sample under its own --outdir.
+
+    Regression test: the shell engine used to add no --outdir at all when
+    results_dir was omitted, so every sample fell back to the CLI's own
+    default outdir and silently overwrote the previous sample's output.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    '''
+
+    manager = JobManager(tmp_path, executable="true")
+    manifest = [
+        {"sample": "s1", "row_kind": "vs", "receptor": "r.pdb", "ligand": "l1.smi", "box": "b.pdb", "engines": ["vina"]},
+        {"sample": "s2", "row_kind": "vs", "receptor": "r.pdb", "ligand": "l2.smi", "box": "b.pdb", "engines": ["vina"]},
+    ]
+
+    plan = manager.plan("vs_campaign", [], manifest=manifest)
+
+    assert "--outdir results/s1" in plan["command"][2]
+    assert "--outdir results/s2" in plan["command"][2]
+
+
 def test_vs_campaign_results_dir_passed_to_snakemake_config(tmp_path) -> None:
     '''results_dir is threaded into the Snakefile's results_dir config value.
 

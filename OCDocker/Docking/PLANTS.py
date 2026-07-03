@@ -846,7 +846,7 @@ def generate_plants_files_database(path: str, protein: str, ligand: str, spacing
     # Create the PLANTS folder inside protein's directory
     _ = ocff.safe_create_dir(plantsPath)
 
-    # TODO: Implement multiple box support here
+    # Single-box path; Prepare.py routes multi-box callers to box_to_plants() per box instead.
     # Set the box file path
     box = f"{boxPath}/box0.pdb"
     # Set the conf file path

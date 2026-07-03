@@ -400,7 +400,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 cluster_colors = []
 
                 def is_light_grey(color):
-                    """Check if a color is light grey (too close to white/grey)."""
+                    '''Check if a color is light grey (too close to white/grey).'''
                     r, g, b = color[0], color[1], color[2]
                     # Light grey has all RGB components relatively high and similar
                     # Check if all components are > 0.6 and within 0.15 of each other
@@ -496,7 +496,7 @@ def cluster_rmsd(data: Union[Dict[str, Dict[str, float]], pd.DataFrame], algorit
                 # Build a mapping from each internal node to its cluster ID
                 # by checking which cluster all leaves under that node belong to
                 def get_node_cluster(node_id, n):
-                    """Get cluster ID for a dendrogram node."""
+                    '''Get cluster ID for a dendrogram node.'''
                     if node_id < n:
                         # Leaf node - return its cluster
                         return int(clusters_at_threshold[node_id])

@@ -521,13 +521,13 @@ class Receptor:
         return True
 
     def print_attributes(self) -> None:
-        """Print all attributes of the receptor to stdout.
+        '''Print all attributes of the receptor to stdout.
 
         Displays the receptor's name, structure path, and all computed
         descriptors (SASA, dipole moment, isoelectric point, GRAVY,
         aromaticity, instability index, amino acid counts, etc.) in a
         formatted, aligned table.
-        """
+        '''
 
         attributes: Dict[str, Any] = {
             "Name": self.name,

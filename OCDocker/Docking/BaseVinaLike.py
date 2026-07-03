@@ -371,7 +371,7 @@ def _read_rescoring_log_generic(path: str, start_string: str, engine: str, error
 def generate_smina_digest(
     digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json", box_id: Optional[str] = None
 ) -> int:
-    """Wrapper for generating the Smina digest.
+    '''Wrapper for generating the Smina digest.
 
     Parameters
     ----------
@@ -388,7 +388,7 @@ def generate_smina_digest(
     -------
     int
         The exit code of the command (based on the Error.py code table).
-    """
+    '''
 
     # Call the generic generate digest function with the Smina read log function
     return _generate_digest_generic(digestPath, logPath, read_smina_log, overwrite, digestFormat, box_id)
@@ -397,7 +397,7 @@ def generate_smina_digest(
 def generate_vina_digest(
     digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json", box_id: Optional[str] = None
 ) -> int:
-    """Wrapper for generating the Vina digest.
+    '''Wrapper for generating the Vina digest.
 
     Parameters
     ----------
@@ -414,7 +414,7 @@ def generate_vina_digest(
     -------
     int
         The exit code of the command (based on the Error.py code table).
-    """
+    '''
 
     # Call the generic generate digest function with the Vina read log function
     return _generate_digest_generic(digestPath, logPath, read_vina_log, overwrite, digestFormat, box_id)
@@ -423,7 +423,7 @@ def generate_vina_digest(
 def generate_gnina_digest(
     digestPath: str, logPath: str, overwrite: bool = False, digestFormat: str = "json", box_id: Optional[str] = None
 ) -> int:
-    """Wrapper for generating the Gnina digest.
+    '''Wrapper for generating the Gnina digest.
 
     Parameters
     ----------
@@ -440,14 +440,14 @@ def generate_gnina_digest(
     -------
     int
         The exit code of the command (based on the Error.py code table).
-    """
+    '''
 
     # Call the generic generate digest function with the Gnina read log function
     return _generate_digest_generic(digestPath, logPath, read_gnina_log, overwrite, digestFormat, box_id)
 
 
 def get_smina_docked_poses(posesPath: str) -> List[str]:
-    """Wrapper for getting the Smina docked poses.
+    '''Wrapper for getting the Smina docked poses.
 
     Parameters
     ----------
@@ -458,7 +458,7 @@ def get_smina_docked_poses(posesPath: str) -> List[str]:
     -------
     List[str]
         A list with the paths to the Smina docked poses.
-    """
+    '''
 
     # Use the Error class to get the error method for directory not existing
     err = getattr(ocerror.Error, "dir_does_not_exist", ocerror.Error.dir_not_exist)
@@ -468,7 +468,7 @@ def get_smina_docked_poses(posesPath: str) -> List[str]:
 
 
 def get_vina_docked_poses(posesPath: str) -> List[str]:
-    """Get the paths for the docked poses from Vina output directory.
+    '''Get the paths for the docked poses from Vina output directory.
 
     Parameters
     ----------
@@ -479,13 +479,13 @@ def get_vina_docked_poses(posesPath: str) -> List[str]:
     -------
     List[str]
         A list with the paths for the docked poses. Returns an empty list if the directory does not exist.
-    """
+    '''
 
     return _get_docked_poses_generic(posesPath, ocerror.Error.dir_not_exist)
 
 
 def get_gnina_docked_poses(posesPath: str) -> List[str]:
-    """Get the paths for the docked poses from Gnina output directory.
+    '''Get the paths for the docked poses from Gnina output directory.
 
     Parameters
     ----------
@@ -496,13 +496,13 @@ def get_gnina_docked_poses(posesPath: str) -> List[str]:
     -------
     List[str]
         A list with the paths for the docked poses. Returns an empty list if the directory does not exist.
-    """
+    '''
 
     return _get_docked_poses_generic(posesPath, ocerror.Error.dir_not_exist)
 
 
 def read_smina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
-    """Wrapper for reading the Smina log file.
+    '''Wrapper for reading the Smina log file.
 
     Parameters
     ----------
@@ -515,7 +515,7 @@ def read_smina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, flo
     -------
     Dict[int, Dict[str, float]]
         A dictionary with the data from the Smina log file.
-    """
+    '''
 
     # Call the generic read log function with the Smina scoring key
     config = get_config()
@@ -523,7 +523,7 @@ def read_smina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, flo
 
 
 def read_smina_rescoring_log(path: str) -> float:
-    """Wrapper for reading the Smina rescoring log file.
+    '''Wrapper for reading the Smina rescoring log file.
 
     Parameters
     ----------
@@ -534,13 +534,13 @@ def read_smina_rescoring_log(path: str) -> float:
     -------
     float
         The affinity of the ligand from the Smina rescoring log file.
-    """
+    '''
 
     return _read_rescoring_log_generic(path, "Affinity", "smina", "smina_read_log_ERROR.log")
 
 
 def read_vina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
-    """Wrapper for reading the Vina log file.
+    '''Wrapper for reading the Vina log file.
 
     Parameters
     ----------
@@ -553,7 +553,7 @@ def read_vina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, floa
     -------
     Dict[int, Dict[str, float]]
         A dictionary with the data from the Vina log file.
-    """
+    '''
 
     # Call the generic read log function with the Vina scoring key
     config = get_config()
@@ -561,7 +561,7 @@ def read_vina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, floa
 
 
 def read_gnina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
-    """Wrapper for reading the Gnina log file.
+    '''Wrapper for reading the Gnina log file.
 
     Parameters
     ----------
@@ -574,7 +574,7 @@ def read_gnina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, flo
     -------
     Dict[int, Dict[str, float]]
         A dictionary with the data from the Gnina log file.
-    """
+    '''
 
     config = get_config()
     scoring_key = str(getattr(config.gnina, "scoring", "")).strip()
@@ -593,7 +593,7 @@ def read_gnina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, flo
 
 
 def read_vina_rescoring_log(path: str) -> float:
-    """Wrapper for reading the Vina rescoring log file.
+    '''Wrapper for reading the Vina rescoring log file.
 
     Parameters
     ----------
@@ -604,13 +604,13 @@ def read_vina_rescoring_log(path: str) -> float:
     -------
     float
         The estimated free energy of binding from the Vina rescoring log file.
-    """
+    '''
 
     return _read_rescoring_log_generic(path, "Estimated Free Energy of Binding", "vina", "vina_read_log_ERROR.log")
 
 
 def read_gnina_rescoring_log(path: str) -> float:
-    """Wrapper for reading the Gnina rescoring log file.
+    '''Wrapper for reading the Gnina rescoring log file.
 
     Parameters
     ----------
@@ -621,6 +621,6 @@ def read_gnina_rescoring_log(path: str) -> float:
     -------
     float
         The affinity of the ligand from the Gnina rescoring log file.
-    """
+    '''
 
     return _read_rescoring_log_generic(path, "Affinity", "gnina", "gnina_read_log_ERROR.log")

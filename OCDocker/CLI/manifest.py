@@ -387,6 +387,16 @@ def cmd_version(args: argparse.Namespace) -> int:
     return 0
 
 def register_subparsers(sub: argparse._SubParsersAction, parent: argparse.ArgumentParser) -> None:
+    '''Register the ``ocdocker manifest`` command group.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        Main CLI subparser registry.
+    parent : argparse.ArgumentParser
+        Parent parser supplying shared global arguments.
+    '''
+
     p_manifest = sub.add_parser(
         "manifest",
         description=(

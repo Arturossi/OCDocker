@@ -335,7 +335,7 @@ def get_score(
     # Fix mask attribute if it's stored as dict/list instead of tensor
     # This can happen when models are saved/loaded
     def fix_mask_attribute(obj, device=None):
-        """Recursively fix mask attributes in model and nested modules."""
+        '''Recursively fix mask attributes in model and nested modules.'''
         if hasattr(obj, 'mask'):
             if obj.mask is None:
                 obj.mask = []

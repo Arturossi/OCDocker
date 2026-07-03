@@ -226,7 +226,7 @@ def is_molecule_valid_with_retry(molecule: str, retries: int = 5, delay: float =
 
 
 def validate_digest_extension(digestPath: str, digestFormat: str) -> bool:
-    """Validates the digest extension.
+    '''Validates the digest extension.
 
     Parameters
     ----------
@@ -239,7 +239,7 @@ def validate_digest_extension(digestPath: str, digestFormat: str) -> bool:
     -------
     bool
         If the extension is supported or not.
-    """
+    '''
 
     # Supported extensions for digest file
     supportedExtensions = ["json"]

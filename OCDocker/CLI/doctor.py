@@ -263,6 +263,16 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
 
 
 def register_subparser(sub: argparse._SubParsersAction, parent: argparse.ArgumentParser) -> None:
+    '''Register the ``ocdocker doctor`` command group.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        Main CLI subparser registry.
+    parent : argparse.ArgumentParser
+        Parent parser supplying shared global arguments.
+    '''
+
     p_doc = sub.add_parser(
         "doctor",
         description=(

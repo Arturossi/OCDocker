@@ -185,12 +185,6 @@ def test_smina_cmd_and_prepare_function_branches(monkeypatch, tmp_path):
     rc_fail = ocsmina.run_prepare_ligand(str(tmp_path / "in.mol2"), str(tmp_path / "out.pdbqt"))
     assert rc_fail == ocerror.Error.subprocess()
 
-    calls = {}
-    monkeypatch.setattr(ocsmina.ocrun, "run", lambda cmd, logFile="": calls.update({"cmd": cmd, "log": logFile}) or 0)
-    rc_depr = ocsmina.run_prepare_receptor_from_cmd("rec.pdb", "rec.pdbqt", log_file=str(tmp_path / "obabel.log"))
-    assert rc_depr == 0
-    assert "-xr" in calls["cmd"]
-
 
 def test_smina_read_rescore_and_run_rescore_branches(monkeypatch, tmp_path):
     cfg = _cfg(tmp_path)

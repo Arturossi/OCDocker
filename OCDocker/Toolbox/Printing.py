@@ -13,7 +13,7 @@ import OCDocker.Toolbox.Printing as ocprint
 # Imports
 ###############################################################################
 import inspect
-from typing import Any, Dict
+from typing import Dict
 from datetime import datetime
 
 import OCDocker.Error as ocerror
@@ -36,28 +36,6 @@ See the LICENSE file for full terms.
 ## Private ##
 # Local fallback colors (no ANSI by default)
 clrs: Dict[str, str] = {"r":"","g":"","y":"","b":"","p":"","c":"","n":""}
-
-def _should_print(log: Any = None) -> bool:
-    '''Check whether direct prints should be emitted.
-
-    Parameters
-    ----------
-    log : logging.Logger, optional
-        Logger to check for handlers. If None, a logger will be obtained (default None).
-
-    Returns
-    -------
-    bool
-        True only when no logging handlers are available.
-    '''
-
-    try:
-        if log is None:
-            log = oclogging.get_logger("printing")
-        return not log.hasHandlers()
-    except Exception:
-        return True
-
 
 def _caller_context(depth: int = 2) -> str:
     '''Safely build caller context for debug messages.
@@ -90,7 +68,7 @@ def _caller_context(depth: int = 2) -> str:
 ## Public ##
 
 def print_error(message: str, force: bool = False) -> None:
-    '''Print error. [DEPRECATED]
+    '''Print error.
 
     Parameters
     ----------
@@ -109,8 +87,6 @@ def print_error(message: str, force: bool = False) -> None:
         else:
             msg = f"ERROR: {message}"
         log.error(msg)
-        if _should_print(log):
-            print(msg)
     return
 
 def print_error_log(message: str, logfile: str, mode: str = 'a') -> None:
@@ -153,8 +129,6 @@ def print_info(message: str, force: bool = False) -> None:
         else:
             msg = f"INFO: {message}"
         log.info(msg)
-        if _should_print(log):
-            print(msg)
     return
 
 def print_info_log(message: str, logfile:str, mode: str = 'a') -> None:
@@ -261,7 +235,7 @@ def print_subsection(n: int, name: str, logName: str = "OCDocker_Progress.out") 
     return
 
 def print_success(message: str, force: bool = False) -> None:
-    '''Print success. [DEPRECATED]
+    '''Print success.
 
     Parameters
     ----------
@@ -280,8 +254,6 @@ def print_success(message: str, force: bool = False) -> None:
         else:
             msg = f"SUCCESS: {message}"
         log.info(msg)
-        if _should_print(log):
-            print(msg)
     return
 
 def print_success_log(message: str, logfile: str, mode: str = 'a') -> None:
@@ -305,7 +277,7 @@ def print_success_log(message: str, logfile: str, mode: str = 'a') -> None:
     return
 
 def print_warning(message: str, force: bool = False) -> None:
-    '''Function to print warning. [DEPRECATED]
+    '''Function to print warning.
 
     Parameters
     ----------
@@ -319,19 +291,12 @@ def print_warning(message: str, force: bool = False) -> None:
         oclogging.configure(level=ocerror.Error.get_output_level())
         log = oclogging.get_logger("printing")
         if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-            # For logging, don't add "WARNING:" prefix since logger adds it via levelname
+            # Don't add "WARNING:" prefix since the logger adds it via levelname
             context = _caller_context()
             log_msg = f"{message} {context}".strip()
-            # For print, add "WARNING:" prefix
-            print_msg = f"WARNING: {log_msg}"
         else:
-            # For logging, don't add "WARNING:" prefix since logger adds it via levelname
             log_msg = message
-            # For print, add "WARNING:" prefix
-            print_msg = f"WARNING: {message}"
         log.warning(log_msg)
-        if _should_print(log):
-            print(print_msg)
     return
 
 def print_warning_log(message: str, logfile: str, mode: str = 'a') -> None:
@@ -364,12 +329,9 @@ def printv(message: str) -> None:
     '''
 
     if ocerror.Error.output_level >= ocerror.ReportLevel.DEBUG:
-        # Keep direct print only as fallback when logging handlers are unavailable.
         oclogging.configure(level=ocerror.Error.get_output_level())
         log = oclogging.get_logger("printing")
         log.debug(message)
-        if _should_print(log):
-            print(message)
     return
 
 def section(n: int, name: str) -> str:

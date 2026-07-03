@@ -1102,7 +1102,7 @@ class OCDockerConfig:
 
     @classmethod
     def from_config_file(cls, config_file: str) -> "OCDockerConfig":
-        """Load configuration from config file.
+        '''Load configuration from config file.
 
         Parameters
         ----------
@@ -1113,7 +1113,7 @@ class OCDockerConfig:
         -------
         OCDockerConfig
             Configured instance
-        """
+        '''
         # Import here to avoid circular dependency
         import os
         from OCDocker.Initialise import _parse_config_file
@@ -1127,6 +1127,27 @@ class OCDockerConfig:
                 *,
                 include_package_locations: bool = True,
             ) -> str:
+                '''Fallback config path resolver used when Initialise cannot be imported.
+
+                Parameters
+                ----------
+                requested_config : str, optional
+                    Caller-requested config path, if any.
+                include_package_locations : bool, optional
+                    Unused; kept for signature parity with
+                    :func:`OCDocker.Initialise._resolve_config_file_path`.
+
+                Returns
+                -------
+                str
+                    Absolute path to the resolved configuration file.
+
+                Raises
+                ------
+                FileNotFoundError
+                    If no configuration file can be found.
+                '''
+
                 del include_package_locations  # unused in fallback path
                 requested = str(requested_config or "").strip()
                 if requested and os.path.isfile(requested):
@@ -1332,7 +1353,7 @@ class OCDockerConfig:
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> "OCDockerConfig":
-        """Create configuration from dictionary.
+        '''Create configuration from dictionary.
 
         Useful for testing and programmatic configuration.
 
@@ -1345,7 +1366,7 @@ class OCDockerConfig:
         -------
         OCDockerConfig
             Configured instance
-        """
+        '''
 
         # This is a simplified version - can be expanded as needed
         config = cls()
@@ -1420,7 +1441,7 @@ _config_instance: Optional[OCDockerConfig] = None
 
 ## Public ##
 def get_config() -> OCDockerConfig:
-    """Get the global configuration instance (singleton pattern).
+    '''Get the global configuration instance (singleton pattern).
 
     Returns
     -------
@@ -1431,7 +1452,7 @@ def get_config() -> OCDockerConfig:
     ----
     If no configuration has been set, returns a default configuration.
     For proper initialization, call set_config() or bootstrap from Initialise.
-    """
+    '''
 
     global _config_instance
     if _config_instance is None:
@@ -1444,10 +1465,10 @@ def get_config() -> OCDockerConfig:
 
 
 def reset_config() -> None:
-    """Reset the global configuration to None.
+    '''Reset the global configuration to None.
 
     Useful for testing to ensure clean state.
-    """
+    '''
 
     global _config_instance
     with _config_lock:
@@ -1455,7 +1476,7 @@ def reset_config() -> None:
 
 
 def set_config(config: OCDockerConfig) -> None:
-    """Set the global configuration (useful for testing).
+    '''Set the global configuration (useful for testing).
 
     Parameters
     ----------
@@ -1466,7 +1487,7 @@ def set_config(config: OCDockerConfig) -> None:
     ----
     This function is thread-safe and can be used to override
     the global configuration, particularly useful in tests.
-    """
+    '''
 
     global _config_instance
     with _config_lock:

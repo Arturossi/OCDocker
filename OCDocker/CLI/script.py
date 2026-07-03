@@ -184,6 +184,16 @@ def cmd_script(args: argparse.Namespace) -> int:  # pragma: no cover - script ex
 
 
 def register_subparser(sub: argparse._SubParsersAction, parent: argparse.ArgumentParser) -> None:
+    '''Register the ``ocdocker script`` command group.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        Main CLI subparser registry.
+    parent : argparse.ArgumentParser
+        Parent parser supplying shared global arguments.
+    '''
+
     p_script = sub.add_parser(
         "script",
         description=(

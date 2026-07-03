@@ -167,7 +167,7 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
         # Find the protein name
         ptn = receptorPath.split(os.path.sep)[-2]
 
-        # Get the box path TODO: add support to multiple boxes
+        # Get the box path (all_boxes handles the multi-box case below)
         boxPath = f"{ligandDir}/boxes/box0.pdb"
         if all_boxes:
             if len(glob(f"{ligandDir}/boxes/box*.pdb")) == 0:

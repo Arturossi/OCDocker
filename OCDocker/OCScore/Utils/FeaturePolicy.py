@@ -237,7 +237,7 @@ def _match_patterns(candidate_features: Sequence[str], patterns: Sequence[str]) 
 
 
 def load_feature_policy(path: str | Path, *, source_kind: str = "bundled") -> FeaturePolicy:
-    """Load one feature policy from a ``.yml`` file."""
+    '''Load one feature policy from a ``.yml`` file.'''
 
     if source_kind not in VALID_SOURCE_KINDS:
         raise ValueError(f"Unknown feature policy source kind: {source_kind!r}.")
@@ -274,7 +274,7 @@ def discover_feature_policies(
         policy_dirs: Optional[Sequence[str | Path]] = None,
         explicit_ymls: Optional[Sequence[str | Path]] = None,
     ) -> FeaturePolicyDiscovery:
-    """Discover bundled, user-directory, and explicit feature policies."""
+    '''Discover bundled, user-directory, and explicit feature policies.'''
 
     lookup_dirs = [BUNDLED_FEATURE_POLICY_DIR]
     lookup_dirs.extend(Path(path).expanduser().resolve() for path in (policy_dirs or ()))
@@ -313,7 +313,7 @@ def resolve_requested_feature_policies(
         policy_dirs: Optional[Sequence[str | Path]] = None,
         explicit_ymls: Optional[Sequence[str | Path]] = None,
     ) -> tuple[list[FeaturePolicy], FeaturePolicyDiscovery]:
-    """Resolve CLI feature-policy requests to loaded policies."""
+    '''Resolve CLI feature-policy requests to loaded policies.'''
 
     discovery = discover_feature_policies(policy_dirs=policy_dirs, explicit_ymls=explicit_ymls)
     requested = [str(name).strip() for name in (requested_names or ()) if str(name).strip()]
@@ -350,7 +350,7 @@ def discover_candidate_model_features(
         config: Optional[ocfr.FeatureReductionConfig] = None,
         non_feature_columns: Optional[Sequence[str]] = None,
     ) -> CandidateFeatureDiscovery:
-    """Discover the current production candidate descriptor pool."""
+    '''Discover the current production candidate descriptor pool.'''
 
     cfg = config or ocfr.default_ocscore_feature_reduction_config()
     blocks = ocfr.split_descriptor_blocks(
@@ -386,7 +386,7 @@ def apply_feature_policy(
         *,
         lookup_dirs: Sequence[str | Path] = (),
     ) -> FeaturePolicyApplication:
-    """Apply one feature policy to ordered candidate model features."""
+    '''Apply one feature policy to ordered candidate model features.'''
 
     candidates = _unique_preserve_order(candidate_features)
     candidate_set = set(candidates)
@@ -473,7 +473,7 @@ def feature_policy_from_mapping(
         source_kind: str = "draft",
         source_path: str | Path | None = None,
     ) -> FeaturePolicy:
-    """Build a feature policy from an in-memory mapping.
+    '''Build a feature policy from an in-memory mapping.
 
     Parameters
     ----------
@@ -493,7 +493,7 @@ def feature_policy_from_mapping(
     ------
     ValueError
         If required fields are missing or invalid.
-    """
+    '''
 
     if source_kind not in VALID_SOURCE_KINDS and source_kind != "draft":
         raise ValueError(f"Unknown feature policy source kind: {source_kind!r}.")
@@ -517,7 +517,7 @@ def feature_policy_from_mapping(
 
 
 def feature_policy_to_yaml_text(data: Mapping[str, Any]) -> str:
-    """Serialize one feature-policy mapping to YAML text.
+    '''Serialize one feature-policy mapping to YAML text.
 
     Parameters
     ----------
@@ -528,7 +528,7 @@ def feature_policy_to_yaml_text(data: Mapping[str, Any]) -> str:
     -------
     str
         YAML text suitable for ``--feature-policy-yml``.
-    """
+    '''
 
     payload: dict[str, Any] = {
         "name": str(data.get("name", "")).strip(),
@@ -551,7 +551,7 @@ def feature_policy_to_yaml_text(data: Mapping[str, Any]) -> str:
 
 
 def write_feature_policy_metadata(output_dir: str | Path, metadata: Mapping[str, Any]) -> Path:
-    """Write feature-policy provenance metadata."""
+    '''Write feature-policy provenance metadata.'''
 
     path = Path(output_dir) / FEATURE_POLICY_METADATA_JSON
     path.write_text(json.dumps(dict(metadata), indent=2, sort_keys=True) + "\n", encoding="utf-8")

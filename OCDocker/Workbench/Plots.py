@@ -441,6 +441,23 @@ def build_pareto_scatter_plot(
     def trace(
         name: str, entries: tuple[ParetoEntry, ...], color: str
     ) -> dict[str, Any]:
+        '''Build one Plotly scatter trace for a group of Pareto front entries.
+
+        Parameters
+        ----------
+        name : str
+            Trace legend label.
+        entries : tuple[ParetoEntry, ...]
+            Entries to plot, sharing this trace's color/legend group.
+        color : str
+            Marker color for this trace.
+
+        Returns
+        -------
+        dict[str, Any]
+            Plotly scatter trace payload.
+        '''
+
         return {
             "type": "scatter",
             "mode": "markers",

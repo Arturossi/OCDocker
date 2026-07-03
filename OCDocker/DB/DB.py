@@ -201,11 +201,11 @@ def _resolve_engine(engine: Optional[Engine] = None) -> Engine:
 
 
 def create_tables(engine: Optional[Engine] = None) -> None:
-    """Create all ORM tables bound to the provided or default engine.
+    '''Create all ORM tables bound to the provided or default engine.
 
     If no engine is provided, the default engine must have been initialized
     explicitly through application/CLI bootstrap.
-    """
+    '''
 
     try:
         eng = _resolve_engine(engine)
@@ -224,7 +224,7 @@ def export_db_to_csv(
     drop_na: bool = True,
     batch_size: int = 1000,
 ) -> Union[pd.DataFrame, str, None]:
-    """
+    '''
     Merge data from Complexes, Ligands, and Receptors tables and export.
 
     Parameters
@@ -246,7 +246,7 @@ def export_db_to_csv(
     -------
     pandas.DataFrame | str | None
         DataFrame or serialized string depending on `output_format`; None when writing to `output_file`.
-    """
+    '''
 
     if session is None:
         session_factory = _get_default_session_factory()
@@ -405,7 +405,7 @@ def export_table_to_csv(
     session: Optional[Session] = None,
     batch_size: int = 1000,
 ) -> None:
-    """
+    '''
     Export a single ORM model's rows to CSV.
 
     Parameters
@@ -419,7 +419,7 @@ def export_table_to_csv(
         explicitly initialized default session factory is used.
     batch_size : int
         Streaming batch size for DB row iteration. Defaults to 1000.
-    """
+    '''
 
     if session is None:
         session_factory = _get_default_session_factory()
@@ -448,7 +448,7 @@ def setup_database(
     create_if_missing: bool = False,
     engine: Optional[Engine] = None,
 ) -> Engine:
-    """
+    '''
     Ensure the database exists, create a new Engine, and create tables.
 
     Parameters
@@ -465,7 +465,7 @@ def setup_database(
     -------
     sqlalchemy.engine.base.Engine
         Live engine connected to the configured database URL.
-    """
+    '''
 
     from OCDocker.DB.DBMinimal import create_database_if_not_exists, create_engine
 

@@ -117,13 +117,13 @@ class Base(DeclarativeBase):
 
     @classmethod
     def add_dynamic_columns(cls, collection: List[str]) -> None:
-        """Dynamically add columns based on descriptor names.
+        '''Dynamically add columns based on descriptor names.
 
         Parameters
         ----------
         collection : List[str]
             The collection of descriptors.
-        """
+        '''
 
         # Iterate over the descriptors
         for descriptor in collection:
@@ -147,7 +147,7 @@ class Base(DeclarativeBase):
 
     @classmethod
     def delete(cls, idorname: Union[int, str], session: Any = None) -> bool:
-        """Delete data from the database.
+        '''Delete data from the database.
 
         Parameters
         ----------
@@ -158,7 +158,7 @@ class Base(DeclarativeBase):
         -------
         bool
             True if the data was deleted, False otherwise.
-        """
+        '''
 
         # Check if session is defined
         db_session = _resolve_session(session)
@@ -208,7 +208,7 @@ class Base(DeclarativeBase):
 
     @classmethod
     def determine_column_type(cls, descriptor: str) -> Union[Integer, Float]:
-        """Determine the type of column based on the descriptor.
+        '''Determine the type of column based on the descriptor.
 
         Parameters
         ----------
@@ -219,7 +219,7 @@ class Base(DeclarativeBase):
         -------
         Integer | Float
             The type of the column.
-        """
+        '''
 
         # Check if the descriptor is an integer-like count; otherwise use float
         if (
@@ -237,7 +237,7 @@ class Base(DeclarativeBase):
     def find_iter(
         cls, idorname: Union[int, str], batch_size: int = 1000, session: Any = None
     ) -> Iterator[DeclarativeMeta]:
-        """Search data in the database and stream the rows.
+        '''Search data in the database and stream the rows.
 
         Parameters
         ----------
@@ -250,7 +250,7 @@ class Base(DeclarativeBase):
         -------
         Iterator[DeclarativeMeta]
             Iterator with matching rows.
-        """
+        '''
 
         # Check if session is defined
         db_session = _resolve_session(session)
@@ -287,7 +287,7 @@ class Base(DeclarativeBase):
     def find(
         cls, idorname: Union[int, str], session: Any = None
     ) -> List[DeclarativeMeta]:
-        """Search data in the database.
+        '''Search data in the database.
 
         Parameters
         ----------
@@ -298,7 +298,7 @@ class Base(DeclarativeBase):
         -------
         List[DeclarativeMeta]
             The data found.
-        """
+        '''
 
         return list(cls.find_iter(idorname, session=session))
 
@@ -306,7 +306,7 @@ class Base(DeclarativeBase):
     def find_all_iter(
         cls, batch_size: int = 1000, session: Any = None
     ) -> Iterator[DeclarativeMeta]:
-        """Search all data in the database and stream the rows.
+        '''Search all data in the database and stream the rows.
 
         Parameters
         ----------
@@ -317,7 +317,7 @@ class Base(DeclarativeBase):
         -------
         Iterator[DeclarativeMeta]
             Iterator with all rows.
-        """
+        '''
 
         # Check if session is defined
         db_session = _resolve_session(session)
@@ -344,13 +344,13 @@ class Base(DeclarativeBase):
 
     @classmethod
     def find_all(cls, session: Any = None) -> List[DeclarativeMeta]:
-        """Search all data in the database.
+        '''Search all data in the database.
 
         Returns
         -------
         List[DeclarativeMeta]
             The data found.
-        """
+        '''
 
         return list(cls.find_all_iter(session=session))
 
@@ -358,7 +358,7 @@ class Base(DeclarativeBase):
     def find_all_names_iter(
         cls, batch_size: int = 1000, session: Any = None
     ) -> Iterator[str]:
-        """Search all names in the database and stream the rows.
+        '''Search all names in the database and stream the rows.
 
         Parameters
         ----------
@@ -369,7 +369,7 @@ class Base(DeclarativeBase):
         -------
         Iterator[str]
             Iterator with all names.
-        """
+        '''
 
         # Check if session is defined
         db_session = _resolve_session(session)
@@ -398,13 +398,13 @@ class Base(DeclarativeBase):
 
     @classmethod
     def find_all_names(cls, session: Any = None) -> List[str]:
-        """Search all names in the database.
+        '''Search all names in the database.
 
         Returns
         -------
         List[str]
             The names found.
-        """
+        '''
 
         return list(cls.find_all_names_iter(session=session))
 
@@ -417,7 +417,7 @@ class Base(DeclarativeBase):
         batch_size: int = 1000,
         session: Any = None,
     ) -> Iterator[DeclarativeMeta]:
-        """Search data in the database based on an attribute and stream rows.
+        '''Search data in the database based on an attribute and stream rows.
 
         Parameters
         ----------
@@ -434,7 +434,7 @@ class Base(DeclarativeBase):
         -------
         Iterator[DeclarativeMeta]
             Iterator with matching rows.
-        """
+        '''
 
         # Check if session is defined
         db_session = _resolve_session(session)
@@ -472,7 +472,7 @@ class Base(DeclarativeBase):
     def find_attribute(
         cls, column: str, value: Any, operator: str = "==", session: Any = None
     ) -> List[DeclarativeMeta]:
-        """Search data in the database based on an attribute.
+        '''Search data in the database based on an attribute.
 
         Parameters
         ----------
@@ -487,7 +487,7 @@ class Base(DeclarativeBase):
         -------
         List[DeclarativeMeta]
             The data found.
-        """
+        '''
 
         return list(cls.find_attribute_iter(column, value, operator, session=session))
 
@@ -495,7 +495,7 @@ class Base(DeclarativeBase):
     def find_first(
         cls, idorname: Union[int, str], session: Any = None
     ) -> Optional[DeclarativeMeta]:
-        """Search data in the database.
+        '''Search data in the database.
 
         Parameters
         ----------
@@ -506,7 +506,7 @@ class Base(DeclarativeBase):
         -------
         DeclarativeMeta | None
             The first matching row, if any.
-        """
+        '''
 
         # Check if session is defined
         db_session = _resolve_session(session)
@@ -536,7 +536,7 @@ class Base(DeclarativeBase):
     def insert(
         cls, payload: dict, ignorePresence: bool = False, session: Any = None
     ) -> bool:
-        """Insert data into the database.
+        '''Insert data into the database.
 
         Parameters
         ----------
@@ -549,7 +549,7 @@ class Base(DeclarativeBase):
         -------
         bool
             True if the data was inserted, False otherwise.
-        """
+        '''
 
         # Check if session is defined
         db_session = _resolve_session(session)
@@ -614,7 +614,7 @@ class Base(DeclarativeBase):
 
     @classmethod
     def insert_or_update(cls, payload: dict, session: Any = None) -> bool:
-        """Insert or update data in the database.
+        '''Insert or update data in the database.
 
         Parameters
         ----------
@@ -625,7 +625,7 @@ class Base(DeclarativeBase):
         -------
         bool
             True if the data was inserted or updated, False otherwise.
-        """
+        '''
 
         # Check if session is defined
         db_session = _resolve_session(session)
@@ -677,13 +677,13 @@ class Base(DeclarativeBase):
 
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:
-        """Return the object as a dictionary.
+        '''Return the object as a dictionary.
 
         Returns
         -------
         Dict[str, Any]
             The object as a dictionary.
-        """
+        '''
 
         return {
             column.key: getattr(cls, column.key)
@@ -695,7 +695,7 @@ class Base(DeclarativeBase):
     def update(
         cls, idorname: Union[int, str], payload: dict, session: Any = None
     ) -> bool:
-        """Update data in the database.
+        '''Update data in the database.
 
         Parameters
         ----------
@@ -708,7 +708,7 @@ class Base(DeclarativeBase):
         -------
         bool
             True if the data was updated, False otherwise.
-        """
+        '''
 
         # Check if session is defined
         db_session = _resolve_session(session)

@@ -129,7 +129,7 @@ def _load_sqlalchemy_utils() -> Tuple[Any, Any]:
 
 
 def normalize_db_backend(raw_backend: str) -> Optional[str]:
-    """Normalize backend names and SQLAlchemy driver names."""
+    '''Normalize backend names and SQLAlchemy driver names.'''
 
     value = str(raw_backend or "").strip().lower()
     if not value:
@@ -185,7 +185,7 @@ def _validate_sqlite_path(sqlite_path: str, *, require_sqlite_path: bool) -> str
 
 
 def database_exists(url: Union[str, URL]) -> bool:
-    """Return whether a database exists using sqlalchemy-utils."""
+    '''Return whether a database exists using sqlalchemy-utils.'''
 
     _ensure_sqlalchemy_available()
     if isinstance(url, str):
@@ -195,7 +195,7 @@ def database_exists(url: Union[str, URL]) -> bool:
 
 
 def create_database(url: Union[str, URL]) -> None:
-    """Create a database using sqlalchemy-utils."""
+    '''Create a database using sqlalchemy-utils.'''
 
     _ensure_sqlalchemy_available()
     if isinstance(url, str):
@@ -220,7 +220,7 @@ def validate_database_config(
     require_credentials: bool = False,
     require_sqlite_path: bool = False,
 ) -> DatabaseSettings:
-    """Validate database connection configuration.
+    '''Validate database connection configuration.
 
     Parameters
     ----------
@@ -230,7 +230,7 @@ def validate_database_config(
         Require host/user/password/database for PostgreSQL/MySQL.
     require_sqlite_path : bool, optional
         Require an explicit SQLite path instead of using ``:memory:``.
-    """
+    '''
 
     normalized_backend = normalize_db_backend(backend)
     if normalized_backend is None:
@@ -286,7 +286,7 @@ def validate_database_config(
 
 
 def build_database_urls(settings: DatabaseSettings) -> Tuple[URL, URL]:
-    """Build primary and optimization SQLAlchemy URLs from validated settings."""
+    '''Build primary and optimization SQLAlchemy URLs from validated settings.'''
 
     _ensure_sqlalchemy_available()
 
@@ -325,7 +325,7 @@ def build_database_urls(settings: DatabaseSettings) -> Tuple[URL, URL]:
 
 
 def get_default_engine() -> Any:
-    """Return the explicitly initialized default engine, if present."""
+    '''Return the explicitly initialized default engine, if present.'''
 
     try:
         import OCDocker.Initialise as init
@@ -335,7 +335,7 @@ def get_default_engine() -> Any:
 
 
 def get_default_session() -> Any:
-    """Return the explicitly initialized default session factory, if present."""
+    '''Return the explicitly initialized default session factory, if present.'''
 
     try:
         import OCDocker.Initialise as init
@@ -345,7 +345,7 @@ def get_default_session() -> Any:
 
 
 def cleanup_engine(engine: Optional[Engine]) -> None:
-    """Clean up an engine by disposing of all connections in the pool.
+    '''Clean up an engine by disposing of all connections in the pool.
 
     This function closes all connections in the connection pool and disposes of
     the engine. It's automatically called on application shutdown via atexit handlers.
@@ -361,7 +361,7 @@ def cleanup_engine(engine: Optional[Engine]) -> None:
     - Errors during cleanup are silently ignored
     - Typically called automatically on application exit
     - Prevents connection leaks, especially important for pooled DB backends
-    """
+    '''
     if engine is not None:
         try:
             # Dispose of all connections in the pool
@@ -373,7 +373,7 @@ def cleanup_engine(engine: Optional[Engine]) -> None:
 
 
 def cleanup_session(session: Optional[scoped_session]) -> None:
-    """Clean up a scoped session by removing all sessions from the registry.
+    '''Clean up a scoped session by removing all sessions from the registry.
 
     This function removes all thread-local session instances from the scoped_session
     registry. It's automatically called on application shutdown via atexit handlers.
@@ -388,7 +388,7 @@ def cleanup_session(session: Optional[scoped_session]) -> None:
     - This is safe to call multiple times (idempotent)
     - Errors during cleanup are silently ignored
     - Typically called automatically on application exit
-    """
+    '''
     if session is not None:
         try:
             # Remove all thread-local sessions from the registry
@@ -404,7 +404,7 @@ def create_database_if_not_exists(
     *,
     create_if_missing: bool = False,
 ) -> bool:
-    """Create the database only when explicitly allowed.
+    '''Create the database only when explicitly allowed.
 
     Parameters
     ----------
@@ -418,7 +418,7 @@ def create_database_if_not_exists(
     -------
     bool
         True if this call created a database, False otherwise.
-    """
+    '''
 
     _ensure_sqlalchemy_available()
     if isinstance(url, str):
@@ -475,7 +475,7 @@ def create_engine(
     pool_timeout: int = 30,
     pool_recycle: int = 3600,
 ) -> Engine:
-    """Create the engine with connection pooling.
+    '''Create the engine with connection pooling.
 
     Parameters
     ----------
@@ -496,7 +496,7 @@ def create_engine(
     -------
     Engine : sqlalchemy.engine.base.Engine
         The engine with connection pooling configured.
-    """
+    '''
 
     _ensure_sqlalchemy_available()
     if isinstance(url, str):
@@ -545,7 +545,7 @@ def create_engine(
 
 
 def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
-    """Create a scoped session for database operations.
+    '''Create a scoped session for database operations.
 
     Parameters
     ----------
@@ -573,7 +573,7 @@ def create_session(engine: Optional[Engine]) -> Optional[scoped_session]:
         with session() as s:
             result = s.query(Model).all()
             s.commit()  # Optional - context manager handles this
-    """
+    '''
 
     # Check if the engine is defined
     if engine is None:

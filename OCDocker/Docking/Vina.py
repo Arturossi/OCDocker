@@ -615,7 +615,7 @@ def generate_vina_files_database(path: str, protein: str, boxPath: str = "") -> 
     # Create the vina folder inside protein's directory
     _ = ocff.safe_create_dir(vinaPath)
 
-    # TODO: Implement multiple box support here
+    # Single-box path; Prepare.py routes multi-box callers to box_to_vina() per box instead.
     box = f"{boxPath}/box0.pdb"
     confPath = f"{vinaPath}/conf_vina.conf"
     box_to_vina(box, confPath, protein)

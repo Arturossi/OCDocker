@@ -395,23 +395,6 @@ class Smina:
         )
 
 
-    def run_prepare_ligand_from_cmd(self, logFile: str = "") -> Union[int, str, Tuple[int, str]]:
-        '''Run obabel convert ligand to pdbqt using the 'self.inputLigandPath' attribute. [DEPRECATED]
-
-        Parameters
-        ----------
-        logFile : str
-            The path for the log file.
-        '''
-
-        # DEPRECATED: Use run_prepare_ligand() instead
-        return self.preparation_strategy.prepare_ligand(
-            self.input_ligand_path,
-            self.prepared_ligand,
-            logFile
-        )
-
-
     def run_prepare_receptor(self, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
@@ -427,30 +410,6 @@ class Smina:
             self.input_receptor_path,
             self.prepared_receptor,
             "",
-            overwrite=overwrite
-        )
-
-
-    def run_prepare_receptor_from_cmd(self, logFile: str = "", overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
-        '''Run obabel convert receptor to pdbqt script using the 'self.prepareReceptorCmd' attribute. [DEPRECATED]
-
-        Parameters
-        ----------
-        logFile : str
-            The path for the log file.
-
-        Returns
-        -------
-        int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-        '''
-
-        # DEPRECATED: Use run_prepare_receptor() instead
-        obabel_strategy = OpenBabelPreparationStrategy()
-        return obabel_strategy.prepare_receptor(
-            self.input_receptor_path,
-            self.prepared_receptor,
-            logFile,
             overwrite=overwrite
         )
 
@@ -848,31 +807,6 @@ def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str, overwrite: 
         return ocerror.Error.subprocess(message=f"Error while running ligand conversion: {e}", level = ocerror.ReportLevel.ERROR)
 
 
-def run_prepare_ligand_from_cmd(input_ligand_path: str, prepared_ligand: str, log_file: str = "") -> Union[int, str, Tuple[int, str]]:
-    '''Converts the ligand to .pdbqt using obabel. [DEPRECATED]
-
-    Parameters
-    ----------
-    input_ligand_path : str
-        The path for the input ligand.
-    prepared_ligand : str
-        The path for the prepared ligand.
-    log_file : str
-        The path for the log file.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-    '''
-
-    # Create the command list
-    config = get_config()
-    cmd = [config.tools.obabel, input_ligand_path, "-O", prepared_ligand]
-
-    return ocrun.run(cmd, logFile=log_file)
-
-
 def run_prepare_receptor(input_receptor_path: str, prepared_receptor: str, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
     '''Run obabel convert receptor to pdbqt using the openbabel python library.
 
@@ -892,31 +826,6 @@ def run_prepare_receptor(input_receptor_path: str, prepared_receptor: str, overw
     # Smina uses OpenBabel for receptor preparation
     strategy = OpenBabelPreparationStrategy()
     return strategy.prepare_receptor(input_receptor_path, prepared_receptor, "", overwrite=overwrite)
-
-
-def run_prepare_receptor_from_cmd(input_receptor_path: str, output_receptor: str, log_file: str = "") -> Union[int, str, Tuple[int, str]]:
-    '''Converts the receptor to .pdbqt using obabel. [DEPRECATED]
-
-    Parameters
-    ----------
-    input_receptor_path : str
-        The path for the input receptor.
-    output_receptor : str
-        The path for the output receptor.
-    log_file : str
-        The path for the log file.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-    '''
-
-    # Create the command list
-    config = get_config()
-    cmd = [config.tools.obabel, input_receptor_path, "-xr", "-O", output_receptor]
-
-    return ocrun.run(cmd, logFile=log_file)
 
 
 def run_rescore(confFile: str, ligands: Union[List[str], str], outPath: str, scoring_function: str, logFile: str = "", splitLigand: bool = True, overwrite: bool = False) -> None:

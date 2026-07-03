@@ -718,6 +718,10 @@ class Ligand:
 ###############################################################################
 ## Private ##
 
+# (descriptor_name, error_message) pairs already logged by __compute_descriptor,
+# so a systematically failing descriptor logs once per process, not once per molecule.
+_logged_descriptor_errors: set = set()
+
 def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.rdchem.Mol], Optional[float]]:
     '''Factory function to create a function that computes a descriptor by its name.
 
@@ -743,7 +747,6 @@ def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.
     else:
         descriptor_func = getattr(Descriptors, descriptor_name)
 
-    # TODO: Check how to avoid this function to spam print the same error multiple times
     def __compute_descriptor(molecule: rdkit.Chem.rdchem.Mol) -> Optional[float]:
         '''Compute a descriptor value for a molecule.
 
@@ -766,7 +769,13 @@ def __descriptor_function_factory(descriptor_name: str) -> Callable[[rdkit.Chem.
                 try:
                     return float(descriptor_func(molecule))
                 except Exception as e:
-                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}")
+                    # Log each distinct (descriptor, error) pair once; a systematically
+                    # failing descriptor would otherwise reprint the same line for every
+                    # molecule in a large virtual-screening batch.
+                    error_key = (descriptor_name, str(e))
+                    if error_key not in _logged_descriptor_errors:
+                        _logged_descriptor_errors.add(error_key)
+                        _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}")
             else:
                 _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
         else:
@@ -804,8 +813,6 @@ def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit
     else:
         descriptor_func = getattr(Descriptors, descriptor_name)
 
-    # TODO: Check how to avoid this function to spam print the same error multiple times
-
     # Create the nested function as a method of the Ligand class
     def __compute_descriptor_class(self) -> Optional[float]:
         '''Compute the descriptor for the Ligand object.
@@ -830,7 +837,12 @@ def __descriptor_function_factory_class(descriptor_name: str) -> Callable[[rdkit
                     # Return the function
                     return float(descriptor_func(molecule))
                 except Exception as e:
-                    _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}")
+                    # See __compute_descriptor: log each distinct (descriptor, error)
+                    # pair once instead of once per molecule.
+                    error_key = (descriptor_name, str(e))
+                    if error_key not in _logged_descriptor_errors:
+                        _logged_descriptor_errors.add(error_key)
+                        _ = ocerror.Error.unknown(f"Error while creating the function in factory: {str(e)}")
             else:
                 _ = ocerror.Error.wrong_type(f"The molecule '{molecule}' has wrong type! Expected 'rdkit.Chem.rdchem.Mol' and got '{type(molecule)}'")
         else:
@@ -1564,7 +1576,7 @@ def read_descriptors_from_json(path: str, return_data: bool = False) -> Optional
 
 
 def split_molecules(molecule: str, output_dir: str = "", prefix: str = "ligand") -> List[str]:
-    ''' Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files. Uses openbabel python library. TODO: Make this function work better with the new database structure.
+    ''' Given a molecule file, checks if it has more than one ligand, if positive, splits the file into multiple single molecule files. Uses openbabel python library.
 
     Parameters
     ----------

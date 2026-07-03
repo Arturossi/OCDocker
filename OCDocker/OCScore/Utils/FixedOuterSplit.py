@@ -376,47 +376,12 @@ def validate_protocol_integrity(
     }
 
 
-def evaluate_production_claim_validity(
-        *,
-        perform_hard_checks: bool,
-        feature_selection: Optional[dict[str, Any]],
-        fixed_outer_split: Optional[dict[str, Any] | FixedOuterSplitAssignment],
-        replica_alignments: Sequence[dict[str, Any]],
-    ) -> dict[str, Any]:
-    '''Deprecated alias that always validates the unified protocol.
-
-    Parameters
-    ----------
-    perform_hard_checks : bool
-        Ignored. Retained for backward-compatible call sites.
-    feature_selection : dict[str, Any] | None
-        Train-only feature-selection metadata from the modeling run.
-    fixed_outer_split : dict[str, Any] | FixedOuterSplitAssignment | None
-        Fixed outer split metadata shared by all replicas.
-    replica_alignments : Sequence[dict[str, Any]]
-        Per-replica split and selected-feature alignment records.
-
-    Returns
-    -------
-    dict[str, Any]
-        Protocol metadata from :func:`validate_protocol_integrity`.
-    '''
-
-    del perform_hard_checks
-    return validate_protocol_integrity(
-        feature_selection=feature_selection,
-        fixed_outer_split=fixed_outer_split,
-        replica_alignments=replica_alignments,
-    )
-
-
 __all__ = [
     "FIXED_OUTER_SPLIT_JSON",
     "FixedOuterSplitAssignment",
     "ROW_ID_COLUMNS",
     "build_fixed_outer_split_assignment",
     "build_replica_split_alignment_metadata",
-    "evaluate_production_claim_validity",
     "validate_protocol_integrity",
     "load_fixed_outer_split",
     "validate_replica_split_alignment",

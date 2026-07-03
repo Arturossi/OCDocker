@@ -279,16 +279,16 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
         else:
             target = __get_digest_target(digest_data)
             # Run for gnina
-            logPath = f"{ligandDir}/gninaFiles/gnina_0.log" # TODO: add support to multiple boxes/runs
+            logPath = f"{ligandDir}/gninaFiles/gnina_0.log"
             __merge_engine_log(target, ocgnina.read_log, logPath)
             # Run for vina
-            logPath = f"{ligandDir}/vinaFiles/vina_0.log" # TODO: add support to multiple boxes/runs
+            logPath = f"{ligandDir}/vinaFiles/vina_0.log"
             __merge_engine_log(target, ocvina.read_log, logPath)
             # Run for smina
-            logPath = _resolve_smina_log(f"{ligandDir}/sminaFiles") # TODO: add support to multiple boxes/runs
+            logPath = _resolve_smina_log(f"{ligandDir}/sminaFiles")
             __merge_engine_log(target, ocsmina.read_log, logPath)
             # Run for PLANTS
-            logPath = f"{ligandDir}/plantsFiles/run/bestranking.csv" # TODO: add support to multiple boxes/runs
+            logPath = f"{ligandDir}/plantsFiles/run/bestranking.csv"
             __merge_engine_log(target, ocplants.read_log, logPath)
 
         write_code = __write_digest_data(digest_path, digest_data, digestFormat)

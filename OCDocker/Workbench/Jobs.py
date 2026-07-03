@@ -56,6 +56,10 @@ CAMPAIGN_ROW_KINDS = ("vs", "pipeline")
 CAMPAIGN_ENGINES = ("shell", "snakemake")
 DEFAULT_CAMPAIGN_ENGINE = "shell"
 DEFAULT_CAMPAIGN_CORES = 4
+# Matches the bundled Snakefile's `config.get("results_dir", "results")` default, so the
+# "shell" and "snakemake" engines isolate per-sample output the same way when results_dir
+# is omitted by the caller.
+DEFAULT_CAMPAIGN_RESULTS_DIR = "results"
 # Invoked as `[sys.executable, "-m", "snakemake", ...]` rather than a bare "snakemake" on
 # PATH, so it always resolves to the same interpreter/environment running the Workbench API.
 SNAKEMAKE_INVOCATION: tuple[str, ...] = (sys.executable, "-m", "snakemake")
@@ -482,11 +486,13 @@ def build_campaign_script(
     executable : str
         ``ocdocker`` executable invoked for each row.
     results_dir : str or None
-        When given, every row gets its own ``--outdir <results_dir>/<sample>``
-        — a *shared literal* ``--outdir`` in ``args`` would make every row
+        Every row gets its own ``--outdir <results_dir>/<sample>`` — a
+        *shared literal* ``--outdir`` in ``args`` would make every row
         overwrite the same directory, since ``ocdocker vs``/``pipeline``
         write straight under ``--outdir`` with no per-sample nesting of
-        their own.
+        their own. Defaults to :data:`DEFAULT_CAMPAIGN_RESULTS_DIR` when
+        omitted, matching the bundled Snakefile's default so both
+        ``vs_campaign`` engines isolate samples the same way.
 
     Returns
     -------
@@ -526,8 +532,7 @@ def build_campaign_script(
             rescoring_engines = [str(item) for item in (row.get("rescoring_engines") or []) if str(item).strip()]
             if rescoring_engines:
                 row_command.extend(["--rescoring-engines", ",".join(rescoring_engines)])
-        if results_dir:
-            row_command.extend(["--outdir", f"{results_dir}/{sample}"])
+        row_command.extend(["--outdir", f"{results_dir or DEFAULT_CAMPAIGN_RESULTS_DIR}/{sample}"])
         row_command.extend(common_args)
 
         quoted = " ".join(shlex.quote(part) for part in row_command)

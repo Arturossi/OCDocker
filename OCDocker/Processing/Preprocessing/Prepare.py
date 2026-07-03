@@ -397,7 +397,6 @@ def __prepare_molecule(
 def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str, all_boxes: bool) -> None:
     '''Warper to prepare the jobs, recieves a list of directories, and pass one by one, sequentially to the __core_prepare function.
 
-    TODO: Add the support to custom databases.
 
     Parameters
     ----------
@@ -435,7 +434,6 @@ def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanit
 def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize: bool, spacing: float, desc: str, all_boxes: bool) -> None:
     '''Warper to prepare the parallel jobs, recieves a list of directories, creates the argument list and then pass it to the threads, afterwards waits all threads to finish.
 
-    TODO: Add the support to custom databases.
 
     Parameters
     ----------
@@ -486,7 +484,6 @@ def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize
 def __prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, spacing: float, all_boxes: bool) -> None:
     '''Warper to prepare the jobs, recieves a directory, and pass it to the __core_prepare function.
 
-    TODO: Add the support to custom databases.
 
     Parameters
     ----------

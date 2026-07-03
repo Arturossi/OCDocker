@@ -15,7 +15,7 @@ LOGGER = oclogging.get_logger("cli")
 
 
 def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interactive console
-    """Launch the OCDocker interactive console.
+    '''Launch the OCDocker interactive console.
 
     Respects global flags by bootstrapping environment first.
 
@@ -28,7 +28,7 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
     -------
     int
         Exit code (0 for success, 1 for failure).
-    """
+    '''
     globals_ns = _preparse_global_args(sys.argv[1:])
     setattr(globals_ns, "_ocdocker_init_db", False)
     _bootstrap_ocdocker_env(globals_ns)
@@ -41,6 +41,16 @@ def cmd_console(args: argparse.Namespace) -> int:  # pragma: no cover - interact
 
 
 def register_subparser(sub: argparse._SubParsersAction, parent: argparse.ArgumentParser) -> None:
+    '''Register the ``ocdocker console`` command group.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        Main CLI subparser registry.
+    parent : argparse.ArgumentParser
+        Parent parser supplying shared global arguments.
+    '''
+
     p_console = sub.add_parser(
         "console",
         description=(

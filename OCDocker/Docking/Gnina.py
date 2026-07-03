@@ -633,22 +633,6 @@ class Gnina:
         )
 
 
-    def run_prepare_ligand_from_cmd(self, logFile: str = "") -> Union[int, str, Tuple[int, str]]:
-        '''Run Open Babel conversion for ligand. [DEPRECATED]
-
-        Parameters
-        ----------
-        logFile : str
-            The path for the log file.
-        '''
-
-        return self.preparation_strategy.prepare_ligand(
-            self.input_ligand_path,
-            self.prepared_ligand,
-            logFile
-        )
-
-
     def run_prepare_receptor(self, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
         '''Run Open Babel conversion for receptor.
 
@@ -665,27 +649,6 @@ class Gnina:
             overwrite=overwrite
         )
 
-
-    def run_prepare_receptor_from_cmd(self, logFile: str = "", overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
-        '''Run Open Babel conversion for receptor. [DEPRECATED]
-
-        Parameters
-        ----------
-        logFile : str
-            The path for the log file.
-
-        Returns
-        -------
-        int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
-        '''
-
-        return self.preparation_strategy.prepare_receptor(
-            self.input_receptor_path,
-            self.prepared_receptor,
-            logFile,
-            overwrite=overwrite
-        )
 
     def run_rescore(self, outPath: str, ligand: str, logFile: str = "", skipDefaultScoring: bool = False, splitLigand: bool = False, overwrite: bool = False) -> None:
         '''Run gnina to rescore the ligand.
@@ -1051,28 +1014,6 @@ def run_prepare_ligand(input_ligand_path: str, prepared_ligand: str, overwrite: 
     return strategy.prepare_ligand(input_ligand_path, prepared_ligand, "", overwrite=overwrite)
 
 
-def run_prepare_ligand_from_cmd(input_ligand_path: str, prepared_ligand: str, log_file: str = "") -> Union[int, str, Tuple[int, str]]:
-    '''Converts the ligand to .pdbqt using Open Babel. [DEPRECATED]
-
-    Parameters
-    ----------
-    input_ligand_path : str
-        The path for the input ligand.
-    prepared_ligand : str
-        The path for the prepared ligand.
-    log_file : str
-        The path for the log file.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-    '''
-
-    strategy = OpenBabelPreparationStrategy()
-    return strategy.prepare_ligand(input_ligand_path, prepared_ligand, log_file)
-
-
 def run_prepare_receptor(input_receptor_path: str, prepared_receptor: str, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
     '''Run Open Babel convert receptor to pdbqt.
 
@@ -1092,27 +1033,6 @@ def run_prepare_receptor(input_receptor_path: str, prepared_receptor: str, overw
     strategy = OpenBabelPreparationStrategy()
     return strategy.prepare_receptor(input_receptor_path, prepared_receptor, "", overwrite=overwrite)
 
-
-def run_prepare_receptor_from_cmd(input_receptor_path: str, output_receptor: str, log_file: str = "") -> Union[int, str, Tuple[int, str]]:
-    '''Converts the receptor to .pdbqt using Open Babel. [DEPRECATED]
-
-    Parameters
-    ----------
-    input_receptor_path : str
-        The path for the input receptor.
-    output_receptor : str
-        The path for the output receptor.
-    log_file : str
-        The path for the log file.
-
-    Returns
-    -------
-    int | Tuple[int, str]
-        The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the output of the command.
-    '''
-
-    strategy = OpenBabelPreparationStrategy()
-    return strategy.prepare_receptor(input_receptor_path, output_receptor, log_file)
 
 
 def run_gnina(config: str, prepared_ligand: str, output_gnina: str, gnina_log: str, log_path: str) -> Union[int, Tuple[int, str]]:

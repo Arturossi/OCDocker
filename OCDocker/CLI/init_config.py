@@ -60,6 +60,16 @@ def cmd_init_config(args: argparse.Namespace) -> int:
 
 
 def register_subparser(sub: argparse._SubParsersAction, parent: argparse.ArgumentParser) -> None:
+    '''Register the ``ocdocker init-config`` command group.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        Main CLI subparser registry.
+    parent : argparse.ArgumentParser
+        Parent parser supplying shared global arguments.
+    '''
+
     p_init = sub.add_parser(
         "init-config",
         description=(

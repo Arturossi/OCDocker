@@ -41,14 +41,22 @@ See the LICENSE file for full terms.
 
 
 class _LazyPrepareModule:
+    """Load the preprocessing Prepare module only when preparation is needed."""
+
     def prepare(self, *args, **kwargs):
+        '''Delegate to :func:`OCDocker.Processing.Preprocessing.Prepare.prepare`, importing it lazily.'''
+
         import OCDocker.Processing.Preprocessing.Prepare as module
 
         return module.prepare(*args, **kwargs)
 
 
 class _LazyDockModule:
+    """Load the Dock module only when docking is needed."""
+
     def run_dock(self, *args, **kwargs):
+        '''Delegate to :func:`OCDocker.Processing.Dock.run_dock`, importing it lazily.'''
+
         import OCDocker.Processing.Dock as module
 
         return module.run_dock(*args, **kwargs)
@@ -70,7 +78,7 @@ def prepare(
     sanitize: bool = True,
     all_boxes: bool = False,
 ) -> None:
-    """Prepares the database.
+    '''Prepares the database.
 
     Parameters
     ----------
@@ -82,7 +90,7 @@ def prepare(
         The spacing to be used in the grid. The default is 0.33.
     sanitize : bool, optional
         If True sanitizes the ligands, if False does not sanitize the ligands. The default is True.
-    """
+    '''
 
     # Find which kind of archive it will be
     config = get_config()
@@ -119,7 +127,7 @@ def run_docking(
     overwrite: bool = False,
     all_boxes: bool = False,
 ) -> int:
-    """Run docking.
+    '''Run docking.
 
     Parameters
     ----------
@@ -136,12 +144,11 @@ def run_docking(
     -------
     int
         The exit code of the command (based on the Error.py code table).
-    """
+    '''
 
     # Make archive lowercase
     archive = os.path.basename(archive).lower()
 
-    # TODO: add support to custom databases
     # Find which kind of archive it will be
     if archive == "dudez":
         config = get_config()

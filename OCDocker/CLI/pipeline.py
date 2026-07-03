@@ -866,7 +866,30 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
         print(f"Error: missing engine binaries: {', '.join(missing)}. Check paths in OCDocker.cfg or PATH.")
         return 2
 
-    def _run_pipeline_for_box(box_path: Path, outdir: Path, box_label: Optional[str]) -> int:
+    def _run_pipeline_for_box(box_path: Path, outdir: Path, box_label: Optional[str], write_done_marker: bool = True) -> int:
+        '''Run the full monolithic pipeline (all engines through export) for one box.
+
+        Parameters
+        ----------
+        box_path : Path
+            Binding site box definition file for this run.
+        outdir : Path
+            Output directory for this box's run.
+        box_label : str, optional
+            Box identifier used in stored results when running under ``--all-boxes``.
+        write_done_marker : bool, optional
+            If True, write ``args.done_marker`` for this box's own outcome. Callers
+            iterating multiple boxes should pass False and write one consolidated
+            marker after the loop instead, so the shared marker path reflects the
+            overall run rather than whichever box happened to finish last.
+            The default is True.
+
+        Returns
+        -------
+        int
+            Exit code.
+        '''
+
         outdir.mkdir(parents=True, exist_ok=True)
         all_poses: List[str] = []
         pose_engine_map: Dict[str, str] = {}  # Map pose path to engine name
@@ -1645,14 +1668,12 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
         }
         summary_path = outdir / "summary.json"
         _write_json_atomic(summary_path, summ)
-        if args.done_marker:
-            marker_payload = {
-                "status": "complete",
+        if write_done_marker:
+            _write_done_marker(args.done_marker, {
                 "summary": str(summary_path),
                 "outdir": str(outdir),
                 "job": name,
-            }
-            _write_json_atomic(Path(args.done_marker), marker_payload)
+            })
 
         if args.store_db:
             try:
@@ -1687,12 +1708,22 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
     if args.all_boxes:
         overall_rc = 0
         use_multi_boxes = len(boxes) > 1
+        box_results: List[Dict[str, Any]] = []
         for box in boxes:
             box_id = box.stem
             box_outdir = base_outdir / box_id
-            rc = _run_pipeline_for_box(box, box_outdir, box_id)
+            rc = _run_pipeline_for_box(box, box_outdir, box_id, write_done_marker=False)
+            box_results.append({"box": box_id, "outdir": str(box_outdir), "return_code": rc})
             if rc != 0:
                 overall_rc = rc
+        # Write a single marker reflecting the outcome across all boxes, instead of
+        # letting each box's write silently overwrite the shared marker path.
+        _write_done_marker(args.done_marker, {
+            "status": "complete" if overall_rc == 0 else "failed",
+            "return_code": overall_rc,
+            "outdir": str(base_outdir),
+            "boxes": box_results,
+        })
         return overall_rc
 
     return _run_pipeline_for_box(box_path, base_outdir, None)
@@ -1700,6 +1731,16 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
 
 
 def register_subparser(sub: argparse._SubParsersAction, parent: argparse.ArgumentParser) -> None:
+    '''Register the ``ocdocker pipeline`` command group.
+
+    Parameters
+    ----------
+    sub : argparse._SubParsersAction
+        Main CLI subparser registry.
+    parent : argparse.ArgumentParser
+        Parent parser supplying shared global arguments.
+    '''
+
     p_pipe = sub.add_parser(
         "pipeline",
         description=(

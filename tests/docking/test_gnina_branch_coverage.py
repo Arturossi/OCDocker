@@ -281,13 +281,9 @@ def test_gnina_instance_methods_delegate_and_helpers(monkeypatch, tmp_path, caps
     assert instance.read_rescore_logs(str(tmp_path), onlyBest=True)["k"] == -8.0
 
     lig_result = instance.run_prepare_ligand(overwrite=True)
-    lig_cmd_result = instance.run_prepare_ligand_from_cmd(logFile=str(tmp_path / "lig.log"))
     rec_result = instance.run_prepare_receptor(overwrite=True)
-    rec_cmd_result = instance.run_prepare_receptor_from_cmd(logFile=str(tmp_path / "rec.log"), overwrite=True)
     assert lig_result[-1] is True
-    assert lig_cmd_result[2].endswith("lig.log")
     assert rec_result[-1] is True
-    assert rec_cmd_result[2].endswith("rec.log")
 
     instance.print_attributes()
     captured = capsys.readouterr()
@@ -465,13 +461,9 @@ def test_gnina_standalone_prepare_wrappers_and_run_gnina(monkeypatch, tmp_path):
     monkeypatch.setattr(ocgnina, "OpenBabelPreparationStrategy", DummyPreparationStrategy)
 
     lig = ocgnina.run_prepare_ligand("a.sdf", "a.pdbqt", overwrite=True)
-    lig_cmd = ocgnina.run_prepare_ligand_from_cmd("a.sdf", "a.pdbqt", log_file="l.log")
     rec = ocgnina.run_prepare_receptor("r.pdb", "r.pdbqt", overwrite=True)
-    rec_cmd = ocgnina.run_prepare_receptor_from_cmd("r.pdb", "r.pdbqt", log_file="r.log")
     assert lig[0] == "lig"
-    assert lig_cmd[3] == "l.log"
     assert rec[0] == "rec"
-    assert rec_cmd[3] == "r.log"
 
     monkeypatch.setattr(ocgnina, "get_config", lambda: _dummy_config(executable="/nonexistent/gnina"))
     monkeypatch.setattr(ocgnina.shutil, "which", lambda _exe: None)
