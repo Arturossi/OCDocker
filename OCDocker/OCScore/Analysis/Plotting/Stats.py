@@ -43,6 +43,92 @@ See the LICENSE file for full terms.
 
 ## Public ##
 
+def plot_ablation_bedroc_significance_bars(
+        significance_df: pd.DataFrame,
+        *,
+        reference_policy: str = 'full_ocscore',
+        metric_label: str = 'BEDROC',
+        output_dir: str = 'plots',
+        alpha: float = 0.05
+    ) -> None:
+    '''
+    Plot per-policy BEDROC means vs a reference policy, colored by paired significance.
+
+    Parameters
+    ----------
+    significance_df : pd.DataFrame
+        Output of ``OCScore.Analysis.AblationSignificance.compute_ablation_significance``
+        (expects columns 'policy', 'reference_mean', 'policy_mean', 'mean_diff',
+        'pvalue_corrected', 'reject_null').
+    reference_policy : str
+        Name of the reference policy, used for the axis label and reference line. Default: 'full_ocscore'.
+    metric_label : str
+        Metric label for titling. Default: 'BEDROC'.
+    output_dir : str
+        Where to save the plot image. Default: 'plots'.
+    alpha : float
+        Family-wise significance threshold used only for the subtitle text. Default: 0.05.
+    '''
+
+    df = significance_df.sort_values(by='policy_mean', ascending=True).reset_index(drop=True)
+    reference_mean = float(df['reference_mean'].iloc[0]) if not df.empty else float('nan')
+
+    def stars(p: float) -> str:
+        '''Convert a corrected p-value to significance stars.
+
+        Parameters
+        ----------
+        p : float
+            The corrected p-value to convert.
+
+        Returns
+        -------
+        str
+            Significance stars: '***' for p < 0.001, '**' for p < 0.01, '*' for p < 0.05, '' otherwise.
+        '''
+
+        if pd.isna(p):
+            return ''
+        return '***' if p < 0.001 else ('**' if p < 0.01 else ('*' if p < 0.05 else ''))
+
+    def bar_colour(row: pd.Series) -> str:
+        if not bool(row['reject_null']):
+            return 'tab:gray'
+        return 'tab:blue' if row['mean_diff'] > 0 else 'tab:red'
+
+    palette = dict(zip(df['policy'], df.apply(bar_colour, axis=1)))
+
+    plt.figure(figsize=(10, max(6, 0.35 * len(df))))
+    ax = sns.barplot(data=df, x='policy_mean', y='policy', hue='policy', palette=palette, legend=False, orient='h')
+    ax.axvline(reference_mean, color='black', linestyle='--', linewidth=1, label=f'{reference_policy} (reference)')
+
+    for i, (mean_val, p_corr) in enumerate(zip(df['policy_mean'], df['pvalue_corrected'])):
+        ax.text(
+            mean_val + 0.005,
+            i,
+            f"{mean_val:.3f} {stars(p_corr)}",
+            ha='left',
+            va='center',
+            fontsize=8,
+        )
+
+    legend_handles = [
+        mlines.Line2D([0], [0], color='black', linestyle='--', label=f'{reference_policy} (reference)'),
+        mlines.Line2D([0], [0], color='tab:red', lw=6, label='Significantly worse'),
+        mlines.Line2D([0], [0], color='tab:blue', lw=6, label='Significantly better'),
+        mlines.Line2D([0], [0], color='tab:gray', lw=6, label=f'Not significant (Holm, alpha={alpha:g})'),
+    ]
+    ax.legend(handles=legend_handles, loc='upper left', bbox_to_anchor=(1.01, 1.0), fontsize=8, borderaxespad=0.0)
+
+    ax.set_title(f'{metric_label} per feature-ablation policy vs {reference_policy}')
+    ax.set_xlabel(metric_label)
+    ax.set_ylabel('Feature policy')
+    plt.grid(True, axis='x', linestyle=':', linewidth=0.5)
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/ablation_{metric_label.lower()}_significance_bars.png", dpi=300, bbox_inches='tight')
+    plt.close()
+
+
 def plot_bar_with_significance(
         gh_df: pd.DataFrame,
         metric: str,

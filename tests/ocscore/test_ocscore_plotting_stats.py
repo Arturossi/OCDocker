@@ -52,6 +52,47 @@ def _toy_method_df() -> pd.DataFrame:
 
 ## Public ##
 
+def _toy_significance_df() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "policy": ["shape_only", "no_pmi", "ligand_plus_scoring_function"],
+            "reference_mean": [0.420, 0.420, 0.420],
+            "policy_mean": [0.164, 0.432, 0.491],
+            "mean_diff": [-0.256, 0.012, 0.071],
+            "pvalue": [1.5e-8, 0.22, 0.005],
+            "pvalue_corrected": [3.2e-7, 1.0, 0.09],
+            "reject_null": [True, False, False],
+        }
+    )
+
+
+@pytest.mark.order(512)
+def test_plot_ablation_bedroc_significance_bars_happy_path(monkeypatch, tmp_path):
+    saved = []
+    monkeypatch.setattr(ocstatplot.plt, "savefig", lambda path, **_k: saved.append(path))
+
+    ocstatplot.plot_ablation_bedroc_significance_bars(
+        _toy_significance_df(),
+        reference_policy="full_ocscore",
+        metric_label="BEDROC",
+        output_dir=str(tmp_path),
+    )
+
+    assert any("ablation_bedroc_significance_bars.png" in p for p in saved)
+
+
+@pytest.mark.order(513)
+def test_plot_ablation_bedroc_significance_bars_handles_nan_pvalue(monkeypatch, tmp_path):
+    saved = []
+    monkeypatch.setattr(ocstatplot.plt, "savefig", lambda path, **_k: saved.append(path))
+
+    df = _toy_significance_df()
+    df.loc[1, "pvalue_corrected"] = float("nan")
+    ocstatplot.plot_ablation_bedroc_significance_bars(df, output_dir=str(tmp_path))
+
+    assert any("ablation_bedroc_significance_bars.png" in p for p in saved)
+
+
 @pytest.mark.order(277)
 def test_plot_bar_with_significance_and_heatmap_raise_without_pvalue_column():
     bad = pd.DataFrame({"A": ["m1"], "B": ["m2"], "diff": [0.1]})
