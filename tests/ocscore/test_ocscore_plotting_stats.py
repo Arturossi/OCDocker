@@ -93,6 +93,27 @@ def test_plot_ablation_bedroc_significance_bars_handles_nan_pvalue(monkeypatch, 
     assert any("ablation_bedroc_significance_bars.png" in p for p in saved)
 
 
+@pytest.mark.order(514)
+def test_plot_bedroc_vs_shortcut_risk_scatter_happy_path(monkeypatch, tmp_path):
+    saved = []
+    monkeypatch.setattr(ocstatplot.plt, "savefig", lambda path, **_k: saved.append(path))
+
+    plot_df = pd.DataFrame({
+        "policy": ["full_ocscore", "no_pmi", "shape_only"],
+        "bedroc_mean": [0.420, 0.452, 0.164],
+        "shortcut_risk_max_pct": [72.8, 20.0, 91.2],
+    })
+
+    ocstatplot.plot_bedroc_vs_shortcut_risk_scatter(
+        plot_df,
+        good_policies=["no_pmi"],
+        bad_policies=["shape_only"],
+        output_dir=str(tmp_path),
+    )
+
+    assert any("ablation_bedroc_vs_shortcut_risk_scatter.png" in p for p in saved)
+
+
 @pytest.mark.order(277)
 def test_plot_bar_with_significance_and_heatmap_raise_without_pvalue_column():
     bad = pd.DataFrame({"A": ["m1"], "B": ["m2"], "diff": [0.1]})

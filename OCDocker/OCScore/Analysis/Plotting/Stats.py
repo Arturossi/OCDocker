@@ -23,7 +23,7 @@ import scipy.stats as sstats
 import seaborn as sns
 import OCDocker.Error as ocerror
 
-from typing import Optional
+from typing import Optional, Sequence
 
 # License
 ###############################################################################
@@ -126,6 +126,111 @@ def plot_ablation_bedroc_significance_bars(
     plt.grid(True, axis='x', linestyle=':', linewidth=0.5)
     plt.tight_layout()
     plt.savefig(f"{output_dir}/ablation_{metric_label.lower()}_significance_bars.png", dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+def plot_bedroc_vs_shortcut_risk_scatter(
+        plot_df: pd.DataFrame,
+        *,
+        reference_policy: str = 'full_ocscore',
+        good_policies: Optional[Sequence[str]] = None,
+        bad_policies: Optional[Sequence[str]] = None,
+        risk_threshold: Optional[float] = 20.0,
+        bedroc_column: str = 'bedroc_mean',
+        risk_column: str = 'shortcut_risk_max_pct',
+        label_column: Optional[str] = None,
+        metric_label: str = 'BEDROC',
+        output_dir: str = 'plots',
+    ) -> None:
+    '''
+    Scatter per-policy mean BEDROC against SHAP shortcut risk, colored by curated status.
+
+    Parameters
+    ----------
+    plot_df : pd.DataFrame
+        One row per policy, with a ``'policy'`` column plus ``bedroc_column`` and
+        ``risk_column`` (e.g. the output of ``SHAP.Dominance.aggregate_dominant_feature_risk``
+        merged with per-policy mean BEDROC).
+    reference_policy : str
+        Policy plotted as the reference marker, with a dotted vertical guide at its
+        BEDROC value. Default: 'full_ocscore'.
+    good_policies : sequence[str] | None, optional
+        Policies to mark as recommended/selected (drawn as a distinct up-triangle). Default: None.
+    bad_policies : sequence[str] | None, optional
+        Policies to mark as discarded despite raw performance (down-triangle). Default: None.
+    risk_threshold : float | None, optional
+        If given, draws a dashed horizontal guide line at this risk value. Default: 20.0.
+    bedroc_column : str
+        Column in ``plot_df`` with the per-policy mean metric value. Default: 'bedroc_mean'.
+    risk_column : str
+        Column in ``plot_df`` with the per-policy shortcut-risk value. Default: 'shortcut_risk_max_pct'.
+    label_column : str | None, optional
+        Column in ``plot_df`` used to annotate each point (falls back to ``'policy'`` when None). Default: None.
+    metric_label : str
+        Metric label for axis/titling. Default: 'BEDROC'.
+    output_dir : str
+        Where to save the plot image. Default: 'plots'.
+    '''
+
+    df = plot_df.reset_index(drop=True)
+    good = set(good_policies or [])
+    bad = set(bad_policies or [])
+    label_col = label_column or 'policy'
+
+    def point_style(policy: str) -> tuple[str, str]:
+        if policy == reference_policy:
+            return 'tab:blue', 'D'
+        if policy in good:
+            return 'tab:green', '^'
+        if policy in bad:
+            return 'tab:red', 'v'
+        return 'tab:gray', 'o'
+
+    fig, ax = plt.subplots(figsize=(9, 8))
+
+    if risk_threshold is not None:
+        ax.axhline(risk_threshold, color='tab:gray', linestyle=(0, (4, 2)), linewidth=1.0, zorder=1)
+    reference_rows = df[df['policy'] == reference_policy]
+    if not reference_rows.empty:
+        ax.axvline(
+            float(reference_rows[bedroc_column].iloc[0]),
+            color='black', linestyle=(0, (2, 2)), linewidth=0.8, zorder=1,
+        )
+
+    for _, row in df.iterrows():
+        color, marker = point_style(row['policy'])
+        size = 130 if row['policy'] in ({reference_policy} | good | bad) else 70
+        ax.scatter(
+            row[bedroc_column], row[risk_column], color=color, marker=marker, s=size,
+            edgecolor='black' if row['policy'] == reference_policy else 'none', linewidth=1.0, zorder=3,
+        )
+        ax.annotate(
+            str(row[label_col]), (row[bedroc_column], row[risk_column]),
+            textcoords='offset points', xytext=(5, 5), fontsize=7.5, zorder=4,
+        )
+
+    ax.invert_yaxis()
+    ax.set_xlabel(metric_label)
+    ax.set_ylabel('Shortcut risk (% of total SHAP importance in one feature)')
+    ax.set_title(f'{metric_label} vs SHAP shortcut risk per feature-ablation policy')
+    ax.grid(True, linestyle=':', linewidth=0.5)
+
+    legend_handles = [
+        mlines.Line2D([0], [0], color='tab:blue', marker='D', linestyle='none', markersize=8,
+                      markeredgecolor='black', label=f'{reference_policy} (reference)'),
+        mlines.Line2D([0], [0], color='tab:green', marker='^', linestyle='none', markersize=9,
+                      label='Recommended / alternatives'),
+        mlines.Line2D([0], [0], color='tab:red', marker='v', linestyle='none', markersize=9,
+                      label='Discarded (shortcut risk)'),
+        mlines.Line2D([0], [0], color='tab:gray', marker='o', linestyle='none', markersize=7,
+                      label='Other policies'),
+    ]
+    ax.legend(handles=legend_handles, loc='upper left', bbox_to_anchor=(1.01, 1.0), fontsize=8, borderaxespad=0.0)
+
+    plt.tight_layout()
+    plt.savefig(
+        f"{output_dir}/ablation_{metric_label.lower()}_vs_shortcut_risk_scatter.png", dpi=300, bbox_inches='tight',
+    )
     plt.close()
 
 
