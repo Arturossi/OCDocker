@@ -219,17 +219,15 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b"async function refresh" in script
     assert b'\nfunction refresh()' not in script
     assert b'lines.join("\\n")' in script
-    from py_mini_racer import MiniRacer
+    MiniRacer = pytest.importorskip("py_mini_racer").MiniRacer
 
-    parse_only = script.decode("utf-8").replace('$("refresh").addEventListener("click", refresh);', "")
-    parse_only = parse_only.replace("bindAppTabs();", "")
-    parse_only = parse_only.replace("bindAblationDesignPanel();", "")
-    parse_only = parse_only.replace("bindCollapsibleZones();", "")
-    parse_only = parse_only.replace("bindThemeToggle();", "")
-    parse_only = parse_only.replace("loadPersistedUiState();", "")
-    parse_only = parse_only.replace("uiStateHydrated = true;", "")
-    parse_only = parse_only.replace('setActiveTab(state.activeTab || "ablation");', "")
-    parse_only = parse_only.replace("refresh();", "")
+    # The bootstrap block at the end of app.js touches the DOM on load, which a bare
+    # JS engine has no `document` for. Cut the file at its marker rather than listing
+    # the individual calls to strip: that list silently rots every time a new panel
+    # adds top-level wiring, and the failure then looks like a syntax error.
+    source = script.decode("utf-8")
+    assert "// --- BOOTSTRAP ---" in source, "app.js lost its bootstrap marker"
+    parse_only = source.split("// --- BOOTSTRAP ---")[0]
     ctx = MiniRacer()
     ctx.eval(parse_only)
     ctx.eval(

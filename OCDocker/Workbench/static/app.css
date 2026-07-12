@@ -797,7 +797,7 @@ main { padding-top: 16px; padding-bottom: 32px; }
 .protocol-similarity-overview { margin-bottom: 12px; font-size: 12px; }
 .protocol-similarity-overview .protocol-similarity-family-delta { max-width: 180px; overflow-wrap: anywhere; }
 .protocol-similarity-diff-title { margin: 0 0 8px; font-size: 12px; color: var(--muted); font-weight: 600; }
-.plotly-host-heatmap { min-height: 320px; }
+.plotly-host-heatmap { min-height: 420px; }
 .protocol-similarity-clusters {
   display: grid;
   gap: 8px;

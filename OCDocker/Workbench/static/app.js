@@ -5014,6 +5014,17 @@ function protocolSimilarityLegendMarkup(plotPayload) {
   return `<div class="rank-plot-legend metric-legend" role="toolbar" aria-label="Filter protocol table by cluster">${buttons}</div>`;
 }
 
+function renderProtocolSimilarityLegend(plotPayload) {
+  const host = $("protocol-similarity-legend");
+  if (!host) return;
+  const markup = protocolSimilarityLegendMarkup(plotPayload);
+  host.innerHTML = markup;
+  host.hidden = !markup;
+  if (!markup) return;
+  bindProtocolSimilarityLegendButtons();
+  syncProtocolSimilarityLegend(plotPayload);
+}
+
 function syncProtocolSimilarityLegend(plotPayload) {
   if (!plotPayload?.plotKey) return;
   const visibility = protocolSimilarityFilterVisibilityState(plotPayload);
@@ -5068,9 +5079,7 @@ function buildProtocolSimilarityHeatmapSpec(payload, visibleNames) {
     : (payload.similarity_matrix || []);
   const size = labels.length;
   const plotLabels = disambiguatePlotLabels(labels);
-  const height = Math.max(320, 48 + size * 22);
-  const marginLeft = Math.min(420, Math.max(160, ...plotLabels.map((label) => label.length * 6)));
-  const marginBottom = Math.min(420, Math.max(140, ...plotLabels.map((label) => label.length * 4)));
+  const height = Math.max(420, 48 + size * 30);
   return {
     data: [{
       type: "heatmap",
@@ -5085,12 +5094,32 @@ function buildProtocolSimilarityHeatmapSpec(payload, visibleNames) {
     }],
     layout: {
       title: { text: "Expanded feature similarity", font: { size: 13, color: "#667085" } },
-      margin: { l: marginLeft, r: 24, t: 48, b: marginBottom },
+      // automargin (rather than a hand-rolled margin guessed from label.length) lets Plotly size
+      // the margin from the actual rendered tick text, and tickmode "array" with a full tickvals/
+      // ticktext list stops Plotly's default auto-thinning from silently dropping every other
+      // label when there isn't room -- both were making the heatmap render as a small square
+      // crammed into a corner with the rest of the row left blank.
+      autosize: true,
+      margin: { l: 80, r: 24, t: 48, b: 80 },
       height,
       paper_bgcolor: "rgba(0,0,0,0)",
       plot_bgcolor: "rgba(0,0,0,0)",
-      xaxis: { tickangle: -45, tickfont: { size: 9, color: "#667085" } },
-      yaxis: { tickfont: { size: 9, color: "#667085" }, autorange: "reversed" },
+      xaxis: {
+        tickangle: -45,
+        tickfont: { size: 9, color: "#667085" },
+        automargin: true,
+        tickmode: "array",
+        tickvals: plotLabels,
+        ticktext: plotLabels,
+      },
+      yaxis: {
+        tickfont: { size: 9, color: "#667085" },
+        autorange: "reversed",
+        automargin: true,
+        tickmode: "array",
+        tickvals: plotLabels,
+        ticktext: plotLabels,
+      },
     },
     config: { responsive: true, displaylogo: false, modeBarButtonsToRemove: ["lasso2d", "select2d"] },
   };
@@ -5098,9 +5127,11 @@ function buildProtocolSimilarityHeatmapSpec(payload, visibleNames) {
 
 async function reflowProtocolSimilarityPlot(plotPayload) {
   const payload = plotPayload.payload;
-  const protocolNames = protocolSimilarityAllNames(payload);
+  const visibility = protocolSimilarityFilterVisibilityState(plotPayload);
+  const protocolNames = protocolSimilarityVisibleNames(payload, visibility);
   const host = $("protocol-similarity-heatmap");
   renderProtocolSimilarityReferenceSelect(payload);
+  renderProtocolSimilarityLegend(plotPayload);
   renderProtocolSimilarityFilteredSections(payload, protocolNames);
   renderProtocolSimilarityExportActions(plotPayload, protocolNames);
   if (!host || !window.Plotly) return;
@@ -5511,6 +5542,9 @@ async function refresh() {
   }
 }
 
+// --- BOOTSTRAP --- everything below runs on load and touches the DOM. The JS
+// syntax test evaluates this file in a bare engine with no `document`, so it cuts
+// the file at this marker: keep new top-level wiring below the line, not above it.
 $("refresh").addEventListener("click", refresh);
 loadPersistedUiState();
 bindThemeToggle();
