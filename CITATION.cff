@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+title: "OCDocker: molecular docking automation, virtual screening and AI consensus scoring"
+message: "If you use this software, please cite it using the metadata from this file."
+type: software
+authors:
+  - given-names: Artur
+    family-names: Duque Rossi
+    email: arturossi10@gmail.com
+    affiliation: "Instituto de Biofísica Carlos Chagas Filho, Universidade Federal do Rio de Janeiro"
+    orcid: "https://orcid.org/0000-0002-5717-2116"
+  - given-names: Pedro Henrique
+    family-names: Monteiro Torres
+    affiliation: "Instituto de Biofísica Carlos Chagas Filho, Universidade Federal do Rio de Janeiro"
+    orcid: "https://orcid.org/0000-0002-0945-1495"
+identifiers:
+  - type: other
+    value: "BR 512025007028-4"
+    description: >-
+      Registro de programa de computador junto ao INPI (Instituto Nacional da Propriedade
+      Industrial, Brasil), concedido em 22/12/2025, em nome da Universidade Federal do Rio
+      de Janeiro, Artur Duque Rossi e Pedro Henrique Monteiro Torres.
+repository-code: "https://github.com/Arturossi/OCDocker"
+url: "https://github.com/Arturossi/OCDocker"
+abstract: >-
+  OCDocker integrates the stages of a virtual-screening campaign that are usually
+  fragmented across independent tools -- molecular preparation, docking with multiple
+  engines, automated pose selection, rescoring, descriptor extraction and machine-learning
+  training -- into a single configurable, traceable workflow. It also implements OCScore,
+  a consensus score that combines classical scoring functions with ligand and receptor
+  descriptors, together with an ablation framework and SHAP-based shortcut-risk analysis
+  for auditing what a learned score actually relies on.
+keywords:
+  - molecular docking
+  - virtual screening
+  - consensus scoring
+  - machine learning
+  - drug discovery
+  - bioinformatics
+  - explainable AI
+  - SHAP
+license: BSD-3-Clause
+version: 0.15.0
+date-released: "2026-07-12"
+# doi: "10.5281/zenodo.XXXXXXX"   # PREENCHER com o DOI do Zenodo após o primeiro release

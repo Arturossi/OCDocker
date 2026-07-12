@@ -1,0 +1,48 @@
+{
+  "title": "OCDocker: molecular docking automation, virtual screening and AI consensus scoring",
+  "description": "<p>OCDocker integrates the stages of a virtual-screening campaign that are usually fragmented across independent tools &mdash; molecular preparation, docking with multiple engines (AutoDock Vina, Smina, PLANTS, GNINA), automated pose selection, rescoring, descriptor extraction and machine-learning training &mdash; into a single configurable, traceable workflow, in which an ablation is a configuration change rather than a reimplementation.</p><p>It also implements <strong>OCScore</strong>, a consensus score that combines classical scoring functions with ligand and receptor descriptors, together with an ablation framework, statistical comparison (paired t-test with Holm-Bonferroni correction) and a SHAP-based shortcut-risk analysis for auditing what a learned score actually relies on.</p><p>Source code, ablation protocols and the scripts that reproduce the figures of the associated manuscript are included.</p><p><strong>Software registration.</strong> OCDocker is registered as a computer program with the INPI (Instituto Nacional da Propriedade Industrial, Brazil) under <strong>BR 512025007028-4</strong>, granted on 22 December 2025, in the name of the Federal University of Rio de Janeiro (UFRJ), Artur Duque Rossi and Pedro Henrique Monteiro Torres.</p>",
+  "upload_type": "software",
+  "license": "BSD-3-Clause",
+  "access_right": "open",
+  "version": "0.15.0",
+  "language": "eng",
+  "creators": [
+    {
+      "name": "Duque Rossi, Artur",
+      "affiliation": "Instituto de Biofísica Carlos Chagas Filho, Universidade Federal do Rio de Janeiro",
+      "orcid": "0000-0002-5717-2116"
+    },
+    {
+      "name": "Monteiro Torres, Pedro Henrique",
+      "affiliation": "Instituto de Biofísica Carlos Chagas Filho, Universidade Federal do Rio de Janeiro",
+      "orcid": "0000-0002-0945-1495"
+    }
+  ],
+  "keywords": [
+    "molecular docking",
+    "virtual screening",
+    "consensus scoring",
+    "machine learning",
+    "drug discovery",
+    "bioinformatics",
+    "SHAP"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/Arturossi/OCDocker",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://pypi.org/project/ocdocker/",
+      "relation": "isIdenticalTo",
+      "scheme": "url"
+    },
+    {
+      "identifier": "BR 512025007028-4",
+      "relation": "isIdenticalTo",
+      "scheme": "other",
+      "resource_type": "software"
+    }
+  ]
+}
