@@ -656,6 +656,8 @@ def _print_test_ranking(table: pd.DataFrame) -> None:
 ## Public ##
 
 def main() -> None:
+    '''Compare the DUDEz OCScore against individual scoring-function baselines on the saved splits.'''
+
     parser = argparse.ArgumentParser(
         description="Compare DUDEz OCScore vs individual scoring-function baselines on saved splits.",
     )

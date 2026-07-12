@@ -108,6 +108,8 @@ def _ensure_reference_order_config(config_path: str | None) -> str | None:
 
 
 def main() -> None:
+    '''Run OCScore inference on a feature CSV and print the resulting scores.'''
+
     parser = argparse.ArgumentParser(description="Run OCScore inference from a CSV file.")
     parser.add_argument(
         "--csv-path",
