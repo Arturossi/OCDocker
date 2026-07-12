@@ -58,6 +58,9 @@ ocdocker = "OCDocker.CLI:main"
 
 [project.optional-dependencies]
 analysis = [
+  # Optional; OCScore.Analysis.Plotting.Colouring falls back to a built-in
+  # palette when it isn't installed.
+  "colorcet>=3.2.1",
   "dcor>=0.6",
   "fsspec>=2024.10.0",
   "gmpy2>=2.1.5",
@@ -86,6 +89,9 @@ analysis = [
 ]
 api = [
   "fastapi>=0.115.0",
+  # Directly imported by Workbench.Server (StarletteHTTPException, BaseHTTPMiddleware),
+  # not just a transitive dependency of fastapi.
+  "starlette>=1.3.1",
   "uvicorn>=0.32.0",
 ]
 build = [
@@ -110,6 +116,8 @@ dev = [
   "detect-secrets>=1.5.0",
   "mypy>=1.0.0",
   "pre-commit>=4.0.1",
+  # Bare JS engine used by tests/workbench to syntax-check the dashboard's app.js.
+  "py-mini-racer>=0.6.0",
   "pytest>=8.3.3",
   "pytest-cov>=6.1.1",
   "pytest-order>=1.3.0",
@@ -120,9 +128,15 @@ docking = [
   "numpy>=1.26.4",
   "openbabel-wheel>=3.1.0",
   "pandas>=2.2.3",
+  # Used by Toolbox.MoleculeProcessing to build the CHARMM->canonical PDB atom-name map.
+  "pdb2pqr>=3.7.1",
   "rdkit>=2024.09.1",
   "scikit-learn>=1.5.2",
   "scipy>=1.14.1",
+  # Required by the vendored ODDT fork's rescoring module; vendoring copies its source
+  # tree in directly rather than pip-installing it, so its own dependencies (like this
+  # one) have to be declared here.
+  "six>=1.17.0",
   "spyrmsd>=0.8.0",
 ]
 docs = [
@@ -136,9 +150,13 @@ gpu = [
   "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
 ]
 mcp = [
+  # Directly imported by MCP.Server, not just a transitive dependency of mcp.
+  "httpx>=0.28.1",
   "mcp>=1.28.0",
 ]
 ml = [
+  # Optional; ProductionBaselines falls back to "lightgbm not installed" when absent.
+  "lightgbm>=4.6.0",
   "numpy>=1.26.4",
   "optuna>=3.6.1",
   "optuna-dashboard>=0.16.2",
@@ -161,6 +179,7 @@ workflow = [
 all = [
   "biopython>=1.84",
   "boto3>=1.35.31",
+  "colorcet>=3.2.1",
   "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
   "dcor>=0.6",
   "dropbox>=12.0.2",
@@ -170,8 +189,10 @@ all = [
   "google-cloud-storage>=2.18.2",
   "graphviz>=0.20.3",
   "h5py>=3.11.0",
+  "httpx>=0.28.1",
   "imageio>=2.35.1",
   "ipython>=8.28.0",
+  "lightgbm>=4.6.0",
   "lime>=0.2.0.1",
   "llvmlite>=0.43.0",
   "matplotlib>=3.9.2",
@@ -185,6 +206,7 @@ all = [
   "optuna-dashboard>=0.16.2",
   "optuna-integration>=4.0.0",
   "pandas>=2.2.3",
+  "pdb2pqr>=3.7.1",
   "pillow>=10.4.0",
   "pingouin>=0.5.5",
   "psycopg>=3.2.0",
@@ -196,11 +218,13 @@ all = [
   "scipy>=1.14.1",
   "seaborn>=0.13.2",
   "shap>=0.44.0",
+  "six>=1.17.0",
   "snakemake>=7.32.4",
   "snakemake-logger-plugin-snkmt>=0.1.6",
   "spyrmsd>=0.8.0",
   "sqlalchemy>=2.0.35",
   "sqlalchemy-utils>=0.41.2",
+  "starlette>=1.3.1",
   "statsmodels>=0.14.3",
   "sympy>=1.13.3",
   "tifffile>=2024.9.20",
@@ -216,6 +240,7 @@ all = [
 full = [
   "biopython>=1.84",
   "boto3>=1.35.31",
+  "colorcet>=3.2.1",
   "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
   "dcor>=0.6",
   "dropbox>=12.0.2",
@@ -226,8 +251,10 @@ full = [
   "google-cloud-storage>=2.18.2",
   "graphviz>=0.20.3",
   "h5py>=3.11.0",
+  "httpx>=0.28.1",
   "imageio>=2.35.1",
   "ipython>=8.28.0",
+  "lightgbm>=4.6.0",
   "lime>=0.2.0.1",
   "llvmlite>=0.43.0",
   "matplotlib>=3.9.2",
@@ -242,6 +269,7 @@ full = [
   "optuna-dashboard>=0.16.2",
   "optuna-integration>=4.0.0",
   "pandas>=2.2.3",
+  "pdb2pqr>=3.7.1",
   "pillow>=10.4.0",
   "pingouin>=0.5.5",
   "psycopg>=3.2.0",
@@ -253,6 +281,7 @@ full = [
   "scipy>=1.14.1",
   "seaborn>=0.13.2",
   "shap>=0.44.0",
+  "six>=1.17.0",
   "snakemake>=7.32.4",
   "snakemake-logger-plugin-snkmt>=0.1.6",
   "spyrmsd>=0.8.0",
@@ -261,6 +290,7 @@ full = [
   "sphinx-rtd-theme>=3.0.2",
   "sqlalchemy>=2.0.35",
   "sqlalchemy-utils>=0.41.2",
+  "starlette>=1.3.1",
   "statsmodels>=0.14.3",
   "sympy>=1.13.3",
   "tifffile>=2024.9.20",

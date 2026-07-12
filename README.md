@@ -57,8 +57,17 @@ git clone https://github.com/Arturossi/OCDocker.git
 cd OCDocker
 mamba create -n ocdocker python=3.11 -y
 conda activate ocdocker
+./scripts/vendor_oddt.sh
 pip install -e ".[all,dev]"
 ```
+
+`scripts/vendor_oddt.sh` pulls in [our ODDT fork](https://github.com/Arturossi/oddt), which carries fixes on top of
+upstream ODDT that OCDocker's rescoring depends on. It has to run before `pip install -e` because the `oddt`
+package is bundled as source (`[tool.setuptools.packages.find]` picks up the local `oddt/` directory it creates),
+not installed as a normal dependency -- PyPI rejects uploads whose metadata references a git dependency, so a
+plain `pip install ocdocker` gets the fork the same way, just vendored in at release-build time instead of by hand.
+Skipping this step leaves `import oddt` resolving to whatever (if any) vanilla `oddt` package happens to already be
+on your `PYTHONPATH`, which does not have the fixes this project relies on.
 
 Minimal system packages for Ubuntu/Debian:
 
