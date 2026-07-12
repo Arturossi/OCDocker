@@ -8,6 +8,7 @@ Coverage tests for CLI doctor diagnostics branches.
 
 # Imports
 ###############################################################################
+import importlib.metadata
 import json
 import os
 import shutil
@@ -225,3 +226,84 @@ def test_cmd_doctor_ignores_logging_configuration_errors(monkeypatch, capsys):
     report = json.loads(capsys.readouterr().out)
     assert "binaries" in report
     assert report["database"]["status"] == "MISSING ENGINE"
+
+
+class _FakeOddtMetadata(dict):
+    '''Minimal stand-in for the ``email.message.Message`` importlib.metadata returns.'''
+
+    def get(self, key, default=None):  # type: ignore[override]
+        return dict.get(self, key, default)
+
+
+@pytest.mark.order(178)
+def test_oddt_dependency_status_reports_missing_when_not_importable(monkeypatch):
+    # A None entry in sys.modules makes `import oddt` raise ImportError deterministically.
+    monkeypatch.setitem(sys.modules, "oddt", None)
+
+    status = cli_doctor._oddt_dependency_status()
+    assert status.startswith("MISSING")
+
+
+@pytest.mark.order(179)
+def test_oddt_dependency_status_reports_ok_when_vendored(monkeypatch):
+    monkeypatch.setitem(sys.modules, "oddt", types.ModuleType("oddt"))
+
+    def _raise_not_found(_name):
+        raise importlib.metadata.PackageNotFoundError("oddt")
+
+    monkeypatch.setattr(cli_doctor.importlib.metadata, "metadata", _raise_not_found)
+
+    assert cli_doctor._oddt_dependency_status() == "OK (vendored)"
+
+
+@pytest.mark.order(180)
+def test_oddt_dependency_status_flags_vanilla_upstream_home_page(monkeypatch):
+    monkeypatch.setitem(sys.modules, "oddt", types.ModuleType("oddt"))
+    monkeypatch.setattr(
+        cli_doctor.importlib.metadata,
+        "metadata",
+        lambda _name: _FakeOddtMetadata({"Home-page": "https://github.com/oddt/oddt", "Author-email": ""}),
+    )
+
+    status = cli_doctor._oddt_dependency_status()
+    assert status.startswith("WRONG")
+    assert "vendor_oddt.sh" in status
+
+
+@pytest.mark.order(181)
+def test_oddt_dependency_status_flags_vanilla_upstream_author_email(monkeypatch):
+    # Home-page absent/different, but the upstream maintainer's email is still a giveaway.
+    monkeypatch.setitem(sys.modules, "oddt", types.ModuleType("oddt"))
+    monkeypatch.setattr(
+        cli_doctor.importlib.metadata,
+        "metadata",
+        lambda _name: _FakeOddtMetadata({"Home-page": "", "Author-email": "mwojcikowski@ibb.waw.pl"}),
+    )
+
+    assert cli_doctor._oddt_dependency_status().startswith("WRONG")
+
+
+@pytest.mark.order(182)
+def test_oddt_dependency_status_accepts_non_upstream_standalone_install(monkeypatch):
+    # e.g., someone pip-installed the fork directly instead of running the vendor script.
+    monkeypatch.setitem(sys.modules, "oddt", types.ModuleType("oddt"))
+    monkeypatch.setattr(
+        cli_doctor.importlib.metadata,
+        "metadata",
+        lambda _name: _FakeOddtMetadata({"Home-page": "https://github.com/Arturossi/oddt", "Author-email": ""}),
+    )
+
+    status = cli_doctor._oddt_dependency_status()
+    assert status == "OK (standalone: https://github.com/Arturossi/oddt)"
+
+
+@pytest.mark.order(183)
+def test_oddt_dependency_status_tolerates_unexpected_metadata_errors(monkeypatch):
+    monkeypatch.setitem(sys.modules, "oddt", types.ModuleType("oddt"))
+
+    def _raise_unexpected(_name):
+        raise RuntimeError("corrupted dist-info")
+
+    monkeypatch.setattr(cli_doctor.importlib.metadata, "metadata", _raise_unexpected)
+
+    assert cli_doctor._oddt_dependency_status() == "OK (standalone: unknown origin)"

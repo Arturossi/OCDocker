@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import importlib.metadata
 import json
 import os
 import shutil
@@ -17,6 +18,59 @@ from OCDocker.CLI.common import _bootstrap_ocdocker_env, _preparse_global_args
 from OCDocker.CLI.manifest import _collect_external_tool_manifest
 
 LOGGER = oclogging.get_logger("cli")
+
+# Metadata fields that identify a standalone install of unpatched upstream ODDT
+# (https://github.com/oddt/oddt), as opposed to OCDocker's fork
+# (https://github.com/Arturossi/oddt), which OCDocker.Rescoring.ODDT depends on for
+# fixes upstream doesn't have. See scripts/vendor_oddt.sh and the README's
+# "development from source" section.
+_ODDT_UPSTREAM_HOME_PAGE_MARKER = "github.com/oddt/oddt"
+_ODDT_UPSTREAM_AUTHOR_EMAIL_MARKER = "mwojcikowski"
+
+
+def _oddt_dependency_status() -> str:
+    '''Report whether ``oddt`` resolves to the vendored fork or a standalone package.
+
+    A correctly vendored ``oddt`` (``scripts/vendor_oddt.sh`` before ``pip install -e .``
+    for local dev, or the same script run in CI before building the published wheel) has
+    no independent package metadata: its source just lives inside the OCDocker
+    distribution. If a separate "oddt" distribution resolves instead, something bypassed
+    vendoring -- most often a stray ``pip install oddt`` that pulls in unpatched upstream
+    ODDT, silently missing the fixes this project's fork carries.
+
+    Returns
+    -------
+    str
+        ``OK (vendored)`` when no standalone "oddt" package is installed, ``OK (standalone:
+        <home page>)`` when one is installed but doesn't look like upstream, ``WRONG (...)``
+        when it does look like upstream, or ``MISSING (<error>)`` when oddt isn't importable
+        at all.
+    '''
+
+    try:
+        __import__("oddt")
+    except Exception as e:
+        return f"MISSING ({e.__class__.__name__})"
+
+    try:
+        meta = importlib.metadata.metadata("oddt")
+    except importlib.metadata.PackageNotFoundError:
+        return "OK (vendored)"
+    except Exception:
+        return "OK (standalone: unknown origin)"
+
+    home_page = str(meta.get("Home-page", "") or "")
+    author_email = str(meta.get("Author-email", "") or "")
+    if (
+        _ODDT_UPSTREAM_HOME_PAGE_MARKER in home_page.lower()
+        or _ODDT_UPSTREAM_AUTHOR_EMAIL_MARKER in author_email.lower()
+    ):
+        return (
+            "WRONG (vanilla upstream oddt installed as a standalone package instead of the "
+            "vendored Arturossi/oddt fork; run scripts/vendor_oddt.sh and reinstall -- see README)"
+        )
+    return f"OK (standalone: {home_page or 'unknown origin'})"
+
 
 def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environment probing is platform-dependent
     '''Run diagnostics: config, binaries, Python deps, DB connectivity.
@@ -89,12 +143,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
 
     # Python dependencies
     # SECURITY NOTE: Dynamic import is used here to check for optional dependencies.
-    # The module names are hardcoded in a whitelist ('rdkit', 'Bio', 'oddt', 'sqlalchemy')
-    # and never come from user input, making this safer from injection attacks.
+    # The module names are hardcoded in a whitelist ('rdkit', 'Bio', 'sqlalchemy') and
+    # never come from user input, making this safer from injection attacks. 'oddt' is
+    # checked separately below since it needs a provenance check, not just importability.
     pydeps = {}
 
     # Whitelist of allowed module names for dependency checking
-    ALLOWED_DEPENDENCY_MODULES = ('rdkit', 'Bio', 'oddt', 'sqlalchemy')
+    ALLOWED_DEPENDENCY_MODULES = ('rdkit', 'Bio', 'sqlalchemy')
     for mod in ALLOWED_DEPENDENCY_MODULES:
         # Validate module name contains only safe characters (alphanumeric and underscore)
         if not isinstance(mod, str) or not mod.replace('_', '').isalnum():
@@ -105,6 +160,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:  # pragma: no cover - environme
             pydeps[mod] = 'OK'
         except Exception as e:
             pydeps[mod] = f'MISSING ({e.__class__.__name__})'
+    pydeps['oddt'] = _oddt_dependency_status()
     report['python_deps'] = pydeps
 
     # DB connectivity
