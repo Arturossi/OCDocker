@@ -229,3 +229,7 @@ auxiliary_files/
 
 # Obsidian files
 obsidian/
+
+# Graphify
+.graphify*
+graphify-out/
