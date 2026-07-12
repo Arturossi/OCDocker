@@ -94,10 +94,20 @@ def test_plot_ablation_bedroc_significance_bars_handles_nan_pvalue(monkeypatch, 
 
 
 @pytest.mark.order(514)
-def test_plot_bedroc_vs_shortcut_risk_scatter_happy_path(monkeypatch, tmp_path):
-    saved = []
-    monkeypatch.setattr(ocstatplot.plt, "savefig", lambda path, **_k: saved.append(path))
+def test_plot_bedroc_vs_shortcut_risk_scatter_happy_path(tmp_path):
+    plot_df = pd.DataFrame({
+        "policy": ["full_ocscore", "no_pmi", "shape_only"],
+        "bedroc_mean": [0.420, 0.452, 0.164],
+        "shortcut_risk_max_pct": [72.8, 20.0, 91.2],
+    })
 
+    ocstatplot.plot_bedroc_vs_shortcut_risk_scatter(plot_df, output_dir=str(tmp_path))
+
+    assert (tmp_path / "ablation_bedroc_vs_shortcut_risk_scatter.png").is_file()
+
+
+@pytest.mark.order(515)
+def test_plot_bedroc_vs_shortcut_risk_scatter_accepts_localized_text(tmp_path):
     plot_df = pd.DataFrame({
         "policy": ["full_ocscore", "no_pmi", "shape_only"],
         "bedroc_mean": [0.420, 0.452, 0.164],
@@ -106,12 +116,55 @@ def test_plot_bedroc_vs_shortcut_risk_scatter_happy_path(monkeypatch, tmp_path):
 
     ocstatplot.plot_bedroc_vs_shortcut_risk_scatter(
         plot_df,
-        good_policies=["no_pmi"],
-        bad_policies=["shape_only"],
+        title="Titulo",
+        xlabel="Eixo x",
+        legend_labels={"reference": "Referencia"},
+        zone_note="Zona",
         output_dir=str(tmp_path),
     )
 
-    assert any("ablation_bedroc_vs_shortcut_risk_scatter.png" in p for p in saved)
+    assert (tmp_path / "ablation_bedroc_vs_shortcut_risk_scatter.png").is_file()
+
+
+@pytest.mark.order(516)
+def test_classify_policies_by_shortcut_rule_applies_both_conditions():
+    plot_df = pd.DataFrame({
+        # reference, then: beats it at low risk, beats it at high risk, and two
+        # that do not beat it (one of which is very high risk, so it would be
+        # flagged were the risk condition applied on its own).
+        "policy": ["full_ocscore", "keep_me", "drop_me", "below_ref", "below_ref_risky"],
+        "bedroc_mean": [0.420, 0.462, 0.491, 0.405, 0.365],
+        "shortcut_risk_max_pct": [72.8, 10.4, 61.7, 17.0, 81.4],
+    })
+
+    retained, discarded = ocstatplot.classify_policies_by_shortcut_rule(plot_df)
+
+    assert retained == ["keep_me"]
+    assert discarded == ["drop_me"]
+
+
+@pytest.mark.order(517)
+def test_classify_policies_by_shortcut_rule_raises_without_reference():
+    plot_df = pd.DataFrame({
+        "policy": ["no_pmi"],
+        "bedroc_mean": [0.432],
+        "shortcut_risk_max_pct": [18.6],
+    })
+
+    with pytest.raises(ValueError, match="reference policy"):
+        ocstatplot.classify_policies_by_shortcut_rule(plot_df)
+
+
+@pytest.mark.order(518)
+def test_detect_x_break_splits_only_on_a_wide_empty_region():
+    # one far-out control plus a dense cluster: worth breaking the axis
+    left, right = ocstatplot._detect_x_break([0.164, 0.42, 0.45, 0.46, 0.49])
+    assert left[1] < right[0]
+    assert left[0] < 0.164 < left[1]
+    assert right[0] < 0.42 and 0.49 < right[1]
+
+    # evenly spread values: no gap wide enough to justify a break
+    assert ocstatplot._detect_x_break([0.10, 0.20, 0.30, 0.40, 0.50]) is None
 
 
 @pytest.mark.order(277)

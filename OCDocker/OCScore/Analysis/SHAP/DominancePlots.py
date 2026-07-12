@@ -67,6 +67,10 @@ def save_family_composition_stacked_plot(
         figsize: Optional[Tuple[float, float]] = None,
         min_label_pct: float = DEFAULT_MIN_LABEL_PCT,
         file_stem: str = "shap_family_composition",
+        title: str = "SHAP importance composition by descriptor family",
+        xlabel: str = "Relative SHAP importance (%, mean across replicas)",
+        family_labels: Optional[Mapping[str, str]] = None,
+        legend_ncol: Optional[int] = None,
     ) -> dict[str, str]:
     '''Save a stacked horizontal bar plot of per-policy SHAP family composition.
 
@@ -95,6 +99,18 @@ def save_family_composition_stacked_plot(
         Minimum segment share (%) to annotate with a direct value label, by default 6.0.
     file_stem : str, optional
         Output file stem (without extension), by default ``"shap_family_composition"``.
+    title : str, optional
+        Plot title. Override to render the figure in another language.
+    xlabel : str, optional
+        X-axis label. Override to render the figure in another language.
+    family_labels : mapping[str, str] | None, optional
+        Optional display label per family, used in the legend instead of the raw
+        family name. Override to render the figure in another language.
+    legend_ncol : int | None, optional
+        Legend columns. Defaults to one per family, which is fine for short names,
+        but long labels make the legend wider than the figure; the saved image is
+        then padded out to fit it, and the plot shrinks when that image is later
+        embedded at a fixed width. Lower this when the labels are long.
 
     Returns
     -------
@@ -128,7 +144,8 @@ def save_family_composition_stacked_plot(
     left = pd.Series(0.0, index=pivot.index)
     for family in family_order:
         values = pivot[family]
-        ax.barh(y_pos, values, left=left.to_numpy(), height=0.62, color=colors[family], label=family)
+        legend_label = (family_labels or {}).get(family, family)
+        ax.barh(y_pos, values, left=left.to_numpy(), height=0.62, color=colors[family], label=legend_label)
         for i, (policy, value) in enumerate(values.items()):
             if value >= min_label_pct:
                 ax.text(
@@ -140,11 +157,12 @@ def save_family_composition_stacked_plot(
     labels = [(policy_labels or {}).get(policy, policy) for policy in pivot.index]
     ax.set_yticks(y_pos)
     ax.set_yticklabels(labels)
-    ax.set_xlabel("Relative SHAP importance (%, mean across replicas)")
+    ax.set_xlabel(xlabel)
     ax.set_xlim(0, 100)
-    ax.set_title("SHAP importance composition by descriptor family")
+    ax.set_title(title)
     ax.grid(axis="x", alpha=0.25)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=min(4, len(family_order)), frameon=False)
+    ncol = legend_ncol if legend_ncol is not None else min(4, len(family_order))
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=ncol, frameon=False)
     fig.tight_layout()
 
     png_path = output_path / f"{file_stem}.png"

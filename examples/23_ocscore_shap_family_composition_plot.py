@@ -31,7 +31,9 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
+import matplotlib
 import pandas as pd
+from matplotlib import font_manager
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_ROOT = os.path.dirname(_SCRIPT_DIR)
@@ -70,6 +72,24 @@ DEFAULT_FAMILY_SPEC = {
     "receptor": ["receptor_*"],
     "scoring_function": ["plants_*", "vina_*", "smina_*", "gnina_*", "oddt_*"],
     "ligand_other": ["ligand_*"],
+}
+
+# Sized ~1:1 with the width it is embedded at in the paper (A4, ABNT margins =>
+# ~16 cm of text width), so the point sizes inside the figure survive the embed
+# instead of being shrunk by ~40% as they would at the library's wider default.
+PAPER_FIGSIZE = (6.3, 4.6)
+
+# The paper renders this figure in Portuguese; the library ships English defaults,
+# so the localized strings live here, in the caller, and never in the library.
+PT_TEXT = {
+    "title": "Composição da importância SHAP por família de descritores",
+    "xlabel": "Importância SHAP relativa (%, média entre as réplicas)",
+    "family_labels": {
+        "ligand_PMI": "PMI do ligante",
+        "ligand_other": "Demais descritores do ligante",
+        "receptor": "Descritores do receptor",
+        "scoring_function": "Funções de pontuação",
+    },
 }
 
 # Curated subset illustrating the pattern discussed in the paper: PMI present
@@ -140,12 +160,33 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Number of replicas per policy (default: %(default)s).",
     )
     parser.add_argument(
+        "--lang",
+        choices=("en", "pt"),
+        default="en",
+        help="Figure language. The library ships English defaults; 'pt' passes the "
+             "paper's Portuguese strings from this script (default: %(default)s).",
+    )
+    parser.add_argument(
         "--figures-dir",
         type=Path,
         required=True,
         help="Output directory for the plot and its underlying CSV.",
     )
     return parser.parse_args(argv)
+
+
+def _use_paper_font() -> None:
+    '''Match the figure typeface to the paper's (Arial-metric) body font.
+
+    The library deliberately does not touch rcParams, so a caller that embeds the
+    figure in a typeset document sets the font itself. Falls back silently to the
+    matplotlib default when the font is not installed.
+    '''
+
+    for family in ("Arial", "Liberation Sans"):
+        if any(f.name == family for f in font_manager.fontManager.ttflist):
+            matplotlib.rcParams["font.family"] = family
+            return
 
 
 def _rank_labels(ablation_summary_csv: Path) -> dict[str, str]:
@@ -196,13 +237,17 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     policy_labels = _rank_labels(args.ablation_summary_csv) if args.ablation_summary_csv.is_file() else None
 
+    _use_paper_font()
     args.figures_dir.mkdir(parents=True, exist_ok=True)
     artifacts = save_family_composition_stacked_plot(
         composition,
         args.policies,
         str(args.figures_dir),
         policy_labels=policy_labels,
+        figsize=PAPER_FIGSIZE,
+        legend_ncol=2,
         file_stem="figura3_shap_familia",
+        **(PT_TEXT if args.lang == "pt" else {}),
     )
     print(f"Wrote {artifacts['family_composition_png']}")
     print(f"Wrote {artifacts['family_composition_csv']}")

@@ -31,7 +31,9 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
+import matplotlib
 import pandas as pd
+from matplotlib import font_manager
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_ROOT = os.path.dirname(_SCRIPT_DIR)
@@ -61,27 +63,48 @@ DEFAULT_OUTPUT_ROOT = Path(
 )
 DEFAULT_ABLATION_SUMMARY_CSV = DEFAULT_OUTPUT_ROOT / "train" / "ablations" / "ablation_summary.csv"
 
-# The final recommended configuration and its two alternatives (Seção 4.5):
-# lowest shortcut risk among configurations statistically tied with the top
-# of the BEDROC ranking.
-DEFAULT_GOOD_POLICIES = [
-    "ligand_plus_scoring_function_no_shape_size",
-    "ligand_plus_scoring_function_no_pmi",
-    "no_ligand_shape_size",
-]
-
-# The three highest raw-BEDROC configurations, discarded because their
-# performance is explained by a shortcut (PMI, or a secondary one such as
-# ligand_BertzCT once PMI is removed) rather than a genuine advantage (Seção 4.5).
-DEFAULT_BAD_POLICIES = [
-    "ligand_plus_scoring_function",
-    "ligand_plus_scoring_function_no_shape_core",
-    "ligand_plus_scoring_function_no_plants",
-]
-
 # Below this maximum single-feature share (across replicas), the explanation
 # was considered genuinely distributed (Seção 4.4).
 DEFAULT_RISK_THRESHOLD_PCT = 20.0
+
+# Manual (dx, dy) point-label offset overrides, in points, for policies whose
+# default offset collides with a nearby marker or label in two dense clusters:
+# the "genuinely distributed" band (#18/#16, #12/#09/#05) and the mid-risk
+# cluster (#06/#07, #13/#08/#10). Tuned by inspecting the rendered figure.
+DEFAULT_LABEL_OFFSETS = {
+    "ligand_plus_scoring_function_no_shape_size": (8, -13),  # #03 (recommended)
+    "ligand_plus_scoring_function_no_pmi": (7, -4),  # #05
+    "no_shape_core_no_receptor_surface_counts": (8, 5),  # #06
+    "ligand_plus_scoring_function_no_pmi_no_autocorr2d": (9, -4),  # #07
+    "ligand_plus_scoring_function_no_pmi_no_plants": (-18, -3),  # #08
+    "ligand_plus_scoring_function_no_shape_size_no_autocorr2d": (7, 4),  # #09
+    "ligand_plus_scoring_function_clean_receptor": (-7, -14),  # #10
+    "no_pmi": (7, 4),  # #12
+    "no_shape_core_no_receptor_surface_size": (-16, 5),  # #13
+    "no_ligand_shape_size": (-17, 4),  # #16
+    "ligand_plus_scoring_function_no_pmi_no_shape_size_no_autocorr2d_no_vsa": (-16, 5),  # #18
+}
+
+# The paper renders this figure in Portuguese; the library ships English defaults,
+# so the localized strings live here, in the caller, and never in the library.
+PT_TEXT = {
+    "title": "Desempenho de ranqueamento vs. risco de atalho (22 configurações)",
+    "xlabel": "BEDROC (teste, DUDEz)",
+    "ylabel": "Risco de atalho\n(máx. % da importância SHAP em um único atributo)",
+    "threshold_note": "limiar de risco: 20%",
+    "zone_note": "zona de descarte por risco de atalho",
+    "reference_note": "BEDROC do modelo completo",
+    "highlight_note": "recomendada",
+}
+PT_LEGEND = {
+    "reference": "Modelo completo (full_ocscore, referência)",
+    "discarded": "Descartadas: superam o completo, risco > 20%",
+    "retained": "Mantidas: superam o completo, risco $\\leq$ 20%",
+    "other": "Não superam o completo (critério não se aplica)",
+}
+
+# The configuration recommended in the paper; called out with an arrow.
+RECOMMENDED_POLICY = "ligand_plus_scoring_function_no_shape_size"
 
 
 # Functions
@@ -138,14 +161,14 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--good-policies",
         nargs="*",
-        default=DEFAULT_GOOD_POLICIES,
-        help="Policies to highlight as recommended/alternatives.",
+        default=None,
+        help="Policies to highlight as retained. Derived from the shortcut-risk rule when omitted.",
     )
     parser.add_argument(
         "--bad-policies",
         nargs="*",
-        default=DEFAULT_BAD_POLICIES,
-        help="Policies to highlight as discarded due to shortcut risk.",
+        default=None,
+        help="Policies to highlight as discarded. Derived from the shortcut-risk rule when omitted.",
     )
     parser.add_argument(
         "--risk-threshold",
@@ -154,12 +177,33 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Shortcut-risk guide line, in percent (default: %(default)s).",
     )
     parser.add_argument(
+        "--lang",
+        choices=("en", "pt"),
+        default="en",
+        help="Figure language. The library ships English defaults; 'pt' passes the "
+             "paper's Portuguese strings from this script (default: %(default)s).",
+    )
+    parser.add_argument(
         "--figures-dir",
         type=Path,
         required=True,
         help="Output directory for the plot.",
     )
     return parser.parse_args(argv)
+
+
+def _use_paper_font() -> None:
+    '''Match the figure typeface to the paper's (Arial-metric) body font.
+
+    The library deliberately does not touch rcParams, so a caller that embeds the
+    figure in a typeset document sets the font itself. Falls back silently to the
+    matplotlib default when the font is not installed.
+    '''
+
+    for family in ("Arial", "Liberation Sans"):
+        if any(f.name == family for f in font_manager.fontManager.ttflist):
+            matplotlib.rcParams["font.family"] = family
+            return
 
 
 ## Public ##
@@ -200,18 +244,38 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     plot_df["rank_label"] = plot_df["policy"].map(rank_labels)
 
+    derived_good, derived_bad = ocstatplot.classify_policies_by_shortcut_rule(
+        plot_df,
+        reference_policy=args.reference_policy,
+        risk_threshold=args.risk_threshold,
+        bedroc_column="bedroc_mean",
+        risk_column="top1_pct_max",
+    )
+    good_policies = args.good_policies if args.good_policies is not None else derived_good
+    bad_policies = args.bad_policies if args.bad_policies is not None else derived_bad
+    print(f"Retained ({len(good_policies)}): {', '.join(good_policies)}")
+    print(f"Discarded ({len(bad_policies)}): {', '.join(bad_policies)}")
+
+    text = PT_TEXT if args.lang == "pt" else {}
+    legend = PT_LEGEND if args.lang == "pt" else None
+
+    _use_paper_font()
     args.figures_dir.mkdir(parents=True, exist_ok=True)
     ocstatplot.plot_bedroc_vs_shortcut_risk_scatter(
         plot_df,
         reference_policy=args.reference_policy,
-        good_policies=args.good_policies,
-        bad_policies=args.bad_policies,
+        good_policies=good_policies,
+        bad_policies=bad_policies,
         risk_threshold=args.risk_threshold,
         bedroc_column="bedroc_mean",
         risk_column="top1_pct_max",
         label_column="rank_label",
+        highlight_policy=RECOMMENDED_POLICY,
         metric_label="BEDROC",
+        legend_labels=legend,
+        label_offsets=DEFAULT_LABEL_OFFSETS,
         output_dir=str(args.figures_dir),
+        **text,
     )
     output_png = args.figures_dir / "ablation_bedroc_vs_shortcut_risk_scatter.png"
     print(f"Wrote {output_png}")
