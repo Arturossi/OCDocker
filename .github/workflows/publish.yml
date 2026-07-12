@@ -6,7 +6,13 @@ on:
       - "v*"
 
 jobs:
+  test:
+    # Same gate as type-check.yml (mypy + pytest with coverage), reused so a tag can't
+    # publish to PyPI without passing what a PR to main/dev would have to pass.
+    uses: ./.github/workflows/type-check.yml
+
   build-and-publish:
+    needs: test
     runs-on: ubuntu-latest
     environment: release  # Must match PyPI trusted publisher environment
 

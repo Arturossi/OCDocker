@@ -5,6 +5,9 @@ on:
     branches: [ main, dev ]
   pull_request:
     branches: [ main, dev ]
+  # Reusable so publish.yml can gate the PyPI release on the same checks, instead
+  # of building and publishing an untested tag.
+  workflow_call:
 
 jobs:
   type-check:
