@@ -255,13 +255,21 @@ def test_all_extra_is_superset_of_runtime_extras():
 
 @pytest.mark.order(484)
 def test_full_extra_includes_all_and_docs():
-    '''The full extra includes runtime all packages and documentation build tools.'''
+    '''The full extra includes runtime all packages and documentation build tools.
+
+    The one deliberate exception is pdb2pqr: it hard-pins docutils<0.18, which
+    conflicts with myst-parser's docutils>=0.19/0.20, so the two can never resolve
+    together. pdb2pqr is only reachable through a function-scoped import in
+    Toolbox.MoleculeProcessing, so Sphinx autodoc (which drives the docs build) never
+    needs it importable -- docking installs (docking/all) still get it.
+    '''
 
     extras = _load_pyproject()["project"]["optional-dependencies"]
     full_names = {_dep_name(dep) for dep in extras["full"]}
     all_names = {_dep_name(dep) for dep in extras["all"]}
     docs_names = {_dep_name(dep) for dep in extras["docs"]}
-    assert all_names <= full_names
+    assert all_names - {"pdb2pqr"} <= full_names
+    assert "pdb2pqr" not in full_names
     assert docs_names <= full_names
 
 

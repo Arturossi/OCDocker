@@ -269,7 +269,12 @@ full = [
   "optuna-dashboard>=0.16.2",
   "optuna-integration>=4.0.0",
   "pandas>=2.2.3",
-  "pdb2pqr>=3.7.1",
+  # pdb2pqr deliberately excluded from `full`: it hard-pins docutils<0.18, which
+  # conflicts with myst-parser (docutils>=0.19/0.20 depending on version) -- the two
+  # cannot be installed together. It's only used by Toolbox.MoleculeProcessing's
+  # build_charmm_to_canonical_map() via a function-scoped (not module-level) import,
+  # so Sphinx autodoc never needs it importable; docking installs (`docking`/`all`)
+  # still get it.
   "pillow>=10.4.0",
   "pingouin>=0.5.5",
   "psycopg>=3.2.0",
