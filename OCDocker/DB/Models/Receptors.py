@@ -12,17 +12,22 @@ from OCDocker.DB.Models.Receptors import Receptors
 
 # Imports
 ###############################################################################
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
 from OCDocker.DB.Models.Base import base
 
-try:
+if TYPE_CHECKING:
     import OCDocker.Receptor as ocr
-except ModuleNotFoundError as exc:
-    if getattr(exc, "name", "") not in {"Bio", "rdkit"}:
-        raise
-    ocr = None
+else:
+    try:
+        import OCDocker.Receptor as ocr
+    except ModuleNotFoundError as exc:
+        if getattr(exc, "name", "") not in {"Bio", "rdkit"}:
+            raise
+        ocr = None
 
 # License
 ###############################################################################

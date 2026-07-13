@@ -17,7 +17,7 @@ import os
 import re
 
 from glob import glob
-from typing import Dict, Union, Optional
+from typing import Any, Dict, Union, Optional, cast
 
 import OCDocker.Error as ocerror
 
@@ -48,15 +48,15 @@ _base_db_module = None
 class _LazyBaseDB:
     """Load baseDB only when docking/preparation helpers need it."""
 
-    def prepare(self, *args, **kwargs):
+    def prepare(self, *args: Any, **kwargs: Any) -> None:
         '''Delegate to :func:`OCDocker.DB.baseDB.prepare`, importing it lazily.'''
 
-        return _get_base_db().prepare(*args, **kwargs)
+        _get_base_db().prepare(*args, **kwargs)
 
-    def run_docking(self, *args, **kwargs):
+    def run_docking(self, *args: Any, **kwargs: Any) -> int:
         '''Delegate to :func:`OCDocker.DB.baseDB.run_docking`, importing it lazily.'''
 
-        return _get_base_db().run_docking(*args, **kwargs)
+        return cast(int, _get_base_db().run_docking(*args, **kwargs))
 
 
 def _get_base_db():

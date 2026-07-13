@@ -13,21 +13,25 @@ from OCDocker.DB.Models.Ligands import Ligands
 # Imports
 ###############################################################################
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
 from OCDocker.DB.Models.Base import base
 
-try:
+if TYPE_CHECKING:
     import OCDocker.Ligand as ocl
-except ModuleNotFoundError as exc:
-    if getattr(exc, "name", "") != "rdkit":
-        raise
-    _fallback_ligand_descriptors = ["MolWt", "MolLogP", "NumHAcceptors", "NumHDonors"]
-    ocl = SimpleNamespace(
-        Ligand=SimpleNamespace(allDescriptors=_fallback_ligand_descriptors)
-    )
+else:
+    try:
+        import OCDocker.Ligand as ocl
+    except ModuleNotFoundError as exc:
+        if getattr(exc, "name", "") != "rdkit":
+            raise
+        _fallback_ligand_descriptors = ["MolWt", "MolLogP", "NumHAcceptors", "NumHDonors"]
+        ocl = SimpleNamespace(
+            Ligand=SimpleNamespace(allDescriptors=_fallback_ligand_descriptors)
+        )
 
 # License
 ###############################################################################

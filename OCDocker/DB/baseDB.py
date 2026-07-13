@@ -20,6 +20,7 @@ import OCDocker.DB.baseDB as ocbdb
 import os
 
 from glob import glob
+from typing import Any
 
 import OCDocker.Error as ocerror
 
@@ -54,7 +55,7 @@ class _LazyPrepareModule:
 class _LazyDockModule:
     """Load the Dock module only when docking is needed."""
 
-    def run_dock(self, *args, **kwargs):
+    def run_dock(self, *args: Any, **kwargs: Any) -> int:
         '''Delegate to :func:`OCDocker.Processing.Dock.run_dock`, importing it lazily.'''
 
         import OCDocker.Processing.Dock as module

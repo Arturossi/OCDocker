@@ -17,7 +17,7 @@ import csv
 import json
 
 from io import StringIO
-from typing import Any, Dict, Iterator, Literal, Optional, Union
+from typing import Any, Dict, Iterator, Literal, Optional, Union, cast
 
 import pandas as pd
 from sqlalchemy.engine.base import Engine
@@ -179,7 +179,7 @@ def _resolve_engine(engine: Optional[Engine] = None) -> Engine:
 
     default_engine = get_default_engine()
     if default_engine is not None:
-        return default_engine
+        return cast(Engine, default_engine)
 
     try:
         import OCDocker.Initialise as init

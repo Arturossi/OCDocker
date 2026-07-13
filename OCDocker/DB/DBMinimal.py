@@ -14,28 +14,41 @@ import OCDocker.DB.DBMinimal as ocdbmin
 ###############################################################################
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional, Tuple, Union
 
-try:
+# Under TYPE_CHECKING, mypy always sees the real sqlalchemy imports, so the optional
+# fallback assignments below (Engine = Any, sessionmaker = None, etc.) -- needed so this
+# module still imports when sqlalchemy isn't installed -- never reach the type checker.
+# Runtime behavior (the try/except) is unchanged.
+if TYPE_CHECKING:
     from sqlalchemy import create_engine as sqlalchemy_create_engine
     from sqlalchemy.engine.base import Engine
     from sqlalchemy.engine.url import URL, make_url
-    from sqlalchemy.orm import scoped_session, sessionmaker
-except ModuleNotFoundError as exc:  # pragma: no cover - exercised with import stubs
-    SQLALCHEMY_IMPORT_ERROR: Optional[ModuleNotFoundError] = exc
-    sqlalchemy_create_engine = None
-    Engine = Any
-    URL = Any
-    make_url = None
-    scoped_session = Any
-    sessionmaker = None
-else:
-    SQLALCHEMY_IMPORT_ERROR = None
-
-try:
     from sqlalchemy.exc import NoSuchModuleError, OperationalError, SQLAlchemyError
-except ModuleNotFoundError:  # pragma: no cover - test stubs may omit sqlalchemy.exc
-    NoSuchModuleError = OperationalError = SQLAlchemyError = Exception
+    from sqlalchemy.orm import scoped_session, sessionmaker
+
+    SQLALCHEMY_IMPORT_ERROR: Optional[ModuleNotFoundError] = None
+else:
+    try:
+        from sqlalchemy import create_engine as sqlalchemy_create_engine
+        from sqlalchemy.engine.base import Engine
+        from sqlalchemy.engine.url import URL, make_url
+        from sqlalchemy.orm import scoped_session, sessionmaker
+    except ModuleNotFoundError as exc:  # pragma: no cover - exercised with import stubs
+        SQLALCHEMY_IMPORT_ERROR = exc
+        sqlalchemy_create_engine = None
+        Engine = Any
+        URL = Any
+        make_url = None
+        scoped_session = Any
+        sessionmaker = None
+    else:
+        SQLALCHEMY_IMPORT_ERROR = None
+
+    try:
+        from sqlalchemy.exc import NoSuchModuleError, OperationalError, SQLAlchemyError
+    except ModuleNotFoundError:  # pragma: no cover - test stubs may omit sqlalchemy.exc
+        NoSuchModuleError = OperationalError = SQLAlchemyError = Exception
 
 import OCDocker.Error as ocerror
 
