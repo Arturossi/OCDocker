@@ -13,7 +13,7 @@ apply a documented scaling strategy so transferred encoders see compatible input
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any, Literal, Optional, Sequence
+from typing import Any, Literal, Optional, Sequence, cast
 
 import numpy as np
 from sklearn.preprocessing import StandardScaler
@@ -83,12 +83,12 @@ def _transform_with_feature_names(
     '''Transform arrays as named columns when the fitted scaler expects names.'''
 
     if getattr(scaler, "feature_names_in_", None) is None:
-        return scaler.transform(X)
+        return cast(np.ndarray, scaler.transform(X))
     import pandas as pd
 
-    return scaler.transform(
+    return cast(np.ndarray, scaler.transform(
         pd.DataFrame(X, columns=[str(name) for name in selected_features])
-    )
+    ))
 
 
 def scale_dudez_features(

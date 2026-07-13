@@ -20,7 +20,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional, Sequence
+from typing import Any, Optional, Sequence, cast
 
 import numpy as np
 import pandas as pd
@@ -104,7 +104,7 @@ def _resolve_label_column(task: str, dataframe: pd.DataFrame, label_column: Opti
 
 def _build_dudez_labels(dataframe: pd.DataFrame, label_column: str, kind_column: str) -> np.ndarray:
     if label_column in dataframe.columns and pd.api.types.is_numeric_dtype(dataframe[label_column]):
-        return dataframe[label_column].to_numpy(dtype=float)
+        return cast(np.ndarray, dataframe[label_column].to_numpy(dtype=float))
     if kind_column not in dataframe.columns:
         raise ValueError(f"DUDEz blind evaluation requires {kind_column!r} or numeric labels.")
     normalized = dataframe[kind_column].astype(str).str.strip().str.lower()

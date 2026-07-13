@@ -22,7 +22,7 @@ import sys
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -800,7 +800,7 @@ def _report_to_frame(report: Union[pd.DataFrame, CorrelationReport, CorrelationF
 def _to_jsonable(value: Any) -> Any:
     '''Convert common scientific Python objects to JSON-serializable values.'''
 
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
         return _to_jsonable(asdict(value))
     if isinstance(value, Mapping):
         return {str(key): _to_jsonable(val) for key, val in value.items()}
@@ -1403,7 +1403,7 @@ def find_near_constant_features(
     selected = _as_list(columns)
     _validate_columns_exist(df, selected, label="near-constant-feature columns")
     n_rows = len(df)
-    rows = []
+    rows: list[dict[str, Any]] = []
     if n_rows == 0:
         return pd.DataFrame(rows, columns=NEAR_CONSTANT_FEATURE_COLUMNS)
     for col in selected:
@@ -2117,7 +2117,7 @@ def build_feature_reduction_protocol(
             "warnings": list(warnings or []),
         },
     }
-    return _to_jsonable(protocol)
+    return cast(Dict[str, Any], _to_jsonable(protocol))
 
 
 def write_feature_reduction_outputs(

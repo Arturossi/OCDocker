@@ -17,7 +17,7 @@ import fnmatch
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Optional, Sequence
+from typing import Any, Iterable, Mapping, Optional, Sequence, cast
 
 import yaml
 
@@ -547,7 +547,7 @@ def feature_policy_to_yaml_text(data: Mapping[str, Any]) -> str:
         payload["allow_missing_exclude_features"] = False
     if bool(data.get("allow_empty_policy", False)):
         payload["allow_empty_policy"] = True
-    return yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
+    return cast(str, yaml.safe_dump(payload, sort_keys=False, allow_unicode=True))
 
 
 def write_feature_policy_metadata(output_dir: str | Path, metadata: Mapping[str, Any]) -> Path:

@@ -14,7 +14,7 @@ reports Brier score, log loss, and expected calibration error (ECE) on evaluatio
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal, Mapping, Optional, Sequence
+from typing import Any, Literal, Mapping, Optional, Sequence, cast
 
 import numpy as np
 from sklearn.calibration import calibration_curve
@@ -72,7 +72,7 @@ def logits_to_probabilities(logits: np.ndarray) -> np.ndarray:
 
     logits = np.asarray(logits, dtype=float).reshape(-1)
     clipped = np.clip(logits, -LOGIT_CLIP, LOGIT_CLIP)
-    return 1.0 / (1.0 + np.exp(-clipped))
+    return cast(np.ndarray, 1.0 / (1.0 + np.exp(-clipped)))
 
 
 def clip_probabilities(probabilities: np.ndarray) -> np.ndarray:
@@ -90,7 +90,7 @@ def clip_probabilities(probabilities: np.ndarray) -> np.ndarray:
     '''
 
     probs = np.asarray(probabilities, dtype=float).reshape(-1)
-    return np.clip(probs, PROBABILITY_CLIP_EPSILON, 1.0 - PROBABILITY_CLIP_EPSILON)
+    return cast(np.ndarray, np.clip(probs, PROBABILITY_CLIP_EPSILON, 1.0 - PROBABILITY_CLIP_EPSILON))
 
 
 def expected_calibration_error(
@@ -274,7 +274,7 @@ class ProbabilityCalibrator:
             )
             raise ValueError("Calibration requires both positive and negative labels.")
 
-        calibrator = cls(method=str(method), scores_are_logits=bool(scores_are_logits))
+        calibrator = cls(method=method, scores_are_logits=bool(scores_are_logits))
         uncalibrated = (
             logits_to_probabilities(scores) if scores_are_logits else clip_probabilities(scores)
         )

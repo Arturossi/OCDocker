@@ -18,13 +18,14 @@ import warnings
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 import numpy as np
 import pandas as pd
 import scipy.stats as sstats
 import seaborn as sns
 import OCDocker.Error as ocerror
 
-from typing import Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 # License
 ###############################################################################
@@ -371,6 +372,7 @@ def plot_bedroc_vs_shortcut_risk_scatter(
 
     x_break = _detect_x_break(df[bedroc_column].tolist()) if break_x_axis else None
 
+    ax_left: Optional[Axes]
     if x_break is None:
         fig, ax_right = plt.subplots(figsize = figsize, dpi = dpi)
         axes = [ax_right]
@@ -400,13 +402,13 @@ def plot_bedroc_vs_shortcut_risk_scatter(
     split_at = x_break[0][1] if x_break is not None else None
     for _, row in df.iterrows():
         color, marker, size, edge = styles[group_of(row['policy'])]
-        ax = ax_left if (split_at is not None and row[bedroc_column] <= split_at) else ax_right
-        ax.scatter(
+        point_ax = ax_left if (ax_left is not None and split_at is not None and row[bedroc_column] <= split_at) else ax_right
+        point_ax.scatter(
             row[bedroc_column], row[risk_column], color = color, marker = marker, s = size,
             edgecolor = edge, linewidth = 1.1, zorder = 3,
         )
         offset = (label_offsets or {}).get(row['policy'], (7, 5))
-        ax.annotate(
+        point_ax.annotate(
             str(row[label_col]), (row[bedroc_column], row[risk_column]),
             textcoords = 'offset points', xytext = offset, fontsize = 8.5, color = COLOR_TEXT,
             fontweight = 'bold' if row['policy'] == highlight_policy else 'normal', zorder = 4,
@@ -428,6 +430,7 @@ def plot_bedroc_vs_shortcut_risk_scatter(
     axes[0].set_ylim(100, 0)
 
     if x_break is not None:
+        assert ax_left is not None, "ax_left is always set alongside x_break"
         ax_left.set_xlim(*x_break[0])
         ax_right.set_xlim(*x_break[1])
         ax_left.set_xticks([round(df[bedroc_column].min(), 3)])
@@ -441,7 +444,7 @@ def plot_bedroc_vs_shortcut_risk_scatter(
         ax_right.spines['right'].set_visible(False)
 
         # diagonal break marks straddling the two panels
-        mark = dict(
+        mark: dict[str, Any] = dict(
             marker = [(-1, -0.9), (1, 0.9)], markersize = 7, linestyle = 'none',
             color = COLOR_TEXT_MUTED, mec = COLOR_TEXT_MUTED, mew = 1.1, clip_on = False,
         )

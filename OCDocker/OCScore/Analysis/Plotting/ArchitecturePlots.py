@@ -613,7 +613,7 @@ def normalize_architecture(document: Mapping[str, Any]) -> ArchitectureDiagram:
     dae = dict(document.get("dae") or {})
     head = dict(document.get("regression_head") or {})
     resolved = dict(encoder.get("resolved") or {})
-    hidden_sizes = resolved.get("hidden_sizes", encoder.get("hidden_sizes", []))
+    hidden_sizes = resolved.get("hidden_sizes", encoder.get("hidden_sizes", [])) or []
     latent_dim = _as_int(resolved.get("latent_dim", encoder.get("latent_dim")))
     projection_dim = _as_int(
         projection.get("projection_dim") or resolved.get("projection_dim")

@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any, List, Mapping, Optional, Sequence, Union
+from typing import Any, List, Mapping, Optional, Sequence, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -58,7 +58,7 @@ class _ShapForwardModule(nn.Module):
             prediction = outputs["prediction"] if isinstance(outputs, dict) else outputs
         else:
             prediction = self._model(x)
-        return prediction.reshape(-1, 1)
+        return cast(torch.Tensor, prediction.reshape(-1, 1))
 
 
 class _ShapNeuralWrapper:

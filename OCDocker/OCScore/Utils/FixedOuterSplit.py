@@ -17,7 +17,7 @@ import json
 import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -91,12 +91,12 @@ class FixedOuterSplitAssignment:
         return payload
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "FixedOuterSplitAssignment":
+    def from_dict(cls, payload: Mapping[str, Any]) -> "FixedOuterSplitAssignment":
         '''Reconstruct a split assignment from serialized JSON metadata.
 
         Parameters
         ----------
-        payload : dict[str, Any]
+        payload : Mapping[str, Any]
             Dictionary previously produced by :meth:`to_dict`.
 
         Returns
@@ -105,7 +105,7 @@ class FixedOuterSplitAssignment:
             Parsed assignment with unknown keys ignored.
         '''
 
-        known = {field.name for field in cls.__dataclass_fields__.values()}  # type: ignore[attr-defined]
+        known = {field.name for field in cls.__dataclass_fields__.values()}
         filtered = {key: value for key, value in payload.items() if key in known}
         return cls(**filtered)
 
@@ -139,12 +139,12 @@ def _assignment_hash(payload: dict[str, Any]) -> str:
 def build_fixed_outer_split_assignment(
         *,
         outer_split_seed: int,
-        pdbbind_train_indices: Sequence[int],
-        pdbbind_validation_indices: Sequence[int],
-        pdbbind_test_indices: Sequence[int],
-        dudez_train_indices: Sequence[int],
-        dudez_validation_indices: Sequence[int],
-        dudez_test_indices: Sequence[int],
+        pdbbind_train_indices: Sequence[int] | np.ndarray,
+        pdbbind_validation_indices: Sequence[int] | np.ndarray,
+        pdbbind_test_indices: Sequence[int] | np.ndarray,
+        dudez_train_indices: Sequence[int] | np.ndarray,
+        dudez_validation_indices: Sequence[int] | np.ndarray,
+        dudez_test_indices: Sequence[int] | np.ndarray,
         feature_selection_fit_row_count: int,
         selected_features: Sequence[str],
         removed_features: Sequence[str],
@@ -159,7 +159,7 @@ def build_fixed_outer_split_assignment(
     dude_train = _as_index_list(dudez_train_indices)
     dude_val = _as_index_list(dudez_validation_indices)
     dude_test = _as_index_list(dudez_test_indices)
-    payload = {
+    payload: dict[str, Any] = {
         "outer_split_seed": int(outer_split_seed),
         "pdbbind_train_indices_hash": hash_split_indices(pdb_train),
         "pdbbind_validation_indices_hash": hash_split_indices(pdb_val),

@@ -77,6 +77,7 @@ from OCDocker.OCScore.Utils.ProtocolProvenance import build_split_assignments_pa
 from OCDocker.OCScore.Utils.ProtocolProvenance import write_production_provenance_bundle
 
 from OCDocker.OCScore.Optimization.Protocol import ProtocolContext
+from OCDocker.OCScore.Optimization.Protocol import ProtocolStage
 from OCDocker.OCScore.Optimization.Protocol import ReplicatedProtocolResult
 from OCDocker.OCScore.Optimization.Protocol import ReplicatedStagedProtocol
 
@@ -1193,7 +1194,7 @@ def apply_train_only_feature_reduction(
     reduced_pdbbind = pdbbind_cleanup.cleaned_df
     reduced_dudez = dudez_cleanup.cleaned_df
 
-    def _remap_pdbbind_split(indices: Sequence[int], split_name: str) -> tuple[np.ndarray, int]:
+    def _remap_pdbbind_split(indices: Sequence[int] | np.ndarray, split_name: str) -> tuple[np.ndarray, int]:
         old_to_new = np.full(len(pdbbind_cleanup.kept_mask), -1, dtype=int)
         old_to_new[np.flatnonzero(pdbbind_cleanup.kept_mask)] = np.arange(
             int(pdbbind_cleanup.kept_mask.sum()),
@@ -1649,7 +1650,7 @@ def _build_replicated_staged_protocol(protocol: StagedTrainProtocol) -> Replicat
             split_config=pdbbind_split_config,
         )
     dudez_scaling_config = DUDEzScalingConfig(
-        strategy=protocol.dudez.scaling_strategy,  # type: ignore[arg-type]
+        strategy=protocol.dudez.scaling_strategy,
         strict=True,
     )
     dudez_config = ocstaged.DUDEzOptunaConfig(
@@ -1667,7 +1668,7 @@ def _build_replicated_staged_protocol(protocol: StagedTrainProtocol) -> Replicat
         split_config=dudez_split_config,
     )
     if protocol.runtime.pdbbind_only:
-        stages = [ocstaged.PDBbindOptunaStage(config=pdbbind_config)]
+        stages: list[ProtocolStage] = [ocstaged.PDBbindOptunaStage(config=pdbbind_config)]
         stage_summary = "pdbbind"
     else:
         stages = [
@@ -1763,7 +1764,7 @@ def _run_staged_training_from_artifacts(
     )
 
     fixed_outer_payload = artifacts.fixed_outer_split.to_dict() if artifacts.fixed_outer_split else None
-    metadata = {
+    metadata: dict[str, Any] = {
         "protocol_valid": True,
         "feature_selection_scope": "train_only",
         "feature_selection_fit_split": "train",
@@ -1819,7 +1820,7 @@ def _run_staged_training_from_artifacts(
     written = write_example_outputs(
         result=result,
         base_context=context,
-        reduction_archive=str(raw_input.merged_source or raw_input.artifact_paths.get("raw_pdbbind", output_dir)),
+        reduction_archive=str(raw_input.merged_source or raw_input.artifact_paths.get("raw_pdbbind", str(output_dir))),
         extracted_dir=output_dir,
         output_dir=output_dir,
     )
@@ -2085,18 +2086,18 @@ def _run_post_training_reports(
             test_metrics = dudez_stage.get("test_metrics") or {}
             validate_calibration_report_mode(
                 val_metrics,
-                calibration_mode,  # type: ignore[arg-type]
+                calibration_mode,
                 strict=True,
             )
             validate_calibration_report_mode(
                 test_metrics,
-                calibration_mode,  # type: ignore[arg-type]
+                calibration_mode,
                 strict=True,
             )
             calibration_section = build_calibration_report_section(
                 val_metrics,
                 test_metrics,
-                mode=calibration_mode,  # type: ignore[arg-type]
+                mode=calibration_mode,
             )
         final_report = {
             "aggregate_summary": result.aggregate_summary,

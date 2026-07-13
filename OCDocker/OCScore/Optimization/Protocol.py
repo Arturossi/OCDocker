@@ -24,7 +24,7 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, Optional, Protocol
+from typing import Any, Iterable, Optional, Protocol, cast
 
 import numpy as np
 import pandas as pd
@@ -1077,7 +1077,7 @@ def _dynamic_protocol_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
 def _static_context_metadata(metadata: dict[str, Any], selected_features_json: Path) -> dict[str, Any]:
     """Return static metadata without duplicating the full feature list."""
 
-    payload = copy.deepcopy(_to_jsonable(metadata))
+    payload: dict[str, Any] = copy.deepcopy(_to_jsonable(metadata))
     feature_selection = payload.get("feature_selection")
     if isinstance(feature_selection, dict):
         feature_selection.pop("selected_features", None)
@@ -1120,7 +1120,7 @@ def _metric_mean_std(values: pd.Series) -> dict[str, Any]:
     n = int(len(numeric))
     mean = float(numeric.mean())
     std = float(numeric.std(ddof=0))
-    summary = {
+    summary: dict[str, Any] = {
         "n": n,
         "mean": mean,
         "std": std,

@@ -335,7 +335,7 @@ def _select_scorers_from_per_target(
         .mean()
         .sort_values(metric, ascending=False)
     )
-    scorers = ranked["scorer"].astype(str).tolist()
+    scorers: list[str] = ranked["scorer"].astype(str).tolist()
     if reference_scorer in scorers:
         scorers.remove(reference_scorer)
     if top_n is not None and top_n > 0 and len(scorers) > max(0, top_n - 1):
@@ -477,7 +477,7 @@ def _position_heatmap_colorbar(
     cbar_y = pos.y0 + (pos.height - cbar_height) / 2.0
     cbar_width = 0.012
     cbar_x = pos.x1 + 0.012
-    cbar_ax.set_position([cbar_x, cbar_y, cbar_width, cbar_height])
+    cbar_ax.set_position((cbar_x, cbar_y, cbar_width, cbar_height))
     cbar_ax.tick_params(labelsize=tick_fontsize, length=2.5, width=0.8)
     cbar_ax.set_ylabel(metric, fontsize=label_fontsize, rotation=270, labelpad=14)
     cbar_ax.yaxis.set_label_coords(3.8, 0.5)

@@ -309,10 +309,13 @@ def _load_dataframe_for_export(export_path: Path, args: argparse.Namespace):
         reduced = pd.read_csv(source / REDUCED_DATASET_NAME, low_memory=False)
     else:
         with tarfile.open(source, "r:*") as archive:
-            reduced = pd.read_csv(
-                io.BytesIO(archive.extractfile(REDUCED_DATASET_NAME).read()),
-                low_memory=False,
-            )
+            member = archive.extractfile(REDUCED_DATASET_NAME)
+            if member is None:
+                raise ValueError(
+                    f"Reduction archive {source} does not contain {REDUCED_DATASET_NAME!r} "
+                    "as a regular file."
+                )
+            reduced = pd.read_csv(io.BytesIO(member.read()), low_memory=False)
     return _split_reduced_dataset(reduced, task)
 
 

@@ -25,7 +25,7 @@ import subprocess
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence, cast
 
 import joblib
 import numpy as np
@@ -82,7 +82,7 @@ def _json_ready(value: Any) -> Any:
         return value.tolist()
     if isinstance(value, Path):
         return str(value)
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
         return _json_ready(asdict(value))
     if isinstance(value, Mapping):
         return {str(key): _json_ready(item) for key, item in value.items()}
@@ -96,7 +96,7 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
 
 
 def _read_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
 
 
 def _git_commit_hash() -> Optional[str]:
@@ -242,7 +242,9 @@ def _save_split_indices(export_dir: Path, splits: Mapping[str, Any]) -> None:
         if key in splits and splits[key] is not None:
             arrays[key] = np.asarray(splits[key], dtype=np.int64)
     if arrays:
-        np.savez_compressed(export_dir / SPLIT_INDICES_FILENAME, **arrays)
+        # numpy-stubs mismatches **arrays: dict[str, ndarray] against savez_compressed's
+        # allow_pickle: bool overload; runtime signature is (file, *args, allow_pickle=True, **kwds).
+        np.savez_compressed(export_dir / SPLIT_INDICES_FILENAME, **arrays)  # type: ignore[arg-type]
 
 
 def _load_split_indices(export_dir: Path) -> dict[str, np.ndarray]:
@@ -264,6 +266,7 @@ def _build_model_from_export(
     input_size = int(retrain_config["input_size"])
     task = str(retrain_config["task"])
 
+    model: nn.Module
     if task == "pdbbind_regression":
         model = build_pdbbind_model(input_size=input_size, params=model_config)
     elif task == "dudez_screening":
@@ -330,7 +333,7 @@ def _resolve_transferred_extractor(
         )
 
     pdbbind_bundle = load_exported_model(pdbbind_path, device=device)
-    return pdbbind_bundle["model"].feature_extractor
+    return cast(Optional[FeatureExtractor], pdbbind_bundle["model"].feature_extractor)
 
 
 def _forward_export_predictions(
@@ -353,7 +356,7 @@ def _forward_export_predictions(
             outputs = model(tensor)
         else:
             raise ValueError(f"Unsupported export task: {task}")
-    return outputs.detach().cpu().numpy().reshape(-1)
+    return cast(np.ndarray, outputs.detach().cpu().numpy().reshape(-1))
 
 
 ## Public ##
@@ -406,7 +409,7 @@ def transform_export_features(
     values = dataframe[list(selected_features)].to_numpy(dtype=np.float32)
     if scaler is not None:
         values = scaler.transform(values)
-    return values
+    return cast(np.ndarray, values)
 
 
 def predict_from_export(
@@ -877,7 +880,7 @@ def retrain_from_export(
                     "scaler": scaler,
                     "split_diagnostics": splits.get("split_diagnostics", {}),
                 }
-        model = build_pdbbind_model(input_size=len(selected_features), params=model_config)
+        model: nn.Module = build_pdbbind_model(input_size=len(selected_features), params=model_config)
     elif task == "dudez_screening":
         if dudez_df is None:
             raise ValueError("dudez_df is required to retrain a DUDEz export.")
@@ -893,13 +896,13 @@ def retrain_from_export(
             if target_group_column in dudez_df.columns
             else None
         )
-        split_config = DUDEzSplitConfig(**split_config_dict) if split_config_dict else DUDEzSplitConfig()
+        dudez_split_config = DUDEzSplitConfig(**split_config_dict) if split_config_dict else DUDEzSplitConfig()
         splits = prepare_dudez_screening_data(
             dudez_df,
             selected_features,
             labels,
             groups=groups,
-            split_config=split_config,
+            split_config=dudez_split_config,
             target_group_column=target_group_column if groups is not None else None,
         )
         transferred_extractor = None

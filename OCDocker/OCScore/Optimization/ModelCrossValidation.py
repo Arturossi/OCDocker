@@ -18,7 +18,7 @@ import copy
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence, cast
 
 import numpy as np
 import pandas as pd
@@ -48,6 +48,7 @@ from OCDocker.OCScore.Optimization.StagedOptuna import compute_regression_recons
 from OCDocker.OCScore.Optimization.StagedOptuna import derive_dudez_labels
 from OCDocker.OCScore.Optimization.StagedOptuna import evaluate_regression_metrics
 from OCDocker.OCScore.Analysis.Metrics.Ranking import evaluate_scoring_functions_by_group
+from OCDocker.OCScore.Analysis.Metrics.Calibration import CalibrationMethod
 from OCDocker.OCScore.Analysis.Metrics.Calibration import ProbabilityCalibrator
 from OCDocker.OCScore.Analysis.Metrics.Calibration import merge_calibration_metrics
 from OCDocker.OCScore.Analysis.Metrics.Ranking import DEFAULT_SCREENING_COMPARISON_METRICS
@@ -582,7 +583,7 @@ def _merge_cv_calibration_metrics(
         train_score: np.ndarray,
         val_true: np.ndarray,
         val_score: np.ndarray,
-        method: str,
+        method: CalibrationMethod,
     ) -> dict[str, Any]:
     diagnostics: dict[str, Any] = {
         "calibration_method": str(method),
@@ -606,7 +607,7 @@ def _merge_cv_calibration_metrics(
     calibrator = ProbabilityCalibrator.fit(
         train_true,
         train_score,
-        method=str(method),
+        method=method,
         scores_are_logits=True,
     )
     merge_calibration_metrics(
@@ -800,6 +801,7 @@ def _train_pdbbind_fold(
         batch_size=batch_size,
         shuffle=True,
     )
+    regression_loss: nn.Module
     if params.get("pdbbind_regression_loss") == "huber":
         regression_loss = nn.HuberLoss(delta=float(params["pdbbind_huber_delta"]))
     else:
@@ -992,7 +994,7 @@ def run_cross_validation_from_export(
             random_seed=cv_config.random_seed,
             shuffle=cv_config.shuffle,
         )
-        metric_names = PDBBIND_CV_METRICS
+        metric_names: tuple[str, ...] = PDBBIND_CV_METRICS
         groups_all = None
         scoring_function_columns: list[str] = []
         feature_extractor_architecture = None
@@ -1031,7 +1033,7 @@ def run_cross_validation_from_export(
                     device=resolved_device,
                 )["model"].feature_extractor
         feature_extractor_architecture = bundle["architecture"].get("feature_extractor")
-        scoring_function_columns: list[str] = []
+        scoring_function_columns = []
         if cv_config.include_scoring_function_baselines:
             scoring_function_columns = identify_scoring_function_columns(selected_features)
             if not scoring_function_columns:
@@ -1130,7 +1132,7 @@ def run_cross_validation_from_export(
                     train_score=train_score,
                     val_true=val_true,
                     val_score=val_score,
-                    method=str(cv_config.calibration_method),
+                    method=cast(CalibrationMethod, cv_config.calibration_method),
                 )
                 diagnostics.update(calibration_diagnostics)
                 if calibration_diagnostics.get("calibration_status") == "skipped":
@@ -1139,7 +1141,12 @@ def run_cross_validation_from_export(
                         fold_index,
                         calibration_diagnostics.get("calibration_skip_reason"),
                     )
-            if groups_all is not None and val_score is not None and val_true is not None:
+            if (
+                groups_all is not None
+                and val_groups is not None
+                and val_score is not None
+                and val_true is not None
+            ):
                 diagnostics["validation_receptors"] = sorted(
                     np.unique(groups_all[val_idx]).astype(str).tolist()
                 )
@@ -1405,7 +1412,7 @@ def save_cross_validation_result(result: CrossValidationResult, output_dir: str 
 
     fold_rows: list[dict[str, Any]] = []
     for fold in result.fold_results:
-        row = {
+        row: dict[str, Any] = {
             "fold_index": fold.fold_index,
             "n_train": fold.n_train,
             "n_validation": fold.n_validation,

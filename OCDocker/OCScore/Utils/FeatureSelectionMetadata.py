@@ -133,7 +133,7 @@ class FeatureSelectionScope:
     def from_dict(cls, payload: dict[str, Any]) -> "FeatureSelectionScope":
         '''Build scope from a JSON-compatible mapping.'''
 
-        known = {field.name for field in cls.__dataclass_fields__.values()}  # type: ignore[attr-defined]
+        known = {field.name for field in cls.__dataclass_fields__.values()}
         filtered = {key: value for key, value in payload.items() if key in known}
         if "scope" not in filtered and "feature_selection_scope" in payload:
             filtered["scope"] = payload["feature_selection_scope"]

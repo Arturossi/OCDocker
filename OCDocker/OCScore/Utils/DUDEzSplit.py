@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import zlib
 from dataclasses import asdict, dataclass, field
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import numpy as np
 import pandas as pd
@@ -336,7 +336,7 @@ def _normalize_kind_column(df: pd.DataFrame, kind_column: str) -> np.ndarray:
         source_column = "type"
     if source_column not in df.columns:
         raise ValueError(f"DUDEz dataframe must contain {kind_column!r} for kind-aware splitting.")
-    return df[source_column].astype("string").str.strip().str.lower().to_numpy()
+    return cast(np.ndarray, df[source_column].astype("string").str.strip().str.lower().to_numpy())
 
 
 def _kind_to_binary_labels(kinds: np.ndarray) -> np.ndarray:

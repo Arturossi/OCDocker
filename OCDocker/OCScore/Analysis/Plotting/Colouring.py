@@ -12,6 +12,8 @@ import OCDocker.OCScore.Analysis.Plotting.Colouring as ocstatcolour
 
 # Imports
 ###############################################################################
+from typing import TYPE_CHECKING
+
 import pandas as pd
 import seaborn as sns
 import OCDocker.Error as ocerror
@@ -35,10 +37,13 @@ See the LICENSE file for full terms.
 ###############################################################################
 ## Private ##
 
-try:
-    import colorcet as cc  # optional
-except Exception:  # pragma: no cover
-    cc = None
+if TYPE_CHECKING:
+    import colorcet as cc
+else:
+    try:
+        import colorcet as cc  # optional
+    except Exception:  # pragma: no cover
+        cc = None
 
 ## Public ##
 

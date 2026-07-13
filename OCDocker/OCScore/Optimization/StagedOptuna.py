@@ -24,7 +24,7 @@ import time
 
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence, cast
 
 import numpy as np
 import optuna
@@ -49,6 +49,7 @@ from OCDocker.OCScore.Utils.FixedOuterSplit import FixedOuterSplitAssignment
 from OCDocker.OCScore.Utils.FixedOuterSplit import build_replica_split_alignment_metadata
 from OCDocker.OCScore.Utils.FixedOuterSplit import validate_replica_split_alignment
 from OCDocker.OCScore.Optimization.OptunaSearchSpace import DUDEzSearchSpaceConfig
+from OCDocker.OCScore.Optimization.OptunaSearchSpace import DecoderSearchSpace
 from OCDocker.OCScore.Optimization.OptunaSearchSpace import EncoderSearchSpace
 from OCDocker.OCScore.Optimization.OptunaSearchSpace import PDBBIND_SEARCH_PHASE_ENCODER_REGRESSION
 from OCDocker.OCScore.Optimization.OptunaSearchSpace import PDBBIND_SEARCH_PHASE_FULL
@@ -58,6 +59,7 @@ from OCDocker.OCScore.Optimization.OptunaSearchSpace import validate_pdbbind_sea
 from OCDocker.OCScore.Optimization.OptunaSearchSpace import build_activation_module
 from OCDocker.OCScore.Optimization.OptunaSearchSpace import search_space_to_summary
 from OCDocker.OCScore.Utils.DUDEzScaling import DUDEzScalingConfig
+from OCDocker.OCScore.Utils.DUDEzScaling import DUDEzScalingStrategy
 from OCDocker.OCScore.Utils.DUDEzScaling import scale_dudez_features
 from OCDocker.OCScore.Utils.DUDEzSplit import DUDEzSplitConfig
 from OCDocker.OCScore.Utils.DUDEzSplit import dudez_receptor_heldout_complete_config
@@ -552,8 +554,8 @@ class FeatureExtractor(nn.Module):
 
         latent = self.encoder(x)
         if self.projection is not None:
-            return self.projection(latent)
-        return latent
+            return cast(torch.Tensor, self.projection(latent))
+        return cast(torch.Tensor, latent)
 
 
 class PDBbindRegressionModel(nn.Module):
@@ -581,6 +583,7 @@ class PDBbindRegressionModel(nn.Module):
         super(PDBbindRegressionModel, self).__init__()
         self.feature_extractor = feature_extractor
         self.regression_head = nn.Linear(feature_extractor.output_dim, 1)
+        self.decoder: Optional[nn.Sequential]
         if decoder_sizes:
             self.decoder = _build_decoder(feature_extractor.output_dim, input_size, decoder_sizes, activation)
         else:
@@ -662,7 +665,7 @@ class DUDEzScreeningModel(nn.Module):
         '''
 
         features = self.feature_extractor(x)
-        return self.classifier_head(features).view(-1)
+        return cast(torch.Tensor, self.classifier_head(features).view(-1))
 
 
 def _require_fixed_outer_split(context: ProtocolContext) -> FixedOuterSplitAssignment:
@@ -815,6 +818,7 @@ class PDBbindOptunaStage:
 
         _raise_if_no_completed_trials(study, "PDBbind")
         best_trial = study.best_trial
+        assert best_trial.value is not None, "study.best_trial must have a value once completed trials exist"
         best_model = self._best_payload["model"]
         best_model.eval()
         val_pred, val_true = _predict_regression(best_model, splits["X_val"], splits["y_val"], device)
@@ -933,6 +937,7 @@ class PDBbindOptunaStage:
         )
         batch_size = int(params["optimizer_batch_size"])
         train_loader = DataLoader(TabularDataset(splits["X_train"], splits["y_train"]), batch_size=batch_size, shuffle=True)
+        regression_loss: nn.Module
         if params["pdbbind_regression_loss"] == "huber":
             regression_loss = nn.HuberLoss(delta=float(params["pdbbind_huber_delta"]))
         else:
@@ -1206,6 +1211,7 @@ class DUDEzOptunaStage:
 
         _raise_if_no_completed_trials(study, "DUDEz")
         best_trial = study.best_trial
+        assert best_trial.value is not None, "study.best_trial must have a value once completed trials exist"
         best_model = self._best_payload["model"]
         best_model.eval()
         val_score, val_true = _predict_screening(best_model, splits["X_val"], splits["y_val"], device)
@@ -1766,7 +1772,7 @@ def _safe_group_split(
 
 def _can_stratify(y: np.ndarray) -> bool:
     _, counts = np.unique(y, return_counts=True)
-    return len(counts) > 1 and np.min(counts) >= 2
+    return bool(len(counts) > 1 and np.min(counts) >= 2)
 
 
 def _safe_metric(metric_fn: Any, y_true: np.ndarray, y_score: np.ndarray, default: float = 0.0) -> float:
@@ -2046,8 +2052,8 @@ def compute_regression_reconstruction_loss(
 
     reg_loss = regression_loss(prediction, target)
     if lambda_rec <= 0.0 or reconstruction is None:
-        return reg_loss
-    return reg_loss + float(lambda_rec) * reconstruction_loss(reconstruction, features)
+        return cast(torch.Tensor, reg_loss)
+    return cast(torch.Tensor, reg_loss + float(lambda_rec) * reconstruction_loss(reconstruction, features))
 
 
 def derive_dudez_labels(df: pd.DataFrame, kind_column: str = "kind") -> np.ndarray:
@@ -2079,7 +2085,7 @@ def derive_dudez_labels(df: pd.DataFrame, kind_column: str = "kind") -> np.ndarr
     if labels.isna().any():
         unknown = sorted(normalized[labels.isna()].dropna().unique().tolist())
         raise ValueError(f"Unsupported DUDEz kind values: {unknown}")
-    return labels.to_numpy(dtype=np.float32)
+    return cast(np.ndarray, labels.to_numpy(dtype=np.float32))
 
 
 def dudez_search_space_summary(
@@ -2670,7 +2676,7 @@ def prepare_dudez_screening_data(
     _log_dudez_split_diagnostics(split_diagnostics)
 
     if scaling_config is None:
-        default_strategy = "pdbbind_scaler" if pdbbind_scaler is not None else "dudez_train_scaler"
+        default_strategy: DUDEzScalingStrategy = "pdbbind_scaler" if pdbbind_scaler is not None else "dudez_train_scaler"
         scaling = DUDEzScalingConfig(strategy=default_strategy, strict=True)
     else:
         scaling = scaling_config
