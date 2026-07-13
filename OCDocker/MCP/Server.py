@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 from typing import Literal
+from typing import cast
 
 import httpx
 
@@ -121,7 +122,7 @@ async def _request(
     if response.status_code >= 400:
         detail = payload.get("error", payload) if isinstance(payload, dict) else payload
         raise OCDockerMCPError(f"{method} {path} failed ({response.status_code}): {detail}")
-    return payload
+    return cast(dict[str, Any], payload)
 
 
 ## Public ##

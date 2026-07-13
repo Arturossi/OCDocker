@@ -14,7 +14,7 @@ import OCDocker.Toolbox.FilesFolders as ocff
 # Imports
 ###############################################################################
 try:
-    import h5py  # type: ignore
+    import h5py
 except ModuleNotFoundError:  # pragma: no cover
     h5py = None
 import json

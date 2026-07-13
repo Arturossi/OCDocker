@@ -130,13 +130,13 @@ def build_pose_engine_map(
         alias = path_aliases.get(pose_path)
         if alias:
             candidates.append(alias)
-        engine = None
+        resolved_engine = None
         for candidate in candidates:
-            engine = _resolve_pose_engine(candidate, lookup)
-            if engine:
+            resolved_engine = _resolve_pose_engine(candidate, lookup)
+            if resolved_engine:
                 break
-        if engine:
-            resolved[pose_path] = engine
+        if resolved_engine:
+            resolved[pose_path] = resolved_engine
 
     return resolved
 

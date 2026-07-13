@@ -13,7 +13,7 @@ import OCDocker.Rescoring.ODDT as ocoddt
 # Imports
 ###############################################################################
 import os
-import six  # type: ignore[import-untyped]
+import six
 import time
 import traceback
 

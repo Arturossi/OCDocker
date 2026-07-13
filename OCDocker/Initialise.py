@@ -373,7 +373,7 @@ def _load_yml_config_values(config_file: str) -> Dict[str, Any]:
     '''Load YAML config values from a top-level mapping.'''
 
     try:
-        import yaml  # type: ignore[import-untyped]
+        import yaml
     except ImportError as e:
         print(f"{clrs['r']}ERROR{clrs['n']}: YAML support requires PyYAML: {e}")
         raise SystemExit(2)
@@ -893,6 +893,9 @@ def bootstrap(
         db_settings = None
 
     backend = db_settings.backend if db_settings is not None else _normalize_db_backend(raw_backend)
+    # Guaranteed non-None here: when db_settings is None, the branch above already
+    # exited with SystemExit(2) if _normalize_db_backend(raw_backend) was None.
+    assert backend is not None
     config.database.backend = backend
     if db_settings is not None:
         config.database.port = db_settings.port
@@ -900,7 +903,14 @@ def bootstrap(
         if db_settings.backend != 'sqlite' and not config.database.optimizedb:
             config.database.optimizedb = 'optimization'
 
-    if db_requested and db_settings is not None and build_database_urls is not None:
+    if (
+        db_requested
+        and db_settings is not None
+        and build_database_urls is not None
+        and create_engine is not None
+        and create_database_if_not_exists is not None
+        and create_session is not None
+    ):
         try:
             db_url, optdb_url = build_database_urls(db_settings)
 

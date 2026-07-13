@@ -615,7 +615,7 @@ class Receptor:
 ###############################################################################
 ## Private ##
 # Cache to track which sequences we've already warned about
-_warned_sequences = set()
+_warned_sequences: set[int] = set()
 
 
 def _clean_pdb_path(structure_path: str) -> str:
