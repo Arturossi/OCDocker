@@ -233,3 +233,20 @@ obsidian/
 # Graphify
 .graphify*
 graphify-out/
+
+# LLM
+.agents/
+.claude/
+.codex/
+
+# snakemake
+.snakemake/
+
+# ruff
+.ruff_cache/
+
+# vscode
+.vscode/
+
+# logs
+logs/*
