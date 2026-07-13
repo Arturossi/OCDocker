@@ -4,7 +4,7 @@
   "upload_type": "software",
   "license": "BSD-3-Clause",
   "access_right": "open",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "language": "eng",
   "creators": [
     {
@@ -37,12 +37,6 @@
       "identifier": "https://pypi.org/project/ocdocker/",
       "relation": "isIdenticalTo",
       "scheme": "url"
-    },
-    {
-      "identifier": "BR 512025007028-4",
-      "relation": "isIdenticalTo",
-      "scheme": "other",
-      "resource_type": "software"
     }
   ]
 }

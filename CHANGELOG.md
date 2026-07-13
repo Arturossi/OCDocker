@@ -4,6 +4,21 @@ All notable changes to OCDocker are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.1] - 2026-07-13
+
+### Fixed
+
+- `.zenodo.json` had a `related_identifiers` entry (the INPI registration number) using
+  a `scheme` value Zenodo's metadata schema doesn't recognize, which made every Zenodo
+  archival attempt off the GitHub release fail with "Extra metadata load failed". Removed
+  the entry; the registration is still documented in the description field.
+- Two `tests/cli/test_cli_utilities.py::test_cmd_script_*` tests patched
+  `OCDocker.CLI.common._preparse_global_args`/`_bootstrap_ocdocker_env`, but
+  `OCDocker.CLI.script` imports those names directly, so the patches never took effect and
+  the tests silently exercised the real bootstrap path. It only passed locally because of a
+  stray config file outside the repo; CI (no such file) failed with `SystemExit(2)`. Patches
+  now target `OCDocker.CLI.script`, where `cmd_script` actually looks the names up.
+
 ## [0.15.0] - 2026-07-12
 
 The release that produced the results reported in the OCScore manuscript. It adds the
@@ -58,4 +73,5 @@ and the SHAP shortcut-risk analysis.
 - `py-mini-racer`, used by the dashboard's JavaScript syntax test, was imported without
   being declared; it is now part of the `dev` extra.
 
+[0.15.1]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.1
 [0.15.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.0

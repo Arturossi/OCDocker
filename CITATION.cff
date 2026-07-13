@@ -39,6 +39,6 @@ keywords:
   - explainable AI
   - SHAP
 license: BSD-3-Clause
-version: 0.15.0
-date-released: "2026-07-12"
+version: 0.15.1
+date-released: "2026-07-13"
 # doi: "10.5281/zenodo.XXXXXXX"   # PREENCHER com o DOI do Zenodo após o primeiro release
