@@ -9,7 +9,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import OCDocker.Toolbox.Logging as oclogging
 
@@ -19,6 +19,7 @@ from OCDocker.CLI.common import (
     _preparse_global_args,
     _print_optional_dependency_hint,
     _require_file,
+    _suggest_extra_for_missing_module,
 )
 from OCDocker.CLI import workflow as cli_workflow
 
@@ -70,7 +71,7 @@ def _read_json(path: Path) -> Dict[str, Any]:
         Parsed JSON object.
     '''
 
-    return json.loads(path.read_text(encoding="utf-8"))
+    return cast(Dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
 
 
 def _write_done_marker(path: Optional[str], payload: Dict[str, Any]) -> None:
@@ -274,6 +275,7 @@ def _pipeline_dock_stage(args: argparse.Namespace) -> int:
             poses: List[str] = []
             context: Dict[str, Any] = {"engine": engine, "engine_dir": str(engine_dir)}
             try:
+                runner: Any
                 if engine == "vina":
                     conf = engine_dir / "conf_vina.txt"
                     prep_r = box_outdir / "prepared_receptor.pdbqt"
@@ -553,49 +555,55 @@ def _pipeline_rescore_stage(args: argparse.Namespace) -> int:
     warnings: List[str] = []
 
     if "vina" in rescoring_engines and "vina" in manifest_by_engine and representative_pdbqt.is_file():
-        from OCDocker.Docking.Vina import get_rescore_log_paths, read_rescore_logs, run_rescore
+        from OCDocker.Docking.Vina import get_rescore_log_paths as vina_get_log_paths
+        from OCDocker.Docking.Vina import read_rescore_logs as vina_read_logs
+        from OCDocker.Docking.Vina import run_rescore as vina_run_rescore
         manifest = manifest_by_engine["vina"]
         scoring_functions = config.vina.scoring_functions if config.vina.scoring_functions else ["vina"]
         for scoring_function in scoring_functions:
             try:
-                run_rescore(manifest["config"], str(representative_pdbqt), manifest["engine_dir"], scoring_function, splitLigand=False, overwrite=True)
+                vina_run_rescore(manifest["config"], str(representative_pdbqt), manifest["engine_dir"], scoring_function, splitLigand=False, overwrite=True)
             except Exception as exc:
                 warnings.append(f"vina:{scoring_function}: {exc}")
-        log_paths, data, _ = _wait_for_rescore_logs_ready(get_rescore_log_paths, read_rescore_logs, manifest["engine_dir"])
+        log_paths, data, _ = _wait_for_rescore_logs_ready(vina_get_log_paths, vina_read_logs, manifest["engine_dir"])
         if log_paths and not data:
-            data = read_rescore_logs(log_paths, onlyBest=True)
+            data = vina_read_logs(log_paths, onlyBest=True)
         values = _extract_numeric_rescore_values(data or {}, "vina")
         if values:
             rescoring["vina"] = values
 
     if "smina" in rescoring_engines and "smina" in manifest_by_engine and representative_pdbqt.is_file():
-        from OCDocker.Docking.Smina import get_rescore_log_paths, read_rescore_logs, run_rescore
+        from OCDocker.Docking.Smina import get_rescore_log_paths as smina_get_log_paths
+        from OCDocker.Docking.Smina import read_rescore_logs as smina_read_logs
+        from OCDocker.Docking.Smina import run_rescore as smina_run_rescore
         manifest = manifest_by_engine["smina"]
         scoring_functions = config.smina.scoring_functions if config.smina.scoring_functions else ["vinardo"]
         for scoring_function in scoring_functions:
             try:
-                run_rescore(manifest["config"], str(representative_pdbqt), manifest["engine_dir"], scoring_function, splitLigand=False, overwrite=True)
+                smina_run_rescore(manifest["config"], str(representative_pdbqt), manifest["engine_dir"], scoring_function, splitLigand=False, overwrite=True)
             except Exception as exc:
                 warnings.append(f"smina:{scoring_function}: {exc}")
-        log_paths, data, _ = _wait_for_rescore_logs_ready(get_rescore_log_paths, read_rescore_logs, manifest["engine_dir"])
+        log_paths, data, _ = _wait_for_rescore_logs_ready(smina_get_log_paths, smina_read_logs, manifest["engine_dir"])
         if log_paths and not data:
-            data = read_rescore_logs(log_paths, onlyBest=True)
+            data = smina_read_logs(log_paths, onlyBest=True)
         values = _extract_numeric_rescore_values(data or {}, "smina")
         if values:
             rescoring["smina"] = values
 
     if "gnina" in rescoring_engines and "gnina" in manifest_by_engine and representative_pdbqt.is_file():
-        from OCDocker.Docking.Gnina import get_rescore_log_paths, read_rescore_logs, run_rescore
+        from OCDocker.Docking.Gnina import get_rescore_log_paths as gnina_get_log_paths
+        from OCDocker.Docking.Gnina import read_rescore_logs as gnina_read_logs
+        from OCDocker.Docking.Gnina import run_rescore as gnina_run_rescore
         manifest = manifest_by_engine["gnina"]
         scoring_functions = config.gnina.scoring_functions if isinstance(config.gnina.scoring_functions, list) and config.gnina.scoring_functions else [str(getattr(config.gnina, "scoring", "default") or "default")]
         for scoring_function in scoring_functions:
             try:
-                run_rescore(manifest["config"], str(representative_pdbqt), manifest["engine_dir"], scoring_function, splitLigand=False, overwrite=True, disable_cnn=True)
+                gnina_run_rescore(manifest["config"], str(representative_pdbqt), manifest["engine_dir"], scoring_function, splitLigand=False, overwrite=True, disable_cnn=True)
             except Exception as exc:
                 warnings.append(f"gnina:{scoring_function}: {exc}")
-        log_paths, data, _ = _wait_for_rescore_logs_ready(get_rescore_log_paths, read_rescore_logs, manifest["engine_dir"])
+        log_paths, data, _ = _wait_for_rescore_logs_ready(gnina_get_log_paths, gnina_read_logs, manifest["engine_dir"])
         if log_paths and not data:
-            data = read_rescore_logs(log_paths, onlyBest=True)
+            data = gnina_read_logs(log_paths, onlyBest=True)
         values = _extract_numeric_rescore_values(data or {}, "gnina")
         if values:
             rescoring["gnina"] = values

@@ -59,8 +59,10 @@ def _oddt_dependency_status() -> str:
     except Exception:
         return "OK (standalone: unknown origin)"
 
-    home_page = str(meta.get("Home-page", "") or "")
-    author_email = str(meta.get("Author-email", "") or "")
+    # PackageMetadata declares __contains__/__getitem__, not .get(); mypy doesn't know
+    # the runtime object (email.message.Message) also has .get().
+    home_page = meta["Home-page"] if "Home-page" in meta else ""
+    author_email = meta["Author-email"] if "Author-email" in meta else ""
     if (
         _ODDT_UPSTREAM_HOME_PAGE_MARKER in home_page.lower()
         or _ODDT_UPSTREAM_AUTHOR_EMAIL_MARKER in author_email.lower()

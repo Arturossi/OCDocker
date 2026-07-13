@@ -19,6 +19,7 @@ from OCDocker.CLI.common import (
     _preparse_global_args,
     _print_optional_dependency_hint,
     _require_file,
+    _suggest_extra_for_missing_module,
 )
 from OCDocker.CLI import workflow as cli_workflow
 

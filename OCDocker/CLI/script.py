@@ -13,7 +13,12 @@ import OCDocker.Toolbox.Logging as oclogging
 
 import OCDocker.Toolbox.Security as ocsec
 
-from OCDocker.CLI.common import _bootstrap_ocdocker_env, _preparse_global_args
+from OCDocker.CLI.common import (
+    _bootstrap_ocdocker_env,
+    _preparse_global_args,
+    _print_optional_dependency_hint,
+    _suggest_extra_for_missing_module,
+)
 
 LOGGER = oclogging.get_logger("cli")
 
