@@ -23,11 +23,13 @@ from OCDocker.OCScore.Optimization.OptunaStorage import DEFAULT_OPTUNA_DB_FILENA
 from statistics import fmean
 from statistics import median
 from statistics import stdev
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 
 from OCDocker.Workbench.Models import InventoryIssue
+from OCDocker.Workbench.Models import OCScoreReplicaStatus
+from OCDocker.Workbench.Models import OCScoreWorkspaceRole
 from OCDocker.Workbench.Models import WorkbenchOCScoreCrossValidation
 from OCDocker.Workbench.Models import WorkbenchOCScoreCrossValidationMetric
 from OCDocker.Workbench.Models import WorkbenchOCScoreExternalBaseline
@@ -69,7 +71,7 @@ FAILED_LOG_MARKERS = (
     "killed",
     "segmentation fault",
 )
-CURATED_METRIC_DIRECTIONS: dict[str, str] = {
+CURATED_METRIC_DIRECTIONS: dict[str, Literal["max", "min"]] = {
     "bedroc": "max",
     "roc_auc": "max",
     "pr_auc": "max",
@@ -527,7 +529,7 @@ def _merge_metric_values(
         target_sources[name].update(sources.get(name, ()))
 
 
-def _metric_direction(name: str) -> str:
+def _metric_direction(name: str) -> Literal["max", "min"]:
     '''Return the optimization direction for one metric.
 
     Parameters
@@ -537,7 +539,7 @@ def _metric_direction(name: str) -> str:
 
     Returns
     -------
-    str
+    Literal["max", "min"]
         ``max`` or ``min``.
     '''
 
@@ -911,7 +913,7 @@ def _resolve_replica_status(
     log_files: tuple[Path, ...],
     *,
     max_metric_file_bytes: int,
-) -> str:
+) -> OCScoreReplicaStatus:
     '''Classify replica progress: missing, failed, completed, or running.'''
 
     if any(_log_has_failure(path, max_bytes=max_metric_file_bytes) for path in log_files):
@@ -1029,7 +1031,7 @@ def _output_root_for_layout(layout_root: Path) -> Path:
     return layout_root.parent if layout_root.name == "train" else layout_root
 
 
-def _study_export_path(layout_root: Path, *, role: str, study_name: str) -> Path:
+def _study_export_path(layout_root: Path, *, role: OCScoreWorkspaceRole, study_name: str) -> Path:
     '''Return the expected export figure directory for one study.
 
     Parameters
@@ -1090,7 +1092,7 @@ def _build_baseline_export_figures(
 
 def _build_replica(
     *,
-    role: str,
+    role: OCScoreWorkspaceRole,
     study_name: str,
     policy_name: str,
     replica_index: int,
@@ -1433,10 +1435,10 @@ def _synthesize_sf_consensus_baselines(
 
     existing = {(item.baseline_name, item.split) for item in baselines}
     by_split: dict[str, list[WorkbenchOCScoreExternalBaseline]] = defaultdict(list)
-    for item in baselines:
-        if item.baseline_family != "scoring_function":
+    for baseline in baselines:
+        if baseline.baseline_family != "scoring_function":
             continue
-        by_split[item.split].append(item)
+        by_split[baseline.split].append(baseline)
 
     synthesized: list[WorkbenchOCScoreExternalBaseline] = []
     for split, sf_rows in sorted(by_split.items()):
@@ -1629,12 +1631,17 @@ def _load_protocol_summary(
     dudez = _protocol_stage_config(json_payload, "dudez_optuna")
     split_cfg = pdbbind.get("split_config")
     if not isinstance(split_cfg, dict):
-        split_cfg = pdbbind.get("split") if isinstance(pdbbind.get("split"), dict) else {}
+        pdbbind_split = pdbbind.get("split")
+        split_cfg = pdbbind_split if isinstance(pdbbind_split, dict) else {}
 
-    yaml_pdbbind = yaml_payload.get("pdbbind") if isinstance(yaml_payload.get("pdbbind"), dict) else {}
-    yaml_dudez = yaml_payload.get("dudez") if isinstance(yaml_payload.get("dudez"), dict) else {}
-    yaml_runtime = yaml_payload.get("runtime") if isinstance(yaml_payload.get("runtime"), dict) else {}
-    yaml_reporting = yaml_payload.get("reporting") if isinstance(yaml_payload.get("reporting"), dict) else {}
+    yaml_pdbbind_raw = yaml_payload.get("pdbbind")
+    yaml_pdbbind: dict[str, Any] = yaml_pdbbind_raw if isinstance(yaml_pdbbind_raw, dict) else {}
+    yaml_dudez_raw = yaml_payload.get("dudez")
+    yaml_dudez: dict[str, Any] = yaml_dudez_raw if isinstance(yaml_dudez_raw, dict) else {}
+    yaml_runtime_raw = yaml_payload.get("runtime")
+    yaml_runtime: dict[str, Any] = yaml_runtime_raw if isinstance(yaml_runtime_raw, dict) else {}
+    yaml_reporting_raw = yaml_payload.get("reporting")
+    yaml_reporting: dict[str, Any] = yaml_reporting_raw if isinstance(yaml_reporting_raw, dict) else {}
     yaml_split = yaml_pdbbind.get("split")
     yaml_split_cfg = yaml_split if isinstance(yaml_split, dict) else {}
     dudez_scaling = dudez.get("dudez_scaling_config")
@@ -1642,11 +1649,10 @@ def _load_protocol_summary(
         dudez_scaling = {}
 
     aggregate_summary = json_payload.get("aggregate_summary")
-    reporting_policy = (
-        aggregate_summary.get("reporting_policy")
-        if isinstance(aggregate_summary, dict) and isinstance(aggregate_summary.get("reporting_policy"), dict)
-        else {}
+    reporting_policy_raw = (
+        aggregate_summary.get("reporting_policy") if isinstance(aggregate_summary, dict) else None
     )
+    reporting_policy = reporting_policy_raw if isinstance(reporting_policy_raw, dict) else {}
 
     stage_names = tuple(
         str(stage.get("name"))
@@ -1777,7 +1783,7 @@ def _infer_study_replica_count(study_path: Path, *, layout_root: Path) -> int:
     return inferred if inferred >= 1 else DEFAULT_OCSCORE_REPLICA_COUNT
 
 
-def _cross_validation_dir(layout_root: Path, *, role: str, study_name: str) -> Path:
+def _cross_validation_dir(layout_root: Path, *, role: OCScoreWorkspaceRole, study_name: str) -> Path:
     '''Return the expected cross-validation directory for one study export.'''
 
     return _study_export_path(layout_root, role=role, study_name=study_name) / "cross_validation"
@@ -1840,7 +1846,7 @@ def _load_cross_validation(cv_dir: Path) -> WorkbenchOCScoreCrossValidation | No
 
 def _build_study(
     *,
-    role: str,
+    role: OCScoreWorkspaceRole,
     study_name: str,
     policy_name: str,
     path: Path,

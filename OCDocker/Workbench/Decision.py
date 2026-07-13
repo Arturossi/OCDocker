@@ -11,7 +11,7 @@ Read-only decision-analysis helpers for Workbench result manifests.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 from OCDocker.Workbench.IO import read_result_manifest
 from OCDocker.Workbench.Models import InventoryIssue
@@ -418,7 +418,7 @@ def parse_pareto_objective(value: str) -> ParetoObjective:
         raise ValueError("Pareto objective metric name must not be empty.")
     if mode not in VALID_OBJECTIVE_MODES:
         raise ValueError("Pareto objective mode must be either 'min' or 'max'.")
-    return ParetoObjective(metric_name=metric_name, mode=mode)
+    return ParetoObjective(metric_name=metric_name, mode=cast(Literal["min", "max"], mode))
 
 
 def build_metrics_catalog(root: str | Path, *, max_depth: int = 6) -> MetricCatalog:

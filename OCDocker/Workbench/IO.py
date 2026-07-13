@@ -36,7 +36,7 @@ See the LICENSE file for full terms.
 # Constants
 ###############################################################################
 
-_SPEC_MODELS = {
+_SPEC_MODELS: dict[str, type[WorkbenchSpec]] = {
     "vs_campaign": VSCampaignSpec,
     "ocscore_study": OCScoreStudySpec,
     "ocscore_ablation": OCScoreAblationSpec,

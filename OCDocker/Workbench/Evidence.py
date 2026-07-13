@@ -18,6 +18,7 @@ from datetime import timezone
 from pathlib import Path
 from typing import Any
 from typing import Iterable
+from typing import cast
 
 from OCDocker.Workbench.IO import read_result_manifest
 from OCDocker.Workbench.IO import read_run_manifest
@@ -746,7 +747,7 @@ def _shap_features(
                     "path": str(path),
                 }
             )
-    return tuple(sorted(features, key=lambda item: item["mean_abs_shap"], reverse=True)[:top_n])
+    return tuple(sorted(features, key=lambda item: float(cast(float, item["mean_abs_shap"])), reverse=True)[:top_n])
 
 
 def _evidence_entry(

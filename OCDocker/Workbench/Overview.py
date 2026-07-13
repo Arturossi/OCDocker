@@ -64,7 +64,7 @@ def _count_by_status(runs: tuple[RunInventoryItem, ...]) -> dict[str, int]:
         Status counts with stable keys.
     '''
 
-    counts = {status: 0 for status in RUN_STATUS_ORDER}
+    counts: dict[str, int] = {status: 0 for status in RUN_STATUS_ORDER}
     for run in runs:
         counts[run.status] = counts.get(run.status, 0) + 1
     return counts
@@ -84,7 +84,7 @@ def _count_by_spec_type(runs: tuple[RunInventoryItem, ...]) -> dict[str, int]:
         Spec-type counts with stable keys.
     '''
 
-    counts = {spec_type: 0 for spec_type in SPEC_TYPE_ORDER}
+    counts: dict[str, int] = {spec_type: 0 for spec_type in SPEC_TYPE_ORDER}
     for run in runs:
         counts[run.spec_type] = counts.get(run.spec_type, 0) + 1
     return counts

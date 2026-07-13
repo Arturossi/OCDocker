@@ -316,6 +316,7 @@ def _candidate_ids(
         cleaned = str(value).strip()
         if not cleaned:
             continue
+        matches: tuple[str, ...]
         if cleaned in rows:
             matches = (cleaned,)
         else:

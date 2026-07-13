@@ -1137,10 +1137,10 @@ def _reference_diff(
         elif ref_present and not cand_present:
             removed_families.append(definition.family_id)
     return WorkbenchAblationProtocolReferenceDiff(
-        added_features=added_features,
-        removed_features=removed_features,
-        added_families=added_families,
-        removed_families=removed_families,
+        added_features=tuple(added_features),
+        removed_features=tuple(removed_features),
+        added_families=tuple(added_families),
+        removed_families=tuple(removed_families),
         shared_feature_count=len(reference & candidate),
     )
 
@@ -1416,7 +1416,7 @@ def _cluster_summaries(
     summaries: list[WorkbenchAblationProtocolClusterSummary] = []
     for cluster_id in sorted(clusters):
         names = tuple(sorted(clusters[cluster_id]))
-        present_values = [metric_values[name] for name in names if metric_values.get(name) is not None]
+        present_values = [value for name in names if (value := metric_values.get(name)) is not None]
         mean_metric = sum(present_values) / len(present_values) if present_values else None
         summaries.append(
             WorkbenchAblationProtocolClusterSummary(
@@ -1603,7 +1603,7 @@ def build_ablation_protocol_similarity_analysis(
     protocol_entries: list[WorkbenchAblationProtocolSimilarityEntry] = []
     expanded_sets: list[frozenset[str]] = []
     for item in resolved:
-        study_path = study_paths.get(item.policy_name)
+        item_study_path = study_paths.get(item.policy_name)
         protocol_entries.append(
             WorkbenchAblationProtocolSimilarityEntry(
                 policy_name=item.policy_name,
@@ -1611,8 +1611,8 @@ def build_ablation_protocol_similarity_analysis(
                 source_kind=item.policy_source_kind,
                 source_path=item.policy_source_path,
                 expanded_feature_count=len(item.expanded_features),
-                run_id=_completed_run_id(study_path, layout_root=layout_root, policy_name=item.policy_name),
-                study_present=study_path is not None and study_path.is_dir(),
+                run_id=_completed_run_id(item_study_path, layout_root=layout_root, policy_name=item.policy_name),
+                study_present=item_study_path is not None and item_study_path.is_dir(),
                 metric_value=metric_values.get(item.policy_name),
                 families=item.family_states,
             )

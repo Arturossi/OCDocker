@@ -21,7 +21,7 @@ import uuid
 from datetime import datetime
 from datetime import timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from typing import Sequence
 
 from OCDocker.Workbench.IO import read_data
@@ -515,7 +515,7 @@ def build_campaign_script(
         row_kind = str(row.get("row_kind") or "vs")
         if row_kind not in CAMPAIGN_ROW_KINDS:
             raise JobError(f"Manifest row {index} has an unsupported row_kind: {row_kind!r}.")
-        prefix = JOB_KIND_COMMAND_PREFIX[row_kind]
+        prefix = JOB_KIND_COMMAND_PREFIX[cast(WorkbenchJobKind, row_kind)]
         sample = str(row.get("sample") or f"row-{index}")
         for key in ("receptor", "ligand", "box"):
             if not row.get(key):

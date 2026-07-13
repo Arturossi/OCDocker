@@ -304,17 +304,17 @@ def build_artifact_index(
 
     for manifest_path in discover_result_manifest_paths(root_path, max_depth=max_depth):
         try:
-            manifest = read_result_manifest(manifest_path)
+            result_manifest = read_result_manifest(manifest_path)
         except Exception as exc:
             issues.append(InventoryIssue(path=manifest_path, message=str(exc)))
             continue
         result_manifest_count += 1
-        for artifact in manifest.artifacts:
+        for artifact in result_manifest.artifacts:
             entry = _entry_from_artifact(
                 source_type="result_manifest",
                 source_manifest_path=manifest_path,
-                run_id=manifest.run_id,
-                status=manifest.status,
+                run_id=result_manifest.run_id,
+                status=result_manifest.status,
                 artifact=artifact,
             )
             if _matches_filters(

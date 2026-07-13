@@ -18,6 +18,7 @@ from OCDocker.Workbench.Models import InventoryIssue
 from OCDocker.Workbench.Models import MetricMatrix
 from OCDocker.Workbench.Models import MetricMatrixRow
 from OCDocker.Workbench.Models import ResultArtifact
+from OCDocker.Workbench.Models import RunStatus
 from OCDocker.Workbench.Registry import discover_result_manifest_paths
 
 # License
@@ -161,7 +162,7 @@ def _row_from_flattened_metrics(
     *,
     manifest_path: Path,
     run_id: str,
-    status: str,
+    status: RunStatus,
     flattened_metrics: dict[str, Any],
     metric_names: tuple[str, ...],
     artifact_count: int,
@@ -245,7 +246,7 @@ def build_metric_matrix(
 
     root_path = Path(root)
     selected_metrics = _normalize_metric_names(metric_names)
-    manifest_payloads: list[tuple[Path, str, str, dict[str, Any], int, int]] = []
+    manifest_payloads: list[tuple[Path, str, RunStatus, dict[str, Any], int, int]] = []
     discovered_metrics: set[str] = set()
     issues: list[InventoryIssue] = []
 

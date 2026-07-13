@@ -11,7 +11,7 @@ Read-only metric leaderboard helpers for Workbench result manifests.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from OCDocker.Workbench.IO import read_result_manifest
 from OCDocker.Workbench.Models import InventoryIssue
@@ -219,13 +219,15 @@ def _rank_entries(
         Ranked entries.
     '''
 
+    # entry.metric_value is only None when entry.included is False; callers only pass
+    # already-included entries here (see rank_metric_leaderboard).
     if mode == "max":
         sorted_entries = sorted(
-            entries, key=lambda entry: (-float(entry.metric_value), entry.run_id)
+            entries, key=lambda entry: (-cast(float, entry.metric_value), entry.run_id)
         )
     else:
         sorted_entries = sorted(
-            entries, key=lambda entry: (float(entry.metric_value), entry.run_id)
+            entries, key=lambda entry: (cast(float, entry.metric_value), entry.run_id)
         )
     return tuple(
         entry.model_copy(update={"rank": index})

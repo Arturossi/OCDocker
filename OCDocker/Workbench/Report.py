@@ -27,6 +27,7 @@ from OCDocker.Workbench.Models import ParetoObjective
 from OCDocker.Workbench.Models import PreflightSeverity
 from OCDocker.Workbench.Models import WorkbenchAnalysisReport
 from OCDocker.Workbench.Models import WorkbenchReportFinding
+from OCDocker.Workbench.Models import WorkbenchReportFindingKind
 from OCDocker.Workbench.Models import WorkspaceOverview
 from OCDocker.Workbench.Overview import build_workspace_overview
 
@@ -199,7 +200,7 @@ def _issue_count(
 
 def _finding(
     *,
-    kind: str,
+    kind: WorkbenchReportFindingKind,
     severity: PreflightSeverity,
     title: str,
     message: str,
@@ -398,19 +399,19 @@ def _build_findings(
             )
         )
     if pareto_front is not None:
-        for entry in pareto_front.front_entries[:top_n]:
+        for pareto_entry in pareto_front.front_entries[:top_n]:
             findings.append(
                 _finding(
                     kind="pareto_candidate",
                     severity="info",
-                    title=f"Pareto candidate: {entry.run_id}",
+                    title=f"Pareto candidate: {pareto_entry.run_id}",
                     message=(
-                        f"Run {entry.run_id!r} is non-dominated for the requested "
+                        f"Run {pareto_entry.run_id!r} is non-dominated for the requested "
                         "objectives."
                     ),
-                    run_id=entry.run_id,
-                    manifest_path=entry.manifest_path,
-                    metadata={"metric_values": entry.metric_values},
+                    run_id=pareto_entry.run_id,
+                    manifest_path=pareto_entry.manifest_path,
+                    metadata={"metric_values": pareto_entry.metric_values},
                 )
             )
         if pareto_front.skipped_entries:

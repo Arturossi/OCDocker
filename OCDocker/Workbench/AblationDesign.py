@@ -364,9 +364,9 @@ def _resolve_preview_candidate_features(
             payload = discover_ablation_input_features(body)
             features = payload.get("candidate_features") or []
             if features:
-                source = str(payload.get("feature_source") or "input")
+                feature_source = str(payload.get("feature_source") or "input")
                 paths = payload.get("input_paths") or {}
-                path_hint = next(iter(paths.values()), source)
+                path_hint = next(iter(paths.values()), feature_source)
                 return [str(item) for item in features], f"input:{path_hint}"
         except (OSError, ValueError, FileNotFoundError):
             pass
@@ -401,11 +401,11 @@ def _build_ocscore_input_spec(body: dict[str, Any]) -> OCScoreInputSpec:
     pdbbind_input = _optional_input_path(body, "pdbbind_input")
     dudez_input = _optional_input_path(body, "dudez_input")
     if raw_input_dir:
-        return OCScoreInputSpec(raw_input_dir=raw_input_dir)
+        return OCScoreInputSpec(raw_input_dir=Path(raw_input_dir))
     if merged_input:
-        return OCScoreInputSpec(merged_input=merged_input)
+        return OCScoreInputSpec(merged_input=Path(merged_input))
     if pdbbind_input and dudez_input:
-        return OCScoreInputSpec(pdbbind_input=pdbbind_input, dudez_input=dudez_input)
+        return OCScoreInputSpec(pdbbind_input=Path(pdbbind_input), dudez_input=Path(dudez_input))
     raise ValueError(
         "Provide raw_input_dir, merged_input, or both pdbbind_input and dudez_input for planning."
     )
@@ -577,7 +577,7 @@ def _build_design_context(root: Path) -> dict[str, Any]:
     ablation_container = _resolve_ablation_container(layout_root)
     protocol_path = str(protocol.source_path) if protocol and protocol.source_path else ""
     discovered = _default_workspace_input_paths(root)
-    discovered_inputs = {"ok": bool(discovered)}
+    discovered_inputs: dict[str, Any] = {"ok": bool(discovered)}
     if discovered:
         raw_prepare = Path(discovered["raw_input_dir"])
         discovered_inputs.update(
@@ -680,10 +680,10 @@ def _build_ablation_spec(body: dict[str, Any], *, layout_root: Path) -> OCScoreA
         name=campaign_name,
         protocol=protocol,
         inputs=_build_ocscore_input_spec(body),
-        output_dir=output_dir,
+        output_dir=Path(output_dir),
         feature_policies=FeaturePolicySelection(
             names=(policy_name,),
-            policy_ymls=(policy_yml_path,),
+            policy_ymls=(Path(policy_yml_path),),
         ),
         include_full_reference=False,
         description=description,
@@ -740,9 +740,11 @@ def discover_ablation_input_features(
 
     body = _apply_workspace_input_defaults(body, root)
     if not _body_has_input_paths(body):
+        expected_path = (
+            Path(root).expanduser().resolve() / "raw_prepare" / "raw_pdbbind.csv" if root is not None else "raw_prepare/raw_pdbbind.csv"
+        )
         raise ValueError(
-            "No raw modeling input files found. Expected "
-            f"{Path(root).expanduser().resolve() / 'raw_prepare' / 'raw_pdbbind.csv'} and "
+            f"No raw modeling input files found. Expected {expected_path} and "
             "raw_dudez.csv under the served Workbench root, or set input paths in Run settings."
         )
 

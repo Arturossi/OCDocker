@@ -16,7 +16,7 @@ import secrets
 
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from typing import AsyncIterator
 
 from fastapi import Depends
@@ -627,7 +627,7 @@ class _NoStoreMiddleware(BaseHTTPMiddleware):
 
         response = await call_next(request)
         response.headers["Cache-Control"] = "no-store"
-        return response
+        return cast(Response, response)
 
 
 def build_workbench_api_app(
