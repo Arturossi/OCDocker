@@ -4,6 +4,7 @@
 ![PyPI](https://img.shields.io/pypi/v/ocdocker)
 ![Issues](https://img.shields.io/github/issues/Arturossi/OCDocker)
 ![Last commit](https://img.shields.io/github/last-commit/Arturossi/OCDocker)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21330172.svg)](https://doi.org/10.5281/zenodo.21330172)
 
 ![OCDocker](./OCDocker.png "OCDocker")
 
