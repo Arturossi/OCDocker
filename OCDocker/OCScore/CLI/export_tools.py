@@ -183,7 +183,9 @@ def _cmd_validate(args: argparse.Namespace) -> None:
     '''
 
     export_path = _resolve_export_dir(args.retrain_from, args.export_dir)
-    result = ocexport.validate_export_bundle(export_path)
+    result = ocexport.validate_export_bundle(
+        export_path, pdbbind_export_dir=args.pdbbind_export_dir
+    )
     _print_summary({"status": "export_valid", **result})
 
 
@@ -197,7 +199,9 @@ def _cmd_load(args: argparse.Namespace) -> None:
     '''
 
     export_path = _resolve_export_dir(args.retrain_from, args.export_dir)
-    bundle = ocexport.load_exported_model(export_path, device=args.device)
+    bundle = ocexport.load_exported_model(
+        export_path, device=args.device, pdbbind_export_dir=args.pdbbind_export_dir
+    )
     summary = bundle["summary"]
     _print_summary(
         {
@@ -754,12 +758,24 @@ def _register_export_commands(
         parents=[shared],
         help="Validate an export bundle",
     )
+    validate_parser.add_argument(
+        "--pdbbind-export-dir",
+        type=str,
+        default=None,
+        help="Linked PDBbind export directory for DUDEz transfer models",
+    )
     validate_parser.set_defaults(func=_wrap_command(_cmd_validate))
 
     load_parser = subparsers.add_parser(
         "load",
         parents=[shared],
         help="Load an exported model",
+    )
+    load_parser.add_argument(
+        "--pdbbind-export-dir",
+        type=str,
+        default=None,
+        help="Linked PDBbind export directory for DUDEz transfer models",
     )
     load_parser.set_defaults(func=_wrap_command(_cmd_load))
 

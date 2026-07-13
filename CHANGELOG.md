@@ -4,6 +4,39 @@ All notable changes to OCDocker are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.2] - 2026-07-13
+
+### Added
+
+- **`OCScore_models/`**: four pretrained, ready-to-score OCScore configurations
+  from the DUDEz ablation study (`#03`, `#05`, `#09`, `#12` — `#03` is the
+  configuration recommended in the manuscript). Each ships a DUDEz `best_model/`
+  bundle transfer-linked to its PDBbind `best_model/` bundle, picked as the
+  seed replica with the highest validation-split BEDROC (not test-split, to
+  keep the selection consistent with the paper's own methodology). See
+  `OCScore_models/README.md` for the full metrics table and usage.
+- `examples/25_ocscore_score_with_shipped_models.py`: scores a raw pipeline
+  archive with any of the shipped `OCScore_models/` configurations via
+  `predict_from_export`, resolving both linked bundle paths from
+  `OCScore_models/manifest.json`.
+
+### Fixed
+
+- `ocdocker ocscore validate` and `ocdocker ocscore load` could not open a
+  DUDEz transfer-model bundle whose linked PDBbind export directory had moved
+  (e.g. a bundle copied to another machine, as in `OCScore_models/`) — only
+  `score`/`external-blind` accepted a `--pdbbind-export-dir` override. Both
+  commands, and the underlying `validate_export_bundle`/`load_exported_model`,
+  now accept it too.
+
+### Changed
+
+- `CITATION.cff` now cites Zenodo's **concept DOI** (`10.5281/zenodo.21330171`)
+  instead of the version-specific DOI for 0.15.1. The concept DOI always
+  resolves to the latest archived version, so it no longer needs to change on
+  every release; the manuscript keeps citing the version-specific DOI for the
+  release that produced its results.
+
 ## [0.15.1] - 2026-07-13
 
 ### Fixed
@@ -73,5 +106,6 @@ and the SHAP shortcut-risk analysis.
 - `py-mini-racer`, used by the dashboard's JavaScript syntax test, was imported without
   being declared; it is now part of the `dev` extra.
 
+[0.15.2]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.2
 [0.15.1]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.1
 [0.15.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.0

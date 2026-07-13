@@ -264,6 +264,16 @@ Compares OCScore to individual scoring functions, **descriptor aggregates** (`de
 - `cross_validation_results.json` — fold metrics and diagnostics (including entity-overlap warnings when present)
 - `cross_validation_per_target_metrics.csv` — per-receptor BEDROC/ROC-AUC (and scoring-function baselines) for DUDEz receptor-grouped CV
 
+### 25. Score with shipped pretrained models (`25_ocscore_score_with_shipped_models.py`)
+
+Scores a raw pipeline archive with one of the four pretrained configurations shipped in [`OCScore_models/`](../OCScore_models/README.md) (`#03`, `#05`, `#09`, `#12` from the DUDEz ablation study; `#03` is the paper's recommended configuration). Reads `OCScore_models/manifest.json` to resolve the DUDEz bundle and its transfer-linked PDBbind bundle, then scores through `predict_from_export` exactly like `ocdocker ocscore score`.
+
+```bash
+python examples/25_ocscore_score_with_shipped_models.py --list
+python examples/25_ocscore_score_with_shipped_models.py \
+  --config 03 --raw-archive /path/to/pipeline_results.csv --output-csv /path/to/predictions.csv
+```
+
 ## Getting Started
 
 ### Prerequisites

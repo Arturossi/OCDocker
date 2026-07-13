@@ -697,7 +697,11 @@ def export_best_model_bundle(
     return paths
 
 
-def validate_export_bundle(export_dir: str | Path, device: Optional[torch.device] = None) -> dict[str, Any]:
+def validate_export_bundle(
+        export_dir: str | Path,
+        device: Optional[torch.device] = None,
+        pdbbind_export_dir: str | Path | None = None,
+    ) -> dict[str, Any]:
     '''Rebuild the exported model and verify weights load successfully.
 
     Parameters
@@ -706,6 +710,10 @@ def validate_export_bundle(export_dir: str | Path, device: Optional[torch.device
         Exported ``best_model/`` directory.
     device : torch.device | None, optional
         Device used for reconstruction smoke test, by default CPU.
+    pdbbind_export_dir : str | Path | None, optional
+        Override path to the linked PDBbind export for DUDEz transfer models,
+        for bundles whose recorded ``extra.pdbbind_best_model_export_dir`` no
+        longer resolves (e.g. after moving the bundle to another machine).
 
     Returns
     -------
@@ -727,12 +735,11 @@ def validate_export_bundle(export_dir: str | Path, device: Optional[torch.device
 
     resolved_device = device or torch.device("cpu")
     retrain_config = _read_json(export_path / RETRAIN_CONFIG_FILENAME)
-    transferred_extractor = None
-    if str(retrain_config["task"]) == "dudez_screening":
-        extra = retrain_config.get("extra") or {}
-        pdbbind_export = extra.get("pdbbind_best_model_export_dir")
-        if pdbbind_export and Path(pdbbind_export).exists():
-            transferred_extractor = load_exported_model(Path(pdbbind_export), device=resolved_device)["model"].feature_extractor
+    transferred_extractor = _resolve_transferred_extractor(
+        retrain_config,
+        resolved_device,
+        pdbbind_export_dir=pdbbind_export_dir,
+    )
 
     model = _build_model_from_export(
         export_path,
@@ -754,6 +761,7 @@ def load_exported_model(
         export_dir: str | Path,
         device: Optional[torch.device | str] = "cpu",
         transferred_extractor: Optional[FeatureExtractor] = None,
+        pdbbind_export_dir: str | Path | None = None,
     ) -> dict[str, Any]:
     '''Load an exported best-model bundle for inference or evaluation.
 
@@ -764,7 +772,12 @@ def load_exported_model(
     device : torch.device | str | None, optional
         Target device, by default CPU.
     transferred_extractor : FeatureExtractor | None, optional
-        Optional transferred extractor for DUDEz transfer exports.
+        Optional transferred extractor for DUDEz transfer exports. Takes
+        precedence over ``pdbbind_export_dir`` when both are given.
+    pdbbind_export_dir : str | Path | None, optional
+        Override path to the linked PDBbind export for DUDEz transfer models,
+        for bundles whose recorded ``extra.pdbbind_best_model_export_dir`` no
+        longer resolves (e.g. after moving the bundle to another machine).
 
     Returns
     -------
@@ -775,6 +788,13 @@ def load_exported_model(
 
     export_path = Path(export_dir)
     resolved_device = torch.device(device) if device is not None else torch.device("cpu")
+    if transferred_extractor is None and pdbbind_export_dir is not None:
+        retrain_config = _read_json(export_path / RETRAIN_CONFIG_FILENAME)
+        transferred_extractor = _resolve_transferred_extractor(
+            retrain_config,
+            resolved_device,
+            pdbbind_export_dir=pdbbind_export_dir,
+        )
     model = _build_model_from_export(
         export_path,
         device=resolved_device,

@@ -1,0 +1,42 @@
+{
+  "03": {
+    "dudez_best_model_dir": "03_ligand_plus_scoring_function_no_shape_size/dudez/best_model",
+    "dudez_test_bedroc": 0.4029568570444105,
+    "dudez_validation_primary_metric": 0.6035577736491909,
+    "feature_policy_name": "ligand_plus_scoring_function_no_shape_size",
+    "pdbbind_best_model_dir": "03_ligand_plus_scoring_function_no_shape_size/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_002",
+    "source_seed": 44
+  },
+  "05": {
+    "dudez_best_model_dir": "05_ligand_plus_scoring_function_no_pmi/dudez/best_model",
+    "dudez_test_bedroc": 0.4578537615537737,
+    "dudez_validation_primary_metric": 0.6186840908014775,
+    "feature_policy_name": "ligand_plus_scoring_function_no_pmi",
+    "pdbbind_best_model_dir": "05_ligand_plus_scoring_function_no_pmi/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_001",
+    "source_seed": 43
+  },
+  "09": {
+    "dudez_best_model_dir": "09_ligand_plus_scoring_function_no_shape_size_no_autocorr2d/dudez/best_model",
+    "dudez_test_bedroc": 0.45737140201684906,
+    "dudez_validation_primary_metric": 0.6035227896222235,
+    "feature_policy_name": "ligand_plus_scoring_function_no_shape_size_no_autocorr2d",
+    "pdbbind_best_model_dir": "09_ligand_plus_scoring_function_no_shape_size_no_autocorr2d/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_004",
+    "source_seed": 46
+  },
+  "12": {
+    "dudez_best_model_dir": "12_no_pmi/dudez/best_model",
+    "dudez_test_bedroc": 0.4546777089654542,
+    "dudez_validation_primary_metric": 0.6182736257179519,
+    "feature_policy_name": "no_pmi",
+    "pdbbind_best_model_dir": "12_no_pmi/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_004",
+    "source_seed": 46
+  }
+}

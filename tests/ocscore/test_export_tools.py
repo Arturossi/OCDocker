@@ -195,7 +195,10 @@ def test_cmd_load_prints_selected_feature_summary(monkeypatch, tmp_path, capsys)
 
     ocexportcli._cmd_load(
         SimpleNamespace(
-            export_dir=str(tmp_path / "best_model"), retrain_from=None, device="cpu"
+            export_dir=str(tmp_path / "best_model"),
+            retrain_from=None,
+            device="cpu",
+            pdbbind_export_dir=None,
         )
     )
 
