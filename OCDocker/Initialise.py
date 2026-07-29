@@ -955,6 +955,7 @@ def bootstrap(
 
     dudez_archive = os.path.join(config.paths.ocdb_path, "DUDEz")
     pdbbind_archive = os.path.join(config.paths.ocdb_path, "PDBbind")
+    litpcba_archive = os.path.join(config.paths.ocdb_path, "LITPCBA")
     parsed_archive = os.path.join(config.paths.ocdb_path, "Parsed")
     logdir = f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/logs"
     oddt_models_dir = config.oddt_models_dir if config.oddt_models_dir else f"{os.path.abspath(os.path.join(os.path.dirname(ocerror.__file__), os.pardir))}/ODDT_models"
@@ -1012,6 +1013,7 @@ def bootstrap(
     config.ocdocker_path = ocdocker_path
     config.dudez_archive = dudez_archive
     config.pdbbind_archive = pdbbind_archive
+    config.litpcba_archive = litpcba_archive
     config.parsed_archive = parsed_archive
     config.logdir = logdir
     config.oddt_models_dir = oddt_models_dir

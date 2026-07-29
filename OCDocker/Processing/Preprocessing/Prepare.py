@@ -77,7 +77,7 @@ def __core_prepare(
     overwrite : bool
         Flag for demanding file overwrite.
     archive : str
-        Which archive to use. Options are [dudez, pdbbind].
+        Which archive to use. Options are [dudez, pdbbind, litpcba].
     sanitize : bool
         Flag for demanding molecule sanitization.
     spacing : float
@@ -151,8 +151,8 @@ def __core_prepare(
     # Create an empty list to hold all dirs to be processed
     processDirs = []
 
-    # If the archive is dudez
-    if archive == "dudez":
+    # If the archive uses bare-SMILES compound lists (dudez, litpcba)
+    if archive in ("dudez", "litpcba"):
         # Set the ligand extension to .smi
         ligandExt = ".smi"
     else:
@@ -405,7 +405,7 @@ def __prepare_no_parallel(paths: List[str], overwrite: bool, archive: str, sanit
     overwrite : bool
         If True, the function will overwrite the files if they already exists.
     archive: str
-        The archive name. Options are [dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind, litpcba].
     sanitize : bool
         If True, the function will sanitize the molecules.
     spacing : float
@@ -442,7 +442,7 @@ def __prepare_parallel(paths: List[str], overwrite: bool, archive: str, sanitize
     overwrite : bool
         If True, the function will overwrite the files if they already exists.
     archive : str
-        The archive name. Options are [dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind, litpcba].
     sanitize : bool
         If True, the function will sanitize the molecules.
     spacing : float
@@ -492,7 +492,7 @@ def __prepare_single(path: str, overwrite: bool, archive: str, sanitize: bool, s
     overwrite : bool
         If True, the function will overwrite the files if they already exists.
     archive: str
-        The archive name. Options are [dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind, litpcba].
     sanitize : bool
         If True, the function will sanitize the molecules.
     spacing : float
@@ -615,7 +615,7 @@ def prepare(paths: Union[List[str], str], overwrite: bool, archive: str, sanitiz
     overwrite : bool
         If True, the function will overwrite the files if they already exists.
     archive : str
-        The archive name. Options are [dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind, litpcba].
     sanitize : bool
         If True, the function will sanitize the molecules.
     spacing : float

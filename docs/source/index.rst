@@ -42,6 +42,7 @@ Welcome to the official documentation for OCDocker. This documentation provides 
    container_usage
    modules
    examples
+   scripts
    OCDocker
    OCDocker.DB
    OCDocker.Docking

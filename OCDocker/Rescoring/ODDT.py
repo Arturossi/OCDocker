@@ -14,6 +14,7 @@ import OCDocker.Rescoring.ODDT as ocoddt
 ###############################################################################
 import os
 import six
+import threading
 import time
 import traceback
 
@@ -127,6 +128,47 @@ def get_models(outputPath: str) -> List[str]:
     models = glob(f"{outputPath}/*.pickle")
 
     return models
+
+_scorer_cache_local = threading.local()
+
+def _load_scorer_cached(model_path: str):
+    '''Load and cache an ODDT scorer model, keyed by its file path.
+
+    Deserializing the gzipped RF/NN/PLEC pickles is a fixed ~1-3s cost per
+    model (measured up to ~6s total for all five combined); with one
+    `run_oddt` invocation per ligand and no caching, that cost was paid
+    fresh for every single ligand.
+
+    Caching must be per-thread, not a shared/global cache: ODDT's
+    `virtualscreening.score()` calls `sf.set_protein(protein)` on the
+    scorer object, mutating its `.protein` attribute in place. Under
+    Snakemake's `--force-use-threads` local execution, concurrently
+    running ligand jobs share the same process and memory, so a single
+    shared cached instance would race across threads -- two ligands
+    scoring concurrently could clobber each other's `.protein` and
+    silently score against the wrong receptor. `threading.local()` gives
+    each worker thread its own private copy, so repeat loads within that
+    thread's lifetime (across the many ligands it processes over the run)
+    are instant, with no cross-thread shared mutable state.
+
+    Parameters
+    ----------
+    model_path : str
+        Path to the pickled scorer model.
+
+    Returns
+    -------
+    Any
+        The loaded ODDT scorer object (private to the calling thread).
+    '''
+
+    cache = getattr(_scorer_cache_local, "cache", None)
+    if cache is None:
+        cache = {}
+        _scorer_cache_local.cache = cache
+    if model_path not in cache:
+        cache[model_path] = scorer.load(model_path)
+    return cache[model_path]
 
 def read_log(path: str) -> Optional[pd.DataFrame]:
     '''Read the oddt log path, returning the data from complexes.
@@ -571,8 +613,8 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
         if match:
             try:
-                # Load the model
-                sf = scorer.load(model)
+                # Load the model (cached by path across ligands in this worker)
+                sf = _load_scorer_cached(model)
                 scoring_functions_loaded.append((model, sf))
                 # Store mapping for error reporting
                 if requested_scores and model_family and model_family not in family_only:

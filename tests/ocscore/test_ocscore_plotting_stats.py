@@ -155,6 +155,21 @@ def test_classify_policies_by_shortcut_rule_raises_without_reference():
         ocstatplot.classify_policies_by_shortcut_rule(plot_df)
 
 
+def test_classify_policies_by_eligibility_and_shortcut_risk_uses_formal_screen():
+    '''Eligible policies at the reported 20% cutoff are classified consistently.'''
+
+    plot_df = pd.DataFrame({
+        "policy": ["full_ocscore", "low_risk", "at_threshold", "ineligible"],
+        "eligible": [False, True, True, False],
+        "shortcut_risk_max_pct": [72.8, 10.4, 20.0, 17.0],
+    })
+
+    retained, discarded = ocstatplot.classify_policies_by_eligibility_and_shortcut_risk(plot_df)
+
+    assert retained == ["low_risk"]
+    assert discarded == ["at_threshold"]
+
+
 @pytest.mark.order(518)
 def test_detect_x_break_splits_only_on_a_wide_empty_region():
     # one far-out control plus a dense cluster: worth breaking the axis
@@ -165,6 +180,19 @@ def test_detect_x_break_splits_only_on_a_wide_empty_region():
 
     # evenly spread values: no gap wide enough to justify a break
     assert ocstatplot._detect_x_break([0.10, 0.20, 0.30, 0.40, 0.50]) is None
+
+
+def test_detect_x_segments_preserves_three_occupied_validation_ranges():
+    '''Two wide gaps produce three readable validation-BEDROC panels.'''
+
+    segments = ocstatplot._detect_x_segments([0.212, 0.392, 0.409, 0.578, 0.596, 0.614])
+
+    assert segments is not None
+    assert [group for _, group in segments] == [
+        [0.212],
+        [0.392, 0.409],
+        [0.578, 0.596, 0.614],
+    ]
 
 
 @pytest.mark.order(277)

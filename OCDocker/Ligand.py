@@ -85,6 +85,9 @@ class Ligand:
         Maximum number of RDKit embedding attempts (outer loop), by default 10.
     etkdg_max_attempts : int, optional
         RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
+    clean : bool, optional
+        If True, strip known salts/counter-ions and keep only the largest
+        disconnected fragment after loading, by default True.
     """
     ## Private ##
 
@@ -95,6 +98,7 @@ class Ligand:
     sanitize: bool
     normalize_smiles_with_openbabel: bool
     from_json_descriptors: str
+    clean: bool
 
     RadiusOfGyration: Optional[float]
     FpDensityMorgan1: Optional[float]
@@ -109,7 +113,8 @@ class Ligand:
             normalize_smiles_with_openbabel: bool = False,
             from_json_descriptors: str = "",
             embed_max_attempts: int = 10,
-            etkdg_max_attempts: int = 1000
+            etkdg_max_attempts: int = 1000,
+            clean: bool = True
         ) -> None:
         ''' Constructor for the Ligand class.
 
@@ -130,6 +135,9 @@ class Ligand:
             Maximum number of RDKit embedding attempts (outer loop), by default 10.
         etkdg_max_attempts : int, optional
             RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
+        clean : bool, optional
+            If True, strip known salts/counter-ions and keep only the largest
+            disconnected fragment after loading, by default True.
 
         Raises
         ------
@@ -143,7 +151,8 @@ class Ligand:
             sanitize,
             normalize_smiles_with_openbabel=normalize_smiles_with_openbabel,
             embed_max_attempts=embed_max_attempts,
-            etkdg_max_attempts=etkdg_max_attempts
+            etkdg_max_attempts=etkdg_max_attempts,
+            clean=clean
         )
         if mol is None:
             message = "The molecule could not be loaded."
@@ -170,6 +179,7 @@ class Ligand:
         # Set the sanitize attribute
         self.sanitize = sanitize
         self.normalize_smiles_with_openbabel = normalize_smiles_with_openbabel
+        self.clean = clean
 
         # If user pass a json
         if from_json_descriptors:
@@ -220,7 +230,8 @@ class Ligand:
             f"name={self.name}, "
             f"sanitize={self.sanitize}, "
             f"normalize_smiles_with_openbabel={self.normalize_smiles_with_openbabel}, "
-            f"from_json_descriptors={'True' if self.from_json_descriptors else 'False'}"
+            f"from_json_descriptors={'True' if self.from_json_descriptors else 'False'}, "
+            f"clean={self.clean}"
             ")"
         )
 
@@ -873,6 +884,50 @@ def findFpDensityMorgan3(mol: rdkit.Chem.rdchem.Mol) -> Optional[float]:
     return _findFpDensityMorgan3(mol)
 
 
+def _clean_ligand_mol(mol: Chem.rdchem.Mol) -> Chem.rdchem.Mol:
+    '''Strip known salts/counter-ions and keep only the largest remaining fragment.
+
+    Parameters
+    ----------
+    mol : rdkit.Chem.rdchem.Mol
+        Molecule to clean.
+
+    Returns
+    -------
+    rdkit.Chem.rdchem.Mol
+        The molecule with salts removed and, if it still has more than one
+        disconnected fragment, only the fragment with the most heavy atoms.
+    '''
+
+    try:
+        # StripMol requires implicit valence information.
+        mol.UpdatePropertyCache(strict=False)
+    except Exception:
+        pass
+
+    try:
+        remover = SaltRemover()
+        mol = remover.StripMol(mol, dontRemoveEverything=True)
+    except Exception as e:
+        _ = ocerror.Error.parse_molecule(
+            f"Salt removal failed, keeping the molecule as is: {e}",
+            level = ocerror.ReportLevel.WARNING
+        )
+
+    frags = Chem.GetMolFrags(mol, asMols=True, sanitizeFrags=False)
+    if len(frags) > 1:
+        mol = max(frags, key=lambda frag: frag.GetNumHeavyAtoms())
+
+        # GetMolFrags(sanitizeFrags=False) does not carry over ring info.
+        try:
+            mol.UpdatePropertyCache(strict=False)
+            Chem.GetSymmSSSR(mol)
+        except Exception:
+            pass
+
+    return mol
+
+
 def _ensure_3d_conformer(
         mol: Chem.rdchem.Mol,
         sanitize: bool,
@@ -1185,7 +1240,8 @@ def load_mol(
         sanitize: bool = True,
         normalize_smiles_with_openbabel: bool = False,
         embed_max_attempts: int = 10,
-        etkdg_max_attempts: int = 1000
+        etkdg_max_attempts: int = 1000,
+        clean: bool = True
     ) -> Tuple[str, Optional[Chem.rdchem.Mol]]:
     ''' Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
 
@@ -1202,6 +1258,9 @@ def load_mol(
         Maximum number of RDKit embedding attempts (outer loop), by default 10.
     etkdg_max_attempts : int, optional
         RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
+    clean : bool, optional
+        If True, strip known salts/counter-ions and keep only the largest
+        disconnected fragment, by default True.
 
     Returns
     -------
@@ -1215,6 +1274,11 @@ def load_mol(
     if isinstance(molecule, Chem.rdchem.Mol):
         # Clone to avoid mutating the caller's molecule
         mol = Chem.Mol(molecule)
+
+        # Clean the molecule (strip salts and keep the largest fragment)
+        if clean:
+            mol = _clean_ligand_mol(mol)
+
         needs_3d = mol.GetNumConformers() == 0
 
         if not needs_3d:
@@ -1320,15 +1384,9 @@ def load_mol(
                 # Set its name
                 mol.SetProp("_Name", name)
 
-                # Remove the salts
-                if not sanitize:
-                    try:
-                        # StripMol requires implicit valence information.
-                        mol.UpdatePropertyCache(strict=False)
-                    except Exception:
-                        pass
-                remover = SaltRemover()
-                mol = remover.StripMol(mol)
+                # Clean the molecule (strip salts and keep the largest fragment)
+                if clean:
+                    mol = _clean_ligand_mol(mol)
 
                 # Add the hydrogens
                 mol = Chem.AddHs(mol)
@@ -1385,10 +1443,15 @@ def load_mol(
         # Check if the molecule was loaded
         if mol is None:
             _ = ocerror.Error.parse_molecule(
-                f"The molecule '{molecule}' could not be parsed.", 
+                f"The molecule '{molecule}' could not be parsed.",
                 level = ocerror.ReportLevel.WARNING
             )
             return "", None
+
+        # Clean the molecule (strip salts and keep the largest fragment). The
+        # .smi/.smiles case is cleaned earlier, before 3D embedding.
+        if clean and extension not in ('.smi', '.smiles'):
+            mol = _clean_ligand_mol(mol)
 
         needs_3d = mol.GetNumConformers() == 0
         if not needs_3d:

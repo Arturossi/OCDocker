@@ -18,6 +18,7 @@ Submodules
    OCDocker.DB.DB
    OCDocker.DB.DBMinimal
    OCDocker.DB.DUDEz
+   OCDocker.DB.LITPCBA
    OCDocker.DB.PDBbind
    OCDocker.DB.baseDB
 
