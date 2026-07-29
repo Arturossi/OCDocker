@@ -4,6 +4,49 @@ All notable changes to OCDocker are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.3] - 2026-07-29
+
+### Added
+
+- **LIT-PCBA external validation subset**: `OCDocker/DB/LITPCBA.py` adds `"litpcba"` as a
+  third archive type (alongside `dudez`/`pdbbind`), wired through `Config.py`,
+  `Initialise.py`, `baseDB.py`, `Prepare.py`, `Digest.py`, and `Dock.py`.
+  `scripts/litpcba_validation_subset.py` builds a leakage-checked, compute-tractable
+  subset by deduplicating LIT-PCBA candidate receptors against local PDBbind/DUDEz via
+  mmseqs2 sequence search, selecting the best-resolution surviving structure per target,
+  and subsampling inactives with a deterministic floor/cap/ratio rule (13/15 targets
+  kept, 2,699 actives, 131,216 sampled inactives). `scripts/litpcba_build_archive.py`
+  converts that subset into the raw archive layout `Prepare`/`Dock` expect. See
+  `docs/litpcba_validation_subset.md` for the full methodology and threshold rationale.
+- `Ligand.load_mol()`/`Ligand.__init__` gained a `clean: bool = True` option: strips
+  known salts/counter-ions and keeps only the largest disconnected fragment, applied
+  uniformly across all three load paths (RDKit `Mol` object, file load, SMILES load).
+
+### Fixed
+
+- `scripts/litpcba_validation_subset.py`'s receptor dedup only checked the single
+  highest-identity mmseqs2 hit per candidate against both the identity and coverage
+  thresholds; a true near-duplicate could hide behind an unrelated hit with higher
+  identity but low coverage and go undetected. Now excludes a candidate if any hit
+  clears both thresholds.
+- Its `--refresh-resolution-cache` started from an empty cache and wrote back only the
+  current run's candidates, which could silently shrink the shipped 129-structure
+  resolution cache if run against a partial `--litpcba-dir`. Refresh now always merges
+  into the existing cache.
+- `OCDocker.Rescoring.ODDT.run_oddt` reloaded each ~1-3s gzipped RF/NN/PLEC scorer
+  pickle for every single ligand; scorer models are now cached per worker thread
+  (`threading.local()`, not shared/global, since ODDT's `scorer.set_protein()` mutates
+  the scorer object in place and Snakemake's `--force-use-threads` runs ligand jobs
+  concurrently in one process).
+
+### Changed
+
+- `OCScore.Analysis.Plotting.Stats` and `examples/24_ocscore_bedroc_shortcut_risk_scatter.py`:
+  ablation eligibility for the shortcut-risk scatter now comes from a formal paired,
+  Holm-corrected significance test rather than being inferred from whether a policy
+  beats the reference on the plotted axis; the x-axis can now split across up to three
+  wide gaps instead of one.
+
 ## [0.15.2] - 2026-07-13
 
 ### Added
@@ -106,6 +149,7 @@ and the SHAP shortcut-risk analysis.
 - `py-mini-racer`, used by the dashboard's JavaScript syntax test, was imported without
   being declared; it is now part of the `dev` extra.
 
+[0.15.3]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.3
 [0.15.2]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.2
 [0.15.1]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.1
 [0.15.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.0
