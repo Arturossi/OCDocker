@@ -574,10 +574,10 @@ def plot_bedroc_vs_shortcut_risk_scatter(
 
     if x_segments is not None:
         assert ax_left is not None, "ax_left is always set alongside x_segments"
-        for index, (ax, (limits, group)) in enumerate(zip(axes, x_segments)):
+        for index, (ax, (limits, segment_values)) in enumerate(zip(axes, x_segments)):
             ax.set_xlim(*limits)
-            if max(group) - min(group) < 1e-12:
-                ax.set_xticks([round(group[0], 3)])
+            if max(segment_values) - min(segment_values) < 1e-12:
+                ax.set_xticks([round(segment_values[0], 3)])
             if index < len(axes) - 1:
                 ax.spines['right'].set_visible(False)
             if index > 0:
