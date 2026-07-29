@@ -84,7 +84,7 @@ def prepare(
     Parameters
     ----------
     archive : str
-        The archive to be prepared. The options are [dudez, pdbbind].
+        The archive to be prepared. The options are [dudez, pdbbind, litpcba].
     overwrite : bool, optional
         If True overwrites the files, if False does not overwrite the files. The default is False.
     spacing : float, optional
@@ -99,9 +99,11 @@ def prepare(
         chosenArchive = config.dudez_archive
     elif archive.lower() == "pdbbind":
         chosenArchive = config.pdbbind_archive
+    elif archive.lower() == "litpcba":
+        chosenArchive = config.litpcba_archive
     else:
         ocprint.print_error(
-            f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}."
+            f"Not valid archive type. Expected one of ['dudez', 'pdbbind', 'litpcba'] and found {archive}."
         )
         return None
 
@@ -133,7 +135,7 @@ def run_docking(
     Parameters
     ----------
     archive : str
-        The archive to be prepared. The options are [dudez, pdbbind].
+        The archive to be prepared. The options are [dudez, pdbbind, litpcba].
     dockingAlgorithm : str
         The docking algorithm to be used. The options are [vina, smina, plants].
     digestFormat : str, optional
@@ -157,9 +159,12 @@ def run_docking(
     elif archive == "pdbbind":
         config = get_config()
         chosenArchive = config.pdbbind_archive
+    elif archive == "litpcba":
+        config = get_config()
+        chosenArchive = config.litpcba_archive
     else:
         return ocerror.Error.not_supported_archive(
-            f"Not valid archive type. Expected one of ['dudez', 'pdbbind'] and found {archive}."
+            f"Not valid archive type. Expected one of ['dudez', 'pdbbind', 'litpcba'] and found {archive}."
         )
 
     # TODO: add support to more docking algorithms

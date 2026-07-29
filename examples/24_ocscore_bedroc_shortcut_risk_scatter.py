@@ -3,13 +3,14 @@
 # Description
 ###############################################################################
 '''
-Example: scatter mean DUDEz test BEDROC against SHAP shortcut risk (the
+Example: scatter mean DUDEz validation BEDROC against SHAP shortcut risk (the
 maximum share of total SHAP importance concentrated in a single feature,
 across replicas) for every feature-ablation policy.
 
-The script does not retrain models and does not recompute SHAP values. Per-
-policy mean BEDROC is read from ``ablation_summary.csv``; per-policy shortcut
-risk is aggregated from the per-replica SHAP exports under
+The script does not retrain models and does not recompute SHAP values. Mean
+validation BEDROC is read from ``ablation_summary.csv`` and eligibility is
+computed with the paper's paired, Holm-corrected validation test. Per-policy
+shortcut risk is aggregated from the per-replica SHAP exports under
 ``export/replica_analysis/{full,ablations/<policy>}/replica_XXX/<task>/shap/
 shap_values.csv`` with ``OCScore.Analysis.SHAP.Dominance.aggregate_dominant_feature_risk``,
 then plotted with ``OCScore.Analysis.Plotting.Stats.plot_bedroc_vs_shortcut_risk_scatter``.
@@ -41,6 +42,8 @@ if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
 import OCDocker.OCScore.Analysis.Plotting.Stats as ocstatplot
+from OCDocker.OCScore.Analysis.AblationSignificance import AblationSignificanceConfig
+from OCDocker.OCScore.Analysis.AblationSignificance import build_ablation_bedroc_significance_table
 from OCDocker.OCScore.Analysis.SHAP.Dominance import aggregate_dominant_feature_risk
 from OCDocker.OCScore.Utils.FeaturePolicy import FULL_OCSCORE_POLICY_NAME
 
@@ -62,45 +65,56 @@ DEFAULT_OUTPUT_ROOT = Path(
     )
 )
 DEFAULT_ABLATION_SUMMARY_CSV = DEFAULT_OUTPUT_ROOT / "train" / "ablations" / "ablation_summary.csv"
+VALIDATION_MEAN_COLUMN = "dudez_validation_primary_metric_mean"
+VALIDATION_REPLICA_COLUMN = "dudez_best_validation_metric"
+DEFAULT_ALPHA = 0.05
 
 # Below this maximum single-feature share (across replicas), the explanation
 # was considered genuinely distributed (Seção 4.4).
 DEFAULT_RISK_THRESHOLD_PCT = 20.0
+RISK_RULE_DECIMALS = 1
 
-# Manual (dx, dy) point-label offset overrides, in points, for policies whose
-# default offset collides with a nearby marker or label in two dense clusters:
-# the "genuinely distributed" band (#18/#16, #12/#09/#05) and the mid-risk
-# cluster (#06/#07, #13/#08/#10). Tuned by inspecting the rendered figure.
+# Manual (dx, dy) point-label offsets, in points.  Every label gets its own
+# position so that the dense validation cluster remains readable at the size
+# used in the paper; the plotting helper draws subtle leaders back to points.
 DEFAULT_LABEL_OFFSETS = {
-    "ligand_plus_scoring_function_no_shape_size": (8, -13),  # #03 (recommended)
-    "ligand_plus_scoring_function_no_pmi": (7, -4),  # #05
-    "no_shape_core_no_receptor_surface_counts": (8, 5),  # #06
-    "ligand_plus_scoring_function_no_pmi_no_autocorr2d": (9, -4),  # #07
-    "ligand_plus_scoring_function_no_pmi_no_plants": (-18, -3),  # #08
-    "ligand_plus_scoring_function_no_shape_size_no_autocorr2d": (7, 4),  # #09
-    "ligand_plus_scoring_function_clean_receptor": (-7, -14),  # #10
-    "no_pmi": (7, 4),  # #12
-    "no_shape_core_no_receptor_surface_size": (-16, 5),  # #13
-    "no_ligand_shape_size": (-17, 4),  # #16
-    "ligand_plus_scoring_function_no_pmi_no_shape_size_no_autocorr2d_no_vsa": (-16, 5),  # #18
+    "ligand_plus_scoring_function": (-28, -4),  # #01
+    "ligand_plus_scoring_function_no_shape_core": (13, -3),  # #02
+    "ligand_plus_scoring_function_no_shape_size": (-18, 9),  # #03 (recommended)
+    "ligand_plus_scoring_function_no_plants": (12, 7),  # #04
+    "ligand_plus_scoring_function_no_pmi": (12, -14),  # #05
+    "no_shape_core_no_receptor_surface_counts": (13, 7),  # #06
+    "ligand_plus_scoring_function_no_pmi_no_autocorr2d": (-34, 9),  # #07
+    "ligand_plus_scoring_function_no_pmi_no_plants": (-32, -8),  # #08
+    "ligand_plus_scoring_function_no_shape_size_no_autocorr2d": (24, 11),  # #09
+    "ligand_plus_scoring_function_clean_receptor": (13, -13),  # #10
+    "no_shape_core_no_receptor_length_pair": (12, 7),  # #11
+    "no_pmi": (13, 8),  # #12
+    "no_shape_core_no_receptor_surface_size": (13, -10),  # #13
+    "full_ocscore": (13, 7),  # #14
+    "no_shape_core": (13, 9),  # #15
+    "no_ligand_shape_size": (-32, -22),  # #16
+    "ligand_only": (-28, -8),  # #17
+    "ligand_plus_scoring_function_no_pmi_no_shape_size_no_autocorr2d_no_vsa": (15, 7),  # #18
+    "scoring_function_only": (-28, 7),  # #19
+    "no_scoring_function": (12, 7),  # #20
+    "receptor_plus_scoring_function": (10, 7),  # #21
+    "shape_only": (10, 7),  # #22
 }
 
 # The paper renders this figure in Portuguese; the library ships English defaults,
 # so the localized strings live here, in the caller, and never in the library.
 PT_TEXT = {
-    "title": "Desempenho de ranqueamento vs. risco de atalho (22 configurações)",
-    "xlabel": "BEDROC (teste, DUDEz)",
+    "title": "BEDROC de validação vs. risco de atalho (22 configurações)",
+    "xlabel": "BEDROC (validação, DUDEz)",
     "ylabel": "Risco de atalho\n(máx. % da importância SHAP em um único atributo)",
-    "threshold_note": "limiar de risco: 20%",
-    "zone_note": "zona de descarte por risco de atalho",
-    "reference_note": "BEDROC do modelo completo",
     "highlight_note": "recomendada",
 }
 PT_LEGEND = {
     "reference": "Modelo completo (full_ocscore, referência)",
-    "discarded": "Descartadas: superam o completo, risco > 20%",
-    "retained": "Mantidas: superam o completo, risco $\\leq$ 20%",
-    "other": "Não superam o completo (critério não se aplica)",
+    "discarded": "Elegíveis: sem piora detectável ($p_{\\mathrm{Holm}}\\geq0{,}05$)\nDescartadas: risco $\\geq$ 20%",
+    "retained": "Elegíveis: sem piora detectável ($p_{\\mathrm{Holm}}\\geq0{,}05$)\nMantidas: risco < 20%",
+    "other": "Não elegíveis: piora significativa\n($p_{\\mathrm{Holm}}<0{,}05$)",
 }
 
 # The configuration recommended in the paper; called out with an arrow.
@@ -177,6 +191,12 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Shortcut-risk guide line, in percent (default: %(default)s).",
     )
     parser.add_argument(
+        "--alpha",
+        type=float,
+        default=DEFAULT_ALPHA,
+        help="Holm-corrected validation significance threshold (default: %(default)s).",
+    )
+    parser.add_argument(
         "--lang",
         choices=("en", "pt"),
         default="en",
@@ -224,6 +244,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     args = _parse_args(argv)
     summary_df = pd.read_csv(args.ablation_summary_csv)
+    # These identifiers are fixed throughout the paper from the descending test
+    # BEDROC ordering. The scatter axis below intentionally uses validation BEDROC.
     policies = summary_df.sort_values("dudez_test_bedroc_mean", ascending=False)["feature_policy_name"].tolist()
     rank_labels = {policy: f"{rank:02d}" for rank, policy in enumerate(policies, start=1)}
 
@@ -236,20 +258,38 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
 
     plot_df = risk_df.merge(
-        summary_df[["feature_policy_name", "dudez_test_bedroc_mean"]].rename(
-            columns={"feature_policy_name": "policy", "dudez_test_bedroc_mean": "bedroc_mean"}
+        summary_df[["feature_policy_name", VALIDATION_MEAN_COLUMN]].rename(
+            columns={"feature_policy_name": "policy", VALIDATION_MEAN_COLUMN: "bedroc_mean"}
         ),
         on="policy",
         how="left",
     )
     plot_df["rank_label"] = plot_df["policy"].map(rank_labels)
 
-    derived_good, derived_bad = ocstatplot.classify_policies_by_shortcut_rule(
+    significance_df = build_ablation_bedroc_significance_table(
+        args.ablation_summary_csv,
+        config=AblationSignificanceConfig(
+            reference_policy=args.reference_policy,
+            metric_column=VALIDATION_REPLICA_COLUMN,
+            method="paired_ttest",
+            correction_method="holm",
+            alpha=args.alpha,
+        ),
+    )
+    eligibility_df = significance_df[["policy", "pvalue_corrected", "reject_null"]].copy()
+    eligibility_df["eligible"] = eligibility_df["pvalue_corrected"].notna() & ~eligibility_df["reject_null"]
+    plot_df = plot_df.merge(eligibility_df[["policy", "eligible"]], on="policy", how="left")
+    plot_df["eligible"] = plot_df["eligible"].fillna(False)
+    # The paper reports shortcut risk to one decimal place and treats #05's
+    # 19.983868% as 20.0%, exactly at the operational cutoff.
+    plot_df["risk_for_rule_pct"] = plot_df["top1_pct_max"].round(RISK_RULE_DECIMALS)
+
+    derived_good, derived_bad = ocstatplot.classify_policies_by_eligibility_and_shortcut_risk(
         plot_df,
         reference_policy=args.reference_policy,
+        eligibility_column="eligible",
         risk_threshold=args.risk_threshold,
-        bedroc_column="bedroc_mean",
-        risk_column="top1_pct_max",
+        risk_column="risk_for_rule_pct",
     )
     good_policies = args.good_policies if args.good_policies is not None else derived_good
     bad_policies = args.bad_policies if args.bad_policies is not None else derived_bad
@@ -266,6 +306,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         reference_policy=args.reference_policy,
         good_policies=good_policies,
         bad_policies=bad_policies,
+        show_rule_geometry=False,
         risk_threshold=args.risk_threshold,
         bedroc_column="bedroc_mean",
         risk_column="top1_pct_max",

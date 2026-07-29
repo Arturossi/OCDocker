@@ -41,9 +41,9 @@ See the LICENSE file for full terms.
 
 # Palette for the shortcut-risk scatter (validated for CVD separation).
 COLOR_REFERENCE = "#2a78d6"   # blue   -> the reference model
-COLOR_RETAINED = "#0ca30c"    # green  -> beat the reference with a distributed explanation
-COLOR_DISCARDED = "#d03b3b"   # red    -> beat the reference, but on a dominant feature
-COLOR_OTHER = "#b6b4ab"       # gray   -> did not beat the reference; the rule does not apply
+COLOR_RETAINED = "#0ca30c"    # green  -> eligible with a distributed explanation
+COLOR_DISCARDED = "#d03b3b"   # red    -> eligible, but dependent on a dominant feature
+COLOR_OTHER = "#b6b4ab"       # gray   -> not eligible; the shortcut rule does not apply
 COLOR_TEXT = "#0b0b0b"
 COLOR_TEXT_MUTED = "#52514e"
 COLOR_GRID = "#e1e0d9"
@@ -152,7 +152,7 @@ def classify_policies_by_shortcut_rule(
     Split policies into retained and discarded by the shortcut-risk rule.
 
     A policy is discarded when it beats the reference policy's mean metric *and*
-    concentrates more than ``risk_threshold`` percent of its total SHAP importance
+    concentrates ``risk_threshold`` percent or more of its total SHAP importance
     in a single feature: the gain is real but rides on one dominant feature.
     Policies that do not beat the reference are not candidates, so the rule does
     not apply to them and they belong to neither group.
@@ -190,8 +190,65 @@ def classify_policies_by_shortcut_rule(
     candidates = plot_df[
         (plot_df[bedroc_column] > reference_metric) & (plot_df['policy'] != reference_policy)
     ]
-    retained = candidates[candidates[risk_column] <= risk_threshold]['policy'].tolist()
-    discarded = candidates[candidates[risk_column] > risk_threshold]['policy'].tolist()
+    retained = candidates[candidates[risk_column] < risk_threshold]['policy'].tolist()
+    discarded = candidates[candidates[risk_column] >= risk_threshold]['policy'].tolist()
+    return retained, discarded
+
+
+def classify_policies_by_eligibility_and_shortcut_risk(
+        plot_df: pd.DataFrame,
+        *,
+        reference_policy: str = 'full_ocscore',
+        eligibility_column: str = 'eligible',
+        risk_threshold: float = 20.0,
+        risk_column: str = 'shortcut_risk_max_pct',
+    ) -> tuple[list[str], list[str]]:
+    '''Split statistically eligible policies by their shortcut risk.
+
+    Unlike :func:`classify_policies_by_shortcut_rule`, eligibility is supplied
+    explicitly instead of being inferred from whether the plotted mean exceeds
+    the reference mean. This is appropriate when candidacy comes from a paired
+    significance test while the scatter axis shows the validation-set metric.
+
+    Parameters
+    ----------
+    plot_df : pandas.DataFrame
+        One row per policy, including ``'policy'``, ``eligibility_column`` and
+        ``risk_column``.
+    reference_policy : str
+        Reference policy, excluded from both returned groups. Default: 'full_ocscore'.
+    eligibility_column : str
+        Boolean column identifying policies that passed the formal performance
+        screen. Default: 'eligible'.
+    risk_threshold : float
+        Maximum single-feature SHAP share tolerated in a retained policy, in
+        percent. Default: 20.0.
+    risk_column : str
+        Column holding shortcut risk, in percent. Default: 'shortcut_risk_max_pct'.
+
+    Returns
+    -------
+    tuple[list[str], list[str]]
+        Retained (eligible and low-risk) and discarded (eligible and high-risk)
+        policy names.
+
+    Raises
+    ------
+    ValueError
+        If the eligibility or risk column is absent.
+    '''
+
+    required_columns = {eligibility_column, risk_column}
+    missing_columns = required_columns - set(plot_df.columns)
+    if missing_columns:
+        raise ValueError(f"plot_df is missing required column(s): {sorted(missing_columns)}")
+
+    candidates = plot_df[
+        plot_df[eligibility_column].fillna(False).astype(bool)
+        & (plot_df['policy'] != reference_policy)
+    ]
+    retained = candidates[candidates[risk_column] < risk_threshold]['policy'].tolist()
+    discarded = candidates[candidates[risk_column] >= risk_threshold]['policy'].tolist()
     return retained, discarded
 
 
@@ -249,12 +306,63 @@ def _detect_x_break(
     return limits(left_values), limits(right_values)
 
 
+def _detect_x_segments(
+        values: Sequence[float],
+        min_gap_share: float = 0.30,
+        pad_share: float = 0.12,
+        max_segments: int = 3,
+    ) -> Optional[list[tuple[tuple[float, float], list[float]]]]:
+    '''Split an x distribution across as many as three wide empty regions.
+
+    The validation BEDROC distribution contains one extreme sanity-check model,
+    two weak baselines and a dense cluster of the remaining configurations. A
+    single broken axis still compresses that dense cluster, so this helper keeps
+    up to ``max_segments`` occupied ranges separated by genuinely wide gaps.
+    '''
+
+    ordered = sorted(float(value) for value in values)
+    if len(ordered) < 3 or max_segments < 2:
+        return None
+
+    full_range = ordered[-1] - ordered[0]
+    if full_range <= 0:
+        return None
+
+    qualifying_gaps = [
+        (b - a, index)
+        for index, (a, b) in enumerate(zip(ordered, ordered[1:]))
+        if (b - a) / full_range >= min_gap_share
+    ]
+    if not qualifying_gaps:
+        return None
+
+    split_indices = sorted(
+        index
+        for _, index in sorted(qualifying_gaps, reverse=True)[:max_segments - 1]
+    )
+    groups: list[list[float]] = []
+    start = 0
+    for split_index in split_indices:
+        groups.append(ordered[start:split_index + 1])
+        start = split_index + 1
+    groups.append(ordered[start:])
+
+    minimum_pad = full_range * 0.012
+    segments: list[tuple[tuple[float, float], list[float]]] = []
+    for group in groups:
+        span = group[-1] - group[0]
+        pad = max(span * pad_share, minimum_pad)
+        segments.append(((group[0] - pad, group[-1] + pad), group))
+    return segments
+
+
 def plot_bedroc_vs_shortcut_risk_scatter(
         plot_df: pd.DataFrame,
         *,
         reference_policy: str = 'full_ocscore',
         good_policies: Optional[Sequence[str]] = None,
         bad_policies: Optional[Sequence[str]] = None,
+        show_rule_geometry: Optional[bool] = None,
         risk_threshold: float = 20.0,
         bedroc_column: str = 'bedroc_mean',
         risk_column: str = 'shortcut_risk_max_pct',
@@ -278,13 +386,11 @@ def plot_bedroc_vs_shortcut_risk_scatter(
     '''
     Scatter per-policy mean BEDROC against SHAP shortcut risk, under the shortcut rule.
 
-    Point colors are *derived from the rule*, not from a curated list: a policy is
-    discarded when it beats the reference policy and still concentrates more than
-    ``risk_threshold`` percent of its SHAP importance in one feature. The two guide
-    lines drawn on the axes are exactly the two conditions of that rule, and the
-    shaded region is the quadrant they delimit, so the marking a reader sees and the
-    geometry they read it from cannot disagree. Pass ``good_policies`` /
-    ``bad_policies`` only to override the derived grouping.
+    By default, point colors are derived from whether a policy beats the reference
+    mean and from ``risk_threshold``. Explicit ``good_policies`` / ``bad_policies``
+    may instead provide groups obtained from an independent eligibility rule, such
+    as a Holm-corrected paired validation test. In that case the mean-reference
+    geometry is hidden by default because it is contextual, not a decision cutoff.
 
     When one policy sits far from every other on the x axis (a low-signal control,
     typically), it compresses the interesting cluster into a fraction of the width.
@@ -304,6 +410,17 @@ def plot_bedroc_vs_shortcut_risk_scatter(
         Overrides the retained group. Derived from the rule when None. Default: None.
     bad_policies : sequence[str] | None, optional
         Overrides the discarded group. Derived from the rule when None. Default: None.
+    show_rule_geometry : bool | None, optional
+        Draw the "beats the reference" vertical guide and the shaded discard
+        quadrant, both of which visualize the *derived* rule's x-axis condition.
+        When ``good_policies``/``bad_policies`` override that rule (e.g. coloring
+        by a statistical eligibility test while the x axis plots the corresponding
+        mean), a point can legitimately sit on the "wrong" side of that geometry,
+        which reads as a contradiction. Defaults to ``True`` when the grouping is
+        derived (no override) and ``False`` when either override is supplied;
+        pass explicitly to force either behavior. The horizontal risk-threshold
+        guide is unaffected, since it always matches ``risk_threshold`` regardless
+        of grouping source. Default: None.
     risk_threshold : float
         Shortcut-risk cutoff, in percent; also the horizontal guide line. Default: 20.0.
     bedroc_column : str
@@ -328,7 +445,8 @@ def plot_bedroc_vs_shortcut_risk_scatter(
         figure in another language.
     label_offsets : mapping[str, tuple[float, float]] | None, optional
         Per-policy ``(dx, dy)`` label offset override, in points, for policies whose
-        default offset collides with a nearby marker or label. Default: None.
+        default offset collides with a nearby marker or label. Overridden labels
+        receive a subtle leader line back to their marker. Default: None.
     break_x_axis : bool, optional
         Split the x axis across a wide empty region when one is present. Default: True.
     figsize : tuple[float, float]
@@ -351,14 +469,18 @@ def plot_bedroc_vs_shortcut_risk_scatter(
     )
     good = set(good_policies if good_policies is not None else derived_good)
     bad = set(bad_policies if bad_policies is not None else derived_bad)
+    draw_rule_geometry = (
+        show_rule_geometry if show_rule_geometry is not None
+        else (good_policies is None and bad_policies is None)
+    )
 
     reference_metric = float(df.loc[df['policy'] == reference_policy, bedroc_column].iloc[0])
 
     styles = {
         'reference': (COLOR_REFERENCE, 'D', 115, COLOR_TEXT),
-        'retained': (COLOR_RETAINED, '^', 95, 'none'),
-        'discarded': (COLOR_DISCARDED, 'v', 95, 'none'),
-        'other': (COLOR_OTHER, 'o', 62, 'none'),
+        'retained': (COLOR_RETAINED, '^', 95, COLOR_TEXT_MUTED),
+        'discarded': (COLOR_DISCARDED, 'v', 95, COLOR_TEXT_MUTED),
+        'other': (COLOR_OTHER, 'o', 62, COLOR_TEXT_MUTED),
     }
 
     def group_of(policy: str) -> str:
@@ -370,19 +492,22 @@ def plot_bedroc_vs_shortcut_risk_scatter(
             return 'discarded'
         return 'other'
 
-    x_break = _detect_x_break(df[bedroc_column].tolist()) if break_x_axis else None
+    x_segments = _detect_x_segments(df[bedroc_column].tolist()) if break_x_axis else None
 
     ax_left: Optional[Axes]
-    if x_break is None:
+    if x_segments is None:
         fig, ax_right = plt.subplots(figsize = figsize, dpi = dpi)
         axes = [ax_right]
         ax_left = None
     else:
-        fig, (ax_left, ax_right) = plt.subplots(
-            1, 2, sharey = True, figsize = figsize, dpi = dpi,
-            gridspec_kw = {'width_ratios': [1, 9], 'wspace': 0.035},
+        width_ratios = [min(8, max(1, len(group))) for _, group in x_segments]
+        fig, axes_array = plt.subplots(
+            1, len(x_segments), sharey = True, figsize = figsize, dpi = dpi,
+            gridspec_kw = {'width_ratios': width_ratios, 'wspace': 0.035},
         )
-        axes = [ax_left, ax_right]
+        axes = list(np.atleast_1d(axes_array))
+        ax_left = axes[0]
+        ax_right = axes[-1]
 
     for ax in axes:
         ax.axhline(risk_threshold, color = COLOR_TEXT_MUTED, lw = 1.0, ls = (0, (4, 2)), zorder = 1)
@@ -390,28 +515,46 @@ def plot_bedroc_vs_shortcut_risk_scatter(
         ax.set_axisbelow(True)
         ax.tick_params(labelsize = 9, colors = COLOR_TEXT_MUTED, length = 0)
 
-    # the discard quadrant: beats the reference AND sits above the risk threshold
-    right_limits = x_break[1] if x_break is not None else ax_right.get_xlim()
-    ax_right.add_patch(mpatches.Rectangle(
-        (reference_metric, risk_threshold),
-        right_limits[1] - reference_metric, 100.0 - risk_threshold,
-        facecolor = COLOR_DISCARDED, alpha = 0.055, edgecolor = 'none', zorder = 0.5,
-    ))
-    ax_right.axvline(reference_metric, color = COLOR_TEXT, lw = 0.9, ls = (0, (2, 2)), alpha = 0.55, zorder = 1)
+    # the discard quadrant: beats the reference AND sits above the risk threshold.
+    # Only meaningful when the grouping is actually derived from that condition;
+    # skipped under an override, where a point can legitimately fall outside it.
+    if draw_rule_geometry:
+        right_limits = x_segments[-1][0] if x_segments is not None else ax_right.get_xlim()
+        ax_right.add_patch(mpatches.Rectangle(
+            (reference_metric, risk_threshold),
+            right_limits[1] - reference_metric, 100.0 - risk_threshold,
+            facecolor = COLOR_DISCARDED, alpha = 0.055, edgecolor = 'none', zorder = 0.5,
+        ))
+        ax_right.axvline(reference_metric, color = COLOR_TEXT, lw = 0.9, ls = (0, (2, 2)), alpha = 0.55, zorder = 1)
 
-    split_at = x_break[0][1] if x_break is not None else None
+    def _axis_for_value(value: float) -> Axes:
+        if x_segments is None:
+            return ax_right
+        for ax, (limits, _) in zip(axes, x_segments):
+            if limits[0] <= value <= limits[1]:
+                return ax
+        return ax_right
+
     for _, row in df.iterrows():
-        color, marker, size, edge = styles[group_of(row['policy'])]
-        point_ax = ax_left if (ax_left is not None and split_at is not None and row[bedroc_column] <= split_at) else ax_right
+        group = group_of(row['policy'])
+        color, marker, size, edge = styles[group]
+        point_ax = _axis_for_value(float(row[bedroc_column]))
         point_ax.scatter(
             row[bedroc_column], row[risk_column], color = color, marker = marker, s = size,
-            edgecolor = edge, linewidth = 1.1, zorder = 3,
+            edgecolor = edge, linewidth = 1.1 if group == 'reference' else 0.6, zorder = 3,
         )
+        has_custom_offset = row['policy'] in (label_offsets or {})
         offset = (label_offsets or {}).get(row['policy'], (7, 5))
         point_ax.annotate(
             str(row[label_col]), (row[bedroc_column], row[risk_column]),
             textcoords = 'offset points', xytext = offset, fontsize = 8.5, color = COLOR_TEXT,
             fontweight = 'bold' if row['policy'] == highlight_policy else 'normal', zorder = 4,
+            bbox = dict(boxstyle = 'round,pad=0.13', fc = 'white', ec = 'none', alpha = 0.84),
+            arrowprops = (
+                dict(arrowstyle = '-', color = COLOR_TEXT_MUTED, lw = 0.45,
+                     shrinkA = 2.5, shrinkB = 5.0, alpha = 0.65)
+                if has_custom_offset else None
+            ),
         )
 
     if highlight_policy is not None and highlight_note:
@@ -429,15 +572,17 @@ def plot_bedroc_vs_shortcut_risk_scatter(
     # inverted: the higher the point, the more distributed the explanation
     axes[0].set_ylim(100, 0)
 
-    if x_break is not None:
-        assert ax_left is not None, "ax_left is always set alongside x_break"
-        ax_left.set_xlim(*x_break[0])
-        ax_right.set_xlim(*x_break[1])
-        ax_left.set_xticks([round(df[bedroc_column].min(), 3)])
-        ax_left.spines['right'].set_visible(False)
-        ax_right.spines['left'].set_visible(False)
-        ax_right.tick_params(left = False)
-        for ax in axes:
+    if x_segments is not None:
+        assert ax_left is not None, "ax_left is always set alongside x_segments"
+        for index, (ax, (limits, group)) in enumerate(zip(axes, x_segments)):
+            ax.set_xlim(*limits)
+            if max(group) - min(group) < 1e-12:
+                ax.set_xticks([round(group[0], 3)])
+            if index < len(axes) - 1:
+                ax.spines['right'].set_visible(False)
+            if index > 0:
+                ax.spines['left'].set_visible(False)
+                ax.tick_params(left = False)
             ax.spines['top'].set_visible(False)
             ax.spines['bottom'].set_color(COLOR_GRID)
         ax_left.spines['left'].set_color(COLOR_GRID)
@@ -448,8 +593,9 @@ def plot_bedroc_vs_shortcut_risk_scatter(
             marker = [(-1, -0.9), (1, 0.9)], markersize = 7, linestyle = 'none',
             color = COLOR_TEXT_MUTED, mec = COLOR_TEXT_MUTED, mew = 1.1, clip_on = False,
         )
-        ax_left.plot([1, 1], [0, 1], transform = ax_left.transAxes, **mark)
-        ax_right.plot([0, 0], [0, 1], transform = ax_right.transAxes, **mark)
+        for left_axis, right_axis in zip(axes, axes[1:]):
+            left_axis.plot([1, 1], [0, 1], transform = left_axis.transAxes, **mark)
+            right_axis.plot([0, 0], [0, 1], transform = right_axis.transAxes, **mark)
     else:
         for spine in ('top', 'right'):
             ax_right.spines[spine].set_visible(False)
@@ -461,20 +607,21 @@ def plot_bedroc_vs_shortcut_risk_scatter(
             ax_right.get_xlim()[1], risk_threshold - 1.5, threshold_note,
             fontsize = 7.6, color = COLOR_TEXT_MUTED, ha = 'right', va = 'bottom', style = 'italic',
         )
-    if zone_note:
+    if draw_rule_geometry and zone_note:
         ax_right.text(
             ax_right.get_xlim()[1], 97.5, zone_note, fontsize = 7.8,
             color = COLOR_DISCARDED, ha = 'right', va = 'bottom', fontweight = 'bold', alpha = 0.85,
         )
-    ax_right.text(
-        reference_metric, -2.5,
-        reference_note if reference_note is not None else f'{metric_label} of the reference model',
-        fontsize = 7.6, color = COLOR_TEXT_MUTED, ha = 'center', va = 'bottom',
-        style = 'italic', clip_on = False,
-    )
+    if draw_rule_geometry:
+        ax_right.text(
+            reference_metric, -2.5,
+            reference_note if reference_note is not None else f'{metric_label} of the reference model',
+            fontsize = 7.6, color = COLOR_TEXT_MUTED, ha = 'center', va = 'bottom',
+            style = 'italic', clip_on = False,
+        )
 
     ax_right.set_xlabel(xlabel or f'{metric_label} (test)', fontsize = 10.5, color = COLOR_TEXT)
-    ax_right.xaxis.set_label_coords(0.44, -0.11)
+    ax_right.xaxis.set_label_coords(0.44, -0.075)
     axes[0].set_ylabel(ylabel, fontsize = 9.5, color = COLOR_TEXT)
     fig.suptitle(
         title or f'Ranking performance vs shortcut risk ({len(df)} policies)',
@@ -483,8 +630,8 @@ def plot_bedroc_vs_shortcut_risk_scatter(
 
     text = {
         'reference': f'Full model ({reference_policy}, reference)',
-        'retained': f'Retained: beat the reference, risk <= {risk_threshold:g}% (n={len(good)})',
-        'discarded': f'Discarded: beat the reference, risk > {risk_threshold:g}% (n={len(bad)})',
+        'retained': f'Retained: beat the reference, risk < {risk_threshold:g}% (n={len(good)})',
+        'discarded': f'Discarded: beat the reference, risk >= {risk_threshold:g}% (n={len(bad)})',
         'other': 'Do not beat the reference (rule does not apply)',
         **dict(legend_labels or {}),
     }
@@ -492,17 +639,17 @@ def plot_bedroc_vs_shortcut_risk_scatter(
         mlines.Line2D([], [], color = COLOR_REFERENCE, marker = 'D', ls = 'none', ms = 8,
                       mec = COLOR_TEXT, label = text['reference']),
         mlines.Line2D([], [], color = COLOR_DISCARDED, marker = 'v', ls = 'none', ms = 8.5,
-                      label = text['discarded']),
+                      mec = COLOR_TEXT_MUTED, mew = 0.6, label = text['discarded']),
         mlines.Line2D([], [], color = COLOR_RETAINED, marker = '^', ls = 'none', ms = 8.5,
-                      label = text['retained']),
+                      mec = COLOR_TEXT_MUTED, mew = 0.6, label = text['retained']),
         mlines.Line2D([], [], color = COLOR_OTHER, marker = 'o', ls = 'none', ms = 7,
-                      label = text['other']),
+                      mec = COLOR_TEXT_MUTED, mew = 0.6, label = text['other']),
     ]
-    fig.subplots_adjust(left = 0.135, right = 0.985, top = 0.875, bottom = 0.265)
+    fig.subplots_adjust(left = 0.135, right = 0.985, top = 0.875, bottom = 0.255)
     fig.legend(
-        handles = legend_handles, loc = 'lower center', frameon = False, fontsize = 7.8,
-        labelcolor = COLOR_TEXT_MUTED, ncol = 2, bbox_to_anchor = (0.5, -0.005),
-        handlelength = 1.2, columnspacing = 1.2, labelspacing = 0.4,
+        handles = legend_handles, loc = 'lower center', frameon = False, fontsize = 7.7,
+        labelcolor = COLOR_TEXT_MUTED, ncol = 2, bbox_to_anchor = (0.5, 0.012),
+        handlelength = 1.2, columnspacing = 2.6, labelspacing = 1.25,
     )
 
     fig.savefig(f"{output_dir}/ablation_{metric_label.lower()}_vs_shortcut_risk_scatter.png", dpi = dpi)

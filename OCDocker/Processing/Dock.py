@@ -127,7 +127,7 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
     ligandDir : str
         If the ligand is not in the same directory as the receptor, this is the path to the ligand directory. By default "". If this is not empty, the ligand will be searched in this directory, otherwise, it will be searched in the same directory as the receptor.
     archive : str
-        Which archive will be processed [dudez, pdbbind].
+        Which archive will be processed [dudez, pdbbind, litpcba].
     dockingAlgorithm : str
         Which docking algorithm will be used [gnina, vina, smina, plants].
     lock : Lock
@@ -155,7 +155,7 @@ def __core_run_dock(path: str, ligandDir: str, archive: str, dockingAlgorithm: s
     receptorDescriptorPath = f"{path}/receptor_descriptors.json"
 
     # Set ligand data
-    if archive == "dudez":
+    if archive in ("dudez", "litpcba"):
         ligandPath = f"{ligandDir}/ligand.smi"
     else:
         ligandPath = f"{ligandDir}/ligand.mol2"
@@ -252,7 +252,7 @@ def __run_dock_no_parallel(complexList: List[Tuple[str, List[str]]], archive: st
     complexList : List[Tuple[str, List[str]]]
         A list of tuples with the path to the protein directory and a list of ligand directories.
     archive : str
-        Which archive will be processed [dudez, pdbbind].
+        Which archive will be processed [dudez, pdbbind, litpcba].
     dockingAlgorithm : str
         Which docking algorithm will be used [vina, smina, plants].
     digestFormat : str
@@ -299,7 +299,7 @@ def __run_dock_parallel(complexList: List[Tuple[str, List[str]]], archive: str, 
     complexList : List[Tuple[str, List[str]]]
         A list of tuples with the path to the protein directory and a list of ligand directories.
     archive : str
-        Which archive will be processed [dudez, pdbbind].
+        Which archive will be processed [dudez, pdbbind, litpcba].
     dockingAlgorithm : str
         Which docking algorithm will be used [vina, smina, plants].
     digestFormat : str
@@ -373,7 +373,7 @@ def __run_gnina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
     ptn : str
         The protein name.
     archive : str
-        The archive name. Options are [dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind, litpcba].
     lock : Lock
         The lock used to synchronize file access.
     overwrite : bool, optional
@@ -588,7 +588,7 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
     ptn : str
         The protein name.
     archive : str
-        The archive name. Options are [dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind, litpcba].
     lock : Lock
         The lock used to synchronize file access
     overwrite : bool, optional
@@ -814,7 +814,7 @@ def __run_smina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, r
     ptn : str
         The protein name.
     archive : str
-        The archive name. Options are [dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind, litpcba].
     lock : Lock
         The lock used to synchronize file access.
     overwrite : bool, optional
@@ -1016,7 +1016,7 @@ def __run_vina(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, re
     ptn : str
         The protein name.
     archive : str
-        The archive name. Options are [dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind, litpcba].
     lock : Lock
         The lock used to synchronize file access.
     overwrite : bool, optional
@@ -1243,7 +1243,7 @@ def run_dock(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[str]]], a
     paths : List[Tuple[str, List[str]]] | Tuple[str, List[str]]
         The list of directories or the directory to be processed.
     archive : str
-        Which archive will be processed [dudez, pdbbind].
+        Which archive will be processed [dudez, pdbbind, litpcba].
     dockingAlgorithm : str
         Which docking algorithm will be used [vina, smina, plants].
     digestFormat : str

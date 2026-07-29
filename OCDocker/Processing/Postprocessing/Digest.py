@@ -230,7 +230,7 @@ def __core_generate_digest(path: str, ligandDir: str, archive: str, overwrite: b
     ligandDir : str
         If the ligand is not in the same directory as the receptor, this is the path to the ligand directory. By default "". If this is not empty, the ligand will be searched in this directory, otherwise, it will be searched in the same directory as the receptor.
     archive : str
-        Which archive will be processed [dudez, pdbbind].
+        Which archive will be processed [dudez, pdbbind, litpcba].
     overwrite : bool
         If the docking output already exists, should it be overwritten?
     digestFormat : str, optional
@@ -310,7 +310,7 @@ def __generate_digest_no_parallel(complexList: List[Tuple[str, List[str]]], arch
     complexList : List[Tuple[str, List[str]]]
         A list of tuples with the path to the protein directory and a list of ligand directories.
     archive : str
-        Which archive will be processed [dudez, pdbbind].
+        Which archive will be processed [dudez, pdbbind, litpcba].
     digestFormat : str
         Which digest format will be used [json].
     overwrite : bool
@@ -358,7 +358,7 @@ def __generate_digest_parallel(complexList: List[Tuple[str, List[str]]], archive
     complexList : List[Tuple[str, List[str]]]
         A list of tuples with the path to the protein directory and a list of ligand directories.
     archive : str
-        Which archive will be processed [dudez, pdbbind].
+        Which archive will be processed [dudez, pdbbind, litpcba].
     digestFormat : str
         Which digest format will be used [json].
     overwrite : bool
@@ -417,7 +417,7 @@ def __generate_digest_single(complex: Tuple[str, List[str]], archive: str, overw
     complex : List[Tuple[str, List[str]]]
         A tuple with the path to the protein directory and a list of ligand directories.
     archive : str
-        Which archive will be processed [dudez, pdbbind].
+        Which archive will be processed [dudez, pdbbind, litpcba].
     digestFormat : str
         Which digest format will be used [json].
     overwrite : bool
@@ -489,7 +489,7 @@ def generate_digest(paths: Union[List[Tuple[str, List[str]]], Tuple[str, List[st
     paths : List[Tuple[str, List[str]]] | Tuple[str, List[str]]
         The list of directories or the directory to be processed.
     archive : str
-        The archive name. Options are [dudez, pdbbind].
+        The archive name. Options are [dudez, pdbbind, litpcba].
     overwrite : bool
         If the docking output already exists, should it be overwritten?
     digestFormat : str, optional

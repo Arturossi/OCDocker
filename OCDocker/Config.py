@@ -1095,6 +1095,7 @@ class OCDockerConfig:
     ocdocker_path: str = ""
     dudez_archive: str = ""
     pdbbind_archive: str = ""
+    litpcba_archive: str = ""
     parsed_archive: str = ""
     logdir: str = ""
     oddt_models_dir: str = ""
