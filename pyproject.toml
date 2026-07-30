@@ -152,7 +152,7 @@ gpu = [
 mcp = [
   # Directly imported by MCP.Server, not just a transitive dependency of mcp.
   "httpx>=0.28.1",
-  "mcp>=1.28.0",
+  "mcp>=1.28.0,<2.0.0",  # 2.0.0 renamed mcp.server.fastmcp -> mcp.server.mcpserver
 ]
 ml = [
   # Optional; ProductionBaselines falls back to "lightgbm not installed" when absent.
@@ -196,7 +196,7 @@ all = [
   "lime>=0.2.0.1",
   "llvmlite>=0.43.0",
   "matplotlib>=3.9.2",
-  "mcp>=1.28.0",
+  "mcp>=1.28.0,<2.0.0",  # 2.0.0 renamed mcp.server.fastmcp -> mcp.server.mcpserver
   "mpmath>=1.3.0",
   "networkx>=3.3",
   "numba>=0.60.0",
@@ -258,7 +258,7 @@ full = [
   "lime>=0.2.0.1",
   "llvmlite>=0.43.0",
   "matplotlib>=3.9.2",
-  "mcp>=1.28.0",
+  "mcp>=1.28.0,<2.0.0",  # 2.0.0 renamed mcp.server.fastmcp -> mcp.server.mcpserver
   "mpmath>=1.3.0",
   "myst-parser>=4.0.1",
   "networkx>=3.3",
