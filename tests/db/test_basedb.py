@@ -334,6 +334,81 @@ def test_run_docking_plants(mock_config, monkeypatch, tmp_path):
     
     # Call run_docking with plants
     result = ocbdb.run_docking("dudez", "plants")
-    
+
     # Verify ok was returned
+    assert result == ocerror.Error.ok() # type: ignore
+
+@pytest.mark.order(11)
+def test_prepare_litpcba(mock_config, monkeypatch, tmp_path):
+    '''Test prepare function with litpcba archive.'''
+
+    # Create mock directories
+    litpcba_dir = tmp_path / "litpcba"
+    litpcba_dir.mkdir()
+    (litpcba_dir / "protein1").mkdir()
+
+    def mock_get_config():
+        class MockConfig:
+            dudez_archive = "/mock/dudez"
+            pdbbind_archive = "/mock/pdbbind"
+            litpcba_archive = str(litpcba_dir)
+        return MockConfig()
+
+    monkeypatch.setattr("OCDocker.DB.baseDB.get_config", mock_get_config)
+
+    # Mock ocprepare.prepare
+    prepare_called = []
+    def mock_prepare(paths, overwrite, archive, sanitize, spacing, all_boxes = False):
+        prepare_called.append((paths, overwrite, archive, sanitize, spacing, all_boxes))
+        return None
+
+    monkeypatch.setattr("OCDocker.DB.baseDB.ocprepare.prepare", mock_prepare)
+
+    # Call prepare
+    result = ocbdb.prepare("litpcba", overwrite=True, spacing=0.5, sanitize=False)
+
+    # Verify prepare was called
+    assert len(prepare_called) == 1
+    assert prepare_called[0][1] is True  # overwrite
+    assert prepare_called[0][2] == "litpcba"  # archive
+    assert prepare_called[0][3] is False  # sanitize
+    assert prepare_called[0][4] == 0.5  # spacing
+    assert result is None
+
+@pytest.mark.order(12)
+def test_run_docking_litpcba(mock_config, monkeypatch, tmp_path):
+    '''Test run_docking function with litpcba archive.'''
+
+    # Create mock directories
+    litpcba_dir = tmp_path / "litpcba"
+    litpcba_dir.mkdir()
+    ptn1 = litpcba_dir / "protein1"
+    ptn1.mkdir()
+    (ptn1 / "compounds" / "ligands").mkdir(parents=True)
+    (ptn1 / "compounds" / "decoys").mkdir(parents=True)
+
+    def mock_get_config():
+        class MockConfig:
+            dudez_archive = "/mock/dudez"
+            pdbbind_archive = "/mock/pdbbind"
+            litpcba_archive = str(litpcba_dir)
+        return MockConfig()
+
+    monkeypatch.setattr("OCDocker.DB.baseDB.get_config", mock_get_config)
+
+    # Mock ocdock.run_dock
+    docking_called = []
+    def mock_run_docking(complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes = False):
+        docking_called.append((complexList, archive, dockingAlgorithm, overwrite, digestFormat, all_boxes))
+        return ocerror.Error.ok() # type: ignore
+
+    monkeypatch.setattr("OCDocker.DB.baseDB.ocdock.run_dock", mock_run_docking)
+
+    # Call run_docking
+    result = ocbdb.run_docking("litpcba", "vina", overwrite=True)
+
+    # Verify run_docking was called
+    assert len(docking_called) == 1
+    assert docking_called[0][1] == "litpcba"  # archive
+    assert docking_called[0][2] == "vina"  # dockingAlgorithm
     assert result == ocerror.Error.ok() # type: ignore

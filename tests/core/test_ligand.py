@@ -448,3 +448,28 @@ def test_to_json(sample_ligand):
 
     assert result is not None, "Result should not be None"
     assert result == 0 or result is True, f"Result should be 0 or True. Error code: {result}"
+
+@pytest.mark.order(29)
+def test_ligand_clean_keeps_largest_fragment(tmp_path):
+    '''Test that clean=True (the default) keeps only the largest disconnected fragment.'''
+
+    # Octanoic acid (10 heavy atoms) + phenethylamine (9 heavy atoms), neither a known salt.
+    mol_file = tmp_path / "multi_fragment.smi"
+    mol_file.write_text("CCCCCCCC(=O)O.c1ccccc1CCN multi_fragment\n")
+
+    ligand = ocl.Ligand(molecule=str(mol_file), name="multi_fragment")
+
+    assert ligand.clean is True
+    assert ligand.molecule.GetNumHeavyAtoms() == 10
+
+@pytest.mark.order(30)
+def test_ligand_clean_false_keeps_all_fragments(tmp_path):
+    '''Test that clean=False preserves every disconnected fragment.'''
+
+    mol_file = tmp_path / "multi_fragment_raw.smi"
+    mol_file.write_text("CCCCCCCC(=O)O.c1ccccc1CCN multi_fragment_raw\n")
+
+    ligand = ocl.Ligand(molecule=str(mol_file), name="multi_fragment_raw", clean=False)
+
+    assert ligand.clean is False
+    assert ligand.molecule.GetNumHeavyAtoms() == 19
