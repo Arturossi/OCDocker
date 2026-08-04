@@ -113,7 +113,7 @@ class Ligand:
             normalize_smiles_with_openbabel: bool = False,
             from_json_descriptors: str = "",
             embed_max_attempts: int = 10,
-            etkdg_max_attempts: int = 1000,
+            etkdg_max_attempts: int = 5000,
             clean: bool = True
         ) -> None:
         ''' Constructor for the Ligand class.
@@ -934,7 +934,7 @@ def _ensure_3d_conformer(
         smiles_source: str = "",
         add_hs: bool = True,
         max_attempts: int = 10,
-        etkdg_max_attempts: int = 1000
+        etkdg_max_attempts: int = 5000
     ) -> Optional[Chem.rdchem.Mol]:
     '''Ensure a molecule has a 3D conformer, using RDKit and OpenBabel fallbacks.
 
@@ -991,13 +991,15 @@ def _ensure_3d_conformer(
     return None
 
 
-def _get_etkdg_params(max_attempts: int = 1000) -> Any:
+def _get_etkdg_params(max_attempts: int = 5000, enforce_chirality: bool = True) -> Any:
     '''Get RDKit ETKDG embedding parameters with safer defaults.
 
     Parameters
     ----------
     max_attempts : int, optional
-        RDKit ETKDG internal attempts (maxAttempts/maxIterations), by default 1000.
+        RDKit ETKDG internal iteration cap (maxIterations), by default 1000.
+    enforce_chirality : bool, optional
+        If False, allow the embedding to disregard specified chiral tags, by default True.
 
     Returns
     -------
@@ -1010,6 +1012,8 @@ def _get_etkdg_params(max_attempts: int = 1000) -> Any:
     else:
         params = AllChem.ETKDG()
     params.useRandomCoords = True
+    params.maxIterations = max_attempts
+    params.enforceChirality = enforce_chirality
     return params
 
 
@@ -1126,7 +1130,7 @@ def _optimize_mol(mol: Chem.rdchem.Mol) -> bool:
 def _try_embed_rdkit(
         mol: Chem.rdchem.Mol,
         max_attempts: int = 10,
-        etkdg_max_attempts: int = 1000
+        etkdg_max_attempts: int = 5000
     ) -> bool:
     '''Try embedding a molecule with RDKit using multiple seeds.
 
@@ -1143,12 +1147,31 @@ def _try_embed_rdkit(
     -------
     bool
         True if embedding succeeded and a conformer exists, False otherwise.
+
+    Notes
+    -----
+    Some algorithmically generated decoy SMILES specify chiral tags on bridged/
+    caged ring systems (e.g. norbornene cages, fused bicyclic bridgeheads) that
+    have no geometrically valid strict embedding. If every strict attempt fails,
+    a second pass relaxes chirality enforcement as a last resort so box/pose
+    generation does not hard-fail on these edge cases.
     '''
 
     params = _get_etkdg_params(max_attempts=etkdg_max_attempts)
     for attempt in range(max_attempts):
         params.randomSeed = 0xC0FFEE + attempt
         if AllChem.EmbedMolecule(mol, params) == 0 and mol.GetNumConformers() > 0:
+            return True
+
+    relaxed_params = _get_etkdg_params(max_attempts=etkdg_max_attempts, enforce_chirality=False)
+    for attempt in range(max_attempts):
+        relaxed_params.randomSeed = 0xC0FFEE + attempt
+        if AllChem.EmbedMolecule(mol, relaxed_params) == 0 and mol.GetNumConformers() > 0:
+            _ = ocerror.Error.parse_molecule(
+                "3D embedding succeeded only after relaxing chirality enforcement; "
+                "specified stereocenters may not be geometrically realized.",
+                level = ocerror.ReportLevel.WARNING
+            )
             return True
     return False
 
@@ -1240,7 +1263,7 @@ def load_mol(
         sanitize: bool = True,
         normalize_smiles_with_openbabel: bool = False,
         embed_max_attempts: int = 10,
-        etkdg_max_attempts: int = 1000,
+        etkdg_max_attempts: int = 5000,
         clean: bool = True
     ) -> Tuple[str, Optional[Chem.rdchem.Mol]]:
     ''' Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
