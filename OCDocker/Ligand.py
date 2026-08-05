@@ -16,6 +16,7 @@ import OCDocker.Ligand as ocl
 from __future__ import annotations
 
 import json
+import multiprocessing as _mp
 import os
 import rdkit
 
@@ -1127,6 +1128,124 @@ def _optimize_mol(mol: Chem.rdchem.Mol) -> bool:
         return False
 
 
+_EMBED_ATTEMPT_TIMEOUT_S = 30.0
+
+
+def _embed_worker(conn: Any, mol_binary: bytes, etkdg_max_attempts: int, seed: int) -> None:
+    '''Attempt one strict-chirality RDKit embedding in a disposable subprocess.
+
+    Parameters
+    ----------
+    conn : multiprocessing.connection.Connection
+        Write end of a pipe used to return the result to the parent process.
+    mol_binary : bytes
+        Serialized molecule (``Mol.ToBinary()``) to embed.
+    etkdg_max_attempts : int
+        RDKit ETKDG internal iteration cap (maxIterations).
+    seed : int
+        Random seed for this embedding attempt.
+
+    Returns
+    -------
+    None
+        The embedded molecule's binary form (or None on failure) is sent
+        through ``conn`` rather than returned directly.
+    '''
+
+    try:
+        mol = Chem.Mol(mol_binary)
+        params = _get_etkdg_params(max_attempts=etkdg_max_attempts, enforce_chirality=True)
+        params.randomSeed = seed
+        if AllChem.EmbedMolecule(mol, params) == 0 and mol.GetNumConformers() > 0:
+            conn.send(mol.ToBinary())
+        else:
+            conn.send(None)
+    except Exception:
+        conn.send(None)
+    finally:
+        conn.close()
+
+
+def _embed_attempt_with_timeout(
+        mol: Chem.rdchem.Mol,
+        etkdg_max_attempts: int,
+        seed: int,
+        timeout_s: float = _EMBED_ATTEMPT_TIMEOUT_S
+    ) -> bool:
+    '''Run one RDKit embedding attempt under a hard wall-clock timeout.
+
+    Parameters
+    ----------
+    mol : rdkit.Chem.rdchem.Mol
+        Molecule to embed (a conformer is added in place on success).
+    etkdg_max_attempts : int
+        RDKit ETKDG internal iteration cap (maxIterations).
+    seed : int
+        Random seed for this embedding attempt.
+    timeout_s : float, optional
+        Maximum wall-clock time to allow this single attempt, by default
+        ``_EMBED_ATTEMPT_TIMEOUT_S``.
+
+    Returns
+    -------
+    bool
+        True if a conformer was produced and added to ``mol``, False on
+        failure or timeout.
+
+    Notes
+    -----
+    Some algorithmically generated SMILES (most often seen in decoy
+    libraries) specify chiral tags on bridged/caged ring systems (e.g.
+    norbornene cages, fused bicyclic bridgeheads) that have no geometrically
+    valid strict embedding. Rather than failing fast, RDKit's C++ embedding
+    routine can run for a very long time -- observed in production to exceed
+    40 minutes on a single call. A Python-level timeout (threads, signals)
+    cannot reliably interrupt this, since the interpreter does not regain
+    control until the C call returns. Running each attempt in a disposable
+    subprocess is the only way to guarantee termination regardless of what
+    RDKit is doing internally.
+
+    On timeout or failure this returns False. It deliberately does not fall
+    back to relaxing stereochemistry: this code has no way to know whether
+    it is processing a benchmark decoy or a real candidate whose specified
+    stereocenters matter, so it must not silently substitute an unrequested
+    configuration for either.
+    '''
+
+    ctx = _mp.get_context("fork")
+    parent_conn, child_conn = ctx.Pipe(duplex=False)
+    proc = ctx.Process(
+        target=_embed_worker,
+        args=(child_conn, mol.ToBinary(), etkdg_max_attempts, seed),
+        daemon=True,
+    )
+    proc.start()
+    child_conn.close()
+
+    result: Optional[bytes] = None
+    try:
+        if parent_conn.poll(timeout_s):
+            result = parent_conn.recv()
+    except (EOFError, OSError):
+        result = None
+    finally:
+        proc.terminate()
+        proc.join(2)
+        if proc.is_alive():
+            proc.kill()
+            proc.join()
+        parent_conn.close()
+
+    if result is None:
+        return False
+
+    embedded = Chem.Mol(result)
+    if embedded.GetNumConformers() == 0:
+        return False
+    mol.AddConformer(embedded.GetConformer(), assignId=True)
+    return True
+
+
 def _try_embed_rdkit(
         mol: Chem.rdchem.Mol,
         max_attempts: int = 10,
@@ -1150,28 +1269,13 @@ def _try_embed_rdkit(
 
     Notes
     -----
-    Some algorithmically generated decoy SMILES specify chiral tags on bridged/
-    caged ring systems (e.g. norbornene cages, fused bicyclic bridgeheads) that
-    have no geometrically valid strict embedding. If every strict attempt fails,
-    a second pass relaxes chirality enforcement as a last resort so box/pose
-    generation does not hard-fail on these edge cases.
+    Each attempt runs under a hard wall-clock timeout (see
+    ``_embed_attempt_with_timeout``) so a single geometrically infeasible
+    molecule cannot stall the pipeline.
     '''
 
-    params = _get_etkdg_params(max_attempts=etkdg_max_attempts)
     for attempt in range(max_attempts):
-        params.randomSeed = 0xC0FFEE + attempt
-        if AllChem.EmbedMolecule(mol, params) == 0 and mol.GetNumConformers() > 0:
-            return True
-
-    relaxed_params = _get_etkdg_params(max_attempts=etkdg_max_attempts, enforce_chirality=False)
-    for attempt in range(max_attempts):
-        relaxed_params.randomSeed = 0xC0FFEE + attempt
-        if AllChem.EmbedMolecule(mol, relaxed_params) == 0 and mol.GetNumConformers() > 0:
-            _ = ocerror.Error.parse_molecule(
-                "3D embedding succeeded only after relaxing chirality enforcement; "
-                "specified stereocenters may not be geometrically realized.",
-                level = ocerror.ReportLevel.WARNING
-            )
+        if _embed_attempt_with_timeout(mol, etkdg_max_attempts, 0xC0FFEE + attempt):
             return True
     return False
 
