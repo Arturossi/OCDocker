@@ -39,6 +39,6 @@ keywords:
   - explainable AI
   - SHAP
 license: BSD-3-Clause
-version: 0.15.3
-date-released: "2026-07-30"
+version: 0.15.4
+date-released: "2026-08-06"
 doi: "10.5281/zenodo.21330171"

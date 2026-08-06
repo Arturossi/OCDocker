@@ -9,6 +9,8 @@ Second targeted coverage pass for Ligand and Receptor modules.
 # Imports
 ###############################################################################
 import json
+import signal
+import time
 from pathlib import Path
 from typing import Any
 
@@ -49,6 +51,41 @@ def _simple_ligand(path: str, name: str = "lig_cov2") -> ocl.Ligand:
         setattr(lig, desc, 1.0)
 
     return lig
+
+
+class _FakeConn:
+    '''Stand-in for a multiprocessing.connection.Connection, used to unit-test
+    _embed_worker in-process without actually forking.'''
+
+    def __init__(self) -> None:
+        self.sent: list = []
+        self.closed = False
+
+    def send(self, value):
+        self.sent.append(value)
+
+    def close(self):
+        self.closed = True
+
+
+def _stubborn_worker(conn, _mol_binary, _etkdg_max_attempts, _seed):
+    '''A worker that ignores SIGTERM, to exercise the SIGKILL fallback path
+    in _embed_attempt_with_timeout.'''
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    time.sleep(5)
+
+
+def _conformerless_worker(conn, mol_binary, _etkdg_max_attempts, _seed):
+    '''Bypasses _embed_worker's own guard to send back a molecule with no
+    conformer, exercising _embed_attempt_with_timeout's defensive check.'''
+    conn.send(mol_binary)
+    conn.close()
+
+
+def _silent_worker(conn, _mol_binary, _etkdg_max_attempts, _seed):
+    '''Closes the pipe without sending anything, forcing the parent's
+    recv() to raise EOFError.'''
+    conn.close()
 
 
 ## Public ##
@@ -152,6 +189,87 @@ def test_ligand_optimize_and_embedding_helpers(monkeypatch):
     m2 = Chem.MolFromSmiles("CC")
     assert ocl._try_embed_rdkit(m2, max_attempts=3) is True
     assert state["calls"] == 2
+
+
+def test_embed_worker_success():
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC"))
+    conn = _FakeConn()
+    ocl._embed_worker(conn, mol.ToBinary(), 5000, 0xC0FFEE)
+    assert conn.closed is True
+    assert len(conn.sent) == 1
+    assert conn.sent[0] is not None
+    embedded = Chem.Mol(conn.sent[0])
+    assert embedded.GetNumConformers() > 0
+
+
+def test_embed_worker_embed_failure(monkeypatch):
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC"))
+    monkeypatch.setattr(ocl.AllChem, "EmbedMolecule", lambda *_a, **_k: 1)
+    conn = _FakeConn()
+    ocl._embed_worker(conn, mol.ToBinary(), 5000, 0xC0FFEE)
+    assert conn.sent == [None]
+    assert conn.closed is True
+
+
+def test_embed_worker_exception(monkeypatch):
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC"))
+
+    def boom(*_a, **_k):
+        raise RuntimeError("embedding blew up")
+
+    monkeypatch.setattr(ocl.AllChem, "EmbedMolecule", boom)
+    conn = _FakeConn()
+    ocl._embed_worker(conn, mol.ToBinary(), 5000, 0xC0FFEE)
+    assert conn.sent == [None]
+    assert conn.closed is True
+
+
+def test_embed_attempt_with_timeout_success():
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC"))
+    assert mol.GetNumConformers() == 0
+    result = ocl._embed_attempt_with_timeout(mol, 5000, 0xC0FFEE, timeout_s=15.0)
+    assert result is True
+    assert mol.GetNumConformers() == 1
+    assert mol.GetConformer().Is3D()
+
+
+def test_embed_attempt_with_timeout_times_out():
+    # A zero-second budget guarantees the poll() never sees the child's
+    # reply in time, regardless of how fast embedding itself would be.
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC"))
+    result = ocl._embed_attempt_with_timeout(mol, 5000, 0xC0FFEE, timeout_s=0.0)
+    assert result is False
+    assert mol.GetNumConformers() == 0
+
+
+def test_embed_attempt_with_timeout_kills_unresponsive_child(monkeypatch):
+    monkeypatch.setattr(ocl, "_embed_worker", _stubborn_worker)
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC"))
+    t0 = time.monotonic()
+    result = ocl._embed_attempt_with_timeout(mol, 5000, 0xC0FFEE, timeout_s=0.2)
+    elapsed = time.monotonic() - t0
+    assert result is False
+    # Should return well before the worker's 5s sleep would have finished,
+    # proving SIGKILL (not just waiting the SIGTERM-ignoring child out) fired.
+    assert elapsed < 4.0
+
+
+def test_embed_attempt_with_timeout_conformerless_reply(monkeypatch):
+    # _embed_worker never sends a conformer-less binary in practice (it only
+    # sends on success), but the parent-side guard against it should still
+    # behave correctly if it ever did.
+    monkeypatch.setattr(ocl, "_embed_worker", _conformerless_worker)
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC"))
+    result = ocl._embed_attempt_with_timeout(mol, 5000, 0xC0FFEE, timeout_s=5.0)
+    assert result is False
+    assert mol.GetNumConformers() == 0
+
+
+def test_embed_attempt_with_timeout_child_dies_silently(monkeypatch):
+    monkeypatch.setattr(ocl, "_embed_worker", _silent_worker)
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC"))
+    result = ocl._embed_attempt_with_timeout(mol, 5000, 0xC0FFEE, timeout_s=5.0)
+    assert result is False
 
 
 def test_ligand_openbabel_builder_and_ensure_branches(monkeypatch):
