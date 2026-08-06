@@ -1153,7 +1153,7 @@ def _embed_worker(conn: Any, mol_binary: bytes, etkdg_max_attempts: int, seed: i
     '''
 
     try:
-        mol = Chem.Mol(mol_binary)
+        mol = Chem.Mol(mol_binary)  # type: ignore[call-overload]  # RDKit stub lacks the bytes overload; ToBinary() returns bytes at runtime
         params = _get_etkdg_params(max_attempts=etkdg_max_attempts, enforce_chirality=True)
         params.randomSeed = seed
         if AllChem.EmbedMolecule(mol, params) == 0 and mol.GetNumConformers() > 0:
@@ -1239,7 +1239,7 @@ def _embed_attempt_with_timeout(
     if result is None:
         return False
 
-    embedded = Chem.Mol(result)
+    embedded = Chem.Mol(result)  # type: ignore[call-overload]  # RDKit stub lacks the bytes overload; ToBinary() returns bytes at runtime
     if embedded.GetNumConformers() == 0:
         return False
     mol.AddConformer(embedded.GetConformer(), assignId=True)
