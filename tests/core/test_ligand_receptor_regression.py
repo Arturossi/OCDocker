@@ -51,10 +51,6 @@ def _simple_ligand(path: str, name: str = "lig_cov2") -> ocl.Ligand:
     return lig
 
 
-class _DummyParams:
-    randomSeed = 0
-
-
 ## Public ##
 
 @pytest.fixture
@@ -137,22 +133,25 @@ def test_ligand_optimize_and_embedding_helpers(monkeypatch):
     monkeypatch.setattr(ocl.AllChem, "UFFOptimizeMolecule", lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("uff")))
     assert ocl._optimize_mol(mol) is False
 
-    monkeypatch.setattr(ocl, "_get_etkdg_params", lambda **_k: _DummyParams())
-
+    # Each attempt now runs in a forked subprocess (see _embed_attempt_with_timeout),
+    # so a plain-dict call counter mutated inside AllChem.EmbedMolecule would only
+    # ever mutate the child's copy. Mock at the _embed_attempt_with_timeout boundary
+    # instead, which is _try_embed_rdkit's actual retry-loop contract.
     state = {"calls": 0}
 
-    def fake_embed(mol_obj, _params):
+    def fake_embed_attempt(mol_obj, _etkdg_max_attempts, _seed):
         state["calls"] += 1
         if state["calls"] == 2:
             conf = Chem.Conformer(mol_obj.GetNumAtoms())
             conf.Set3D(True)
             mol_obj.AddConformer(conf)
-            return 0
-        return 1
+            return True
+        return False
 
-    monkeypatch.setattr(ocl.AllChem, "EmbedMolecule", fake_embed)
+    monkeypatch.setattr(ocl, "_embed_attempt_with_timeout", fake_embed_attempt)
     m2 = Chem.MolFromSmiles("CC")
     assert ocl._try_embed_rdkit(m2, max_attempts=3) is True
+    assert state["calls"] == 2
 
 
 def test_ligand_openbabel_builder_and_ensure_branches(monkeypatch):
