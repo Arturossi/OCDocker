@@ -51,11 +51,46 @@ def register_ocscore_subparser(subparsers: argparse._SubParsersAction) -> None:
         help="Staged OCScore pipeline (reduce, train, export tools)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    try:
+        from OCDocker.OCScore.CLI import register_subparsers
+    except ModuleNotFoundError as exc:
+        # Building the OCScore subcommand tree pulls in numpy/pandas/etc.
+        # transitively; those aren't core dependencies, so this must not
+        # raise here -- build_parser() runs for every ocdocker invocation
+        # (e.g. `ocdocker --doctor`), not just `ocdocker ocscore`.
+        parser.set_defaults(func=_missing_dependency_handler(exc))
+        return
+
     parser.set_defaults(func=cmd_ocscore)
     ocscore_sub = parser.add_subparsers(dest="ocscore_command", required=True)
-    from OCDocker.OCScore.CLI import register_subparsers
-
     register_subparsers(ocscore_sub)
+
+
+def _missing_dependency_handler(exc: ModuleNotFoundError):
+    '''Build a ``func`` handler that reports the missing OCScore dependency instead of crashing.
+
+    Parameters
+    ----------
+    exc : ModuleNotFoundError
+        The import failure raised while registering the OCScore subcommand tree.
+
+    Returns
+    -------
+    Callable[[argparse.Namespace], int]
+        Handler suitable for ``parser.set_defaults(func=...)``.
+    '''
+
+    def _handler(args: argparse.Namespace) -> int:
+        import OCDocker.CLI.common as cli_common
+
+        extra = cli_common._suggest_extra_for_missing_module(getattr(exc, "name", ""))
+        return cli_common._print_optional_dependency_hint(
+            feature="OCScore pipeline",
+            extra=extra,
+            exc=exc,
+        )
+
+    return _handler
 
 
 def cmd_ocscore(args: argparse.Namespace) -> int:

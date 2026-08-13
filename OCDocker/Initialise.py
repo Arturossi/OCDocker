@@ -1276,7 +1276,7 @@ def create_ocdocker_conf() -> None:
     #endregion
 
     #region GNINA variables
-    confGnina = "/data/hd4tb/OCDocker/software/docking/gnina/gnina.1.3.2.cuda12.8"
+    confGnina = "~/software/docking/gnina/gnina"
     confGnina_exhaustiveness = "8"
     confGnina_num_modes = "9"
     confGnina_scoring = "default"

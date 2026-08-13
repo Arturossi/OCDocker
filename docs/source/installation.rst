@@ -125,11 +125,20 @@ To install OCDocker, follow these steps:
 
       git clone https://github.com/Arturossi/OCDocker.git
       cd OCDocker
+      ./scripts/vendor_oddt.sh
+
       # Minimal core
       pip install -e .
 
       # Typical developer install
       pip install -e ".[all,dev]"
+
+   ``vendor_oddt.sh`` must run before ``pip install -e`` -- it vendors
+   `our ODDT fork <https://github.com/Arturossi/oddt>`_, which OCDocker's
+   packaging picks up as a local ``oddt/`` directory instead of a normal
+   dependency. Skipping it leaves ``import oddt`` resolving to whatever (if
+   any) vanilla ``oddt`` package happens to already be on your
+   ``PYTHONPATH``, which does not have the fixes this project relies on.
 
 Optional: build the Sphinx documentation
 -----------------------------------------

@@ -4,6 +4,23 @@ All notable changes to OCDocker are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.4] - 2026-08-06
+
+### Fixed
+
+- `Ligand._try_embed_rdkit()` could hang indefinitely (observed in production to exceed
+  40 minutes on a single call): RDKit's `AllChem.EmbedMolecule()` can run for a very
+  long time on molecules whose specified stereochemistry has no geometrically valid
+  strict embedding (e.g. bridged/caged bicyclic bridgeheads in some algorithmically
+  generated decoy SMILES), and a Python-level timeout cannot reliably interrupt it since
+  the interpreter does not regain control until the C call returns. Each embedding
+  attempt now runs in a disposable subprocess (`_embed_worker` /
+  `_embed_attempt_with_timeout`) under a hard wall-clock timeout, guaranteeing
+  termination regardless of what RDKit is doing internally. On timeout or failure this
+  returns `False` rather than relaxing stereochemistry as a fallback, since this code
+  has no way to know whether it is processing a benchmark decoy or a real candidate
+  whose specified stereocenters matter.
+
 ## [0.15.3] - 2026-07-29
 
 ### Added

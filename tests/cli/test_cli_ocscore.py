@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import builtins
 import json
 import tarfile
 
@@ -306,4 +307,30 @@ def test_ocscore_train_summary_row_helpers(tmp_path):
     unsafe = SimpleNamespace(name="../bad")
     with pytest.raises(ValueError, match="not safe"):
         ocscore_train._policy_output_dir(tmp_path, unsafe)
+
+
+@pytest.mark.order(465)
+def test_build_parser_survives_missing_ocscore_dependency(monkeypatch, capsys):
+    '''build_parser() must not crash when OCScore.CLI's own deps (numpy, etc.)
+    are missing -- it runs for every ocdocker invocation, not just `ocscore`.'''
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "OCDocker.OCScore.CLI":
+            raise ModuleNotFoundError("No module named 'numpy'", name="numpy")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    # build_parser() itself must succeed (this is what crashed before the fix).
+    parser = cli.build_parser()
+    args = parser.parse_args(["ocscore"])
+
+    # The registered ocscore command must report the missing dependency instead
+    # of raising, since its real subcommand tree could not be built.
+    assert args.func(args) == 2
+    captured = capsys.readouterr()
+    assert "numpy" in captured.out
+    assert 'pip install "ocdocker[docking]"' in captured.out
 

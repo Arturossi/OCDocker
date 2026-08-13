@@ -15,6 +15,8 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+# Vendored via scripts/vendor_oddt.sh; not tracked, regenerated at build time
+/oddt/
 develop-eggs/
 dist/
 downloads/

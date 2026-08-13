@@ -1,5 +1,5 @@
 OCDocker.OCScore.CLI package
-==========================
+=============================
 
 Staged-pipeline CLI subcommands registered under ``ocdocker ocscore``.
 

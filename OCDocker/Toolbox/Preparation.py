@@ -10,12 +10,7 @@ preparing ligands and receptors using different tools (MGLTools, SPORES, OpenBab
 
 Usage:
 
-from OCDocker.Toolbox.Preparation import (
-    PreparationStrategy,
-    MGLToolsPreparationStrategy,
-    SPORESPreparationStrategy,
-    OpenBabelPreparationStrategy
-)
+from OCDocker.Toolbox.Preparation import MGLToolsPreparationStrategy
 '''
 
 # Imports
