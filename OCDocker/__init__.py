@@ -11,13 +11,17 @@ import OCDocker as ocdocker
 
 Packages
 --------
+- API: Public API helpers for scheduler-friendly workflows.
 - CLI: Command-line interface helpers.
+- Console: Interactive Python console with OCDocker pre-loaded.
 - DB: Database management utilities.
 - Docking: Docking routines.
+- MCP: Model Context Protocol server for LLM-driven orchestration.
 - OCScore: Scoring and ML utilities.
 - Processing: Pre/post-processing workflows.
 - Rescoring: Rescoring routines.
 - Toolbox: Shared toolbox utilities.
+- Workbench: Post-ablation analysis dashboard and API.
 
 Modules
 -------

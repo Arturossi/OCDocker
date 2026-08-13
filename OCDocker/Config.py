@@ -699,8 +699,7 @@ class GninaConfig:
         Autobox padding (Å), by default ``"4"`` and ``"1"``.
     no_lig : str, optional
         Disable ligand input flag, by default ``"no"``.
-    covalent_rec_atom, covalent_lig_atom_pattern, covalent_lig_atom_position,
-    covalent_fix_lig_atom_position, covalent_bond_order, covalent_optimize_lig : str, optional
+    covalent_rec_atom, covalent_lig_atom_pattern, covalent_lig_atom_position, covalent_fix_lig_atom_position, covalent_bond_order, covalent_optimize_lig : str, optional
         Covalent docking options, by default ``"no"`` except ``covalent_bond_order`` (``"1"``).
     exhaustiveness : str, optional
         Search exhaustiveness, by default ``"8"``.

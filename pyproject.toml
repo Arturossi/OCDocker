@@ -47,6 +47,16 @@ version = { attr = "OCDocker._version.__version__" }
 [tool.setuptools.package-data]
 "OCDocker.OCScore" = ["Protocols/*.yml", "Protocols/Ablations/*.yml"]
 "OCDocker.Workbench" = ["static/*", "Snakefiles/*.smk"]
+# Vendored ODDT fork (scripts/vendor_oddt.sh) is built by OCDocker's own
+# packaging config, not its own setup.py, so its data files (needed to train
+# RFScore/NNScore/PLECscore scoring functions on first run) must be declared
+# here too or they're silently dropped from the wheel.
+"oddt.scoring.functions" = ["NNScore/*.csv", "RFScore/*.csv", "PLECscore/*.json", "PLECscore/*.csv.gz"]
+"oddt.toolkits.extras" = ["pdb_residue_templates.smi"]
+# oddt/filter/ has no __init__.py upstream, so it isn't its own discovered
+# package; declare its data file under "oddt" (a real package) instead --
+# virtualscreening.py's PAINS filter reads it via a package-relative path.
+"oddt" = ["filter/pains.smarts"]
 
 [project.urls]
 Homepage = "https://github.com/Arturossi/OCDocker"

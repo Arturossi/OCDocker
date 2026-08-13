@@ -10,7 +10,7 @@ wheel/sdist through ``pyproject.toml`` package data:
    "OCDocker.OCScore" = ["Protocols/*.yml", "Protocols/Ablations/*.yml"]
 
 Training protocols
-----------------
+------------------
 
 YAML files under ``OCDocker/OCScore/Protocols/`` define replica counts, Optuna
 trial budgets, split policy, reporting artifacts, and optional ablation blocks.

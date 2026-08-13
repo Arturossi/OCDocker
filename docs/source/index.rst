@@ -53,6 +53,7 @@ Welcome to the official documentation for OCDocker. This documentation provides 
    OCDocker.Toolbox
    manual
    usage
+   workbench_served_root
    development
    ocscore_replication
    error_handling

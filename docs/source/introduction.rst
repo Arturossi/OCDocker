@@ -8,7 +8,7 @@ Welcome to OCDocker's documentation!
 
 Introduction
 ------------
-OCDocker is a project designed to make the process of Virtual Screening (VS) more automatic. It contains interfaces for the most popular docking software, such as AutoDock Vina, SMINA, and PLANTS (More to be implemented). It is also capable of extracting molecular descriptors from the ligands and receptors, and performing post-processing of the results. Then finally train and apply machine learning models to perform consensus scoring.
+OCDocker is a project designed to make the process of Virtual Screening (VS) more automatic. It contains interfaces for the most popular docking software, such as AutoDock Vina, SMINA, PLANTS, and GNINA (more engines, such as Dock6 and LeDock, are planned). It is also capable of extracting molecular descriptors from the ligands and receptors, and performing post-processing of the results. Then finally train and apply machine learning models to perform consensus scoring.
 
 .. toctree::
    :maxdepth: 5
