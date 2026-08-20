@@ -229,7 +229,18 @@ def test_package_data_paths_exist_on_disk():
     assert list(root.glob("OCScore/Protocols/Ablations/*.yml")), "expected bundled ablation policies"
     static_dir = root / "Workbench" / "static"
     assert static_dir.is_dir()
-    for name in ("index.html", "app.css", "app.js"):
+    javascript_files = (
+        "app-core.js",
+        "app-jobs.js",
+        "app-comparison.js",
+        "app-plots.js",
+        "app-results.js",
+        "app-ablation-design.js",
+        "app-vs-design.js",
+        "app-workspace.js",
+        "app.js",
+    )
+    for name in ("index.html", "app.css", *javascript_files):
         assert (static_dir / name).is_file(), f"missing Workbench static asset: {name}"
 
 

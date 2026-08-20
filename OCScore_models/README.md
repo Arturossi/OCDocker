@@ -2,7 +2,7 @@
 
 Pretrained OCScore models, ready to score new data without retraining.
 
-These four configurations come from the DUDEz feature-ablation study described
+These five configurations come from the DUDEz feature-ablation study described
 in the OCScore paper (`data/ocdb2/OCScore/output/latex/main.tex`, Sections
 4.4/4.6). Each one is a real, trained model bundle picked from the study's
 per-seed replicas — not a toy or placeholder.
@@ -13,6 +13,7 @@ per-seed replicas — not a toy or placeholder.
 | #05 | `ligand_plus_scoring_function_no_pmi` | replica_001 (43) | 0.6187 | 0.4579 | Genuinely-distributed cluster, survives the shortcut-risk screen |
 | #09 | `ligand_plus_scoring_function_no_shape_size_no_autocorr2d` | replica_004 (46) | 0.6035 | 0.4574 | Genuinely-distributed cluster, survives the shortcut-risk screen |
 | #12 | `no_pmi` | replica_004 (46) | 0.6183 | 0.4547 | Genuinely-distributed cluster, survives the shortcut-risk screen |
+| #14 | `full_ocscore` | replica_000 (42) | 0.6218 | 0.3926 | Reference/baseline: complete 363-feature set, no ablation |
 
 Config numbers match the `#NN` identifiers used throughout the paper and in
 `examples/24_ocscore_bedroc_shortcut_risk_scatter.py`. Full per-config metadata
@@ -22,7 +23,7 @@ Config numbers match the `#NN` identifiers used throughout the paper and in
 ## Why these five numbers and not others
 
 Each ablation policy was trained 5 times with different seeds. Within each of
-the four configurations above, the shipped replica is the one with the
+the configurations above, the shipped replica is the one with the
 **highest validation-split BEDROC** among its 5 seeds — the same criterion the
 paper uses to rank and select configurations (Section 4.6), so the shipped
 weights were not cherry-picked on the DUDEz test split. The recorded

@@ -1,0 +1,30 @@
+{
+  "architecture_path": "/data/hd4tb/OCDocker/data/ocdb2/OCScore/output/train/replica_000/pdbbind/best_model/architecture.json",
+  "checkpoint_path": "/data/hd4tb/OCDocker/data/ocdb2/OCScore/output/train/replica_000/pdbbind/best_model/best_model.pt",
+  "direction": "minimize",
+  "export_dir": "/data/hd4tb/OCDocker/data/ocdb2/OCScore/output/train/replica_000/pdbbind/best_model",
+  "feature_metadata_path": "/data/hd4tb/OCDocker/data/ocdb2/OCScore/output/train/replica_000/pdbbind/best_model/feature_metadata.json",
+  "final_objective_value": 1.8120720465380444,
+  "git_commit": "f11285cf8ed158173126fadb8abf0aa8c0aac13b",
+  "objective_metric": "RMSE",
+  "retrain_config_path": "/data/hd4tb/OCDocker/data/ocdb2/OCScore/output/train/replica_000/pdbbind/best_model/retrain_config.json",
+  "source_checkpoint_path": "/data/hd4tb/OCDocker/data/ocdb2/OCScore/output/train/replica_000/pdbbind/pdbbind_best.pt",
+  "task": "pdbbind_regression",
+  "test_metrics": {
+    "MAE": 1.344178818250121,
+    "Pearson r": 0.7195465043455054,
+    "R2": 0.5129018560247256,
+    "RMSE": 1.7822031074877964,
+    "Spearman rho": 0.7150801648148765
+  },
+  "timestamp_utc": "2026-06-04T05:33:33.625583+00:00",
+  "training_metrics": {},
+  "trial_number": 62,
+  "validation_metrics": {
+    "MAE": 1.3676646729560045,
+    "Pearson r": 0.7065641754160648,
+    "R2": 0.49299542419202946,
+    "RMSE": 1.8120720465380444,
+    "Spearman rho": 0.7032971755349485
+  }
+}

@@ -28,11 +28,24 @@ See the LICENSE file for full terms.
 WORKBENCH_WEB_INDEX_ROUTE: Final[str] = "/app"
 WORKBENCH_WEB_FAVICON_ROUTE: Final[str] = "/app-favicon.png"
 WORKBENCH_WEB_BRAND_LOGO_ROUTE: Final[str] = "/app-brand-logo.png"
+# These remain classic scripts so the extracted files share the original global
+# lexical scope. Their order is therefore part of the Workbench runtime contract.
+WORKBENCH_JAVASCRIPT_FILES: Final[tuple[str, ...]] = (
+    "app-core.js",
+    "app-jobs.js",
+    "app-comparison.js",
+    "app-plots.js",
+    "app-results.js",
+    "app-ablation-design.js",
+    "app-vs-design.js",
+    "app-workspace.js",
+    "app.js",
+)
 WORKBENCH_WEB_ROUTES: Final[tuple[str, ...]] = (
     "/app",
     "/app/",
     "/app.css",
-    "/app.js",
+    *(f"/{filename}" for filename in WORKBENCH_JAVASCRIPT_FILES),
     WORKBENCH_WEB_FAVICON_ROUTE,
     WORKBENCH_WEB_BRAND_LOGO_ROUTE,
 )
@@ -41,7 +54,10 @@ WORKBENCH_STATIC_DIR: Final[Path] = Path(__file__).resolve().parent / "static"
 _WEB_ASSET_FILES: Final[dict[str, tuple[str, str]]] = {
     "/app": ("text/html; charset=utf-8", "index.html"),
     "/app.css": ("text/css; charset=utf-8", "app.css"),
-    "/app.js": ("text/javascript; charset=utf-8", "app.js"),
+    **{
+        f"/{filename}": ("text/javascript; charset=utf-8", filename)
+        for filename in WORKBENCH_JAVASCRIPT_FILES
+    },
 }
 
 # Functions
@@ -191,6 +207,7 @@ def build_workbench_web_asset(path: str) -> tuple[str, bytes]:
 
 __all__ = [
     "WORKBENCH_STATIC_DIR",
+    "WORKBENCH_JAVASCRIPT_FILES",
     "WORKBENCH_WEB_INDEX_ROUTE",
     "WORKBENCH_WEB_FAVICON_ROUTE",
     "WORKBENCH_WEB_BRAND_LOGO_ROUTE",

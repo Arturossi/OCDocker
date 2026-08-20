@@ -50,6 +50,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e ".[all,dev]"
 
+    - name: Install Workbench test browser
+      run: |
+        python -m playwright install --with-deps chromium
+
     - name: Verify critical runtime imports
       run: |
         python - <<'PY'

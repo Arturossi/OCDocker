@@ -79,8 +79,10 @@ DEFAULT_FAMILY_SPEC = {
 # instead of being shrunk by ~40% as they would at the library's wider default.
 PAPER_FIGSIZE = (6.3, 4.6)
 
-# The paper renders this figure in Portuguese; the library ships English defaults,
-# so the localized strings live here, in the caller, and never in the library.
+# The paper renders this figure in Portuguese; the library ships English defaults
+# for title/xlabel but falls back to raw family keys (e.g. "ligand_PMI") when no
+# family_labels are given, so both localized string sets live here, in the caller,
+# and never in the library.
 PT_TEXT = {
     "title": "Composição da importância SHAP por família de descritores",
     "xlabel": "Importância SHAP relativa (%, média entre as réplicas)",
@@ -89,6 +91,16 @@ PT_TEXT = {
         "ligand_other": "Demais descritores do ligante",
         "receptor": "Descritores do receptor",
         "scoring_function": "Funções de pontuação",
+    },
+}
+EN_TEXT = {
+    "title": "SHAP importance composition by descriptor family",
+    "xlabel": "Relative SHAP importance (%, mean across replicas)",
+    "family_labels": {
+        "ligand_PMI": "Ligand PMI",
+        "ligand_other": "Other ligand descriptors",
+        "receptor": "Receptor descriptors",
+        "scoring_function": "Scoring functions",
     },
 }
 
@@ -247,7 +259,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         figsize=PAPER_FIGSIZE,
         legend_ncol=2,
         file_stem="figura3_shap_familia",
-        **(PT_TEXT if args.lang == "pt" else {}),
+        **(PT_TEXT if args.lang == "pt" else EN_TEXT),
     )
     print(f"Wrote {artifacts['family_composition_png']}")
     print(f"Wrote {artifacts['family_composition_csv']}")

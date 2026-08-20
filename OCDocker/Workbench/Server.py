@@ -961,12 +961,6 @@ def build_workbench_api_app(
 
         return _model_payload(job_manager.cancel(job_id))
 
-    @app.get("/app")
-    @app.get("/app/")
-    @app.get("/app.css")
-    @app.get("/app.js")
-    @app.get("/app-favicon.png")
-    @app.get("/app-brand-logo.png")
     async def get_web_asset(request: Request) -> Response:
         '''Serve one packaged Workbench browser asset.'''
 
@@ -978,6 +972,9 @@ def build_workbench_api_app(
         except (KeyError, FileNotFoundError) as exc:
             raise WorkbenchAPIError(str(exc), status_code=404) from exc
         return Response(content=body, media_type=content_type)
+
+    for web_asset_route in WORKBENCH_WEB_ROUTES:
+        app.add_api_route(web_asset_route, get_web_asset, methods=["GET"])
 
     return app
 

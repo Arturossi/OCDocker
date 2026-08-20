@@ -16,6 +16,7 @@ import pytest
 
 from OCDocker.Workbench import build_workbench_web_asset
 from OCDocker.Workbench import is_workbench_web_asset_path
+from OCDocker.Workbench.Web import WORKBENCH_JAVASCRIPT_FILES
 from OCDocker.Workbench.Web import WORKBENCH_STATIC_DIR
 
 # License
@@ -36,13 +37,19 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     '''Workbench web assets include only the strict OCScore dashboard shell.'''
 
     content_type, body = build_workbench_web_asset("/app")
-    script_type, script = build_workbench_web_asset("/app.js")
+    script_payloads = [build_workbench_web_asset(f"/{filename}") for filename in WORKBENCH_JAVASCRIPT_FILES]
+    script_type = script_payloads[-1][0]
+    script = b"\n".join(payload for _, payload in script_payloads)
     style_type, style = build_workbench_web_asset("/app.css")
 
     assert content_type == "text/html; charset=utf-8"
     assert script_type == "text/javascript; charset=utf-8"
     assert style_type == "text/css; charset=utf-8"
     assert b"OCScore Control Dashboard" in body
+    script_positions = []
+    for filename in WORKBENCH_JAVASCRIPT_FILES:
+        script_positions.append(body.index(f'src="/{filename}"'.encode()))
+    assert script_positions == sorted(script_positions)
     assert b"/app-favicon.png" in body
     assert b"/app-brand-logo.png" in body
     assert b'class="brand-logo"' in body
@@ -221,12 +228,12 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
     assert b'lines.join("\\n")' in script
     MiniRacer = pytest.importorskip("py_mini_racer").MiniRacer
 
-    # The bootstrap block at the end of app.js touches the DOM on load, which a bare
-    # JS engine has no `document` for. Cut the file at its marker rather than listing
-    # the individual calls to strip: that list silently rots every time a new panel
-    # adds top-level wiring, and the failure then looks like a syntax error.
+    # The bootstrap block at the end of the script bundle touches the DOM on load,
+    # which a bare JS engine has no `document` for. Cut the bundle at its marker
+    # rather than listing individual calls to strip: that list silently rots every
+    # time a new panel adds top-level wiring, and the failure looks like a syntax error.
     source = script.decode("utf-8")
-    assert "// --- BOOTSTRAP ---" in source, "app.js lost its bootstrap marker"
+    assert "// --- BOOTSTRAP ---" in source, "Workbench scripts lost their bootstrap marker"
     parse_only = source.split("// --- BOOTSTRAP ---")[0]
     ctx = MiniRacer()
     ctx.eval(parse_only)
@@ -331,18 +338,19 @@ def test_build_workbench_web_asset_serves_strict_ocscore_dashboard() -> None:
 def test_workbench_static_assets_exist_on_disk() -> None:
     '''Packaged Workbench UI assets live beside Web.py for pip installs.'''
 
-    for name in ("index.html", "app.css", "app.js"):
+    for name in ("index.html", "app.css", *WORKBENCH_JAVASCRIPT_FILES):
         assert (WORKBENCH_STATIC_DIR / name).is_file()
 
 
 def test_build_workbench_web_asset_matches_static_files_on_disk() -> None:
     '''HTTP asset payloads match the packaged static files on disk.'''
 
-    for route, filename in (
+    assets = (
         ("/app", "index.html"),
         ("/app.css", "app.css"),
-        ("/app.js", "app.js"),
-    ):
+        *((f"/{filename}", filename) for filename in WORKBENCH_JAVASCRIPT_FILES),
+    )
+    for route, filename in assets:
         _, body = build_workbench_web_asset(route)
         assert body == (WORKBENCH_STATIC_DIR / filename).read_bytes()
 
@@ -353,7 +361,8 @@ def test_is_workbench_web_asset_path_recognizes_known_routes() -> None:
     assert is_workbench_web_asset_path("/app") is True
     assert is_workbench_web_asset_path("/app/") is True
     assert is_workbench_web_asset_path("/app.css") is True
-    assert is_workbench_web_asset_path("/app.js") is True
+    for filename in WORKBENCH_JAVASCRIPT_FILES:
+        assert is_workbench_web_asset_path(f"/{filename}") is True
     assert is_workbench_web_asset_path("/app-favicon.png") is True
     assert is_workbench_web_asset_path("/app-brand-logo.png") is True
     assert is_workbench_web_asset_path("/") is False
