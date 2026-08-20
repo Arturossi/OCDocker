@@ -4,7 +4,7 @@
 ###############################################################################
 '''
 Example: score raw pipeline data with one of the pretrained OCScore models
-shipped in ``OCScore_models/`` (configurations #03, #05, #09, #12, #14, and #16 from the
+shipped in ``OCScore_models/`` (all 22 configurations #01-#22 from the
 DUDEz ablation study).
 
 Each shipped configuration is a DUDEz-screening ``best_model/`` export bundle
@@ -91,7 +91,7 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--config",
         type=str,
         default="03",
-        choices=("03", "05", "09", "12", "14", "16"),
+        choices=tuple(f"{i:02d}" for i in range(1, 23)),
         help="Shipped configuration to score with (default: %(default)s; #03 is the configuration recommended in the paper).",
     )
     parser.add_argument(

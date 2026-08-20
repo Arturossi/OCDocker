@@ -1,0 +1,79 @@
+{
+  "dae": {
+    "enabled": true,
+    "gaussian_std": 0.08830994716697349,
+    "mask_prob": 0.04455409401832981,
+    "noise_type": "mask"
+  },
+  "decoder": {
+    "depth": 3,
+    "enabled": true,
+    "hidden_sizes": [
+      8,
+      128,
+      256
+    ],
+    "lambda_rec": 0.05
+  },
+  "encoder": {
+    "activation": "GELU",
+    "depth": 3,
+    "dropout": 0.2708421488499129,
+    "hidden_sizes": [
+      256,
+      128,
+      128
+    ],
+    "is_monotonic": true,
+    "latent_dim": 8,
+    "resolved": {
+      "hidden_sizes": [
+        256,
+        128,
+        128
+      ],
+      "latent_dim": 8,
+      "output_dim": 8,
+      "projection_dim": 0
+    }
+  },
+  "input_size": 347,
+  "model_config": {
+    "dae_gaussian_std": 0.08830994716697349,
+    "dae_mask_prob": 0.04455409401832981,
+    "dae_noise_type": "mask",
+    "decoder_depth": 3,
+    "decoder_hidden_sizes": [
+      8,
+      128,
+      256
+    ],
+    "decoder_lambda_rec": 0.05,
+    "encoder_activation": "GELU",
+    "encoder_architecture_index": 62,
+    "encoder_depth": 3,
+    "encoder_dropout": 0.2708421488499129,
+    "encoder_hidden_sizes": [
+      256,
+      128,
+      128
+    ],
+    "encoder_is_monotonic": true,
+    "encoder_latent_dim": 8,
+    "optimizer_batch_size": 32,
+    "optimizer_learning_rate": 0.0007550436077994452,
+    "optimizer_weight_decay": 0.0005957683132001981,
+    "pdbbind_huber_delta": 0.3059700976665134,
+    "pdbbind_regression_loss": "mse",
+    "projection_dim": 0
+  },
+  "projection": {
+    "enabled": false,
+    "projection_dim": 0
+  },
+  "regression_head": {
+    "huber_delta": 0.3059700976665134,
+    "loss": "mse"
+  },
+  "task": "pdbbind_regression"
+}
