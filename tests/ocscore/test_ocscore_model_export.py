@@ -184,3 +184,131 @@ def test_export_and_reload_dudez_bundle(tmp_path):
     )
     assert isinstance(bundle["model"], ocstaged.DUDEzScreeningModel)
     assert bundle["scaler"] is None
+
+
+@pytest.mark.order(272)
+def test_dudez_bundle_falls_back_to_pdbbind_scaler(tmp_path):
+    # DUDEz bundles never persist their own scaler.joblib; scoring must fall
+    # back to the linked PDBbind bundle's scaler instead of using raw features.
+    import sklearn.preprocessing
+
+    input_size = 5
+
+    pdbbind_params = {
+        "encoder_architecture_index": 0,
+        "encoder_hidden_sizes": [6, 4],
+        "encoder_latent_dim": 3,
+        "encoder_depth": 2,
+        "encoder_is_monotonic": True,
+        "projection_dim": 0,
+        "encoder_activation": "GELU",
+        "encoder_dropout": 0.0,
+        "optimizer_learning_rate": 1e-3,
+        "optimizer_weight_decay": 1e-4,
+        "optimizer_batch_size": 4,
+        "decoder_hidden_sizes": [],
+        "decoder_depth": 0,
+        "decoder_lambda_rec": 0.0,
+        "dae_noise_type": "none",
+        "dae_mask_prob": 0.0,
+        "dae_gaussian_std": 0.0,
+        "pdbbind_regression_loss": "mse",
+        "pdbbind_huber_delta": 1.0,
+    }
+    pdbbind_model = ocstaged.build_pdbbind_model(input_size=input_size, params=pdbbind_params)
+    features = [f"f{i}" for i in range(input_size)]
+    rng = np.random.default_rng(1)
+    x_train = rng.normal(loc=50.0, scale=10.0, size=(8, input_size)).astype(np.float32)
+    pdbbind_splits = {
+        "X_train": x_train,
+        "y_train": rng.normal(size=8).astype(np.float32),
+        "X_val": rng.normal(loc=50.0, scale=10.0, size=(4, input_size)).astype(np.float32),
+        "y_val": rng.normal(size=4).astype(np.float32),
+        "X_test": rng.normal(loc=50.0, scale=10.0, size=(4, input_size)).astype(np.float32),
+        "y_test": rng.normal(size=4).astype(np.float32),
+        "train_indices": np.arange(8),
+        "validation_indices": np.arange(8, 12),
+        "test_indices": np.arange(12, 16),
+        "split_config": {"target_column": "experimental", "validation_size": 0.2, "test_size": 0.2},
+        "split_diagnostics": {},
+    }
+    fitted_scaler = sklearn.preprocessing.StandardScaler().fit(x_train)
+    pdbbind_splits["scaler"] = fitted_scaler
+
+    pdbbind_dir = tmp_path / "pdbbind_best_model"
+    ocexport.export_best_model_bundle(
+        export_dir=pdbbind_dir,
+        task="pdbbind_regression",
+        model=pdbbind_model,
+        model_config=pdbbind_params,
+        selected_features=features,
+        best_trial_number=1,
+        best_objective_value=1.0,
+        validation_metrics={"RMSE": 1.0},
+        test_metrics={"RMSE": 1.0},
+        stage_config={"epochs": 2, "n_trials": 1},
+        splits=pdbbind_splits,
+        objective_metric="RMSE",
+        direction="minimize",
+        best_params={"optimizer_batch_size": 4},
+        random_seed=1,
+    )
+    assert (pdbbind_dir / "scaler.joblib").exists()
+
+    # DUDEz bundle exported without its own scaler (splits has no "scaler" key)
+    dudez_params = {
+        "dudez_use_transfer": False,
+        "dudez_classifier_hidden_size": 4,
+        "dudez_classifier_dropout": 0.0,
+        "dudez_classifier_activation": "GELU",
+        "dudez_use_class_weighting": True,
+        "optimizer_learning_rate": 1e-3,
+        "optimizer_weight_decay": 1e-4,
+        "optimizer_batch_size": 8,
+    }
+    dudez_model = ocstaged.build_dudez_model(input_size=input_size, params=dudez_params, transferred_extractor=None)
+    dudez_splits = {
+        "train_indices": np.array([0, 1, 2, 3]),
+        "validation_indices": np.array([4, 5]),
+        "test_indices": np.array([6, 7]),
+        "split_config": {"validation_size": 0.2, "test_size": 0.2},
+        "split_diagnostics": {},
+    }
+    dudez_dir = tmp_path / "dudez_best_model"
+    ocexport.export_best_model_bundle(
+        export_dir=dudez_dir,
+        task="dudez_screening",
+        model=dudez_model,
+        model_config=dudez_params,
+        selected_features=features,
+        best_trial_number=1,
+        best_objective_value=0.75,
+        validation_metrics={"BEDROC": 0.75},
+        test_metrics={"BEDROC": 0.7},
+        stage_config={"epochs": 2, "primary_metric": "BEDROC"},
+        splits=dudez_splits,
+        objective_metric="BEDROC",
+        direction="maximize",
+        best_params={"optimizer_batch_size": 8},
+        random_seed=1,
+        validate=False,
+    )
+    assert not (dudez_dir / "scaler.joblib").exists()
+
+    # Without pdbbind_export_dir: no regression, scaler stays None.
+    bundle_no_fallback = ocexport.load_exported_model(dudez_dir)
+    assert bundle_no_fallback["scaler"] is None
+
+    # With pdbbind_export_dir: falls back to the PDBbind bundle's fitted scaler.
+    bundle_with_fallback = ocexport.load_exported_model(dudez_dir, pdbbind_export_dir=pdbbind_dir)
+    assert bundle_with_fallback["scaler"] is not None
+    assert isinstance(bundle_with_fallback["scaler"], sklearn.preprocessing.StandardScaler)
+    np.testing.assert_allclose(bundle_with_fallback["scaler"].mean_, fitted_scaler.mean_)
+
+    # predict_from_export must forward pdbbind_export_dir into the scaler
+    # fallback too, not just into transferred-extractor resolution.
+    import pandas as pd
+    df = pd.DataFrame(rng.normal(loc=50.0, scale=10.0, size=(3, input_size)), columns=features)
+    predictions = ocexport.predict_from_export(dudez_dir, df, pdbbind_export_dir=pdbbind_dir)
+    assert "ocscore_prediction" in predictions.columns
+    assert len(predictions) == 3
