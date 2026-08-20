@@ -1,0 +1,2116 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html">
+
+    <!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 --><title>Python Module Index - OCDocker 0.15.5 documentation</title>
+<link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">OCDocker 0.15.5 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">OCDocker 0.15.5 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="introduction.html">Welcome to OCDocker’s documentation!</a><input aria-label="Toggle navigation of Welcome to OCDocker’s documentation!" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.html">OCDocker package</a><input aria-label="Toggle navigation of OCDocker package" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.API.html">OCDocker.API package</a><input aria-label="Toggle navigation of OCDocker.API package" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.API.Pipeline.html">OCDocker.API.Pipeline module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.DB.html">OCDocker.DB package</a><input aria-label="Toggle navigation of OCDocker.DB package" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.DB.Models.html">OCDocker.DB.Models package</a><input aria-label="Toggle navigation of OCDocker.DB.Models package" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.Models.Base.html">OCDocker.DB.Models.Base module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.Models.Complexes.html">OCDocker.DB.Models.Complexes module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.Models.Ligands.html">OCDocker.DB.Models.Ligands module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.Models.Receptors.html">OCDocker.DB.Models.Receptors module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.DB.html">OCDocker.DB.DB module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.DBMinimal.html">OCDocker.DB.DBMinimal module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.DUDEz.html">OCDocker.DB.DUDEz module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.LITPCBA.html">OCDocker.DB.LITPCBA module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.PDBbind.html">OCDocker.DB.PDBbind module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.baseDB.html">OCDocker.DB.baseDB module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Docking.html">OCDocker.Docking package</a><input aria-label="Toggle navigation of OCDocker.Docking package" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.Docking.Future.html">OCDocker.Docking.Future package</a><input aria-label="Toggle navigation of OCDocker.Docking.Future package" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.Future.Dock3.html">OCDocker.Docking.Future.Dock3 module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.Future.Dock6.html">OCDocker.Docking.Future.Dock6 module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.Future.GEMDOCK.html">OCDocker.Docking.Future.GEMDOCK module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.Future.Ledock.html">OCDocker.Docking.Future.Ledock module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.Future.RDock.html">OCDocker.Docking.Future.RDock module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.PLANTS.html">OCDocker.Docking.PLANTS module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.Smina.html">OCDocker.Docking.Smina module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.Vina.html">OCDocker.Docking.Vina module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.Gnina.html">OCDocker.Docking.Gnina module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.BaseVinaLike.html">OCDocker.Docking.BaseVinaLike module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.CLI.html">OCDocker.CLI package</a><input aria-label="Toggle navigation of OCDocker.CLI package" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.CLI.workbench.html">OCDocker.CLI.workbench module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Console.html">OCDocker.Console package</a><input aria-label="Toggle navigation of OCDocker.Console package" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Console.app.html">OCDocker.Console.app module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Console.session.html">OCDocker.Console.session module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Console.commands.html">OCDocker.Console.commands module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Console.render.html">OCDocker.Console.render module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.MCP.html">OCDocker.MCP package</a><input aria-label="Toggle navigation of OCDocker.MCP package" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.MCP.Server.html">OCDocker.MCP.Server module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.OCScore.html">OCDocker.OCScore package</a><input aria-label="Toggle navigation of OCDocker.OCScore package" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.html">OCDocker.OCScore.Analysis package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis package" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.html">OCDocker.OCScore.Analysis.Metrics package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.Metrics package" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Bootstrap.html">OCDocker.OCScore.Analysis.Metrics.Bootstrap module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Calibration.html">OCDocker.OCScore.Analysis.Metrics.Calibration module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Ranking.html">OCDocker.OCScore.Analysis.Metrics.Ranking module</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.html">OCDocker.OCScore.Analysis.Plotting package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.Plotting package" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Colouring.html">OCDocker.OCScore.Analysis.Plotting.Colouring module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots.html">OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Core.html">OCDocker.OCScore.Analysis.Plotting.Core module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots.html">OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.MetricsPlots.html">OCDocker.OCScore.Analysis.Plotting.MetricsPlots module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Stats.html">OCDocker.OCScore.Analysis.Plotting.Stats module</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.html">OCDocker.OCScore.Analysis.SHAP package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.SHAP package" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.ExportRunner.html">OCDocker.OCScore.Analysis.SHAP.ExportRunner module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Explain.html">OCDocker.OCScore.Analysis.SHAP.Explain module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Plots.html">OCDocker.OCScore.Analysis.SHAP.Plots module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Paths.html">OCDocker.OCScore.Analysis.SHAP.Paths module</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.ProductionBaselines.html">OCDocker.OCScore.Analysis.ProductionBaselines module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.OCScore.CLI.html">OCDocker.OCScore.CLI package</a><input aria-label="Toggle navigation of OCDocker.OCScore.CLI package" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.CLI.reduce.html">OCDocker.OCScore.CLI.reduce module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.CLI.train.html">OCDocker.OCScore.CLI.train module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.CLI.export_tools.html">OCDocker.OCScore.CLI.export_tools module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.OCScore.Optimization.html">OCDocker.OCScore.Optimization package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Optimization package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.ModelCrossValidation.html">OCDocker.OCScore.Optimization.ModelCrossValidation module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.ModelExport.html">OCDocker.OCScore.Optimization.ModelExport module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.OptunaSearchSpace.html">OCDocker.OCScore.Optimization.OptunaSearchSpace module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.OptunaStorage.html">OCDocker.OCScore.Optimization.OptunaStorage module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.Protocol.html">OCDocker.OCScore.Optimization.Protocol module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.StagedOptuna.html">OCDocker.OCScore.Optimization.StagedOptuna module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.StagedTrainProtocol.html">OCDocker.OCScore.Optimization.StagedTrainProtocol module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.OCScore.Utils.html">OCDocker.OCScore.Utils package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Utils package" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.ContentHash.html">OCDocker.OCScore.Utils.ContentHash module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.Data.html">OCDocker.OCScore.Utils.Data module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.DescriptorAggregateBaselines.html">OCDocker.OCScore.Utils.DescriptorAggregateBaselines module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.DUDEzScaling.html">OCDocker.OCScore.Utils.DUDEzScaling module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.DUDEzSplit.html">OCDocker.OCScore.Utils.DUDEzSplit module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.ExternalBlindEvaluation.html">OCDocker.OCScore.Utils.ExternalBlindEvaluation module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.FeaturePolicy.html">OCDocker.OCScore.Utils.FeaturePolicy module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.FeatureReduction.html">OCDocker.OCScore.Utils.FeatureReduction module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.FeatureSelectionMetadata.html">OCDocker.OCScore.Utils.FeatureSelectionMetadata module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.FixedOuterSplit.html">OCDocker.OCScore.Utils.FixedOuterSplit module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.IO.html">OCDocker.OCScore.Utils.IO module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.LeakageAudit.html">OCDocker.OCScore.Utils.LeakageAudit module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.PDBbindSplit.html">OCDocker.OCScore.Utils.PDBbindSplit module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.ProtocolProvenance.html">OCDocker.OCScore.Utils.ProtocolProvenance module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.RawModelingInput.html">OCDocker.OCScore.Utils.RawModelingInput module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.TrainOnlyFeatureReduction.html">OCDocker.OCScore.Utils.TrainOnlyFeatureReduction module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Protocols.html">Bundled OCScore protocol data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Scoring.html">OCDocker.OCScore.Scoring module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Processing.html">OCDocker.Processing package</a><input aria-label="Toggle navigation of OCDocker.Processing package" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.Processing.Postprocessing.html">OCDocker.Processing.Postprocessing package</a><input aria-label="Toggle navigation of OCDocker.Processing.Postprocessing package" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Processing.Postprocessing.Digest.html">OCDocker.Processing.Postprocessing.Digest module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.Processing.Preprocessing.html">OCDocker.Processing.Preprocessing package</a><input aria-label="Toggle navigation of OCDocker.Processing.Preprocessing package" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Processing.Preprocessing.Prepare.html">OCDocker.Processing.Preprocessing.Prepare module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Processing.Preprocessing.RMSDClustering.html">OCDocker.Processing.Preprocessing.RMSDClustering module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Processing.Dock.html">OCDocker.Processing.Dock module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Processing.GarbageCollection.html">OCDocker.Processing.GarbageCollection module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Rescoring.html">OCDocker.Rescoring package</a><input aria-label="Toggle navigation of OCDocker.Rescoring package" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Rescoring.ODDT.html">OCDocker.Rescoring.ODDT module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Toolbox.html">OCDocker.Toolbox package</a><input aria-label="Toggle navigation of OCDocker.Toolbox package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Basetools.html">OCDocker.Toolbox.Basetools module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Constants.html">OCDocker.Toolbox.Constants module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Conversion.html">OCDocker.Toolbox.Conversion module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Downloading.html">OCDocker.Toolbox.Downloading module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.FilesFolders.html">OCDocker.Toolbox.FilesFolders module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.IO.html">OCDocker.Toolbox.IO module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Logging.html">OCDocker.Toolbox.Logging module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.MoleculeProcessing.html">OCDocker.Toolbox.MoleculeProcessing module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Preparation.html">OCDocker.Toolbox.Preparation module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Printing.html">OCDocker.Toolbox.Printing module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Reproducibility.html">OCDocker.Toolbox.Reproducibility module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Running.html">OCDocker.Toolbox.Running module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Security.html">OCDocker.Toolbox.Security module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Validation.html">OCDocker.Toolbox.Validation module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Workbench.html">OCDocker.Workbench package</a><input aria-label="Toggle navigation of OCDocker.Workbench package" class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Adoption.html">OCDocker.Workbench.Adoption module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Ablation.html">OCDocker.Workbench.Ablation module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.AblationDesign.html">OCDocker.Workbench.AblationDesign module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.AblationProtocolSimilarity.html">OCDocker.Workbench.AblationProtocolSimilarity module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Artifacts.html">OCDocker.Workbench.Artifacts module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Auth.html">OCDocker.Workbench.Auth module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Bundle.html">OCDocker.Workbench.Bundle module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.CampaignProgress.html">OCDocker.Workbench.CampaignProgress module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Comparison.html">OCDocker.Workbench.Comparison module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Decision.html">OCDocker.Workbench.Decision module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Evidence.html">OCDocker.Workbench.Evidence module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Export.html">OCDocker.Workbench.Export module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.IO.html">OCDocker.Workbench.IO module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Jobs.html">OCDocker.Workbench.Jobs module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Launch.html">OCDocker.Workbench.Launch module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Leaderboard.html">OCDocker.Workbench.Leaderboard module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.MetricsMatrix.html">OCDocker.Workbench.MetricsMatrix module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Logs.html">OCDocker.Workbench.Logs module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Models.html">OCDocker.Workbench.Models module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.OCScoreLayout.html">OCDocker.Workbench.OCScoreLayout module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.OptunaDashboard.html">OCDocker.Workbench.OptunaDashboard module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Overview.html">OCDocker.Workbench.Overview module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Planner.html">OCDocker.Workbench.Planner module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Plots.html">OCDocker.Workbench.Plots module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Preflight.html">OCDocker.Workbench.Preflight module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Report.html">OCDocker.Workbench.Report module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Registry.html">OCDocker.Workbench.Registry module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.RunDetail.html">OCDocker.Workbench.RunDetail module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Results.html">OCDocker.Workbench.Results module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Schema.html">OCDocker.Workbench.Schema module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Server.html">OCDocker.Workbench.Server module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Status.html">OCDocker.Workbench.Status module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Templates.html">OCDocker.Workbench.Templates module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.VSDesign.html">OCDocker.Workbench.VSDesign module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Web.html">OCDocker.Workbench.Web module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Config.html">OCDocker.Config module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Error.html">OCDocker.Error module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Initialise.html">OCDocker.Initialise module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Ligand.html">OCDocker.Ligand module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Receptor.html">OCDocker.Receptor module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="modules.html">OCDocker</a><input aria-label="Toggle navigation of OCDocker" class="toctree-checkbox" id="toctree-checkbox-25" name="toctree-checkbox-25" role="switch" type="checkbox"/><label for="toctree-checkbox-25"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.html">OCDocker package</a><input aria-label="Toggle navigation of OCDocker package" class="toctree-checkbox" id="toctree-checkbox-26" name="toctree-checkbox-26" role="switch" type="checkbox"/><label for="toctree-checkbox-26"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.API.html">OCDocker.API package</a><input aria-label="Toggle navigation of OCDocker.API package" class="toctree-checkbox" id="toctree-checkbox-27" name="toctree-checkbox-27" role="switch" type="checkbox"/><label for="toctree-checkbox-27"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.API.Pipeline.html">OCDocker.API.Pipeline module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.DB.html">OCDocker.DB package</a><input aria-label="Toggle navigation of OCDocker.DB package" class="toctree-checkbox" id="toctree-checkbox-28" name="toctree-checkbox-28" role="switch" type="checkbox"/><label for="toctree-checkbox-28"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.DB.Models.html">OCDocker.DB.Models package</a><input aria-label="Toggle navigation of OCDocker.DB.Models package" class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.DB.Models.Base.html">OCDocker.DB.Models.Base module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.DB.Models.Complexes.html">OCDocker.DB.Models.Complexes module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.DB.Models.Ligands.html">OCDocker.DB.Models.Ligands module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.DB.Models.Receptors.html">OCDocker.DB.Models.Receptors module</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.DB.html">OCDocker.DB.DB module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.DBMinimal.html">OCDocker.DB.DBMinimal module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.DUDEz.html">OCDocker.DB.DUDEz module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.LITPCBA.html">OCDocker.DB.LITPCBA module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.PDBbind.html">OCDocker.DB.PDBbind module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.baseDB.html">OCDocker.DB.baseDB module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.Docking.html">OCDocker.Docking package</a><input aria-label="Toggle navigation of OCDocker.Docking package" class="toctree-checkbox" id="toctree-checkbox-30" name="toctree-checkbox-30" role="switch" type="checkbox"/><label for="toctree-checkbox-30"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.Docking.Future.html">OCDocker.Docking.Future package</a><input aria-label="Toggle navigation of OCDocker.Docking.Future package" class="toctree-checkbox" id="toctree-checkbox-31" name="toctree-checkbox-31" role="switch" type="checkbox"/><label for="toctree-checkbox-31"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.Docking.Future.Dock3.html">OCDocker.Docking.Future.Dock3 module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.Docking.Future.Dock6.html">OCDocker.Docking.Future.Dock6 module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.Docking.Future.GEMDOCK.html">OCDocker.Docking.Future.GEMDOCK module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.Docking.Future.Ledock.html">OCDocker.Docking.Future.Ledock module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.Docking.Future.RDock.html">OCDocker.Docking.Future.RDock module</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.PLANTS.html">OCDocker.Docking.PLANTS module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.Smina.html">OCDocker.Docking.Smina module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.Vina.html">OCDocker.Docking.Vina module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.Gnina.html">OCDocker.Docking.Gnina module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.BaseVinaLike.html">OCDocker.Docking.BaseVinaLike module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.CLI.html">OCDocker.CLI package</a><input aria-label="Toggle navigation of OCDocker.CLI package" class="toctree-checkbox" id="toctree-checkbox-32" name="toctree-checkbox-32" role="switch" type="checkbox"/><label for="toctree-checkbox-32"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.CLI.workbench.html">OCDocker.CLI.workbench module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.Console.html">OCDocker.Console package</a><input aria-label="Toggle navigation of OCDocker.Console package" class="toctree-checkbox" id="toctree-checkbox-33" name="toctree-checkbox-33" role="switch" type="checkbox"/><label for="toctree-checkbox-33"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Console.app.html">OCDocker.Console.app module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Console.session.html">OCDocker.Console.session module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Console.commands.html">OCDocker.Console.commands module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Console.render.html">OCDocker.Console.render module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.MCP.html">OCDocker.MCP package</a><input aria-label="Toggle navigation of OCDocker.MCP package" class="toctree-checkbox" id="toctree-checkbox-34" name="toctree-checkbox-34" role="switch" type="checkbox"/><label for="toctree-checkbox-34"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.MCP.Server.html">OCDocker.MCP.Server module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.OCScore.html">OCDocker.OCScore package</a><input aria-label="Toggle navigation of OCDocker.OCScore package" class="toctree-checkbox" id="toctree-checkbox-35" name="toctree-checkbox-35" role="switch" type="checkbox"/><label for="toctree-checkbox-35"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.html">OCDocker.OCScore.Analysis package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis package" class="toctree-checkbox" id="toctree-checkbox-36" name="toctree-checkbox-36" role="switch" type="checkbox"/><label for="toctree-checkbox-36"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.html">OCDocker.OCScore.Analysis.Metrics package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.Metrics package" class="toctree-checkbox" id="toctree-checkbox-37" name="toctree-checkbox-37" role="switch" type="checkbox"/><label for="toctree-checkbox-37"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Bootstrap.html">OCDocker.OCScore.Analysis.Metrics.Bootstrap module</a></li>
+<li class="toctree-l7"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Calibration.html">OCDocker.OCScore.Analysis.Metrics.Calibration module</a></li>
+<li class="toctree-l7"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Ranking.html">OCDocker.OCScore.Analysis.Metrics.Ranking module</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.html">OCDocker.OCScore.Analysis.Plotting package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.Plotting package" class="toctree-checkbox" id="toctree-checkbox-38" name="toctree-checkbox-38" role="switch" type="checkbox"/><label for="toctree-checkbox-38"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Colouring.html">OCDocker.OCScore.Analysis.Plotting.Colouring module</a></li>
+<li class="toctree-l7"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots.html">OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots module</a></li>
+<li class="toctree-l7"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Core.html">OCDocker.OCScore.Analysis.Plotting.Core module</a></li>
+<li class="toctree-l7"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots.html">OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots module</a></li>
+<li class="toctree-l7"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.MetricsPlots.html">OCDocker.OCScore.Analysis.Plotting.MetricsPlots module</a></li>
+<li class="toctree-l7"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Stats.html">OCDocker.OCScore.Analysis.Plotting.Stats module</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.html">OCDocker.OCScore.Analysis.SHAP package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.SHAP package" class="toctree-checkbox" id="toctree-checkbox-39" name="toctree-checkbox-39" role="switch" type="checkbox"/><label for="toctree-checkbox-39"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.ExportRunner.html">OCDocker.OCScore.Analysis.SHAP.ExportRunner module</a></li>
+<li class="toctree-l7"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Explain.html">OCDocker.OCScore.Analysis.SHAP.Explain module</a></li>
+<li class="toctree-l7"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Plots.html">OCDocker.OCScore.Analysis.SHAP.Plots module</a></li>
+<li class="toctree-l7"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Paths.html">OCDocker.OCScore.Analysis.SHAP.Paths module</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.ProductionBaselines.html">OCDocker.OCScore.Analysis.ProductionBaselines module</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.OCScore.CLI.html">OCDocker.OCScore.CLI package</a><input aria-label="Toggle navigation of OCDocker.OCScore.CLI package" class="toctree-checkbox" id="toctree-checkbox-40" name="toctree-checkbox-40" role="switch" type="checkbox"/><label for="toctree-checkbox-40"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.CLI.reduce.html">OCDocker.OCScore.CLI.reduce module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.CLI.train.html">OCDocker.OCScore.CLI.train module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.CLI.export_tools.html">OCDocker.OCScore.CLI.export_tools module</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.OCScore.Optimization.html">OCDocker.OCScore.Optimization package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Optimization package" class="toctree-checkbox" id="toctree-checkbox-41" name="toctree-checkbox-41" role="switch" type="checkbox"/><label for="toctree-checkbox-41"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Optimization.ModelCrossValidation.html">OCDocker.OCScore.Optimization.ModelCrossValidation module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Optimization.ModelExport.html">OCDocker.OCScore.Optimization.ModelExport module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Optimization.OptunaSearchSpace.html">OCDocker.OCScore.Optimization.OptunaSearchSpace module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Optimization.OptunaStorage.html">OCDocker.OCScore.Optimization.OptunaStorage module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Optimization.Protocol.html">OCDocker.OCScore.Optimization.Protocol module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Optimization.StagedOptuna.html">OCDocker.OCScore.Optimization.StagedOptuna module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Optimization.StagedTrainProtocol.html">OCDocker.OCScore.Optimization.StagedTrainProtocol module</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.OCScore.Utils.html">OCDocker.OCScore.Utils package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Utils package" class="toctree-checkbox" id="toctree-checkbox-42" name="toctree-checkbox-42" role="switch" type="checkbox"/><label for="toctree-checkbox-42"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.ContentHash.html">OCDocker.OCScore.Utils.ContentHash module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.Data.html">OCDocker.OCScore.Utils.Data module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.DescriptorAggregateBaselines.html">OCDocker.OCScore.Utils.DescriptorAggregateBaselines module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.DUDEzScaling.html">OCDocker.OCScore.Utils.DUDEzScaling module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.DUDEzSplit.html">OCDocker.OCScore.Utils.DUDEzSplit module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.ExternalBlindEvaluation.html">OCDocker.OCScore.Utils.ExternalBlindEvaluation module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.FeaturePolicy.html">OCDocker.OCScore.Utils.FeaturePolicy module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.FeatureReduction.html">OCDocker.OCScore.Utils.FeatureReduction module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.FeatureSelectionMetadata.html">OCDocker.OCScore.Utils.FeatureSelectionMetadata module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.FixedOuterSplit.html">OCDocker.OCScore.Utils.FixedOuterSplit module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.IO.html">OCDocker.OCScore.Utils.IO module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.LeakageAudit.html">OCDocker.OCScore.Utils.LeakageAudit module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.PDBbindSplit.html">OCDocker.OCScore.Utils.PDBbindSplit module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.ProtocolProvenance.html">OCDocker.OCScore.Utils.ProtocolProvenance module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.RawModelingInput.html">OCDocker.OCScore.Utils.RawModelingInput module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Utils.TrainOnlyFeatureReduction.html">OCDocker.OCScore.Utils.TrainOnlyFeatureReduction module</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Protocols.html">Bundled OCScore protocol data</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Scoring.html">OCDocker.OCScore.Scoring module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.Processing.html">OCDocker.Processing package</a><input aria-label="Toggle navigation of OCDocker.Processing package" class="toctree-checkbox" id="toctree-checkbox-43" name="toctree-checkbox-43" role="switch" type="checkbox"/><label for="toctree-checkbox-43"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.Processing.Postprocessing.html">OCDocker.Processing.Postprocessing package</a><input aria-label="Toggle navigation of OCDocker.Processing.Postprocessing package" class="toctree-checkbox" id="toctree-checkbox-44" name="toctree-checkbox-44" role="switch" type="checkbox"/><label for="toctree-checkbox-44"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.Processing.Postprocessing.Digest.html">OCDocker.Processing.Postprocessing.Digest module</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.Processing.Preprocessing.html">OCDocker.Processing.Preprocessing package</a><input aria-label="Toggle navigation of OCDocker.Processing.Preprocessing package" class="toctree-checkbox" id="toctree-checkbox-45" name="toctree-checkbox-45" role="switch" type="checkbox"/><label for="toctree-checkbox-45"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.Processing.Preprocessing.Prepare.html">OCDocker.Processing.Preprocessing.Prepare module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.Processing.Preprocessing.RMSDClustering.html">OCDocker.Processing.Preprocessing.RMSDClustering module</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Processing.Dock.html">OCDocker.Processing.Dock module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Processing.GarbageCollection.html">OCDocker.Processing.GarbageCollection module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.Rescoring.html">OCDocker.Rescoring package</a><input aria-label="Toggle navigation of OCDocker.Rescoring package" class="toctree-checkbox" id="toctree-checkbox-46" name="toctree-checkbox-46" role="switch" type="checkbox"/><label for="toctree-checkbox-46"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Rescoring.ODDT.html">OCDocker.Rescoring.ODDT module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.Toolbox.html">OCDocker.Toolbox package</a><input aria-label="Toggle navigation of OCDocker.Toolbox package" class="toctree-checkbox" id="toctree-checkbox-47" name="toctree-checkbox-47" role="switch" type="checkbox"/><label for="toctree-checkbox-47"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.Basetools.html">OCDocker.Toolbox.Basetools module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.Constants.html">OCDocker.Toolbox.Constants module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.Conversion.html">OCDocker.Toolbox.Conversion module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.Downloading.html">OCDocker.Toolbox.Downloading module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.FilesFolders.html">OCDocker.Toolbox.FilesFolders module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.IO.html">OCDocker.Toolbox.IO module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.Logging.html">OCDocker.Toolbox.Logging module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.MoleculeProcessing.html">OCDocker.Toolbox.MoleculeProcessing module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.Preparation.html">OCDocker.Toolbox.Preparation module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.Printing.html">OCDocker.Toolbox.Printing module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.Reproducibility.html">OCDocker.Toolbox.Reproducibility module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.Running.html">OCDocker.Toolbox.Running module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.Security.html">OCDocker.Toolbox.Security module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Toolbox.Validation.html">OCDocker.Toolbox.Validation module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.Workbench.html">OCDocker.Workbench package</a><input aria-label="Toggle navigation of OCDocker.Workbench package" class="toctree-checkbox" id="toctree-checkbox-48" name="toctree-checkbox-48" role="switch" type="checkbox"/><label for="toctree-checkbox-48"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Adoption.html">OCDocker.Workbench.Adoption module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Ablation.html">OCDocker.Workbench.Ablation module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.AblationDesign.html">OCDocker.Workbench.AblationDesign module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.AblationProtocolSimilarity.html">OCDocker.Workbench.AblationProtocolSimilarity module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Artifacts.html">OCDocker.Workbench.Artifacts module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Auth.html">OCDocker.Workbench.Auth module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Bundle.html">OCDocker.Workbench.Bundle module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.CampaignProgress.html">OCDocker.Workbench.CampaignProgress module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Comparison.html">OCDocker.Workbench.Comparison module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Decision.html">OCDocker.Workbench.Decision module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Evidence.html">OCDocker.Workbench.Evidence module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Export.html">OCDocker.Workbench.Export module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.IO.html">OCDocker.Workbench.IO module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Jobs.html">OCDocker.Workbench.Jobs module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Launch.html">OCDocker.Workbench.Launch module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Leaderboard.html">OCDocker.Workbench.Leaderboard module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.MetricsMatrix.html">OCDocker.Workbench.MetricsMatrix module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Logs.html">OCDocker.Workbench.Logs module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Models.html">OCDocker.Workbench.Models module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.OCScoreLayout.html">OCDocker.Workbench.OCScoreLayout module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.OptunaDashboard.html">OCDocker.Workbench.OptunaDashboard module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Overview.html">OCDocker.Workbench.Overview module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Planner.html">OCDocker.Workbench.Planner module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Plots.html">OCDocker.Workbench.Plots module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Preflight.html">OCDocker.Workbench.Preflight module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Report.html">OCDocker.Workbench.Report module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Registry.html">OCDocker.Workbench.Registry module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.RunDetail.html">OCDocker.Workbench.RunDetail module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Results.html">OCDocker.Workbench.Results module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Schema.html">OCDocker.Workbench.Schema module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Server.html">OCDocker.Workbench.Server module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Status.html">OCDocker.Workbench.Status module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Templates.html">OCDocker.Workbench.Templates module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.VSDesign.html">OCDocker.Workbench.VSDesign module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Workbench.Web.html">OCDocker.Workbench.Web module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Config.html">OCDocker.Config module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Error.html">OCDocker.Error module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Initialise.html">OCDocker.Initialise module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Ligand.html">OCDocker.Ligand module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Receptor.html">OCDocker.Receptor module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html#indices-and-tables">Indices and tables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optional_dependencies.html">Optional dependencies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="database_setup.html">Database Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="external_tools.html">External Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="container_usage.html">Container Usage</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="modules.html">OCDocker</a><input aria-label="Toggle navigation of OCDocker" class="toctree-checkbox" id="toctree-checkbox-49" name="toctree-checkbox-49" role="switch" type="checkbox"/><label for="toctree-checkbox-49"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.html">OCDocker package</a><input aria-label="Toggle navigation of OCDocker package" class="toctree-checkbox" id="toctree-checkbox-50" name="toctree-checkbox-50" role="switch" type="checkbox"/><label for="toctree-checkbox-50"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.API.html">OCDocker.API package</a><input aria-label="Toggle navigation of OCDocker.API package" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.API.Pipeline.html">OCDocker.API.Pipeline module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.DB.html">OCDocker.DB package</a><input aria-label="Toggle navigation of OCDocker.DB package" class="toctree-checkbox" id="toctree-checkbox-52" name="toctree-checkbox-52" role="switch" type="checkbox"/><label for="toctree-checkbox-52"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.DB.Models.html">OCDocker.DB.Models package</a><input aria-label="Toggle navigation of OCDocker.DB.Models package" class="toctree-checkbox" id="toctree-checkbox-53" name="toctree-checkbox-53" role="switch" type="checkbox"/><label for="toctree-checkbox-53"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.Models.Base.html">OCDocker.DB.Models.Base module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.Models.Complexes.html">OCDocker.DB.Models.Complexes module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.Models.Ligands.html">OCDocker.DB.Models.Ligands module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.DB.Models.Receptors.html">OCDocker.DB.Models.Receptors module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.DB.html">OCDocker.DB.DB module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.DBMinimal.html">OCDocker.DB.DBMinimal module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.DUDEz.html">OCDocker.DB.DUDEz module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.LITPCBA.html">OCDocker.DB.LITPCBA module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.PDBbind.html">OCDocker.DB.PDBbind module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.baseDB.html">OCDocker.DB.baseDB module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Docking.html">OCDocker.Docking package</a><input aria-label="Toggle navigation of OCDocker.Docking package" class="toctree-checkbox" id="toctree-checkbox-54" name="toctree-checkbox-54" role="switch" type="checkbox"/><label for="toctree-checkbox-54"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.Docking.Future.html">OCDocker.Docking.Future package</a><input aria-label="Toggle navigation of OCDocker.Docking.Future package" class="toctree-checkbox" id="toctree-checkbox-55" name="toctree-checkbox-55" role="switch" type="checkbox"/><label for="toctree-checkbox-55"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.Future.Dock3.html">OCDocker.Docking.Future.Dock3 module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.Future.Dock6.html">OCDocker.Docking.Future.Dock6 module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.Future.GEMDOCK.html">OCDocker.Docking.Future.GEMDOCK module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.Future.Ledock.html">OCDocker.Docking.Future.Ledock module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Docking.Future.RDock.html">OCDocker.Docking.Future.RDock module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.PLANTS.html">OCDocker.Docking.PLANTS module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.Smina.html">OCDocker.Docking.Smina module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.Vina.html">OCDocker.Docking.Vina module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.Gnina.html">OCDocker.Docking.Gnina module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.BaseVinaLike.html">OCDocker.Docking.BaseVinaLike module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.CLI.html">OCDocker.CLI package</a><input aria-label="Toggle navigation of OCDocker.CLI package" class="toctree-checkbox" id="toctree-checkbox-56" name="toctree-checkbox-56" role="switch" type="checkbox"/><label for="toctree-checkbox-56"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.CLI.workbench.html">OCDocker.CLI.workbench module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Console.html">OCDocker.Console package</a><input aria-label="Toggle navigation of OCDocker.Console package" class="toctree-checkbox" id="toctree-checkbox-57" name="toctree-checkbox-57" role="switch" type="checkbox"/><label for="toctree-checkbox-57"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Console.app.html">OCDocker.Console.app module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Console.session.html">OCDocker.Console.session module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Console.commands.html">OCDocker.Console.commands module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Console.render.html">OCDocker.Console.render module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.MCP.html">OCDocker.MCP package</a><input aria-label="Toggle navigation of OCDocker.MCP package" class="toctree-checkbox" id="toctree-checkbox-58" name="toctree-checkbox-58" role="switch" type="checkbox"/><label for="toctree-checkbox-58"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.MCP.Server.html">OCDocker.MCP.Server module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.OCScore.html">OCDocker.OCScore package</a><input aria-label="Toggle navigation of OCDocker.OCScore package" class="toctree-checkbox" id="toctree-checkbox-59" name="toctree-checkbox-59" role="switch" type="checkbox"/><label for="toctree-checkbox-59"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.html">OCDocker.OCScore.Analysis package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis package" class="toctree-checkbox" id="toctree-checkbox-60" name="toctree-checkbox-60" role="switch" type="checkbox"/><label for="toctree-checkbox-60"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.html">OCDocker.OCScore.Analysis.Metrics package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.Metrics package" class="toctree-checkbox" id="toctree-checkbox-61" name="toctree-checkbox-61" role="switch" type="checkbox"/><label for="toctree-checkbox-61"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Bootstrap.html">OCDocker.OCScore.Analysis.Metrics.Bootstrap module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Calibration.html">OCDocker.OCScore.Analysis.Metrics.Calibration module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Ranking.html">OCDocker.OCScore.Analysis.Metrics.Ranking module</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.html">OCDocker.OCScore.Analysis.Plotting package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.Plotting package" class="toctree-checkbox" id="toctree-checkbox-62" name="toctree-checkbox-62" role="switch" type="checkbox"/><label for="toctree-checkbox-62"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Colouring.html">OCDocker.OCScore.Analysis.Plotting.Colouring module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots.html">OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Core.html">OCDocker.OCScore.Analysis.Plotting.Core module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots.html">OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.MetricsPlots.html">OCDocker.OCScore.Analysis.Plotting.MetricsPlots module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Stats.html">OCDocker.OCScore.Analysis.Plotting.Stats module</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.html">OCDocker.OCScore.Analysis.SHAP package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.SHAP package" class="toctree-checkbox" id="toctree-checkbox-63" name="toctree-checkbox-63" role="switch" type="checkbox"/><label for="toctree-checkbox-63"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.ExportRunner.html">OCDocker.OCScore.Analysis.SHAP.ExportRunner module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Explain.html">OCDocker.OCScore.Analysis.SHAP.Explain module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Plots.html">OCDocker.OCScore.Analysis.SHAP.Plots module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Paths.html">OCDocker.OCScore.Analysis.SHAP.Paths module</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.ProductionBaselines.html">OCDocker.OCScore.Analysis.ProductionBaselines module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.OCScore.CLI.html">OCDocker.OCScore.CLI package</a><input aria-label="Toggle navigation of OCDocker.OCScore.CLI package" class="toctree-checkbox" id="toctree-checkbox-64" name="toctree-checkbox-64" role="switch" type="checkbox"/><label for="toctree-checkbox-64"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.CLI.reduce.html">OCDocker.OCScore.CLI.reduce module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.CLI.train.html">OCDocker.OCScore.CLI.train module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.CLI.export_tools.html">OCDocker.OCScore.CLI.export_tools module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.OCScore.Optimization.html">OCDocker.OCScore.Optimization package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Optimization package" class="toctree-checkbox" id="toctree-checkbox-65" name="toctree-checkbox-65" role="switch" type="checkbox"/><label for="toctree-checkbox-65"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.ModelCrossValidation.html">OCDocker.OCScore.Optimization.ModelCrossValidation module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.ModelExport.html">OCDocker.OCScore.Optimization.ModelExport module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.OptunaSearchSpace.html">OCDocker.OCScore.Optimization.OptunaSearchSpace module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.OptunaStorage.html">OCDocker.OCScore.Optimization.OptunaStorage module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.Protocol.html">OCDocker.OCScore.Optimization.Protocol module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.StagedOptuna.html">OCDocker.OCScore.Optimization.StagedOptuna module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Optimization.StagedTrainProtocol.html">OCDocker.OCScore.Optimization.StagedTrainProtocol module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.OCScore.Utils.html">OCDocker.OCScore.Utils package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Utils package" class="toctree-checkbox" id="toctree-checkbox-66" name="toctree-checkbox-66" role="switch" type="checkbox"/><label for="toctree-checkbox-66"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.ContentHash.html">OCDocker.OCScore.Utils.ContentHash module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.Data.html">OCDocker.OCScore.Utils.Data module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.DescriptorAggregateBaselines.html">OCDocker.OCScore.Utils.DescriptorAggregateBaselines module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.DUDEzScaling.html">OCDocker.OCScore.Utils.DUDEzScaling module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.DUDEzSplit.html">OCDocker.OCScore.Utils.DUDEzSplit module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.ExternalBlindEvaluation.html">OCDocker.OCScore.Utils.ExternalBlindEvaluation module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.FeaturePolicy.html">OCDocker.OCScore.Utils.FeaturePolicy module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.FeatureReduction.html">OCDocker.OCScore.Utils.FeatureReduction module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.FeatureSelectionMetadata.html">OCDocker.OCScore.Utils.FeatureSelectionMetadata module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.FixedOuterSplit.html">OCDocker.OCScore.Utils.FixedOuterSplit module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.IO.html">OCDocker.OCScore.Utils.IO module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.LeakageAudit.html">OCDocker.OCScore.Utils.LeakageAudit module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.PDBbindSplit.html">OCDocker.OCScore.Utils.PDBbindSplit module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.ProtocolProvenance.html">OCDocker.OCScore.Utils.ProtocolProvenance module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.RawModelingInput.html">OCDocker.OCScore.Utils.RawModelingInput module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Utils.TrainOnlyFeatureReduction.html">OCDocker.OCScore.Utils.TrainOnlyFeatureReduction module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Protocols.html">Bundled OCScore protocol data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Scoring.html">OCDocker.OCScore.Scoring module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Processing.html">OCDocker.Processing package</a><input aria-label="Toggle navigation of OCDocker.Processing package" class="toctree-checkbox" id="toctree-checkbox-67" name="toctree-checkbox-67" role="switch" type="checkbox"/><label for="toctree-checkbox-67"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.Processing.Postprocessing.html">OCDocker.Processing.Postprocessing package</a><input aria-label="Toggle navigation of OCDocker.Processing.Postprocessing package" class="toctree-checkbox" id="toctree-checkbox-68" name="toctree-checkbox-68" role="switch" type="checkbox"/><label for="toctree-checkbox-68"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Processing.Postprocessing.Digest.html">OCDocker.Processing.Postprocessing.Digest module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.Processing.Preprocessing.html">OCDocker.Processing.Preprocessing package</a><input aria-label="Toggle navigation of OCDocker.Processing.Preprocessing package" class="toctree-checkbox" id="toctree-checkbox-69" name="toctree-checkbox-69" role="switch" type="checkbox"/><label for="toctree-checkbox-69"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Processing.Preprocessing.Prepare.html">OCDocker.Processing.Preprocessing.Prepare module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.Processing.Preprocessing.RMSDClustering.html">OCDocker.Processing.Preprocessing.RMSDClustering module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Processing.Dock.html">OCDocker.Processing.Dock module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Processing.GarbageCollection.html">OCDocker.Processing.GarbageCollection module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Rescoring.html">OCDocker.Rescoring package</a><input aria-label="Toggle navigation of OCDocker.Rescoring package" class="toctree-checkbox" id="toctree-checkbox-70" name="toctree-checkbox-70" role="switch" type="checkbox"/><label for="toctree-checkbox-70"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Rescoring.ODDT.html">OCDocker.Rescoring.ODDT module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Toolbox.html">OCDocker.Toolbox package</a><input aria-label="Toggle navigation of OCDocker.Toolbox package" class="toctree-checkbox" id="toctree-checkbox-71" name="toctree-checkbox-71" role="switch" type="checkbox"/><label for="toctree-checkbox-71"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Basetools.html">OCDocker.Toolbox.Basetools module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Constants.html">OCDocker.Toolbox.Constants module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Conversion.html">OCDocker.Toolbox.Conversion module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Downloading.html">OCDocker.Toolbox.Downloading module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.FilesFolders.html">OCDocker.Toolbox.FilesFolders module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.IO.html">OCDocker.Toolbox.IO module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Logging.html">OCDocker.Toolbox.Logging module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.MoleculeProcessing.html">OCDocker.Toolbox.MoleculeProcessing module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Preparation.html">OCDocker.Toolbox.Preparation module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Printing.html">OCDocker.Toolbox.Printing module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Reproducibility.html">OCDocker.Toolbox.Reproducibility module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Running.html">OCDocker.Toolbox.Running module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Security.html">OCDocker.Toolbox.Security module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Toolbox.Validation.html">OCDocker.Toolbox.Validation module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Workbench.html">OCDocker.Workbench package</a><input aria-label="Toggle navigation of OCDocker.Workbench package" class="toctree-checkbox" id="toctree-checkbox-72" name="toctree-checkbox-72" role="switch" type="checkbox"/><label for="toctree-checkbox-72"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Adoption.html">OCDocker.Workbench.Adoption module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Ablation.html">OCDocker.Workbench.Ablation module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.AblationDesign.html">OCDocker.Workbench.AblationDesign module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.AblationProtocolSimilarity.html">OCDocker.Workbench.AblationProtocolSimilarity module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Artifacts.html">OCDocker.Workbench.Artifacts module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Auth.html">OCDocker.Workbench.Auth module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Bundle.html">OCDocker.Workbench.Bundle module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.CampaignProgress.html">OCDocker.Workbench.CampaignProgress module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Comparison.html">OCDocker.Workbench.Comparison module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Decision.html">OCDocker.Workbench.Decision module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Evidence.html">OCDocker.Workbench.Evidence module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Export.html">OCDocker.Workbench.Export module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.IO.html">OCDocker.Workbench.IO module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Jobs.html">OCDocker.Workbench.Jobs module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Launch.html">OCDocker.Workbench.Launch module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Leaderboard.html">OCDocker.Workbench.Leaderboard module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.MetricsMatrix.html">OCDocker.Workbench.MetricsMatrix module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Logs.html">OCDocker.Workbench.Logs module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Models.html">OCDocker.Workbench.Models module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.OCScoreLayout.html">OCDocker.Workbench.OCScoreLayout module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.OptunaDashboard.html">OCDocker.Workbench.OptunaDashboard module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Overview.html">OCDocker.Workbench.Overview module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Planner.html">OCDocker.Workbench.Planner module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Plots.html">OCDocker.Workbench.Plots module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Preflight.html">OCDocker.Workbench.Preflight module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Report.html">OCDocker.Workbench.Report module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Registry.html">OCDocker.Workbench.Registry module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.RunDetail.html">OCDocker.Workbench.RunDetail module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Results.html">OCDocker.Workbench.Results module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Schema.html">OCDocker.Workbench.Schema module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Server.html">OCDocker.Workbench.Server module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Status.html">OCDocker.Workbench.Status module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Templates.html">OCDocker.Workbench.Templates module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.VSDesign.html">OCDocker.Workbench.VSDesign module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Workbench.Web.html">OCDocker.Workbench.Web module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Config.html">OCDocker.Config module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Error.html">OCDocker.Error module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Initialise.html">OCDocker.Initialise module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Ligand.html">OCDocker.Ligand module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Receptor.html">OCDocker.Receptor module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="examples.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-73" name="toctree-checkbox-73" role="switch" type="checkbox"/><label for="toctree-checkbox-73"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/cli_examples.html">CLI Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python_api_examples.html">Python API Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/ocscore_pipeline.html">OCScore Pipeline Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/cli_examples.html">CLI Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python_api_examples.html">Python API Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/ocscore_pipeline.html">OCScore Pipeline Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="OCDocker.html">OCDocker package</a><input aria-label="Toggle navigation of OCDocker package" class="toctree-checkbox" id="toctree-checkbox-74" name="toctree-checkbox-74" role="switch" type="checkbox"/><label for="toctree-checkbox-74"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.API.html">OCDocker.API package</a><input aria-label="Toggle navigation of OCDocker.API package" class="toctree-checkbox" id="toctree-checkbox-75" name="toctree-checkbox-75" role="switch" type="checkbox"/><label for="toctree-checkbox-75"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.API.Pipeline.html">OCDocker.API.Pipeline module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.DB.html">OCDocker.DB package</a><input aria-label="Toggle navigation of OCDocker.DB package" class="toctree-checkbox" id="toctree-checkbox-76" name="toctree-checkbox-76" role="switch" type="checkbox"/><label for="toctree-checkbox-76"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.DB.Models.html">OCDocker.DB.Models package</a><input aria-label="Toggle navigation of OCDocker.DB.Models package" class="toctree-checkbox" id="toctree-checkbox-77" name="toctree-checkbox-77" role="switch" type="checkbox"/><label for="toctree-checkbox-77"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.Models.Base.html">OCDocker.DB.Models.Base module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.Models.Complexes.html">OCDocker.DB.Models.Complexes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.Models.Ligands.html">OCDocker.DB.Models.Ligands module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.DB.Models.Receptors.html">OCDocker.DB.Models.Receptors module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.DB.DB.html">OCDocker.DB.DB module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.DB.DBMinimal.html">OCDocker.DB.DBMinimal module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.DB.DUDEz.html">OCDocker.DB.DUDEz module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.DB.LITPCBA.html">OCDocker.DB.LITPCBA module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.DB.PDBbind.html">OCDocker.DB.PDBbind module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.DB.baseDB.html">OCDocker.DB.baseDB module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.Docking.html">OCDocker.Docking package</a><input aria-label="Toggle navigation of OCDocker.Docking package" class="toctree-checkbox" id="toctree-checkbox-78" name="toctree-checkbox-78" role="switch" type="checkbox"/><label for="toctree-checkbox-78"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Docking.Future.html">OCDocker.Docking.Future package</a><input aria-label="Toggle navigation of OCDocker.Docking.Future package" class="toctree-checkbox" id="toctree-checkbox-79" name="toctree-checkbox-79" role="switch" type="checkbox"/><label for="toctree-checkbox-79"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.Future.Dock3.html">OCDocker.Docking.Future.Dock3 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.Future.Dock6.html">OCDocker.Docking.Future.Dock6 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.Future.GEMDOCK.html">OCDocker.Docking.Future.GEMDOCK module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.Future.Ledock.html">OCDocker.Docking.Future.Ledock module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Docking.Future.RDock.html">OCDocker.Docking.Future.RDock module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Docking.PLANTS.html">OCDocker.Docking.PLANTS module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Docking.Smina.html">OCDocker.Docking.Smina module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Docking.Vina.html">OCDocker.Docking.Vina module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Docking.Gnina.html">OCDocker.Docking.Gnina module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Docking.BaseVinaLike.html">OCDocker.Docking.BaseVinaLike module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.CLI.html">OCDocker.CLI package</a><input aria-label="Toggle navigation of OCDocker.CLI package" class="toctree-checkbox" id="toctree-checkbox-80" name="toctree-checkbox-80" role="switch" type="checkbox"/><label for="toctree-checkbox-80"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.CLI.workbench.html">OCDocker.CLI.workbench module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.Console.html">OCDocker.Console package</a><input aria-label="Toggle navigation of OCDocker.Console package" class="toctree-checkbox" id="toctree-checkbox-81" name="toctree-checkbox-81" role="switch" type="checkbox"/><label for="toctree-checkbox-81"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Console.app.html">OCDocker.Console.app module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Console.session.html">OCDocker.Console.session module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Console.commands.html">OCDocker.Console.commands module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Console.render.html">OCDocker.Console.render module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.MCP.html">OCDocker.MCP package</a><input aria-label="Toggle navigation of OCDocker.MCP package" class="toctree-checkbox" id="toctree-checkbox-82" name="toctree-checkbox-82" role="switch" type="checkbox"/><label for="toctree-checkbox-82"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.MCP.Server.html">OCDocker.MCP.Server module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.OCScore.html">OCDocker.OCScore package</a><input aria-label="Toggle navigation of OCDocker.OCScore package" class="toctree-checkbox" id="toctree-checkbox-83" name="toctree-checkbox-83" role="switch" type="checkbox"/><label for="toctree-checkbox-83"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.html">OCDocker.OCScore.Analysis package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis package" class="toctree-checkbox" id="toctree-checkbox-84" name="toctree-checkbox-84" role="switch" type="checkbox"/><label for="toctree-checkbox-84"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.html">OCDocker.OCScore.Analysis.Metrics package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.Metrics package" class="toctree-checkbox" id="toctree-checkbox-85" name="toctree-checkbox-85" role="switch" type="checkbox"/><label for="toctree-checkbox-85"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Bootstrap.html">OCDocker.OCScore.Analysis.Metrics.Bootstrap module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Calibration.html">OCDocker.OCScore.Analysis.Metrics.Calibration module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Ranking.html">OCDocker.OCScore.Analysis.Metrics.Ranking module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.html">OCDocker.OCScore.Analysis.Plotting package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.Plotting package" class="toctree-checkbox" id="toctree-checkbox-86" name="toctree-checkbox-86" role="switch" type="checkbox"/><label for="toctree-checkbox-86"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Colouring.html">OCDocker.OCScore.Analysis.Plotting.Colouring module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots.html">OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Core.html">OCDocker.OCScore.Analysis.Plotting.Core module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots.html">OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.MetricsPlots.html">OCDocker.OCScore.Analysis.Plotting.MetricsPlots module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Stats.html">OCDocker.OCScore.Analysis.Plotting.Stats module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.html">OCDocker.OCScore.Analysis.SHAP package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.SHAP package" class="toctree-checkbox" id="toctree-checkbox-87" name="toctree-checkbox-87" role="switch" type="checkbox"/><label for="toctree-checkbox-87"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.ExportRunner.html">OCDocker.OCScore.Analysis.SHAP.ExportRunner module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Explain.html">OCDocker.OCScore.Analysis.SHAP.Explain module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Plots.html">OCDocker.OCScore.Analysis.SHAP.Plots module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Paths.html">OCDocker.OCScore.Analysis.SHAP.Paths module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.ProductionBaselines.html">OCDocker.OCScore.Analysis.ProductionBaselines module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.OCScore.CLI.html">OCDocker.OCScore.CLI package</a><input aria-label="Toggle navigation of OCDocker.OCScore.CLI package" class="toctree-checkbox" id="toctree-checkbox-88" name="toctree-checkbox-88" role="switch" type="checkbox"/><label for="toctree-checkbox-88"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.CLI.reduce.html">OCDocker.OCScore.CLI.reduce module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.CLI.train.html">OCDocker.OCScore.CLI.train module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.CLI.export_tools.html">OCDocker.OCScore.CLI.export_tools module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.OCScore.Optimization.html">OCDocker.OCScore.Optimization package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Optimization package" class="toctree-checkbox" id="toctree-checkbox-89" name="toctree-checkbox-89" role="switch" type="checkbox"/><label for="toctree-checkbox-89"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Optimization.ModelCrossValidation.html">OCDocker.OCScore.Optimization.ModelCrossValidation module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Optimization.ModelExport.html">OCDocker.OCScore.Optimization.ModelExport module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Optimization.OptunaSearchSpace.html">OCDocker.OCScore.Optimization.OptunaSearchSpace module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Optimization.OptunaStorage.html">OCDocker.OCScore.Optimization.OptunaStorage module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Optimization.Protocol.html">OCDocker.OCScore.Optimization.Protocol module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Optimization.StagedOptuna.html">OCDocker.OCScore.Optimization.StagedOptuna module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Optimization.StagedTrainProtocol.html">OCDocker.OCScore.Optimization.StagedTrainProtocol module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.OCScore.Utils.html">OCDocker.OCScore.Utils package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Utils package" class="toctree-checkbox" id="toctree-checkbox-90" name="toctree-checkbox-90" role="switch" type="checkbox"/><label for="toctree-checkbox-90"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.ContentHash.html">OCDocker.OCScore.Utils.ContentHash module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.Data.html">OCDocker.OCScore.Utils.Data module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.DescriptorAggregateBaselines.html">OCDocker.OCScore.Utils.DescriptorAggregateBaselines module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.DUDEzScaling.html">OCDocker.OCScore.Utils.DUDEzScaling module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.DUDEzSplit.html">OCDocker.OCScore.Utils.DUDEzSplit module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.ExternalBlindEvaluation.html">OCDocker.OCScore.Utils.ExternalBlindEvaluation module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.FeaturePolicy.html">OCDocker.OCScore.Utils.FeaturePolicy module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.FeatureReduction.html">OCDocker.OCScore.Utils.FeatureReduction module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.FeatureSelectionMetadata.html">OCDocker.OCScore.Utils.FeatureSelectionMetadata module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.FixedOuterSplit.html">OCDocker.OCScore.Utils.FixedOuterSplit module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.IO.html">OCDocker.OCScore.Utils.IO module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.LeakageAudit.html">OCDocker.OCScore.Utils.LeakageAudit module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.PDBbindSplit.html">OCDocker.OCScore.Utils.PDBbindSplit module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.ProtocolProvenance.html">OCDocker.OCScore.Utils.ProtocolProvenance module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.RawModelingInput.html">OCDocker.OCScore.Utils.RawModelingInput module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Utils.TrainOnlyFeatureReduction.html">OCDocker.OCScore.Utils.TrainOnlyFeatureReduction module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Protocols.html">Bundled OCScore protocol data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Scoring.html">OCDocker.OCScore.Scoring module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.Processing.html">OCDocker.Processing package</a><input aria-label="Toggle navigation of OCDocker.Processing package" class="toctree-checkbox" id="toctree-checkbox-91" name="toctree-checkbox-91" role="switch" type="checkbox"/><label for="toctree-checkbox-91"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Processing.Postprocessing.html">OCDocker.Processing.Postprocessing package</a><input aria-label="Toggle navigation of OCDocker.Processing.Postprocessing package" class="toctree-checkbox" id="toctree-checkbox-92" name="toctree-checkbox-92" role="switch" type="checkbox"/><label for="toctree-checkbox-92"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Processing.Postprocessing.Digest.html">OCDocker.Processing.Postprocessing.Digest module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.Processing.Preprocessing.html">OCDocker.Processing.Preprocessing package</a><input aria-label="Toggle navigation of OCDocker.Processing.Preprocessing package" class="toctree-checkbox" id="toctree-checkbox-93" name="toctree-checkbox-93" role="switch" type="checkbox"/><label for="toctree-checkbox-93"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Processing.Preprocessing.Prepare.html">OCDocker.Processing.Preprocessing.Prepare module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.Processing.Preprocessing.RMSDClustering.html">OCDocker.Processing.Preprocessing.RMSDClustering module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Processing.Dock.html">OCDocker.Processing.Dock module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Processing.GarbageCollection.html">OCDocker.Processing.GarbageCollection module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.Rescoring.html">OCDocker.Rescoring package</a><input aria-label="Toggle navigation of OCDocker.Rescoring package" class="toctree-checkbox" id="toctree-checkbox-94" name="toctree-checkbox-94" role="switch" type="checkbox"/><label for="toctree-checkbox-94"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Rescoring.ODDT.html">OCDocker.Rescoring.ODDT module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.Toolbox.html">OCDocker.Toolbox package</a><input aria-label="Toggle navigation of OCDocker.Toolbox package" class="toctree-checkbox" id="toctree-checkbox-95" name="toctree-checkbox-95" role="switch" type="checkbox"/><label for="toctree-checkbox-95"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.Basetools.html">OCDocker.Toolbox.Basetools module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.Constants.html">OCDocker.Toolbox.Constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.Conversion.html">OCDocker.Toolbox.Conversion module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.Downloading.html">OCDocker.Toolbox.Downloading module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.FilesFolders.html">OCDocker.Toolbox.FilesFolders module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.IO.html">OCDocker.Toolbox.IO module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.Logging.html">OCDocker.Toolbox.Logging module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.MoleculeProcessing.html">OCDocker.Toolbox.MoleculeProcessing module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.Preparation.html">OCDocker.Toolbox.Preparation module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.Printing.html">OCDocker.Toolbox.Printing module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.Reproducibility.html">OCDocker.Toolbox.Reproducibility module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.Running.html">OCDocker.Toolbox.Running module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.Security.html">OCDocker.Toolbox.Security module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Toolbox.Validation.html">OCDocker.Toolbox.Validation module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.Workbench.html">OCDocker.Workbench package</a><input aria-label="Toggle navigation of OCDocker.Workbench package" class="toctree-checkbox" id="toctree-checkbox-96" name="toctree-checkbox-96" role="switch" type="checkbox"/><label for="toctree-checkbox-96"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Adoption.html">OCDocker.Workbench.Adoption module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Ablation.html">OCDocker.Workbench.Ablation module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.AblationDesign.html">OCDocker.Workbench.AblationDesign module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.AblationProtocolSimilarity.html">OCDocker.Workbench.AblationProtocolSimilarity module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Artifacts.html">OCDocker.Workbench.Artifacts module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Auth.html">OCDocker.Workbench.Auth module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Bundle.html">OCDocker.Workbench.Bundle module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.CampaignProgress.html">OCDocker.Workbench.CampaignProgress module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Comparison.html">OCDocker.Workbench.Comparison module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Decision.html">OCDocker.Workbench.Decision module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Evidence.html">OCDocker.Workbench.Evidence module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Export.html">OCDocker.Workbench.Export module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.IO.html">OCDocker.Workbench.IO module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Jobs.html">OCDocker.Workbench.Jobs module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Launch.html">OCDocker.Workbench.Launch module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Leaderboard.html">OCDocker.Workbench.Leaderboard module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.MetricsMatrix.html">OCDocker.Workbench.MetricsMatrix module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Logs.html">OCDocker.Workbench.Logs module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Models.html">OCDocker.Workbench.Models module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.OCScoreLayout.html">OCDocker.Workbench.OCScoreLayout module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.OptunaDashboard.html">OCDocker.Workbench.OptunaDashboard module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Overview.html">OCDocker.Workbench.Overview module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Planner.html">OCDocker.Workbench.Planner module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Plots.html">OCDocker.Workbench.Plots module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Preflight.html">OCDocker.Workbench.Preflight module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Report.html">OCDocker.Workbench.Report module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Registry.html">OCDocker.Workbench.Registry module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.RunDetail.html">OCDocker.Workbench.RunDetail module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Results.html">OCDocker.Workbench.Results module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Schema.html">OCDocker.Workbench.Schema module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Server.html">OCDocker.Workbench.Server module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Status.html">OCDocker.Workbench.Status module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Templates.html">OCDocker.Workbench.Templates module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.VSDesign.html">OCDocker.Workbench.VSDesign module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Workbench.Web.html">OCDocker.Workbench.Web module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Config.html">OCDocker.Config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Error.html">OCDocker.Error module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Initialise.html">OCDocker.Initialise module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Ligand.html">OCDocker.Ligand module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Receptor.html">OCDocker.Receptor module</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="OCDocker.DB.html">OCDocker.DB package</a><input aria-label="Toggle navigation of OCDocker.DB package" class="toctree-checkbox" id="toctree-checkbox-97" name="toctree-checkbox-97" role="switch" type="checkbox"/><label for="toctree-checkbox-97"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.DB.Models.html">OCDocker.DB.Models package</a><input aria-label="Toggle navigation of OCDocker.DB.Models package" class="toctree-checkbox" id="toctree-checkbox-98" name="toctree-checkbox-98" role="switch" type="checkbox"/><label for="toctree-checkbox-98"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.DB.Models.Base.html">OCDocker.DB.Models.Base module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.DB.Models.Complexes.html">OCDocker.DB.Models.Complexes module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.DB.Models.Ligands.html">OCDocker.DB.Models.Ligands module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.DB.Models.Receptors.html">OCDocker.DB.Models.Receptors module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.DB.DB.html">OCDocker.DB.DB module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.DB.DBMinimal.html">OCDocker.DB.DBMinimal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.DB.DUDEz.html">OCDocker.DB.DUDEz module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.DB.LITPCBA.html">OCDocker.DB.LITPCBA module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.DB.PDBbind.html">OCDocker.DB.PDBbind module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.DB.baseDB.html">OCDocker.DB.baseDB module</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="OCDocker.Docking.html">OCDocker.Docking package</a><input aria-label="Toggle navigation of OCDocker.Docking package" class="toctree-checkbox" id="toctree-checkbox-99" name="toctree-checkbox-99" role="switch" type="checkbox"/><label for="toctree-checkbox-99"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.Docking.Future.html">OCDocker.Docking.Future package</a><input aria-label="Toggle navigation of OCDocker.Docking.Future package" class="toctree-checkbox" id="toctree-checkbox-100" name="toctree-checkbox-100" role="switch" type="checkbox"/><label for="toctree-checkbox-100"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Docking.Future.Dock3.html">OCDocker.Docking.Future.Dock3 module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Docking.Future.Dock6.html">OCDocker.Docking.Future.Dock6 module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Docking.Future.GEMDOCK.html">OCDocker.Docking.Future.GEMDOCK module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Docking.Future.Ledock.html">OCDocker.Docking.Future.Ledock module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Docking.Future.RDock.html">OCDocker.Docking.Future.RDock module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Docking.PLANTS.html">OCDocker.Docking.PLANTS module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Docking.Smina.html">OCDocker.Docking.Smina module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Docking.Vina.html">OCDocker.Docking.Vina module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Docking.Gnina.html">OCDocker.Docking.Gnina module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Docking.BaseVinaLike.html">OCDocker.Docking.BaseVinaLike module</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="OCDocker.OCScore.html">OCDocker.OCScore package</a><input aria-label="Toggle navigation of OCDocker.OCScore package" class="toctree-checkbox" id="toctree-checkbox-101" name="toctree-checkbox-101" role="switch" type="checkbox"/><label for="toctree-checkbox-101"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.html">OCDocker.OCScore.Analysis package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis package" class="toctree-checkbox" id="toctree-checkbox-102" name="toctree-checkbox-102" role="switch" type="checkbox"/><label for="toctree-checkbox-102"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.html">OCDocker.OCScore.Analysis.Metrics package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.Metrics package" class="toctree-checkbox" id="toctree-checkbox-103" name="toctree-checkbox-103" role="switch" type="checkbox"/><label for="toctree-checkbox-103"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Bootstrap.html">OCDocker.OCScore.Analysis.Metrics.Bootstrap module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Calibration.html">OCDocker.OCScore.Analysis.Metrics.Calibration module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.Metrics.Ranking.html">OCDocker.OCScore.Analysis.Metrics.Ranking module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.html">OCDocker.OCScore.Analysis.Plotting package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.Plotting package" class="toctree-checkbox" id="toctree-checkbox-104" name="toctree-checkbox-104" role="switch" type="checkbox"/><label for="toctree-checkbox-104"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Colouring.html">OCDocker.OCScore.Analysis.Plotting.Colouring module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots.html">OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Core.html">OCDocker.OCScore.Analysis.Plotting.Core module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots.html">OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.MetricsPlots.html">OCDocker.OCScore.Analysis.Plotting.MetricsPlots module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.Plotting.Stats.html">OCDocker.OCScore.Analysis.Plotting.Stats module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.html">OCDocker.OCScore.Analysis.SHAP package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Analysis.SHAP package" class="toctree-checkbox" id="toctree-checkbox-105" name="toctree-checkbox-105" role="switch" type="checkbox"/><label for="toctree-checkbox-105"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.ExportRunner.html">OCDocker.OCScore.Analysis.SHAP.ExportRunner module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Explain.html">OCDocker.OCScore.Analysis.SHAP.Explain module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Plots.html">OCDocker.OCScore.Analysis.SHAP.Plots module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="OCDocker.OCScore.Analysis.SHAP.Paths.html">OCDocker.OCScore.Analysis.SHAP.Paths module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Analysis.ProductionBaselines.html">OCDocker.OCScore.Analysis.ProductionBaselines module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.OCScore.CLI.html">OCDocker.OCScore.CLI package</a><input aria-label="Toggle navigation of OCDocker.OCScore.CLI package" class="toctree-checkbox" id="toctree-checkbox-106" name="toctree-checkbox-106" role="switch" type="checkbox"/><label for="toctree-checkbox-106"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.CLI.reduce.html">OCDocker.OCScore.CLI.reduce module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.CLI.train.html">OCDocker.OCScore.CLI.train module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.CLI.export_tools.html">OCDocker.OCScore.CLI.export_tools module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.OCScore.Optimization.html">OCDocker.OCScore.Optimization package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Optimization package" class="toctree-checkbox" id="toctree-checkbox-107" name="toctree-checkbox-107" role="switch" type="checkbox"/><label for="toctree-checkbox-107"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Optimization.ModelCrossValidation.html">OCDocker.OCScore.Optimization.ModelCrossValidation module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Optimization.ModelExport.html">OCDocker.OCScore.Optimization.ModelExport module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Optimization.OptunaSearchSpace.html">OCDocker.OCScore.Optimization.OptunaSearchSpace module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Optimization.OptunaStorage.html">OCDocker.OCScore.Optimization.OptunaStorage module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Optimization.Protocol.html">OCDocker.OCScore.Optimization.Protocol module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Optimization.StagedOptuna.html">OCDocker.OCScore.Optimization.StagedOptuna module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Optimization.StagedTrainProtocol.html">OCDocker.OCScore.Optimization.StagedTrainProtocol module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.OCScore.Utils.html">OCDocker.OCScore.Utils package</a><input aria-label="Toggle navigation of OCDocker.OCScore.Utils package" class="toctree-checkbox" id="toctree-checkbox-108" name="toctree-checkbox-108" role="switch" type="checkbox"/><label for="toctree-checkbox-108"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.ContentHash.html">OCDocker.OCScore.Utils.ContentHash module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.Data.html">OCDocker.OCScore.Utils.Data module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.DescriptorAggregateBaselines.html">OCDocker.OCScore.Utils.DescriptorAggregateBaselines module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.DUDEzScaling.html">OCDocker.OCScore.Utils.DUDEzScaling module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.DUDEzSplit.html">OCDocker.OCScore.Utils.DUDEzSplit module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.ExternalBlindEvaluation.html">OCDocker.OCScore.Utils.ExternalBlindEvaluation module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.FeaturePolicy.html">OCDocker.OCScore.Utils.FeaturePolicy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.FeatureReduction.html">OCDocker.OCScore.Utils.FeatureReduction module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.FeatureSelectionMetadata.html">OCDocker.OCScore.Utils.FeatureSelectionMetadata module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.FixedOuterSplit.html">OCDocker.OCScore.Utils.FixedOuterSplit module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.IO.html">OCDocker.OCScore.Utils.IO module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.LeakageAudit.html">OCDocker.OCScore.Utils.LeakageAudit module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.PDBbindSplit.html">OCDocker.OCScore.Utils.PDBbindSplit module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.ProtocolProvenance.html">OCDocker.OCScore.Utils.ProtocolProvenance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.RawModelingInput.html">OCDocker.OCScore.Utils.RawModelingInput module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.OCScore.Utils.TrainOnlyFeatureReduction.html">OCDocker.OCScore.Utils.TrainOnlyFeatureReduction module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.OCScore.Protocols.html">Bundled OCScore protocol data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.OCScore.Scoring.html">OCDocker.OCScore.Scoring module</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="OCDocker.Processing.html">OCDocker.Processing package</a><input aria-label="Toggle navigation of OCDocker.Processing package" class="toctree-checkbox" id="toctree-checkbox-109" name="toctree-checkbox-109" role="switch" type="checkbox"/><label for="toctree-checkbox-109"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.Processing.Postprocessing.html">OCDocker.Processing.Postprocessing package</a><input aria-label="Toggle navigation of OCDocker.Processing.Postprocessing package" class="toctree-checkbox" id="toctree-checkbox-110" name="toctree-checkbox-110" role="switch" type="checkbox"/><label for="toctree-checkbox-110"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Processing.Postprocessing.Digest.html">OCDocker.Processing.Postprocessing.Digest module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="OCDocker.Processing.Preprocessing.html">OCDocker.Processing.Preprocessing package</a><input aria-label="Toggle navigation of OCDocker.Processing.Preprocessing package" class="toctree-checkbox" id="toctree-checkbox-111" name="toctree-checkbox-111" role="switch" type="checkbox"/><label for="toctree-checkbox-111"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Processing.Preprocessing.Prepare.html">OCDocker.Processing.Preprocessing.Prepare module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OCDocker.Processing.Preprocessing.RMSDClustering.html">OCDocker.Processing.Preprocessing.RMSDClustering module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Processing.Dock.html">OCDocker.Processing.Dock module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Processing.GarbageCollection.html">OCDocker.Processing.GarbageCollection module</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="OCDocker.Processing.Postprocessing.html">OCDocker.Processing.Postprocessing package</a><input aria-label="Toggle navigation of OCDocker.Processing.Postprocessing package" class="toctree-checkbox" id="toctree-checkbox-112" name="toctree-checkbox-112" role="switch" type="checkbox"/><label for="toctree-checkbox-112"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Processing.Postprocessing.Digest.html">OCDocker.Processing.Postprocessing.Digest module</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="OCDocker.Processing.Preprocessing.html">OCDocker.Processing.Preprocessing package</a><input aria-label="Toggle navigation of OCDocker.Processing.Preprocessing package" class="toctree-checkbox" id="toctree-checkbox-113" name="toctree-checkbox-113" role="switch" type="checkbox"/><label for="toctree-checkbox-113"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Processing.Preprocessing.Prepare.html">OCDocker.Processing.Preprocessing.Prepare module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Processing.Preprocessing.RMSDClustering.html">OCDocker.Processing.Preprocessing.RMSDClustering module</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="OCDocker.Toolbox.html">OCDocker.Toolbox package</a><input aria-label="Toggle navigation of OCDocker.Toolbox package" class="toctree-checkbox" id="toctree-checkbox-114" name="toctree-checkbox-114" role="switch" type="checkbox"/><label for="toctree-checkbox-114"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.Basetools.html">OCDocker.Toolbox.Basetools module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.Constants.html">OCDocker.Toolbox.Constants module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.Conversion.html">OCDocker.Toolbox.Conversion module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.Downloading.html">OCDocker.Toolbox.Downloading module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.FilesFolders.html">OCDocker.Toolbox.FilesFolders module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.IO.html">OCDocker.Toolbox.IO module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.Logging.html">OCDocker.Toolbox.Logging module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.MoleculeProcessing.html">OCDocker.Toolbox.MoleculeProcessing module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.Preparation.html">OCDocker.Toolbox.Preparation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.Printing.html">OCDocker.Toolbox.Printing module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.Reproducibility.html">OCDocker.Toolbox.Reproducibility module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.Running.html">OCDocker.Toolbox.Running module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.Security.html">OCDocker.Toolbox.Security module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OCDocker.Toolbox.Validation.html">OCDocker.Toolbox.Validation module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workbench_served_root.html">Workbench served root layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development conventions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ocscore_replication.html">OCScore replication guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="error_handling.html">Error Handling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="COLLABORATORS.html">OCDocker Collaborators</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          
+<section class="domainindex-section">
+  <h1>Python Module Index</h1>
+  <div class="domainindex-jumpbox"><a href="#cap-o"><strong>o</strong></a></div>
+</section>
+<table class="domainindex-table">
+  <tr class="pcap">
+    <td></td><td>&#160;</td><td></td>
+  </tr>
+  <tr class="cap" id="cap-o">
+    <td></td><td><strong>o</strong></td><td></td>
+  </tr>
+  <tr>
+    <td><img src="_static/minus.png" class="toggler"
+              id="toggle-1" style="display: none" alt="-" /></td>
+    <td>
+        <a href="OCDocker.html#module-OCDocker"><code class="xref">OCDocker</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.API.html#module-OCDocker.API"><code class="xref">OCDocker.API</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.API.Pipeline.html#module-OCDocker.API.Pipeline"><code class="xref">OCDocker.API.Pipeline</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.CLI.html#module-OCDocker.CLI"><code class="xref">OCDocker.CLI</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.CLI.workbench.html#module-OCDocker.CLI.workbench"><code class="xref">OCDocker.CLI.workbench</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Config.html#module-OCDocker.Config"><code class="xref">OCDocker.Config</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Console.html#module-OCDocker.Console"><code class="xref">OCDocker.Console</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Console.app.html#module-OCDocker.Console.app"><code class="xref">OCDocker.Console.app</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Console.commands.html#module-OCDocker.Console.commands"><code class="xref">OCDocker.Console.commands</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Console.render.html#module-OCDocker.Console.render"><code class="xref">OCDocker.Console.render</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Console.session.html#module-OCDocker.Console.session"><code class="xref">OCDocker.Console.session</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.DB.html#module-OCDocker.DB"><code class="xref">OCDocker.DB</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.DB.baseDB.html#module-OCDocker.DB.baseDB"><code class="xref">OCDocker.DB.baseDB</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.DB.DB.html#module-OCDocker.DB.DB"><code class="xref">OCDocker.DB.DB</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.DB.DBMinimal.html#module-OCDocker.DB.DBMinimal"><code class="xref">OCDocker.DB.DBMinimal</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.DB.DUDEz.html#module-OCDocker.DB.DUDEz"><code class="xref">OCDocker.DB.DUDEz</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.DB.LITPCBA.html#module-OCDocker.DB.LITPCBA"><code class="xref">OCDocker.DB.LITPCBA</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.DB.Models.html#module-OCDocker.DB.Models"><code class="xref">OCDocker.DB.Models</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.DB.Models.Base.html#module-OCDocker.DB.Models.Base"><code class="xref">OCDocker.DB.Models.Base</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.DB.Models.Complexes.html#module-OCDocker.DB.Models.Complexes"><code class="xref">OCDocker.DB.Models.Complexes</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.DB.Models.Ligands.html#module-OCDocker.DB.Models.Ligands"><code class="xref">OCDocker.DB.Models.Ligands</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.DB.Models.Receptors.html#module-OCDocker.DB.Models.Receptors"><code class="xref">OCDocker.DB.Models.Receptors</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.DB.PDBbind.html#module-OCDocker.DB.PDBbind"><code class="xref">OCDocker.DB.PDBbind</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Docking.html#module-OCDocker.Docking"><code class="xref">OCDocker.Docking</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Docking.BaseVinaLike.html#module-OCDocker.Docking.BaseVinaLike"><code class="xref">OCDocker.Docking.BaseVinaLike</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Docking.Future.html#module-OCDocker.Docking.Future"><code class="xref">OCDocker.Docking.Future</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Docking.Future.Dock3.html#module-OCDocker.Docking.Future.Dock3"><code class="xref">OCDocker.Docking.Future.Dock3</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Docking.Future.Dock6.html#module-OCDocker.Docking.Future.Dock6"><code class="xref">OCDocker.Docking.Future.Dock6</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Docking.Future.GEMDOCK.html#module-OCDocker.Docking.Future.GEMDOCK"><code class="xref">OCDocker.Docking.Future.GEMDOCK</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Docking.Future.Ledock.html#module-OCDocker.Docking.Future.Ledock"><code class="xref">OCDocker.Docking.Future.Ledock</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Docking.Future.RDock.html#module-OCDocker.Docking.Future.RDock"><code class="xref">OCDocker.Docking.Future.RDock</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Docking.Gnina.html#module-OCDocker.Docking.Gnina"><code class="xref">OCDocker.Docking.Gnina</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Docking.PLANTS.html#module-OCDocker.Docking.PLANTS"><code class="xref">OCDocker.Docking.PLANTS</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Docking.Smina.html#module-OCDocker.Docking.Smina"><code class="xref">OCDocker.Docking.Smina</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Docking.Vina.html#module-OCDocker.Docking.Vina"><code class="xref">OCDocker.Docking.Vina</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Error.html#module-OCDocker.Error"><code class="xref">OCDocker.Error</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Initialise.html#module-OCDocker.Initialise"><code class="xref">OCDocker.Initialise</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Ligand.html#module-OCDocker.Ligand"><code class="xref">OCDocker.Ligand</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.MCP.html#module-OCDocker.MCP"><code class="xref">OCDocker.MCP</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.MCP.Server.html#module-OCDocker.MCP.Server"><code class="xref">OCDocker.MCP.Server</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.html#module-OCDocker.OCScore"><code class="xref">OCDocker.OCScore</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.Metrics.html#module-OCDocker.OCScore.Analysis.Metrics"><code class="xref">OCDocker.OCScore.Analysis.Metrics</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.Metrics.Bootstrap.html#module-OCDocker.OCScore.Analysis.Metrics.Bootstrap"><code class="xref">OCDocker.OCScore.Analysis.Metrics.Bootstrap</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.Metrics.Calibration.html#module-OCDocker.OCScore.Analysis.Metrics.Calibration"><code class="xref">OCDocker.OCScore.Analysis.Metrics.Calibration</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.Metrics.Ranking.html#module-OCDocker.OCScore.Analysis.Metrics.Ranking"><code class="xref">OCDocker.OCScore.Analysis.Metrics.Ranking</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.Plotting.html#module-OCDocker.OCScore.Analysis.Plotting"><code class="xref">OCDocker.OCScore.Analysis.Plotting</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots.html#module-OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots"><code class="xref">OCDocker.OCScore.Analysis.Plotting.ArchitecturePlots</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.Plotting.Colouring.html#module-OCDocker.OCScore.Analysis.Plotting.Colouring"><code class="xref">OCDocker.OCScore.Analysis.Plotting.Colouring</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.Plotting.Core.html#module-OCDocker.OCScore.Analysis.Plotting.Core"><code class="xref">OCDocker.OCScore.Analysis.Plotting.Core</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots.html#module-OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots"><code class="xref">OCDocker.OCScore.Analysis.Plotting.CrossValidationPlots</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.Plotting.MetricsPlots.html#module-OCDocker.OCScore.Analysis.Plotting.MetricsPlots"><code class="xref">OCDocker.OCScore.Analysis.Plotting.MetricsPlots</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.Plotting.Stats.html#module-OCDocker.OCScore.Analysis.Plotting.Stats"><code class="xref">OCDocker.OCScore.Analysis.Plotting.Stats</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.ProductionBaselines.html#module-OCDocker.OCScore.Analysis.ProductionBaselines"><code class="xref">OCDocker.OCScore.Analysis.ProductionBaselines</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.SHAP.Explain.html#module-OCDocker.OCScore.Analysis.SHAP.Explain"><code class="xref">OCDocker.OCScore.Analysis.SHAP.Explain</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.SHAP.ExportRunner.html#module-OCDocker.OCScore.Analysis.SHAP.ExportRunner"><code class="xref">OCDocker.OCScore.Analysis.SHAP.ExportRunner</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.SHAP.Paths.html#module-OCDocker.OCScore.Analysis.SHAP.Paths"><code class="xref">OCDocker.OCScore.Analysis.SHAP.Paths</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Analysis.SHAP.Plots.html#module-OCDocker.OCScore.Analysis.SHAP.Plots"><code class="xref">OCDocker.OCScore.Analysis.SHAP.Plots</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.CLI.html#module-OCDocker.OCScore.CLI"><code class="xref">OCDocker.OCScore.CLI</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.CLI.export_tools.html#module-OCDocker.OCScore.CLI.export_tools"><code class="xref">OCDocker.OCScore.CLI.export_tools</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.CLI.reduce.html#module-OCDocker.OCScore.CLI.reduce"><code class="xref">OCDocker.OCScore.CLI.reduce</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.CLI.train.html#module-OCDocker.OCScore.CLI.train"><code class="xref">OCDocker.OCScore.CLI.train</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Optimization.html#module-OCDocker.OCScore.Optimization"><code class="xref">OCDocker.OCScore.Optimization</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Optimization.ModelCrossValidation.html#module-OCDocker.OCScore.Optimization.ModelCrossValidation"><code class="xref">OCDocker.OCScore.Optimization.ModelCrossValidation</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Optimization.ModelExport.html#module-OCDocker.OCScore.Optimization.ModelExport"><code class="xref">OCDocker.OCScore.Optimization.ModelExport</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Optimization.OptunaSearchSpace.html#module-OCDocker.OCScore.Optimization.OptunaSearchSpace"><code class="xref">OCDocker.OCScore.Optimization.OptunaSearchSpace</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Optimization.OptunaStorage.html#module-OCDocker.OCScore.Optimization.OptunaStorage"><code class="xref">OCDocker.OCScore.Optimization.OptunaStorage</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Optimization.Protocol.html#module-OCDocker.OCScore.Optimization.Protocol"><code class="xref">OCDocker.OCScore.Optimization.Protocol</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Optimization.StagedOptuna.html#module-OCDocker.OCScore.Optimization.StagedOptuna"><code class="xref">OCDocker.OCScore.Optimization.StagedOptuna</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Optimization.StagedTrainProtocol.html#module-OCDocker.OCScore.Optimization.StagedTrainProtocol"><code class="xref">OCDocker.OCScore.Optimization.StagedTrainProtocol</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Scoring.html#module-OCDocker.OCScore.Scoring"><code class="xref">OCDocker.OCScore.Scoring</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.html#module-OCDocker.OCScore.Utils"><code class="xref">OCDocker.OCScore.Utils</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.ContentHash.html#module-OCDocker.OCScore.Utils.ContentHash"><code class="xref">OCDocker.OCScore.Utils.ContentHash</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.Data.html#module-OCDocker.OCScore.Utils.Data"><code class="xref">OCDocker.OCScore.Utils.Data</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.DescriptorAggregateBaselines.html#module-OCDocker.OCScore.Utils.DescriptorAggregateBaselines"><code class="xref">OCDocker.OCScore.Utils.DescriptorAggregateBaselines</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.DUDEzScaling.html#module-OCDocker.OCScore.Utils.DUDEzScaling"><code class="xref">OCDocker.OCScore.Utils.DUDEzScaling</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.DUDEzSplit.html#module-OCDocker.OCScore.Utils.DUDEzSplit"><code class="xref">OCDocker.OCScore.Utils.DUDEzSplit</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.ExternalBlindEvaluation.html#module-OCDocker.OCScore.Utils.ExternalBlindEvaluation"><code class="xref">OCDocker.OCScore.Utils.ExternalBlindEvaluation</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.FeaturePolicy.html#module-OCDocker.OCScore.Utils.FeaturePolicy"><code class="xref">OCDocker.OCScore.Utils.FeaturePolicy</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.FeatureSelectionMetadata.html#module-OCDocker.OCScore.Utils.FeatureSelectionMetadata"><code class="xref">OCDocker.OCScore.Utils.FeatureSelectionMetadata</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.FixedOuterSplit.html#module-OCDocker.OCScore.Utils.FixedOuterSplit"><code class="xref">OCDocker.OCScore.Utils.FixedOuterSplit</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.IO.html#module-OCDocker.OCScore.Utils.IO"><code class="xref">OCDocker.OCScore.Utils.IO</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.LeakageAudit.html#module-OCDocker.OCScore.Utils.LeakageAudit"><code class="xref">OCDocker.OCScore.Utils.LeakageAudit</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.PDBbindSplit.html#module-OCDocker.OCScore.Utils.PDBbindSplit"><code class="xref">OCDocker.OCScore.Utils.PDBbindSplit</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.ProtocolProvenance.html#module-OCDocker.OCScore.Utils.ProtocolProvenance"><code class="xref">OCDocker.OCScore.Utils.ProtocolProvenance</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.RawModelingInput.html#module-OCDocker.OCScore.Utils.RawModelingInput"><code class="xref">OCDocker.OCScore.Utils.RawModelingInput</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.OCScore.Utils.TrainOnlyFeatureReduction.html#module-OCDocker.OCScore.Utils.TrainOnlyFeatureReduction"><code class="xref">OCDocker.OCScore.Utils.TrainOnlyFeatureReduction</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Processing.html#module-OCDocker.Processing"><code class="xref">OCDocker.Processing</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Processing.Dock.html#module-OCDocker.Processing.Dock"><code class="xref">OCDocker.Processing.Dock</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Processing.GarbageCollection.html#module-OCDocker.Processing.GarbageCollection"><code class="xref">OCDocker.Processing.GarbageCollection</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Processing.Postprocessing.html#module-OCDocker.Processing.Postprocessing"><code class="xref">OCDocker.Processing.Postprocessing</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Processing.Postprocessing.Digest.html#module-OCDocker.Processing.Postprocessing.Digest"><code class="xref">OCDocker.Processing.Postprocessing.Digest</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Processing.Preprocessing.html#module-OCDocker.Processing.Preprocessing"><code class="xref">OCDocker.Processing.Preprocessing</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Processing.Preprocessing.Prepare.html#module-OCDocker.Processing.Preprocessing.Prepare"><code class="xref">OCDocker.Processing.Preprocessing.Prepare</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Processing.Preprocessing.RMSDClustering.html#module-OCDocker.Processing.Preprocessing.RMSDClustering"><code class="xref">OCDocker.Processing.Preprocessing.RMSDClustering</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Receptor.html#module-OCDocker.Receptor"><code class="xref">OCDocker.Receptor</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Rescoring.html#module-OCDocker.Rescoring"><code class="xref">OCDocker.Rescoring</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Rescoring.ODDT.html#module-OCDocker.Rescoring.ODDT"><code class="xref">OCDocker.Rescoring.ODDT</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.html#module-OCDocker.Toolbox"><code class="xref">OCDocker.Toolbox</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.Basetools.html#module-OCDocker.Toolbox.Basetools"><code class="xref">OCDocker.Toolbox.Basetools</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.Constants.html#module-OCDocker.Toolbox.Constants"><code class="xref">OCDocker.Toolbox.Constants</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.Conversion.html#module-OCDocker.Toolbox.Conversion"><code class="xref">OCDocker.Toolbox.Conversion</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.Downloading.html#module-OCDocker.Toolbox.Downloading"><code class="xref">OCDocker.Toolbox.Downloading</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.FilesFolders.html#module-OCDocker.Toolbox.FilesFolders"><code class="xref">OCDocker.Toolbox.FilesFolders</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.IO.html#module-OCDocker.Toolbox.IO"><code class="xref">OCDocker.Toolbox.IO</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.Logging.html#module-OCDocker.Toolbox.Logging"><code class="xref">OCDocker.Toolbox.Logging</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.MoleculeProcessing.html#module-OCDocker.Toolbox.MoleculeProcessing"><code class="xref">OCDocker.Toolbox.MoleculeProcessing</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.Preparation.html#module-OCDocker.Toolbox.Preparation"><code class="xref">OCDocker.Toolbox.Preparation</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.Printing.html#module-OCDocker.Toolbox.Printing"><code class="xref">OCDocker.Toolbox.Printing</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.Reproducibility.html#module-OCDocker.Toolbox.Reproducibility"><code class="xref">OCDocker.Toolbox.Reproducibility</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.Running.html#module-OCDocker.Toolbox.Running"><code class="xref">OCDocker.Toolbox.Running</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.Security.html#module-OCDocker.Toolbox.Security"><code class="xref">OCDocker.Toolbox.Security</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Toolbox.Validation.html#module-OCDocker.Toolbox.Validation"><code class="xref">OCDocker.Toolbox.Validation</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Ablation.html#module-OCDocker.Workbench.Ablation"><code class="xref">OCDocker.Workbench.Ablation</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.AblationDesign.html#module-OCDocker.Workbench.AblationDesign"><code class="xref">OCDocker.Workbench.AblationDesign</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.AblationProtocolSimilarity.html#module-OCDocker.Workbench.AblationProtocolSimilarity"><code class="xref">OCDocker.Workbench.AblationProtocolSimilarity</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Adoption.html#module-OCDocker.Workbench.Adoption"><code class="xref">OCDocker.Workbench.Adoption</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Artifacts.html#module-OCDocker.Workbench.Artifacts"><code class="xref">OCDocker.Workbench.Artifacts</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Auth.html#module-OCDocker.Workbench.Auth"><code class="xref">OCDocker.Workbench.Auth</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Bundle.html#module-OCDocker.Workbench.Bundle"><code class="xref">OCDocker.Workbench.Bundle</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.CampaignProgress.html#module-OCDocker.Workbench.CampaignProgress"><code class="xref">OCDocker.Workbench.CampaignProgress</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Comparison.html#module-OCDocker.Workbench.Comparison"><code class="xref">OCDocker.Workbench.Comparison</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Decision.html#module-OCDocker.Workbench.Decision"><code class="xref">OCDocker.Workbench.Decision</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Evidence.html#module-OCDocker.Workbench.Evidence"><code class="xref">OCDocker.Workbench.Evidence</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Export.html#module-OCDocker.Workbench.Export"><code class="xref">OCDocker.Workbench.Export</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.IO.html#module-OCDocker.Workbench.IO"><code class="xref">OCDocker.Workbench.IO</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Jobs.html#module-OCDocker.Workbench.Jobs"><code class="xref">OCDocker.Workbench.Jobs</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Launch.html#module-OCDocker.Workbench.Launch"><code class="xref">OCDocker.Workbench.Launch</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Leaderboard.html#module-OCDocker.Workbench.Leaderboard"><code class="xref">OCDocker.Workbench.Leaderboard</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Logs.html#module-OCDocker.Workbench.Logs"><code class="xref">OCDocker.Workbench.Logs</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.MetricsMatrix.html#module-OCDocker.Workbench.MetricsMatrix"><code class="xref">OCDocker.Workbench.MetricsMatrix</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.OCScoreLayout.html#module-OCDocker.Workbench.OCScoreLayout"><code class="xref">OCDocker.Workbench.OCScoreLayout</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.OptunaDashboard.html#module-OCDocker.Workbench.OptunaDashboard"><code class="xref">OCDocker.Workbench.OptunaDashboard</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Overview.html#module-OCDocker.Workbench.Overview"><code class="xref">OCDocker.Workbench.Overview</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Planner.html#module-OCDocker.Workbench.Planner"><code class="xref">OCDocker.Workbench.Planner</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Plots.html#module-OCDocker.Workbench.Plots"><code class="xref">OCDocker.Workbench.Plots</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Preflight.html#module-OCDocker.Workbench.Preflight"><code class="xref">OCDocker.Workbench.Preflight</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Registry.html#module-OCDocker.Workbench.Registry"><code class="xref">OCDocker.Workbench.Registry</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Report.html#module-OCDocker.Workbench.Report"><code class="xref">OCDocker.Workbench.Report</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Results.html#module-OCDocker.Workbench.Results"><code class="xref">OCDocker.Workbench.Results</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.RunDetail.html#module-OCDocker.Workbench.RunDetail"><code class="xref">OCDocker.Workbench.RunDetail</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Schema.html#module-OCDocker.Workbench.Schema"><code class="xref">OCDocker.Workbench.Schema</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Server.html#module-OCDocker.Workbench.Server"><code class="xref">OCDocker.Workbench.Server</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Status.html#module-OCDocker.Workbench.Status"><code class="xref">OCDocker.Workbench.Status</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Templates.html#module-OCDocker.Workbench.Templates"><code class="xref">OCDocker.Workbench.Templates</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.VSDesign.html#module-OCDocker.Workbench.VSDesign"><code class="xref">OCDocker.Workbench.VSDesign</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="OCDocker.Workbench.Web.html#module-OCDocker.Workbench.Web"><code class="xref">OCDocker.Workbench.Web</code></a></td><td>
+    <em></em></td>
+  </tr>
+</table>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Artur Duque Rossi
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=3307f647"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>
