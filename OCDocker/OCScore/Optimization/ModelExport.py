@@ -452,6 +452,7 @@ def predict_from_export(
         export_path,
         device=resolved_device,
         transferred_extractor=transferred_extractor,
+        pdbbind_export_dir=pdbbind_export_dir,
     )
     selected_features = list(bundle["selected_features"])
     validate_export_features(dataframe, selected_features)
@@ -775,9 +776,11 @@ def load_exported_model(
         Optional transferred extractor for DUDEz transfer exports. Takes
         precedence over ``pdbbind_export_dir`` when both are given.
     pdbbind_export_dir : str | Path | None, optional
-        Override path to the linked PDBbind export for DUDEz transfer models,
-        for bundles whose recorded ``extra.pdbbind_best_model_export_dir`` no
-        longer resolves (e.g. after moving the bundle to another machine).
+        Path to the linked PDBbind export. Used to resolve the transferred
+        feature extractor for DUDEz transfer models whose recorded
+        ``extra.pdbbind_best_model_export_dir`` no longer resolves (e.g. after
+        moving the bundle to another machine), and as a fallback source for
+        ``scaler`` when ``export_dir`` has none of its own.
 
     Returns
     -------
@@ -805,6 +808,13 @@ def load_exported_model(
     scaler_path = export_path / SCALER_FILENAME
     if scaler_path.exists():
         scaler = joblib.load(scaler_path)
+    elif pdbbind_export_dir is not None:
+        # DUDEz bundles trained under scaling_strategy="pdbbind_scaler" never
+        # persist their own scaler.joblib, but were trained on features
+        # standardized by the linked PDBbind bundle's scaler -- fall back to it.
+        pdbbind_scaler_path = Path(pdbbind_export_dir) / SCALER_FILENAME
+        if pdbbind_scaler_path.exists():
+            scaler = joblib.load(pdbbind_scaler_path)
 
     calibrator = None
     calibrator_path = export_path / CALIBRATOR_FILENAME
