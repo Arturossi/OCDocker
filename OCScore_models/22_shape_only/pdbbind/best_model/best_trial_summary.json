@@ -1,0 +1,132 @@
+{
+  "architecture_path": "/data/hd4tb/OCDocker/data/ocdb2/OCScore/output/train/ablations/shape_only/replica_003/pdbbind/best_model/architecture.json",
+  "checkpoint_path": "/data/hd4tb/OCDocker/data/ocdb2/OCScore/output/train/ablations/shape_only/replica_003/pdbbind/best_model/best_model.pt",
+  "direction": "minimize",
+  "export_dir": "/data/hd4tb/OCDocker/data/ocdb2/OCScore/output/train/ablations/shape_only/replica_003/pdbbind/best_model",
+  "feature_metadata_path": "/data/hd4tb/OCDocker/data/ocdb2/OCScore/output/train/ablations/shape_only/replica_003/pdbbind/best_model/feature_metadata.json",
+  "feature_policy": {
+    "candidate_duplicate_assignments": {},
+    "candidate_feature_count_before_policy": 460,
+    "candidate_features_before_policy_hash": "86d80c1ac654eb1c6600bc43c984a972469b0f05a5036c75a9834e31220f4299",
+    "candidate_metadata_columns": [
+      "receptor",
+      "name",
+      "dataset",
+      "kind",
+      "label",
+      "Protein",
+      "resolution",
+      "release_year",
+      "-logKd/Ki",
+      "Ki/Kd",
+      "Ki/Kd_relation",
+      "Ki/Kd_value",
+      "Ki/Kd_order",
+      "Ki/Kd_raw_value",
+      "Ki/Kd_raw_unit",
+      "dG",
+      "dG_kcal_mol",
+      "reference",
+      "ligand_name",
+      "index_comment"
+    ],
+    "candidate_target_columns": [
+      "experimental"
+    ],
+    "candidate_unmatched_columns": [
+      "database",
+      "target"
+    ],
+    "excluded_features_found": [],
+    "excluded_features_requested": [],
+    "excluded_patterns_requested": [],
+    "feature_policy_description": "Use only the core ligand 3D shape descriptors.",
+    "feature_policy_hash": "5d3bfb619dc10902f268584f544c7b7c23b98864b995737924c9d3fc409df1ff",
+    "feature_policy_lookup_dirs": [
+      "/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/Protocols/Ablations"
+    ],
+    "feature_policy_name": "shape_only",
+    "feature_policy_source_kind": "bundled",
+    "feature_policy_source_path": "/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/Protocols/Ablations/shape_only.yml",
+    "final_candidate_features_before_reduction": [
+      "ligand_NPR1",
+      "ligand_NPR2",
+      "ligand_PMI1",
+      "ligand_PMI2",
+      "ligand_PMI3",
+      "ligand_Asphericity",
+      "ligand_Eccentricity",
+      "ligand_InertialShapeFactor",
+      "ligand_RadiusOfGyration",
+      "ligand_SpherocityIndex"
+    ],
+    "final_candidate_features_before_reduction_hash": "9984d1525e7bbaae0f8706d6c072c55b8e216af0d09ce1b9f6152bc59b308049",
+    "included_features_found": [
+      "ligand_NPR1",
+      "ligand_NPR2",
+      "ligand_PMI1",
+      "ligand_PMI2",
+      "ligand_PMI3",
+      "ligand_Asphericity",
+      "ligand_Eccentricity",
+      "ligand_InertialShapeFactor",
+      "ligand_RadiusOfGyration",
+      "ligand_SpherocityIndex"
+    ],
+    "included_features_requested": [
+      "ligand_PMI1",
+      "ligand_PMI2",
+      "ligand_PMI3",
+      "ligand_NPR1",
+      "ligand_NPR2",
+      "ligand_Asphericity",
+      "ligand_Eccentricity",
+      "ligand_InertialShapeFactor",
+      "ligand_RadiusOfGyration",
+      "ligand_SpherocityIndex"
+    ],
+    "included_patterns_requested": [],
+    "missing_exclude_features": [],
+    "missing_include_features": [],
+    "patterns_with_no_matches": [],
+    "removed_features_after_train_only_reduction": [
+      "ligand_PMI3",
+      "ligand_Asphericity",
+      "ligand_Eccentricity",
+      "ligand_InertialShapeFactor",
+      "ligand_RadiusOfGyration"
+    ],
+    "removed_features_after_train_only_reduction_hash": "9d1185e705fcd5009b7909cf3d508a6a85cdfe2221664c7b1b56b42c84593fa6",
+    "selected_features_after_train_only_reduction": [
+      "ligand_NPR1",
+      "ligand_NPR2",
+      "ligand_PMI1",
+      "ligand_PMI2",
+      "ligand_SpherocityIndex"
+    ],
+    "selected_features_after_train_only_reduction_hash": "9660460439ec04fcf028966d7f2cf4e2f8cb9c867ad0f5d306c1684fb0a75e17"
+  },
+  "final_objective_value": 2.2438137615308267,
+  "git_commit": "d3c2b782710cb1306e366d87ce20ad4cace18632",
+  "objective_metric": "RMSE",
+  "retrain_config_path": "/data/hd4tb/OCDocker/data/ocdb2/OCScore/output/train/ablations/shape_only/replica_003/pdbbind/best_model/retrain_config.json",
+  "source_checkpoint_path": "/data/hd4tb/OCDocker/data/ocdb2/OCScore/output/train/ablations/shape_only/replica_003/pdbbind/pdbbind_best.pt",
+  "task": "pdbbind_regression",
+  "test_metrics": {
+    "MAE": 1.779361107988596,
+    "Pearson r": 0.45794602413148977,
+    "R2": 0.20719074995740905,
+    "RMSE": 2.269077721881012,
+    "Spearman rho": 0.44109538304371254
+  },
+  "timestamp_utc": "2026-06-08T16:55:05.959905+00:00",
+  "training_metrics": {},
+  "trial_number": 46,
+  "validation_metrics": {
+    "MAE": 1.7842759010920795,
+    "Pearson r": 0.468916772949192,
+    "R2": 0.21932535741370662,
+    "RMSE": 2.2438137615308267,
+    "Spearman rho": 0.45053208528109634
+  }
+}

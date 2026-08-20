@@ -1,0 +1,306 @@
+{
+  "architecture_path": "architecture.json",
+  "best_params": {
+    "decoder_lambda_rec": 0.01,
+    "encoder_activation": "SiLU",
+    "encoder_architecture_index": 2,
+    "encoder_dropout": 0.0004966286953404404,
+    "optimizer_batch_size": 32,
+    "optimizer_learning_rate": 0.0008284276622459694,
+    "optimizer_weight_decay": 2.555846786545362e-06,
+    "pdbbind_huber_delta": 0.2510129769429769,
+    "pdbbind_regression_loss": "mse",
+    "projection_dim": 16
+  },
+  "best_trial_number": 46,
+  "direction": "minimize",
+  "extra": {
+    "feature_policy": {
+      "candidate_duplicate_assignments": {},
+      "candidate_feature_count_before_policy": 460,
+      "candidate_features_before_policy_hash": "86d80c1ac654eb1c6600bc43c984a972469b0f05a5036c75a9834e31220f4299",
+      "candidate_metadata_columns": [
+        "receptor",
+        "name",
+        "dataset",
+        "kind",
+        "label",
+        "Protein",
+        "resolution",
+        "release_year",
+        "-logKd/Ki",
+        "Ki/Kd",
+        "Ki/Kd_relation",
+        "Ki/Kd_value",
+        "Ki/Kd_order",
+        "Ki/Kd_raw_value",
+        "Ki/Kd_raw_unit",
+        "dG",
+        "dG_kcal_mol",
+        "reference",
+        "ligand_name",
+        "index_comment"
+      ],
+      "candidate_target_columns": [
+        "experimental"
+      ],
+      "candidate_unmatched_columns": [
+        "database",
+        "target"
+      ],
+      "excluded_features_found": [],
+      "excluded_features_requested": [],
+      "excluded_patterns_requested": [],
+      "feature_policy_description": "Use only the core ligand 3D shape descriptors.",
+      "feature_policy_hash": "5d3bfb619dc10902f268584f544c7b7c23b98864b995737924c9d3fc409df1ff",
+      "feature_policy_lookup_dirs": [
+        "/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/Protocols/Ablations"
+      ],
+      "feature_policy_name": "shape_only",
+      "feature_policy_source_kind": "bundled",
+      "feature_policy_source_path": "/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/Protocols/Ablations/shape_only.yml",
+      "final_candidate_features_before_reduction": [
+        "ligand_NPR1",
+        "ligand_NPR2",
+        "ligand_PMI1",
+        "ligand_PMI2",
+        "ligand_PMI3",
+        "ligand_Asphericity",
+        "ligand_Eccentricity",
+        "ligand_InertialShapeFactor",
+        "ligand_RadiusOfGyration",
+        "ligand_SpherocityIndex"
+      ],
+      "final_candidate_features_before_reduction_hash": "9984d1525e7bbaae0f8706d6c072c55b8e216af0d09ce1b9f6152bc59b308049",
+      "included_features_found": [
+        "ligand_NPR1",
+        "ligand_NPR2",
+        "ligand_PMI1",
+        "ligand_PMI2",
+        "ligand_PMI3",
+        "ligand_Asphericity",
+        "ligand_Eccentricity",
+        "ligand_InertialShapeFactor",
+        "ligand_RadiusOfGyration",
+        "ligand_SpherocityIndex"
+      ],
+      "included_features_requested": [
+        "ligand_PMI1",
+        "ligand_PMI2",
+        "ligand_PMI3",
+        "ligand_NPR1",
+        "ligand_NPR2",
+        "ligand_Asphericity",
+        "ligand_Eccentricity",
+        "ligand_InertialShapeFactor",
+        "ligand_RadiusOfGyration",
+        "ligand_SpherocityIndex"
+      ],
+      "included_patterns_requested": [],
+      "missing_exclude_features": [],
+      "missing_include_features": [],
+      "patterns_with_no_matches": [],
+      "removed_features_after_train_only_reduction": [
+        "ligand_PMI3",
+        "ligand_Asphericity",
+        "ligand_Eccentricity",
+        "ligand_InertialShapeFactor",
+        "ligand_RadiusOfGyration"
+      ],
+      "removed_features_after_train_only_reduction_hash": "9d1185e705fcd5009b7909cf3d508a6a85cdfe2221664c7b1b56b42c84593fa6",
+      "selected_features_after_train_only_reduction": [
+        "ligand_NPR1",
+        "ligand_NPR2",
+        "ligand_PMI1",
+        "ligand_PMI2",
+        "ligand_SpherocityIndex"
+      ],
+      "selected_features_after_train_only_reduction_hash": "9660460439ec04fcf028966d7f2cf4e2f8cb9c867ad0f5d306c1684fb0a75e17"
+    },
+    "forbidden_evaluation_dataset_hashes": [
+      "2f0e65d21fd4bf84988c5bcd395f023ffd93d1e449fe415bc7ee39be3b33c1f1",
+      "50d0cc80b1de2377367ab78ca8d9a82158a73cc6b21f0185fdcd06bf71b20a9e",
+      "ada6fad49cb2e0ffe3010f9e1d2abc46bace0c4c642d8788542690b9327e7d84"
+    ]
+  },
+  "feature_metadata_path": "feature_metadata.json",
+  "input_size": 5,
+  "objective_metric": "RMSE",
+  "optimizer": {
+    "batch_size": 32,
+    "learning_rate": 0.0008284276622459694,
+    "weight_decay": 2.555846786545362e-06
+  },
+  "preprocessing": {
+    "scaler": "standard",
+    "scaler_path": "scaler.joblib"
+  },
+  "random_seed": 45,
+  "resolved_model_config": {
+    "dae_gaussian_std": 0.0,
+    "dae_mask_prob": 0.0,
+    "dae_noise_type": "none",
+    "decoder_depth": 0,
+    "decoder_hidden_sizes": null,
+    "decoder_lambda_rec": 0.0,
+    "encoder_activation": "SiLU",
+    "encoder_architecture_index": 2,
+    "encoder_depth": 1,
+    "encoder_dropout": 0.0004966286953404404,
+    "encoder_hidden_sizes": [
+      4
+    ],
+    "encoder_is_monotonic": true,
+    "encoder_latent_dim": 4,
+    "optimizer_batch_size": 32,
+    "optimizer_learning_rate": 0.0008284276622459694,
+    "optimizer_weight_decay": 2.555846786545362e-06,
+    "pdbbind_huber_delta": 0.2510129769429769,
+    "pdbbind_regression_loss": "mse",
+    "projection_dim": 0
+  },
+  "selected_features": [
+    "ligand_NPR1",
+    "ligand_NPR2",
+    "ligand_PMI1",
+    "ligand_PMI2",
+    "ligand_SpherocityIndex"
+  ],
+  "split_config": {
+    "n_affinity_bins": 5,
+    "random_seed": 42,
+    "receptor_column": "receptor",
+    "relaxed_split": false,
+    "strategy": "receptor_heldout",
+    "target_column": "experimental",
+    "test_size": 0.2,
+    "train_size": 0.6,
+    "validation_size": 0.2
+  },
+  "split_diagnostics": {
+    "fixed_outer_split": true,
+    "random_seed": 42,
+    "strategy": "receptor_heldout",
+    "test_rows": 2279,
+    "train_rows": 6807,
+    "validation_rows": 2273
+  },
+  "split_indices_path": "split_indices.npz",
+  "stage_config": {
+    "direction": "minimize",
+    "enable_pruning": true,
+    "epochs": 100,
+    "n_jobs": 1,
+    "n_trials": 100,
+    "objective_metric": "RMSE",
+    "pruner": {
+      "n_startup_trials": 10,
+      "n_warmup_steps": 10,
+      "type": "MedianPruner"
+    },
+    "random_seed": 45,
+    "sampler_seed": 45,
+    "search_phase": "full",
+    "search_space": {
+      "activation_options": [
+        "ReLU",
+        "LeakyReLU",
+        "ELU",
+        "GELU",
+        "SiLU",
+        "Mish"
+      ],
+      "decoder_depth_options": [
+        1,
+        2,
+        3
+      ],
+      "decoder_hidden_size_options": [
+        8,
+        16,
+        32,
+        64,
+        128,
+        256,
+        512
+      ],
+      "decoder_lambda_rec_options": [
+        0.0,
+        0.01,
+        0.05,
+        0.1,
+        0.2
+      ],
+      "encoder_depth_options": [
+        2,
+        3,
+        4
+      ],
+      "encoder_dropout": [
+        0.0,
+        0.3
+      ],
+      "encoder_hidden_size_options": [
+        32,
+        64,
+        128,
+        256,
+        512
+      ],
+      "encoder_latent_dim_options": [
+        8,
+        16,
+        32,
+        64,
+        128
+      ],
+      "optimizer_batch_size_options": [
+        32,
+        64,
+        128,
+        256
+      ],
+      "optimizer_learning_rate": [
+        1e-05,
+        0.001
+      ],
+      "optimizer_weight_decay": [
+        1e-06,
+        0.001
+      ],
+      "pdbbind_huber_delta": [
+        0.1,
+        2.0
+      ],
+      "pdbbind_regression_loss_options": [
+        "huber",
+        "mse"
+      ],
+      "projection_dim_options": [
+        0,
+        16,
+        32,
+        64,
+        128
+      ]
+    },
+    "split_config": {
+      "n_affinity_bins": 5,
+      "random_seed": 42,
+      "receptor_column": "receptor",
+      "relaxed_split": false,
+      "strategy": "receptor_heldout",
+      "target_column": "experimental",
+      "test_size": 0.2,
+      "train_size": 0.6,
+      "validation_size": 0.2
+    },
+    "study_name": "PDBbind_Regression_Optimization_replica_003",
+    "target_column": "experimental",
+    "test_size": 0.2,
+    "use_gpu": true,
+    "validation_size": 0.2
+  },
+  "task": "pdbbind_regression",
+  "weights_path": "best_model.pt"
+}

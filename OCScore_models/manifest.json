@@ -1,4 +1,24 @@
 {
+  "01": {
+    "dudez_best_model_dir": "01_ligand_plus_scoring_function/dudez/best_model",
+    "dudez_test_bedroc": 0.4956147504051666,
+    "dudez_validation_primary_metric": 0.6113481894249885,
+    "feature_policy_name": "ligand_plus_scoring_function",
+    "pdbbind_best_model_dir": "01_ligand_plus_scoring_function/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_004",
+    "source_seed": 46
+  },
+  "02": {
+    "dudez_best_model_dir": "02_ligand_plus_scoring_function_no_shape_core/dudez/best_model",
+    "dudez_test_bedroc": 0.43274731714969783,
+    "dudez_validation_primary_metric": 0.614252627721603,
+    "feature_policy_name": "ligand_plus_scoring_function_no_shape_core",
+    "pdbbind_best_model_dir": "02_ligand_plus_scoring_function_no_shape_core/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_000",
+    "source_seed": 42
+  },
   "03": {
     "dudez_best_model_dir": "03_ligand_plus_scoring_function_no_shape_size/dudez/best_model",
     "dudez_test_bedroc": 0.4029568570444105,
@@ -8,6 +28,16 @@
     "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
     "source_replica": "replica_002",
     "source_seed": 44
+  },
+  "04": {
+    "dudez_best_model_dir": "04_ligand_plus_scoring_function_no_plants/dudez/best_model",
+    "dudez_test_bedroc": 0.4567961532173633,
+    "dudez_validation_primary_metric": 0.6149760831306765,
+    "feature_policy_name": "ligand_plus_scoring_function_no_plants",
+    "pdbbind_best_model_dir": "04_ligand_plus_scoring_function_no_plants/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_003",
+    "source_seed": 45
   },
   "05": {
     "dudez_best_model_dir": "05_ligand_plus_scoring_function_no_pmi/dudez/best_model",
@@ -19,6 +49,36 @@
     "source_replica": "replica_001",
     "source_seed": 43
   },
+  "06": {
+    "dudez_best_model_dir": "06_no_shape_core_no_receptor_surface_counts/dudez/best_model",
+    "dudez_test_bedroc": 0.3988487206607964,
+    "dudez_validation_primary_metric": 0.6145063747433774,
+    "feature_policy_name": "no_shape_core_no_receptor_surface_counts",
+    "pdbbind_best_model_dir": "06_no_shape_core_no_receptor_surface_counts/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_002",
+    "source_seed": 44
+  },
+  "07": {
+    "dudez_best_model_dir": "07_ligand_plus_scoring_function_no_pmi_no_autocorr2d/dudez/best_model",
+    "dudez_test_bedroc": 0.4416253357089664,
+    "dudez_validation_primary_metric": 0.6131013099394083,
+    "feature_policy_name": "ligand_plus_scoring_function_no_pmi_no_autocorr2d",
+    "pdbbind_best_model_dir": "07_ligand_plus_scoring_function_no_pmi_no_autocorr2d/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_000",
+    "source_seed": 42
+  },
+  "08": {
+    "dudez_best_model_dir": "08_ligand_plus_scoring_function_no_pmi_no_plants/dudez/best_model",
+    "dudez_test_bedroc": 0.4574238258379897,
+    "dudez_validation_primary_metric": 0.615300308580505,
+    "feature_policy_name": "ligand_plus_scoring_function_no_pmi_no_plants",
+    "pdbbind_best_model_dir": "08_ligand_plus_scoring_function_no_pmi_no_plants/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_003",
+    "source_seed": 45
+  },
   "09": {
     "dudez_best_model_dir": "09_ligand_plus_scoring_function_no_shape_size_no_autocorr2d/dudez/best_model",
     "dudez_test_bedroc": 0.45737140201684906,
@@ -28,6 +88,26 @@
     "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
     "source_replica": "replica_004",
     "source_seed": 46
+  },
+  "10": {
+    "dudez_best_model_dir": "10_ligand_plus_scoring_function_clean_receptor/dudez/best_model",
+    "dudez_test_bedroc": 0.4178531653046897,
+    "dudez_validation_primary_metric": 0.618063843566464,
+    "feature_policy_name": "ligand_plus_scoring_function_clean_receptor",
+    "pdbbind_best_model_dir": "10_ligand_plus_scoring_function_clean_receptor/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_000",
+    "source_seed": 42
+  },
+  "11": {
+    "dudez_best_model_dir": "11_no_shape_core_no_receptor_length_pair/dudez/best_model",
+    "dudez_test_bedroc": 0.42740743741207576,
+    "dudez_validation_primary_metric": 0.6212168067368662,
+    "feature_policy_name": "no_shape_core_no_receptor_length_pair",
+    "pdbbind_best_model_dir": "11_no_shape_core_no_receptor_length_pair/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_000",
+    "source_seed": 42
   },
   "12": {
     "dudez_best_model_dir": "12_no_pmi/dudez/best_model",
@@ -39,12 +119,32 @@
     "source_replica": "replica_004",
     "source_seed": 46
   },
+  "13": {
+    "dudez_best_model_dir": "13_no_shape_core_no_receptor_surface_size/dudez/best_model",
+    "dudez_test_bedroc": 0.47614671974248196,
+    "dudez_validation_primary_metric": 0.6188821336037874,
+    "feature_policy_name": "no_shape_core_no_receptor_surface_size",
+    "pdbbind_best_model_dir": "13_no_shape_core_no_receptor_surface_size/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_003",
+    "source_seed": 45
+  },
   "14": {
     "dudez_best_model_dir": "14_full_model/dudez/best_model",
     "dudez_test_bedroc": 0.39257855606778747,
     "dudez_validation_primary_metric": 0.6217594895156103,
     "feature_policy_name": "full_ocscore",
     "pdbbind_best_model_dir": "14_full_model/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_000",
+    "source_seed": 42
+  },
+  "15": {
+    "dudez_best_model_dir": "15_no_shape_core/dudez/best_model",
+    "dudez_test_bedroc": 0.4049714605897716,
+    "dudez_validation_primary_metric": 0.6234567004200698,
+    "feature_policy_name": "no_shape_core",
+    "pdbbind_best_model_dir": "15_no_shape_core/pdbbind/best_model",
     "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
     "source_replica": "replica_000",
     "source_seed": 42
@@ -58,5 +158,65 @@
     "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
     "source_replica": "replica_000",
     "source_seed": 42
+  },
+  "17": {
+    "dudez_best_model_dir": "17_ligand_only/dudez/best_model",
+    "dudez_test_bedroc": 0.41287185774674606,
+    "dudez_validation_primary_metric": 0.6029704530069275,
+    "feature_policy_name": "ligand_only",
+    "pdbbind_best_model_dir": "17_ligand_only/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_003",
+    "source_seed": 45
+  },
+  "18": {
+    "dudez_best_model_dir": "18_ligand_plus_scoring_function_no_pmi_no_shape_size_no_autocorr2d_no_vsa/dudez/best_model",
+    "dudez_test_bedroc": 0.37128917480982215,
+    "dudez_validation_primary_metric": 0.5827045618916469,
+    "feature_policy_name": "ligand_plus_scoring_function_no_pmi_no_shape_size_no_autocorr2d_no_vsa",
+    "pdbbind_best_model_dir": "18_ligand_plus_scoring_function_no_pmi_no_shape_size_no_autocorr2d_no_vsa/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_002",
+    "source_seed": 44
+  },
+  "19": {
+    "dudez_best_model_dir": "19_scoring_function_only/dudez/best_model",
+    "dudez_test_bedroc": 0.3536990333713743,
+    "dudez_validation_primary_metric": 0.420677829518097,
+    "feature_policy_name": "scoring_function_only",
+    "pdbbind_best_model_dir": "19_scoring_function_only/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_004",
+    "source_seed": 46
+  },
+  "20": {
+    "dudez_best_model_dir": "20_no_scoring_function/dudez/best_model",
+    "dudez_test_bedroc": 0.36623399582201094,
+    "dudez_validation_primary_metric": 0.6076841814617783,
+    "feature_policy_name": "no_scoring_function",
+    "pdbbind_best_model_dir": "20_no_scoring_function/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_004",
+    "source_seed": 46
+  },
+  "21": {
+    "dudez_best_model_dir": "21_receptor_plus_scoring_function/dudez/best_model",
+    "dudez_test_bedroc": 0.37696406143899863,
+    "dudez_validation_primary_metric": 0.39580757447205134,
+    "feature_policy_name": "receptor_plus_scoring_function",
+    "pdbbind_best_model_dir": "21_receptor_plus_scoring_function/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_003",
+    "source_seed": 45
+  },
+  "22": {
+    "dudez_best_model_dir": "22_shape_only/dudez/best_model",
+    "dudez_test_bedroc": 0.1767889292798115,
+    "dudez_validation_primary_metric": 0.21779186810899798,
+    "feature_policy_name": "shape_only",
+    "pdbbind_best_model_dir": "22_shape_only/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_003",
+    "source_seed": 45
   }
 }
