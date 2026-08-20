@@ -2,7 +2,7 @@
 
 Pretrained OCScore models, ready to score new data without retraining.
 
-These five configurations come from the DUDEz feature-ablation study described
+These six configurations come from the DUDEz feature-ablation study described
 in the OCScore paper (`data/ocdb2/OCScore/output/latex/main.tex`, Sections
 4.4/4.6). Each one is a real, trained model bundle picked from the study's
 per-seed replicas — not a toy or placeholder.
@@ -10,17 +10,27 @@ per-seed replicas — not a toy or placeholder.
 | Config | Feature policy | Selected replica (seed) | Validation BEDROC | Test BEDROC | Notes |
 |---|---|---|---|---|---|
 | **#03** | `ligand_plus_scoring_function_no_shape_size` | replica_002 (44) | 0.6036 | 0.4030 | Recommended in the paper: best validation rank, distributed SHAP explanation (no shortcut risk) |
-| #05 | `ligand_plus_scoring_function_no_pmi` | replica_001 (43) | 0.6187 | 0.4579 | Genuinely-distributed cluster, survives the shortcut-risk screen |
-| #09 | `ligand_plus_scoring_function_no_shape_size_no_autocorr2d` | replica_004 (46) | 0.6035 | 0.4574 | Genuinely-distributed cluster, survives the shortcut-risk screen |
-| #12 | `no_pmi` | replica_004 (46) | 0.6183 | 0.4547 | Genuinely-distributed cluster, survives the shortcut-risk screen |
+| #05 | `ligand_plus_scoring_function_no_pmi` | replica_001 (43) | 0.6187 | 0.4579 | Screened out in the paper's shortcut-risk step (hit the 20% cutoff exactly); not one of the paper's four final candidates. Shipped here for reference/comparison, not as a validated recommendation. |
+| #09 | `ligand_plus_scoring_function_no_shape_size_no_autocorr2d` | replica_004 (46) | 0.6035 | 0.4574 | One of the paper's four final candidates (#03/#09/#12/#16), survives the shortcut-risk screen |
+| #12 | `no_pmi` | replica_004 (46) | 0.6183 | 0.4547 | One of the paper's four final candidates, survives the shortcut-risk screen |
 | #14 | `full_ocscore` | replica_000 (42) | 0.6218 | 0.3926 | Reference/baseline: complete 363-feature set, no ablation |
+| #16 | `no_ligand_shape_size` | replica_000 (42) | 0.6172 | 0.4383 | One of the paper's four final candidates; the one previously missing from this directory (see below) |
 
 Config numbers match the `#NN` identifiers used throughout the paper and in
 `examples/24_ocscore_bedroc_shortcut_risk_scatter.py`. Full per-config metadata
 (feature-policy name, source replica/seed, selection rule, both metrics) is in
 [`manifest.json`](manifest.json).
 
-## Why these five numbers and not others
+**#05 vs #16**: the paper's shortcut-risk screen (Section on SHAP-based selection)
+keeps exactly four configurations as final candidates: **#03, #09, #12, #16**
+(`main.tex` line 711: *"risco ≥20% descartou doze e deixou quatro (#03, #09,
+#12, #16)"*). **#05 is explicitly discarded** in the paper (line 640: *"a #05...
+atingiu exatamente 20,0% e foi descartada"*) and does not appear in the final
+ranking table at all. This directory originally shipped #05 in #16's place;
+#16 has since been added and #05 is kept alongside it for reference, not as a
+stand-in for a validated candidate.
+
+## Why these numbers and not others
 
 Each ablation policy was trained 5 times with different seeds. Within each of
 the configurations above, the shipped replica is the one with the
@@ -52,12 +62,17 @@ bundles in the format written by
     └── ... (same files as above)
 ```
 
-The DUDEz classifier reuses the PDBbind bundle's feature extractor
-(`dudez_use_transfer: true` in `retrain_config.json`). **Always pass both
-directories together** — see below. `retrain_config.json`'s
-`extra.pdbbind_best_model_export_dir` field is left blank on purpose (it
-recorded a local training-machine path that has no meaning after the bundle
-is copied elsewhere); pass `pdbbind_export_dir` explicitly instead.
+For configs where `retrain_config.json`'s `resolved_model_config.dudez_use_transfer`
+is `true` (currently only #05), the DUDEz classifier reuses the PDBbind
+bundle's feature extractor and `pdbbind_export_dir` is required — loading
+without it raises `ValueError`. For the rest (currently #03/#09/#12/#14/#16,
+each trained from scratch rather than transferred), `pdbbind_export_dir` is
+unused but harmless to pass. **Always pass both directories together** — see
+below — so the same call works regardless of a given config's transfer
+setting. `retrain_config.json`'s `extra.pdbbind_best_model_export_dir` field
+is left blank on purpose (it recorded a local training-machine path that has
+no meaning after the bundle is copied elsewhere); pass `pdbbind_export_dir`
+explicitly instead.
 
 ## Scoring new data
 
