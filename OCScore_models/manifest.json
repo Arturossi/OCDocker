@@ -48,5 +48,15 @@
     "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
     "source_replica": "replica_000",
     "source_seed": 42
+  },
+  "16": {
+    "dudez_best_model_dir": "16_no_ligand_shape_size/dudez/best_model",
+    "dudez_test_bedroc": 0.4382999326773951,
+    "dudez_validation_primary_metric": 0.6171744274252722,
+    "feature_policy_name": "no_ligand_shape_size",
+    "pdbbind_best_model_dir": "16_no_ligand_shape_size/pdbbind/best_model",
+    "selection_rule": "highest dudez_best_validation_metric among the 5 seed replicas (validation-based, matches the paper's ablation-selection methodology)",
+    "source_replica": "replica_000",
+    "source_seed": 42
   }
 }

@@ -1,0 +1,39 @@
+{
+  "classifier": {
+    "activation": "ELU",
+    "dropout": 0.009444824299083637,
+    "hidden_size": 128
+  },
+  "feature_extractor": {
+    "hidden_sizes": [
+      256,
+      256,
+      64
+    ],
+    "latent_dim": 64,
+    "output_dim": 32,
+    "projection_dim": 32
+  },
+  "input_size": 342,
+  "model_config": {
+    "dudez_classifier_activation": "ELU",
+    "dudez_classifier_dropout": 0.009444824299083637,
+    "dudez_classifier_hidden_size": 128,
+    "dudez_fine_tuning_mode": "full",
+    "dudez_num_unfrozen_layers": 2,
+    "dudez_use_class_weighting": false,
+    "dudez_use_transfer": false,
+    "optimizer_batch_size": 64,
+    "optimizer_learning_rate": 2.5488827377413215e-05,
+    "optimizer_weight_decay": 0.0003351198151924926
+  },
+  "task": "dudez_screening",
+  "training": {
+    "use_class_weighting": false
+  },
+  "transfer": {
+    "fine_tuning_mode": "full",
+    "num_unfrozen_layers": 2,
+    "use_transfer": false
+  }
+}
