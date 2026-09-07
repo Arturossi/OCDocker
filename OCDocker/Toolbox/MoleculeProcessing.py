@@ -156,6 +156,18 @@ def clean_for_dssp(structurePath: str) -> int:
 
     # Check if structurePath is a valid file
     if os.path.isfile(structurePath):
+        # Skip the rewrite when the file already matches this function's own
+        # output shape. Every Receptor() construction calls this before DSSP,
+        # so without this check a shared receptor.pdb gets rewritten (and its
+        # mtime bumped) on every single job for that receptor, which under
+        # --rerun-triggers mtime makes every already-completed sibling target
+        # look stale again.
+        with open(structurePath, 'r') as pdbFile:
+            firstLine = pdbFile.readline()
+            secondLine = pdbFile.readline()
+        if firstLine == "HEADER    \n" and secondLine == "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n":
+            return ocerror.Error.ok()
+
         # Open it (for cleaning)
         with open(structurePath, 'r') as pdbFile:
             # For each line in pdbFile
