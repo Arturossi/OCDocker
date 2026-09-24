@@ -29,6 +29,7 @@ Submodules
    OCDocker.Error
    OCDocker.Initialise
    OCDocker.Ligand
+   OCDocker.Pocket
    OCDocker.Receptor
 
 Module contents

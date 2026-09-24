@@ -4,6 +4,25 @@ All notable changes to OCDocker are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Binding pocket descriptors**: `OCDocker/Pocket.py` adds a `Pocket` class that defines a
+  pocket from a reference ligand (every standard receptor residue with a heavy atom within
+  `cutoff` angstroms, 8.0 by default, of any reference-ligand heavy atom) and computes
+  descriptors on those residues only: residue counts `countA`..`countV`, `TotalAALength`,
+  `countChain`, `SASA` (per residue, in the context of the full receptor), `GRAVY`,
+  `Aromaticity`, `NetCharge` (side chains only, Henderson-Hasselbalch at pH 7.4) and the
+  side-chain hydrogen-bond donor/acceptor atoms lining the pocket. Unlike `Receptor`, where
+  `count*` count surface residues, here every pocket residue is counted. Descriptors are
+  cached with `to_json()` / `from_json_descriptors`, which also record the cutoff, the
+  reference ligand and the residue identifiers.
+- `OCDocker/DB/Models/Pockets.py`: a `pockets` table referencing `receptors` through
+  `receptor_id`, with `Receptors.pockets` as the reverse relationship. A receptor may hold
+  several pockets, so the `receptors` table gains no column and existing databases need no
+  migration; `create_tables()` creates the new table.
+
 ## [0.15.4] - 2026-08-06
 
 ### Fixed
@@ -166,6 +185,143 @@ and the SHAP shortcut-risk analysis.
 - `py-mini-racer`, used by the dashboard's JavaScript syntax test, was imported without
   being declared; it is now part of the `dev` extra.
 
+### Details
+
+The notes below were written during development of this release and kept in the
+Sphinx changelog page under "Unreleased"; they are preserved here in full.
+
+#### Snakemake execution engine and structured progress for VS campaigns
+
+`vs_campaign` jobs gained a second execution engine, chosen via
+`engine="shell"` (default, unchanged) or `engine="snakemake"` on
+`plan_vs_campaign`/`run_job`/`plan_job` and the Workbench VS tab's
+Batch mode: real Snakemake DAG orchestration (parallel via `cores`,
+resumable via `--rerun-incomplete`) using a bundled config-driven
+multi-sample Snakefile
+(`OCDocker.Workbench.Jobs.build_campaign_snakemake_command`,
+`OCDocker/Workbench/Snakefiles/vs_campaign.smk` — reads a `samples`
+dict, so discovered receptor/ligand/box files never need to be relocated
+into a fixed directory layout). Both engines also gained structured
+per-sample progress, parsed from the job's own log text: new
+`GET /api/jobs/{job_id}/campaign-progress` endpoint
+(`OCDocker.Workbench.CampaignProgress`), MCP tool
+`get_campaign_progress`, and a live progress view in the Workbench Jobs
+tab's log panel. Also fixed: a shared `outdir` across every campaign row
+now correctly nests per sample (`<outdir>/<sample>`) instead of every row
+writing to the same directory.
+
+#### VS campaign batches (multi-sample)
+
+New `vs_campaign` job kind (`OCDocker.Workbench.Jobs.build_campaign_script`),
+`/api/vs-campaign*` endpoints, and matching MCP tools
+(`get_vs_campaign_context`, `preview_vs_campaign`, `plan_vs_campaign`)
+run many receptor/ligand/box samples as **one** tracked job: discover an
+`input/{sample}/...` layout (or hand-author a manifest), validate every
+row, and launch the whole batch with a single `run_job(confirm=True)` — no
+per-row confirmations, no dependency beyond OCDocker itself with the default
+shell engine (see above for the optional Snakemake engine). The generated
+shell script continues past a failing row and reports an aggregate pass/fail
+count, so one bad sample doesn't abort the rest. The Workbench VS tab gained
+a "Single target" / "Batch" mode toggle exposing the same flow in the
+browser.
+
+#### VS/pipeline design assistant
+
+New `/api/vs-design*` endpoints and matching MCP tools
+(`get_vs_design_context`, `preview_vs_design`, `plan_vs_design`,
+`OCDocker.Workbench.VSDesign`) mirror the existing ablation-design flow
+for single-target `vs`/`pipeline` docking runs: discover receptor/ligand/box
+candidates in a workspace, validate a draft selection (paths, engine names),
+and preview the exact command before launching it through the existing
+`run_job`/Jobs tab. Read-only and unauthenticated, like ablation design.
+Covers one receptor/one ligand/one box per draft — for many samples in one
+job, see "VS campaign batches" above.
+
+#### MCP server for LLM-driven OCDocker orchestration
+
+`ocdocker mcp serve` runs a Model Context Protocol server (`OCDocker.MCP`,
+new `mcp` optional extra) over stdio for LLM clients such as Claude Code and
+Claude Desktop. It is a thin adapter over a running `ocdocker workbench serve`
+API: workspace inspection, ablation design preview/plan, protocol similarity,
+and job listing/logs are always-available read tools; `run_job` and
+`cancel_job` require the Workbench job bearer token and an explicit
+`confirm=True` from the calling LLM, so a job is never launched from one
+ambiguous instruction. See the optional dependencies page
+(`optional_dependencies`).
+
+#### Workbench API can launch and track jobs
+
+`ocdocker workbench serve` now exposes `/api/jobs*` endpoints that launch,
+list, poll, tail logs for, and cancel `vs`, `pipeline`, `ocscore train`,
+and `ocscore reduce` runs as tracked local subprocesses
+(`OCDocker.Workbench.Jobs`). Job state is persisted under
+`<served root>/.ocdocker-jobs/` and survives an API restart. Job-execute
+endpoints require a bearer token, auto-generated on first run at
+`~/.config/ocdocker/workbench_token` or set via `OCDOCKER_WORKBENCH_TOKEN`
+(`OCDocker.Workbench.Auth`); all existing read-only inspection endpoints
+are unchanged and remain unauthenticated.
+
+#### Workbench API migrated to FastAPI
+
+`ocdocker workbench serve` now runs on FastAPI/uvicorn instead of the stdlib
+`http.server`, behind the new `api` optional extra
+(`pip install "ocdocker[api]"`). All existing endpoints, response shapes, and
+the `/app` browser dashboard are unchanged; the server now also exposes an
+OpenAPI schema at `/api/openapi.json`. See the optional dependencies
+(`optional_dependencies`) and usage (`usage`) pages.
+
+#### Console and CLI separation
+
+The interactive console lives in `OCDocker.Console`. Use `ocdocker console`
+or `python -m OCDocker.Console` to start the REPL; built-in `help` and `exit`
+commands are supported. The root `OCDockerConsole.py` wrapper was removed.
+See the `OCDocker.Console` and usage (`usage`) pages.
+
+#### Packaging and optional dependencies
+
+OCDocker now ships a **minimal core** install; scientific, ML, and plotting stacks
+are optional pip extras (`docking`, `db`, `ml`, `analysis`, `workflow`,
+`all`, `full`, `dev`). See the optional dependencies page
+(`optional_dependencies`) for the cheat sheet and full reference.
+
+#### Formatting and readability
+
+Priority config and Python modules use expanded multiline formatting (line length
+120, one dependency per line in `pyproject.toml`). Long config defaults such as
+`reference_column_order` live in module-level constants in `OCDocker/Config.py`.
+See the development page (`development`) for contributor formatting rules.
+
+#### OCScore feature-reduction API
+
+Added a granular feature-reduction API in
+`OCDocker.OCScore.Utils.FeatureReduction` for descriptor datasets. The new API
+keeps feature-reduction behavior in reusable Python functions and dataclasses,
+with `run_feature_reduction_protocol` provided only as an orchestration helper.
+
+Highlights:
+
+- descriptor block detection for receptor, ligand, and scoring-function columns
+- Ligand/Receptor descriptor metadata support with configurable pattern fallback
+- missing-row removal with row-level and block-level reports before data loss
+- block-wise constant, near-constant, duplicate, and correlation filtering
+- cross-block correlation and Ridge CV predictability diagnostics
+- opt-in parallel Ridge CV diagnostics through `CrossBlockDiagnosticsConfig.n_jobs`
+- opt-in orchestration progress logging through `FeatureReductionConfig.verbose`
+- disabled-by-default conservative cross-block filtering
+- reproducibility protocol and stable report filenames
+
+Compatibility and rewiring:
+
+- Existing OCScore training, DNN, autoencoder, SHAP, and downstream evaluation
+  paths are not automatically rewired to call this API.
+- `OCDocker.OCScore.Utils.IO.load_data` is not changed; the new orchestration
+  helper reads raw CSV input directly so missing rows can be reported before
+  removal.
+- This is additive public API. If released publicly, it fits a minor version bump
+  rather than a major version bump.
+
+[Unreleased]: https://github.com/Arturossi/OCDocker/compare/v0.15.4...HEAD
+[0.15.4]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.4
 [0.15.3]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.3
 [0.15.2]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.2
 [0.15.1]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.1

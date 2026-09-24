@@ -3,32 +3,34 @@
 # Description
 ###############################################################################
 """
-SQLAlchemy model for receptor descriptors and complex relationships.
+SQLAlchemy model for pocket descriptors and their receptor relationship.
+
+A receptor may hold several pockets, so the pocket row references its receptor
+and the receptor table never references a pocket.
 
 Usage:
 
-from OCDocker.DB.Models.Receptors import Receptors
+from OCDocker.DB.Models.Pockets import Pockets
 """
 
 # Imports
 ###############################################################################
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, ForeignKey, Integer
+from sqlalchemy import Column, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from OCDocker.DB.Models.Base import base
-from OCDocker.DB.Models.Pockets import Pockets
 
 if TYPE_CHECKING:
-    import OCDocker.Receptor as ocr
+    import OCDocker.Pocket as ocpocket
 else:
     try:
-        import OCDocker.Receptor as ocr
+        import OCDocker.Pocket as ocpocket
     except ModuleNotFoundError as exc:
         if getattr(exc, "name", "") not in {"Bio", "rdkit"}:
             raise
-        ocr = None
+        ocpocket = None
 
 # License
 ###############################################################################
@@ -43,30 +45,38 @@ See the LICENSE file for full terms.
 ###############################################################################
 
 
-class Receptors(base):
-    """SQLAlchemy model for receptor descriptor columns.
+class Pockets(base):
+    """SQLAlchemy model for pocket descriptor columns.
 
-    Dynamic columns are added from :attr:`OCDocker.Receptor.Receptor.allDescriptors`.
+    Dynamic columns are added from :attr:`OCDocker.Pocket.Pocket.allDescriptors`.
 
     Attributes
     ----------
     id : sqlalchemy.Integer
         Primary key.
-    complexes : list[Complexes]
-        Related docking complexes for this receptor.
-    pockets : list[Pockets]
-        Related pockets for this receptor (a receptor may hold several).
+    receptor_id : sqlalchemy.Integer
+        Foreign key to :class:`Receptors`.
+    reference_ligand : sqlalchemy.String
+        Reference ligand used to define the pocket.
+    cutoff : sqlalchemy.Float
+        Heavy-atom distance cutoff (angstroms) used to define the pocket.
+    residues : sqlalchemy.Text
+        Pocket residues as ``chain:number:insertion:resname`` joined by ``;``.
+    receptor : Receptors
+        Parent receptor row.
     allDescriptors : list[str]
         Names of dynamically mapped descriptor columns (class attribute).
     """
 
     # Relationships
-    complexes = relationship(
-        "Complexes", back_populates="receptor", cascade="all, delete-orphan"
-    )
-    pockets = relationship(
-        "Pockets", back_populates="receptor", cascade="all, delete-orphan"
-    )
+    receptor_id = Column(Integer, ForeignKey("receptors.id"))
+
+    receptor = relationship("Receptors", back_populates="pockets")
+
+    # Pocket definition
+    reference_ligand = Column(String(760), server_default=None)
+    cutoff = Column(Float, server_default=None)
+    residues = Column(Text, server_default=None)
 
     # Declare the descriptors names as class attributes
     descriptors_names = {
@@ -97,14 +107,13 @@ class Receptors(base):
     # Declare the single descriptors names as class attributes
     single_descriptors = [
         "TotalAALength",
-        "AvgAALength",
         "countChain",
         "SASA",
-        "DipoleMoment",
-        "IsoelectricPoint",
         "GRAVY",
         "Aromaticity",
-        "InstabilityIndex",
+        "NetCharge",
+        "countHBondDonors",
+        "countHBondAcceptors",
     ]
 
     # Create all the descriptors to be class attributes
@@ -116,8 +125,8 @@ class Receptors(base):
 
 
 # Add columns for each descriptor
-Receptors.add_dynamic_columns(
-    ocr.Receptor.allDescriptors if ocr is not None else Receptors.allDescriptors
+Pockets.add_dynamic_columns(
+    ocpocket.Pocket.allDescriptors if ocpocket is not None else Pockets.allDescriptors
 )
 
 
