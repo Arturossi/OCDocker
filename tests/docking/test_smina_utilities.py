@@ -314,8 +314,12 @@ def smina(monkeypatch, tmp_path):
         'OCDocker.Docking.BaseVinaLike',
     ]
     for mod_name in modules_to_reload:
-        if mod_name in sys.modules:
-            del sys.modules[mod_name]
+        # Track the parent package attribute too, or the stubbed re-import stays bound there after teardown
+        parent_name, _, child_name = mod_name.rpartition('.')
+        parent = sys.modules.get(parent_name)
+        if parent is not None:
+            monkeypatch.setattr(parent, child_name, getattr(parent, child_name, None), raising=False)
+        monkeypatch.delitem(sys.modules, mod_name, raising=False)
     # Now import the module (it will pick up the stubs)
     mod = importlib.import_module('OCDocker.Docking.Smina')
     monkeypatch.setattr(mod.Smina, '_Smina__smina_cmd', lambda self: ['smina'])

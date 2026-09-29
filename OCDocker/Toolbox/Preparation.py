@@ -608,8 +608,8 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
             Command list that would be executed (OpenBabel conversion)
         '''
 
-        # Same as ligand for OpenBabel
-        return self.get_ligand_command(input_path, output_path)
+        # Same as ligand for OpenBabel, plus the rigid PDBQT write options
+        return self.get_ligand_command(input_path, output_path) + ["-xr", "-xc"]
 
     def prepare_ligand(
         self,
@@ -719,6 +719,6 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
         if result is not None:
             return result
 
-        # Similar to ligand but for receptor
+        # Similar to ligand but for receptor, written rigid (no torsion tree)
         from OCDocker.Toolbox import Conversion as occonversion
-        return occonversion.convert_mols(input_path, output_path, return_molecule=False, overwrite=overwrite)
+        return occonversion.convert_mols(input_path, output_path, return_molecule=False, overwrite=overwrite, rigid=True)

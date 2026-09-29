@@ -75,6 +75,7 @@ def convert_mols(
     output_file: str,
     return_molecule: Literal[True],
     overwrite: bool = False,
+    rigid: bool = False,
 ) -> Union[int, rdkit.Chem.rdchem.Mol, _OBMol]:
     ...
 
@@ -85,11 +86,12 @@ def convert_mols(
     output_file: str,
     return_molecule: Literal[False] = False,
     overwrite: bool = False,
+    rigid: bool = False,
 ) -> Union[int, str]:
     ...
 
 
-def convert_mols(input_file: str, output_file: str, return_molecule: bool = False, overwrite: bool = False) -> Union[int, str, rdkit.Chem.rdchem.Mol, _OBMol]:
+def convert_mols(input_file: str, output_file: str, return_molecule: bool = False, overwrite: bool = False, rigid: bool = False) -> Union[int, str, rdkit.Chem.rdchem.Mol, _OBMol]:
     '''Convert a molecule file between two extensions which obabel supports.
 
     Parameters
@@ -102,6 +104,8 @@ def convert_mols(input_file: str, output_file: str, return_molecule: bool = Fals
         If True, returns the molecule object. (default is False)
     overwrite : bool, optional
         If True, overwrites the output file if it already exists. (default is False)
+    rigid : bool, optional
+        If True and the output is PDBQT, writes a single rigid molecule with no torsion tree, as a receptor requires. (default is False)
 
     Returns
     -------
@@ -153,6 +157,10 @@ def convert_mols(input_file: str, output_file: str, return_molecule: bool = Fals
         obConversion = openbabel.OBConversion()
         # Set the conversion from the extension to pdbqt
         obConversion.SetInAndOutFormats(inExtension, outExtension)
+        # Write a rigid PDBQT (no torsion tree) with all fragments combined into one molecule
+        if rigid and outExtension == "pdbqt":
+            obConversion.AddOption("r", openbabel.OBConversion.OUTOPTIONS)
+            obConversion.AddOption("c", openbabel.OBConversion.OUTOPTIONS)
         # Create an empty OBMol object
         mol: _OBMol = openbabel.OBMol()
         # Load the input file to the prebiusly loaded OBMol object

@@ -4,7 +4,10 @@ All notable changes to OCDocker are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.16.0] - 2026-09-24
+
+This release also covers the changes that were versioned 0.15.5 but never tagged or given
+an entry of their own.
 
 ### Added
 
@@ -22,6 +25,58 @@ All notable changes to OCDocker are documented here. The format follows
   `receptor_id`, with `Receptors.pockets` as the reverse relationship. A receptor may hold
   several pockets, so the `receptors` table gains no column and existing databases need no
   migration; `create_tables()` creates the new table.
+- `scripts/compute_pocket_descriptors.py`: computes and caches pocket descriptors, in
+  parallel, for every receptor of a database that has a reference ligand
+  (`reference_ligand.pdb` or `.sdf`), and writes a TSV report of the outcome per receptor.
+- `Ligand.load_mol()` gained a `write_mol2: bool = True` option. With `False`, loading a
+  non-mol2 file no longer writes a derived `.mol2` next to it.
+- `OCScore_models/` ships all 22 ablation-study configurations (#01 to #22), up from 4 in
+  0.15.4. Each is the replica with the highest validation BEDROC of its 5 seeds.
+  `manifest.json`, the README table and the `--config` choices of
+  `examples/25_ocscore_score_with_shipped_models.py` list them all.
+- Workbench browser characterization tests (`tests/workbench/test_browser.py`), run with
+  Playwright; `playwright>=1.61.0` joins the `dev` extra, and its Chromium binary is
+  installed separately with `python -m playwright install chromium`.
+
+### Fixed
+
+- `predict_from_export()` scored raw, unstandardized features. DUDEz bundles never
+  persisted a scaler under the default `scaling_strategy="pdbbind_scaler"`, and
+  `predict_from_export()` did not forward `pdbbind_export_dir` to `load_exported_model()`,
+  so every prediction bypassed the scaler the network was trained with. On the shipped
+  configurations' own held-out DUDEz test sets this gave near-random or anti-correlated
+  rankings (#03: ROC-AUC 0.558). `load_exported_model()` now falls back to the linked
+  PDBbind bundle's `scaler.joblib`, and `predict_from_export()` forwards
+  `pdbbind_export_dir` (#03 after the fix: ROC-AUC 0.883).
+- `OCScore_models/` shipped configuration #05 where the paper's final candidates are
+  #03, #09, #12 and #16; #16 is now included. The README no longer claims that every
+  shipped configuration uses `dudez_use_transfer: true` (only #05 does).
+- `clean_for_dssp()` rewrote `receptor.pdb` on every `Receptor()` construction, bumping its
+  mtime, so under `--rerun-triggers mtime` every completed target sharing that receptor
+  looked stale. It now skips files that already match its own output.
+- `Ligand.get_centroid()` no longer writes a `.mol2` file as a side effect.
+- Receptors prepared with Open Babel were written as flexible ligands: `convert_mols()`
+  wrote PDBQT with a torsion tree (`ROOT`/`BRANCH`/`TORSDOF`), which Vina rejects as a
+  rigid receptor. This is the receptor path of `OpenBabelPreparationStrategy`, used by
+  Smina and Gnina and by the pipeline whenever MGLTools `prepare_receptor4` fails.
+  `convert_mols()` gained `rigid: bool = False`, which for PDBQT output adds Open Babel's
+  `r` (no torsion tree) and `c` (combine all fragments into one molecule) write options.
+  The strategy's receptor path uses it, and `get_receptor_command()` now shows the
+  matching `-xr -xc` flags.
+
+### Changed
+
+- The Workbench dashboard script is split into modules (`app-core.js`, `app-jobs.js`,
+  `app-comparison.js`, `app-plots.js`, `app-results.js`, `app-ablation-design.js`,
+  `app-vs-design.js`, `app-workspace.js`), still loaded as classic scripts in that order.
+- `environment.yml` no longer installs ODDT from Conda; `scripts/vendor_oddt.sh` supplies
+  the required fork before OCDocker is installed.
+- `CHANGELOG.md` is the single changelog: the Sphinx page (`docs/source/changelog.md`)
+  includes it directly, and notes that existed only in the old `changelog.rst` moved into
+  the 0.15.0 entry.
+- The `Receptor` docstring now states that `countA`..`countV` count only surface-exposed
+  residues, and drops the nonexistent `cleanStructurePath` parameter from
+  `count_surface_AA()`.
 
 ## [0.15.4] - 2026-08-06
 
@@ -320,7 +375,7 @@ Compatibility and rewiring:
 - This is additive public API. If released publicly, it fits a minor version bump
   rather than a major version bump.
 
-[Unreleased]: https://github.com/Arturossi/OCDocker/compare/v0.15.4...HEAD
+[0.16.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.16.0
 [0.15.4]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.4
 [0.15.3]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.3
 [0.15.2]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.2
