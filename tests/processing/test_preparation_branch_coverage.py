@@ -222,7 +222,7 @@ def test_openbabel_get_commands_and_prepare_ligand_branches(tmp_path, monkeypatc
     cmd_l = strategy.get_ligand_command("lig.mol2", "lig.pdbqt")
     cmd_r = strategy.get_receptor_command("rec.pdb", "rec.pdbqt")
     assert cmd_l == ["/bin/echo", "lig.mol2", "-O", "lig.pdbqt"]
-    assert cmd_r == ["/bin/echo", "rec.pdb", "-O", "rec.pdbqt"]
+    assert cmd_r == ["/bin/echo", "rec.pdb", "-O", "rec.pdbqt", "-xr", "-xc"]
 
     monkeypatch.setattr(strategy, "_handle_existing_output", lambda *_a, **_k: ocerror.ErrorCode.OK)
     assert strategy.prepare_ligand("lig.mol2", "lig.pdbqt") == ocerror.ErrorCode.OK

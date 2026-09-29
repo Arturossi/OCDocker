@@ -10,4 +10,4 @@ Usage:
 from OCDocker._version import __version__
 '''
 
-__version__ = "0.15.5"
+__version__ = "0.16.0"

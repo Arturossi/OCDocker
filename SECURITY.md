@@ -2,12 +2,12 @@
 
 ## Supported Versions
 
-The latest `0.15.x` release line is supported with security updates.
+The latest `0.16.x` release line is supported with security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.15.x  | :white_check_mark: |
-| < 0.15  | :x:                |
+| 0.16.x  | :white_check_mark: |
+| < 0.16  | :x:                |
 
 ## Reporting a Vulnerability
 
