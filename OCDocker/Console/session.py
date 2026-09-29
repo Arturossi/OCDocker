@@ -21,7 +21,7 @@ import shutil
 import sys
 from glob import glob
 from pprint import pprint
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping, cast
 
 import OCDocker.Error as ocerror
 
@@ -362,7 +362,8 @@ def run_interactive(namespace: Mapping[str, Any], *, use_ipython: bool = False) 
             colors = "NoColor"
             if sys.stdout.isatty() and os.getenv("TERM") and "dumb" not in os.getenv("TERM", ""):
                 colors = "Linux"
-            embed(user_ns=dict(namespace), banner1="", colors=colors, display_banner=False)
+            # IPython's embed is untyped in some releases; give it a callable type
+            cast(Callable[..., Any], embed)(user_ns=dict(namespace), banner1="", colors=colors, display_banner=False)
             return 0
         except ImportError:
             pass

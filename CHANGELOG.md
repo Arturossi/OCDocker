@@ -66,6 +66,15 @@ an entry of their own.
 
 ### Changed
 
+- Optuna is pinned to the 5.0 series: `optuna==5.0.*` and `optuna-integration==5.0.*`, with
+  `optuna-dashboard>=0.21.0` (`environment.yml` moves from Optuna 3.6.1, integration 4.0.0
+  and dashboard 0.16.2). The OCScore Optuna stages now build their TPE sampler with
+  `multivariate=True` and `constant_liar=True` set explicitly (`_build_tpe_sampler()`),
+  instead of inheriting the installed Optuna's defaults, which changed in 5.0. Studies run
+  under earlier Optuna versions will not reproduce trial for trial.
+- `DNNOptimizer.optimize()` types `direction` as `Literal["minimize", "maximize"]`, the
+  values `optuna.create_study()` accepts, and `Console.session` gives IPython's `embed` a
+  callable type, so mypy passes against Optuna 5.0 and IPython 9.17.
 - The Workbench dashboard script is split into modules (`app-core.js`, `app-jobs.js`,
   `app-comparison.js`, `app-plots.js`, `app-results.js`, `app-ablation-design.js`,
   `app-vs-design.js`, `app-workspace.js`), still loaded as classic scripts in that order.

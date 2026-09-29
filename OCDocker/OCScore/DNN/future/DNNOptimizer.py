@@ -26,7 +26,7 @@ import torch.optim as optim
 from optuna.samplers import TPESampler
 from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from torch.utils.data import DataLoader
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 import OCDocker.Toolbox.Printing as ocprint
 
@@ -1152,7 +1152,7 @@ class DNNOptimizer:
 
     def optimize(
             self,
-            direction: str = "maximize",
+            direction: Literal["minimize", "maximize"] = "maximize",
             n_trials: int = 10,
             study_name: str = "NN_Future_Optimization",
             load_if_exists: bool = True,
@@ -1163,7 +1163,7 @@ class DNNOptimizer:
 
         Parameters
         ----------
-        direction : str, optional
+        direction : Literal["minimize", "maximize"], optional
             Direction of optimization (ignored if multi-objective). Default is "maximize".
         n_trials : int, optional
             Number of trials. Default is 10.

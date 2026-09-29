@@ -307,3 +307,12 @@ def test_pdbbind_phase1_experiment_config_defaults():
     assert config.study_name == "PDBbind_EncoderRegression_Phase1"
     pruner = ocstaged._build_pdbbind_pruner(config)
     assert isinstance(pruner, optuna.pruners.NopPruner)
+
+
+@pytest.mark.order(271)
+def test_build_tpe_sampler_fixes_search_settings(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(ocstaged, "TPESampler", lambda **kwargs: captured.update(kwargs) or "sampler")
+    assert ocstaged._build_tpe_sampler(7) == "sampler"
+    # Explicit settings, so the search does not follow whichever Optuna defaults are installed
+    assert captured == {"seed": 7, "multivariate": True, "constant_liar": True}
