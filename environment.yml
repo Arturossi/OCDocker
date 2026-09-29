@@ -340,9 +340,9 @@ dependencies:
   - openh264=2.1.1=h4ff587b_0
   - openjpeg=2.5.2=h488ebb8_0
   - openssl=3.5.0=h7b32b05_1
-  - optuna=3.6.1=pyhd8ed1ab_0
-  - optuna-dashboard=0.16.2=pyhd8ed1ab_0
-  - optuna-integration=4.0.0=pyhd8ed1ab_0
+  - optuna=5.0.0=pyhd8ed1ab_0
+  - optuna-dashboard=0.21.0=pyhd8ed1ab_0
+  - optuna-integration=5.0.0=pyhd8ed1ab_0
   - orderedmultidict=1.0.1=pyhd8ed1ab_1
   - outdated=0.2.2=pyhd8ed1ab_1
   - p11-kit=0.24.1=hc5aa10d_0
