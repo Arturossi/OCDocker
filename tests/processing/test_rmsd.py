@@ -76,3 +76,41 @@ def test_get_rmsd_matrix_symmetry(example_mols):
                 assert matrix[m1][m2] == pytest.approx(0.0, abs=1e-3)
             else:
                 assert matrix[m1][m2] == pytest.approx(matrix[m2][m1], abs=1e-6)
+
+
+@pytest.fixture
+def benzene_mols(tmp_path):
+    '''Write two benzene conformers, whose heavy-atom graph has 12 automorphisms.'''
+    files = []
+    for idx, seed in enumerate((0xf00d, 0xcafe), start=1):
+        mol = Chem.AddHs(Chem.MolFromSmiles("c1ccccc1"))
+        AllChem.EmbedMolecule(mol, randomSeed=seed) # type: ignore
+        path = tmp_path / f"benzene{idx}.sdf"
+        writer = Chem.SDWriter(str(path))
+        writer.write(mol)
+        writer.close()
+        files.append(str(path))
+
+    return files
+
+
+@pytest.mark.order(2969)
+def test_count_isomorphisms_stops_after_limit(benzene_mols):
+    assert ocmolproc.count_isomorphisms(benzene_mols[0]) == 12
+    assert ocmolproc.count_isomorphisms(benzene_mols[0], limit=5) == 6
+    assert ocmolproc.count_isomorphisms(benzene_mols[0], limit=0) == 12
+
+
+@pytest.mark.order(2970)
+def test_get_rmsd_matrix_skips_highly_symmetric_ligand(benzene_mols, monkeypatch):
+    monkeypatch.setattr(ocmolproc, "_MAX_RMSD_ISOMORPHISMS", 5)
+    with pytest.raises(ocmolproc.TooManyIsomorphisms):
+        ocmolproc.get_rmsd_matrix(benzene_mols)
+
+
+@pytest.mark.order(2971)
+def test_get_rmsd_matrix_zero_limit_disables_check(benzene_mols, monkeypatch):
+    monkeypatch.setattr(ocmolproc, "_MAX_RMSD_ISOMORPHISMS", 0)
+    monkeypatch.setattr(ocmolproc, "count_isomorphisms", lambda *_a, **_k: pytest.fail("count_isomorphisms called"))
+    matrix = ocmolproc.get_rmsd_matrix(benzene_mols)
+    assert matrix[benzene_mols[0]][benzene_mols[1]] == pytest.approx(matrix[benzene_mols[1]][benzene_mols[0]])

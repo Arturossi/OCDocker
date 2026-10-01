@@ -17,6 +17,8 @@ import os
 import tempfile
 from functools import lru_cache
 
+import rustworkx as rx
+
 from spyrmsd import io, rmsd
 try:
     from spyrmsd.exceptions import NonIsomorphicGraphs
@@ -44,10 +46,15 @@ See the LICENSE file for full terms.
 
 # Classes
 ###############################################################################
+class TooManyIsomorphisms(ValueError):
+    '''Raised when symmetry-corrected RMSD would enumerate too many graph isomorphisms.'''
 
 # Functions
 ###############################################################################
 ## Private ##
+# spyrmsd materializes every isomorphism; above this the matrix is skipped (0 disables the check)
+_MAX_RMSD_ISOMORPHISMS = 100_000
+
 AtomKey = Tuple[str, str]                  # (resname, atomname) in CHARMM scheme
 AtomVal = Tuple[str, str]                  # (resname, atomname) in canonical scheme
 
@@ -391,6 +398,42 @@ def convert_pdb_charmm_to_canonical(
     ocprint.print_success(f"Converted '{input_path}' to canonical PDB '{output_path}'.")
     return ocerror.Error.ok()
 
+def count_isomorphisms(molecule: str, limit: int = _MAX_RMSD_ISOMORPHISMS) -> int:
+    '''Count the heavy-atom graph automorphisms of a molecule, stopping once the limit is exceeded.
+
+    Parameters
+    ----------
+    molecule : str
+        The molecule file.
+    limit : int, optional
+        Stop counting after this many isomorphisms; 0 counts all of them. Default is _MAX_RMSD_ISOMORPHISMS.
+
+    Returns
+    -------
+    int
+        The number of isomorphisms, or limit + 1 when a nonzero limit is exceeded.
+    '''
+
+    # Load the molecule and remove its hydrogens, as get_rmsd does
+    mol = io.loadmol(molecule)
+    mol.strip()
+
+    # Build the same atom-labelled graph that spyrmsd matches
+    graph = rx.PyGraph()
+    graph.add_nodes_from([int(atomicnum) for atomicnum in mol.atomicnums])
+    adjacency = mol.adjacency_matrix
+    graph.add_edges_from_no_data([
+        (i, j) for i in range(len(adjacency)) for j in range(i + 1, len(adjacency)) if adjacency[i][j]
+    ])
+
+    count = 0
+    for _ in rx.vf2_mapping(graph, graph, node_matcher = lambda a, b: a == b):
+        count += 1
+        if limit > 0 and count > limit:
+            break
+
+    return count
+
 def get_rmsd(reference: str, molecule: str) -> Union[List[float], float]:
     '''Get the rmsd between a reference and a molecule file (it supports more than one molecule in this second file).
 
@@ -449,7 +492,25 @@ def get_rmsd_matrix(molecules: List[str]) -> Dict[str, Dict[str, float]]:
     -------
     Dict[str, Dict[str, float]]
         The rmsd matrix.
+
+    Raises
+    ------
+    TooManyIsomorphisms
+        If _MAX_RMSD_ISOMORPHISMS is nonzero and the ligand graph has more automorphisms than it.
     '''
+
+    # Skip highly symmetric ligands before spyrmsd tries to hold every isomorphism in memory
+    if molecules and _MAX_RMSD_ISOMORPHISMS > 0:
+        try:
+            n_isomorphisms = count_isomorphisms(molecules[0], _MAX_RMSD_ISOMORPHISMS)
+        except Exception:
+            # Unreadable poses are handled per pair below
+            n_isomorphisms = 0
+        if n_isomorphisms > _MAX_RMSD_ISOMORPHISMS:
+            raise TooManyIsomorphisms(
+                f"'{molecules[0]}' has more than {_MAX_RMSD_ISOMORPHISMS} graph isomorphisms; "
+                "symmetry-corrected RMSD skipped"
+            )
 
     # Initialise the rmsd matrix with diagonal values
     rmsdMatrix: Dict[str, Dict[str, float]] = {
