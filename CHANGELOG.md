@@ -72,6 +72,13 @@ an entry of their own.
   `multivariate=True` and `constant_liar=True` set explicitly (`_build_tpe_sampler()`),
   instead of inheriting the installed Optuna's defaults, which changed in 5.0. Studies run
   under earlier Optuna versions will not reproduce trial for trial.
+- `scikit-learn` is pinned to `==1.8.*`, the version the shipped OCScore scalers and
+  calibrators were pickled with, and `sqlalchemy` is capped at `<2.1` until the database
+  layer is tested on 2.1.
+- `environment.yml` is regenerated from an environment that passed the full test suite.
+  It previously listed conda builds that no longer matched the working environment
+  (e.g. scikit-learn 1.5.2, numpy 1.26.4, pandas 2.2.3); conda now supplies Python and the
+  CUDA runtime, and pip supplies the rest at exact versions.
 - `DNNOptimizer.optimize()` types `direction` as `Literal["minimize", "maximize"]`, the
   values `optuna.create_study()` accepts, and `Console.session` gives IPython's `embed` a
   callable type, so mypy passes against Optuna 5.0 and IPython 9.17.
