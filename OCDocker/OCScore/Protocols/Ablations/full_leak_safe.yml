@@ -1,0 +1,8 @@
+name: full_leak_safe
+description: >-
+  Full OCScore feature set excluding the ODDT family, whose models were trained on PDBbind
+  and therefore contaminate any PDBbind-driven selection or endpoint.
+include_patterns:
+  - "*"
+exclude_patterns:
+  - "oddt_*"

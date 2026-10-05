@@ -37,6 +37,7 @@ LOGGER = oclogging.get_logger("ocscore.utils.pdbbind_split")
 PDBBIND_SPLIT_STRATEGIES = (
     "affinity_quantile_stratified",
     "receptor_heldout",
+    "protein_cluster_heldout",
     "random_row",
 )
 
@@ -54,6 +55,10 @@ class PDBbindSplitConfig:
     receptor_column : str | None, optional
         Optional receptor/target column for diagnostics, by default ``"receptor"``.
         If missing in the dataframe, receptor diagnostics are skipped.
+    cluster_column : str, optional
+        Protein cluster column used by ``"protein_cluster_heldout"``, by default
+        ``"protein_cluster"``. A PDB code is not a protein-level independence
+        boundary, so cluster held-out splitting is the meaningful one for PDBbind.
     n_affinity_bins : int, optional
         Requested number of affinity quantile bins, by default 5.
     train_size : float, optional
@@ -73,6 +78,7 @@ class PDBbindSplitConfig:
     strategy: str = "affinity_quantile_stratified"
     target_column: str = "experimental"
     receptor_column: Optional[str] = "receptor"
+    cluster_column: str = "protein_cluster"
     n_affinity_bins: int = 5
     train_size: float = 0.6
     validation_size: float = 0.2
@@ -181,6 +187,25 @@ def split_pdbbind_regression(
         diagnostics = _build_diagnostics(df, y, train_idx, val_idx, test_idx, cfg, dropped_nan, bins=None)
         if heldout_notes:
             diagnostics["heldout_notes"] = heldout_notes
+        _validate_receptor_disjoint(diagnostics, strict=True)
+        _validate_split_nonempty(train_idx, val_idx, test_idx)
+        _log_diagnostics(diagnostics)
+        return PDBbindSplitResult(train_idx=train_idx, val_idx=val_idx, test_idx=test_idx, diagnostics=diagnostics)
+
+    if cfg.strategy == "protein_cluster_heldout":
+        train_idx, val_idx, test_idx, heldout_notes = _split_receptor_heldout(
+            df.iloc[idx_all].reset_index(drop=True),
+            y,
+            idx_all,
+            cfg,
+            rng,
+            group_column=cfg.cluster_column,
+            label="protein_cluster",
+        )
+        diagnostics = _build_diagnostics(df, y, train_idx, val_idx, test_idx, cfg, dropped_nan, bins=None)
+        if heldout_notes:
+            diagnostics["heldout_notes"] = heldout_notes
+        _validate_cluster_disjoint(df, cfg, train_idx, val_idx, test_idx)
         _validate_receptor_disjoint(diagnostics, strict=True)
         _validate_split_nonempty(train_idx, val_idx, test_idx)
         _log_diagnostics(diagnostics)
@@ -355,30 +380,83 @@ def _resolve_receptor_column(df: pd.DataFrame, configured: Optional[str]) -> str
     )
 
 
+def _assign_groups_by_rows(
+        sizes: dict[str, int],
+        fractions: tuple[float, float, float],
+        rng: np.random.Generator,
+    ) -> dict[str, list[str]]:
+    '''Greedily place whole groups so the row counts, not the group counts, match the fractions.
+
+    Group sizes here span three orders of magnitude, so balancing the number of groups puts
+    most rows on whichever side received the large clusters.
+    '''
+
+    total = sum(sizes.values())
+    quota = {name: frac * total for name, frac in zip(("train", "validation", "test"), fractions)}
+    placed: dict[str, list[str]] = {"train": [], "validation": [], "test": []}
+    filled = {name: 0 for name in placed}
+    ordered = sorted(sizes, key=lambda name: (-int(sizes[name]), float(rng.random()), str(name)))
+    for name in ordered:
+        side = max(placed, key=lambda s: (quota[s] - filled[s], s))
+        placed[side].append(name)
+        filled[side] += int(sizes[name])
+    empty = [name for name, members in placed.items() if not members]
+    if empty:
+        raise ValueError(f"protein_cluster_heldout left empty split(s): {empty}. Too few clusters for these fractions.")
+    return placed
+
+
 def _split_receptor_heldout(
         df_used: pd.DataFrame,
         y: np.ndarray,
         idx_all: np.ndarray,
         config: PDBbindSplitConfig,
         rng: np.random.Generator,
+        group_column: Optional[str] = None,
+        label: str = "receptor",
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str]]:
-    '''Assign whole receptors to train/validation/test splits.'''
+    '''Assign whole receptors, or whole protein clusters, to train/validation/test splits.'''
 
-    receptor_column = _resolve_receptor_column(df_used, config.receptor_column)
+    receptor_column = group_column or _resolve_receptor_column(df_used, config.receptor_column)
+    if receptor_column not in df_used.columns:
+        raise ValueError(
+            f"protein_cluster_heldout requires column {receptor_column!r} in the dataframe. "
+            "Export the cluster assignment as a first-class column before splitting."
+        )
     receptors = df_used[receptor_column].astype(str).to_numpy()
     unique_receptors = sorted(set(receptors.tolist()))
     n_receptors = len(unique_receptors)
     if n_receptors < 3:
         raise ValueError(
-            f"receptor_heldout requires at least 3 receptors (got {n_receptors}). "
+            f"{label}_heldout requires at least 3 groups (got {n_receptors}). "
             "Use affinity_quantile_stratified or random_row for tiny datasets."
         )
+
+    if group_column is not None:
+        sizes = {name: int((receptors == name).sum()) for name in unique_receptors}
+        placed = _assign_groups_by_rows(
+            sizes,
+            (float(config.train_size), float(config.validation_size), float(config.test_size)),
+            rng,
+        )
+
+        def _rows_for(names: list[str]) -> np.ndarray:
+            return idx_all[np.isin(receptors, names)] if names else np.array([], dtype=int)
+
+        notes = [
+            f"group_column={receptor_column}",
+            f"n_groups_total={n_receptors}",
+            f"n_groups_train={len(placed['train'])}",
+            f"n_groups_validation={len(placed['validation'])}",
+            f"n_groups_test={len(placed['test'])}",
+        ]
+        return _rows_for(placed["train"]), _rows_for(placed["validation"]), _rows_for(placed["test"]), notes
 
     n_val = max(1, int(round(n_receptors * float(config.validation_size))))
     n_test = max(1, int(round(n_receptors * float(config.test_size))))
     if n_val + n_test >= n_receptors:
         raise ValueError(
-            f"receptor_heldout cannot reserve validation+test receptors "
+            f"{label}_heldout cannot reserve validation+test groups "
             f"(validation={n_val}, test={n_test}, total receptors={n_receptors}). "
             "Reduce validation_size/test_size or use row-level splitting."
         )
@@ -438,7 +516,7 @@ def _split_receptor_heldout(
     val_idx = _indices_for(set(val_receptors))
     test_idx = _indices_for(set(test_receptors))
     notes = [
-        f"receptor_column={receptor_column}",
+        f"group_column={receptor_column}",
         f"n_receptors_total={n_receptors}",
         f"n_receptors_train={len(train_receptors)}",
         f"n_receptors_validation={len(val_receptors)}",
@@ -450,15 +528,36 @@ def _split_receptor_heldout(
 def _validate_receptor_disjoint(diagnostics: dict[str, Any], *, strict: bool) -> None:
     '''Raise when receptor overlap exists across splits in held-out mode.'''
 
-    if diagnostics.get("strategy") != "receptor_heldout":
+    if diagnostics.get("strategy") not in ("receptor_heldout", "protein_cluster_heldout"):
         return
     overlap = diagnostics.get("receptor_overlap") or {}
     total_overlap = sum(int(value) for value in overlap.values())
     if total_overlap > 0:
-        message = f"PDBbind receptor_heldout split has receptor overlap: {overlap}"
+        message = f"PDBbind {diagnostics.get('strategy')} split has receptor overlap: {overlap}"
         if strict:
             raise ValueError(message)
         LOGGER.warning(message)
+
+
+def _validate_cluster_disjoint(
+        df: pd.DataFrame,
+        config: PDBbindSplitConfig,
+        train_idx: np.ndarray,
+        val_idx: np.ndarray,
+        test_idx: np.ndarray,
+    ) -> None:
+    '''Raise when any protein cluster has rows in more than one split.'''
+
+    clusters = df[config.cluster_column].astype(str).to_numpy()
+    groups = {name: set(clusters[idx].tolist()) for name, idx in
+              (("train", train_idx), ("validation", val_idx), ("test", test_idx))}
+    overlaps = {
+        f"{a}∩{b}": sorted(groups[a] & groups[b])
+        for a, b in (("train", "validation"), ("train", "test"), ("validation", "test"))
+        if groups[a] & groups[b]
+    }
+    if overlaps:
+        raise ValueError(f"protein_cluster_heldout split has clusters on both sides: {overlaps}")
 
 
 def _validate_split_nonempty(train_idx: np.ndarray, val_idx: np.ndarray, test_idx: np.ndarray) -> None:
@@ -528,6 +627,7 @@ def _build_diagnostics(
         "relaxed_split": bool(config.relaxed_split),
         "target_column": config.target_column,
         "receptor_column": receptor_column if receptor_column in df.columns else None,
+        "cluster_column": config.cluster_column if config.cluster_column in df.columns else None,
         "n_rows_total": int(len(df)),
         "n_rows_used": int(len(y)),
         "n_rows_dropped_nan_target": int(dropped_nan),
