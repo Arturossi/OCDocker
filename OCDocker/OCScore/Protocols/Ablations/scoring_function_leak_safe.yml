@@ -1,0 +1,12 @@
+name: scoring_function_leak_safe
+description: >-
+  Scoring-function features excluding the ODDT family. RF-Score, NNScore and PLEC were
+  themselves trained on PDBbind, so they memorise the benchmark that drives model selection
+  and the primary affinity endpoint. This is the default pool for the primary v2 pathway.
+include_patterns:
+  - "vina_*"
+  - "smina_*"
+  - "gnina_*"
+  - "plants_*"
+exclude_patterns:
+  - "oddt_*"
