@@ -76,9 +76,12 @@ OCSCORE_PIPELINE_METADATA_COLUMNS = [
     "reference",
     "ligand_name",
     "index_comment",
+    "protein_cluster",
+    "smiles_source",
 ]
 DEFAULT_TARGET_COLUMNS = ["experimental"]
-DEFAULT_RECEPTOR_PATTERNS = ["receptor_"]
+# Pocket descriptors are receptor-side; policies separate them by pattern when needed.
+DEFAULT_RECEPTOR_PATTERNS = ["receptor_", "pocket_"]
 DEFAULT_LIGAND_PATTERNS = ["ligand_"]
 DEFAULT_SCORING_PATTERNS = ["vina_", "gnina_", "smina_", "plants_", "oddt_"]
 DEFAULT_ID_COLUMNS = ["PDB ID", "pdb_id", "complex_id", "Complex ID", "name", "receptor", "ligand"]
