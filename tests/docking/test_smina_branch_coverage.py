@@ -286,3 +286,28 @@ def test_smina_run_smina_instance_and_global_stub_branches(monkeypatch, tmp_path
         log_path=str(tmp_path / "global" / "exec.log"),
     )
     assert rc_global == ocerror.Error.ok()
+
+
+def test_smina_instance_run_prepare_ligand_log_and_openbabel_branches(monkeypatch, tmp_path):
+    class StrategyOK:
+        def prepare_ligand(self, input_ligand_path, prepared_ligand, log_file, overwrite=False):
+            return (input_ligand_path, prepared_ligand, log_file, overwrite)
+
+    inst = object.__new__(ocsmina.Smina)
+    inst.input_ligand_path = str(tmp_path / "ligand.mol2")
+    inst.prepared_ligand = str(tmp_path / "ligand.pdbqt")
+    inst.preparation_strategy = StrategyOK()
+
+    rc_strategy = inst.run_prepare_ligand(logFile=str(tmp_path / "ligand.log"), overwrite=True)
+    assert rc_strategy == (inst.input_ligand_path, inst.prepared_ligand, str(tmp_path / "ligand.log"), True)
+
+    captured = {}
+
+    def _convert_mols(input_path, output_path, overwrite=False):
+        captured["args"] = (input_path, output_path, overwrite)
+        return ocerror.Error.ok()
+
+    monkeypatch.setattr(ocsmina.occonversion, "convert_mols", _convert_mols)
+    rc_obabel = inst.run_prepare_ligand(logFile=str(tmp_path / "ligand.log"), useOpenBabel=True, overwrite=True)
+    assert rc_obabel == ocerror.Error.ok()
+    assert captured["args"] == (inst.input_ligand_path, inst.prepared_ligand, True)
