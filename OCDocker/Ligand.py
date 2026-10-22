@@ -259,7 +259,7 @@ class Ligand:
 
     ## Public ##
 
-    def create_box(self, centroid: Optional[Tuple[float, float, float]] = None, save_path: str = "", box_length: float = 2.9, overwrite: bool = False) -> Optional[int]:
+    def create_box(self, centroid: Optional[Tuple[float, float, float]] = None, save_path: str = "", box_length: float = 2.9, max_edge: Optional[float] = None, warn_edge: float = 40.0, overwrite: bool = False) -> Optional[int]:
         '''Create a box file to be used by docking software.
 
         Parameters
@@ -270,6 +270,14 @@ class Ligand:
             The path to save the box file. If not provided, the box file will be saved in the same path as the molecule. (default is "", which turns into self.box_path)
         box_length : float, optional
             The length of the box. (default is 2.9)
+        max_edge : float | None, optional
+            Upper bound in angstrom for the box edge. The edge grows linearly with the radius of
+            gyration, so a macrocycle or a peptide can produce a search space far larger than the
+            pocket. When set, the edge is clamped to this value and a warning is emitted. (default
+            is None, which leaves the edge unbounded)
+        warn_edge : float, optional
+            Edge in angstrom above which a warning is emitted even when no bound is applied.
+            (default is 40.0)
         overwrite : bool, optional
             Flag to allow, or not, the overwrite of the box file. (default is False)
 
@@ -343,7 +351,21 @@ class Ligand:
                 f"RadiusOfGyration from molecule '{identifier}' is not set; cannot create box.",
                 level = ocerror.ReportLevel.WARNING
             )
-        partialSize = (box_length * self.RadiusOfGyration) / 2
+        edge = box_length * self.RadiusOfGyration
+        identifier = self.name or self.path or "unknown"
+        if max_edge is not None and edge > max_edge:
+            ocprint.print_warning(
+                f"The box edge for '{identifier}' is {edge:.1f} A from a radius of gyration of "
+                f"{self.RadiusOfGyration:.2f} A; clamping to the {max_edge:.1f} A bound."
+            )
+            edge = max_edge
+        elif edge > warn_edge:
+            ocprint.print_warning(
+                f"The box edge for '{identifier}' is {edge:.1f} A from a radius of gyration of "
+                f"{self.RadiusOfGyration:.2f} A. Search spaces this large degrade docking "
+                f"accuracy; consider setting max_edge."
+            )
+        partialSize = edge / 2
 
         # Create the box using this Centroid
         box = {
