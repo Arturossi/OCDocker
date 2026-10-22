@@ -234,7 +234,8 @@ def test_run_nonzero_exit_returns_tuple_and_report(monkeypatch, tmp_path):
     assert "e3" in stderr_text
 
     report = captured["report"]
-    assert "Stderr:" in report
+    assert "Stderr tail (last" in report
+    assert "e2\ne3" in report and "e1" not in report
     assert "o2\no3" in report
     assert "Environment snapshot:" in report
 
@@ -260,3 +261,33 @@ def test_run_nonzero_exit_raises_when_enabled(monkeypatch, tmp_path):
     assert err.cmd == ["fakecmd"]
     assert err.stdout_log == str(tmp_path / "cmd.log")
     assert err.report_path.endswith("subproc.log")
+
+
+@pytest.mark.order(109)
+@pytest.mark.parametrize(
+    ("stderr", "kept", "dropped"),
+    [
+        (b"".join(f"warning {i}\n".encode() for i in range(1000)), b"warning 999", b"warning 0\n"),
+        (b"x" * 1_000_000, b"x" * 1000, None),
+    ],
+    ids = ["many_lines", "one_huge_line"],
+)
+def test_failure_report_keeps_only_the_stderr_tail(monkeypatch, tmp_path, stderr, kept, dropped):
+    monkeypatch.delenv("OCDOCKER_RAISE_SUBPROCESS", raising=False)
+    monkeypatch.delenv("OCDOCKER_SUBPROCESS_TAIL_LINES", raising=False)
+    monkeypatch.setattr(ocrun.shutil, "which", lambda _exe: "/usr/bin/fake")
+
+    class _Proc:
+        returncode = 1
+
+    _Proc.stderr = stderr
+    monkeypatch.setattr(ocrun.subprocess, "run", lambda *_args, **_kwargs: _Proc())
+    reports = []
+    monkeypatch.setattr(ocrun, "_write_failure_report", lambda report: reports.append(report) or str(tmp_path / "subproc.log"))
+
+    ocrun.run(["fakecmd"], logFile=str(tmp_path / "cmd.log"))
+
+    report = reports[0].encode()
+    assert kept in report
+    assert dropped is None or dropped not in report
+    assert len(report) < 70_000
