@@ -1,0 +1,100 @@
+{
+ "model": "OCScore-M1.1",
+ "created": "2026-10-19",
+ "supersedes": "OCScore-M1 (366 features); smina_ad4_scoring excluded from the candidate score block, see ../ad4_audit.md",
+ "methodology": "frozen Gen3B screening arm (G_bce): BCE with pairwise screening term at weight 0.1, 50/50 DUDEz and LIT-PCBA domain sampling",
+ "affinity_latent": "not used; the Gen3B screening arm has no affinity pretraining stage",
+ "architecture": {
+  "class": "TunedNet",
+  "depth": 4,
+  "width": 256,
+  "latent": 16,
+  "share": 1.0,
+  "dropout": 0.4796806808054662,
+  "use_cons": false,
+  "d_in": 365
+ },
+ "hyperparameters": {
+  "lr": 0.00011188360649466962,
+  "wd": 0.00034604519182878524,
+  "steps": 4000,
+  "n_targets": 6,
+  "per_target": 256,
+  "w_screen": 4.306046949123297
+ },
+ "pairwise": {
+  "weight": 0.1,
+  "pairs_per_active": 8
+ },
+ "seeds": [
+  4200,
+  4300,
+  4400
+ ],
+ "ensemble": {
+  "members": 3,
+  "rule": "equal-weight mean of within-target percentile ranks",
+  "grouping": "receptor"
+ },
+ "training_data": {
+  "DUDEz": {
+   "rows": 123016,
+   "targets": 43,
+   "actives": 2138,
+   "decoys": 120878,
+   "label": "kind == 'ligands'",
+   "source": "DUDEz.csv"
+  },
+  "LITPCBA": {
+   "rows": 133822,
+   "targets": 13,
+   "families": 12,
+   "actives": 2697,
+   "inactives": 131125,
+   "label": "kind == 'ligands'",
+   "source": "LITPCBA.csv"
+  },
+  "PDBbind": {
+   "rows": 5765,
+   "clusters": 169,
+   "use": "feature-selection refit and context standardisation only; no affinity pretraining in this release"
+  }
+ },
+ "holdout": "none; every development family trains, because nothing is evaluated here",
+ "preprocessing": {
+  "scores": "negated to the literature convention, then standardised within receptor",
+  "ligand": "standardised within receptor",
+  "context": "standardised with mean and sd fitted on all eligible PDBbind rows",
+  "fitted_objects": "preprocessing.npz"
+ },
+ "environment": {
+  "python": "3.11.14",
+  "torch": "2.10.0+cu128",
+  "numpy": "2.3.5",
+  "cuda": "12.8",
+  "device": "cuda",
+  "git_commit": "7e6683221f27dc34ad9abf9d24487ca43855ecf9"
+ },
+ "limitations": [
+  "scores and ligand descriptors are standardised within receptor, so the model ranks a library against one target and cannot score a single compound in isolation",
+  "no demonstrated runtime saving over the full-feature model: every docking engine still runs and the descriptor routine still computes the full RDKit set",
+  "filtering is not established as an accuracy improvement, only as no detected loss",
+  "the exclusion of smina_ad4_scoring is not established as a predictive improvement: M1.1 - M1 is +0.0023 BEDROC on DUDEz and -0.0058 on LIT-PCBA, both intervals spanning zero, and -0.0001 on LIT-PCBA without the high-leverage OPRK1 family",
+  "the checkpoint retains an unused affinity branch and head, br_aff and aff, 8,721 of 308,514 parameters, left from the joint affinity-and-screening design; it is initialised but never trained or evaluated in this release",
+  "hyperparameters were chosen from 90 Optuna trials per study, selecting on held-out BEDROC; 9 of the 15 tuned values sit at or next to a search bound, depth at its maximum of 4 and steps at its maximum of 4000 among them, so the search space rather than the architecture may be what limits the configuration",
+  "the ligand-only control was tuned over a smaller space, seven parameters being fixed, so per dimension it is better searched than the structural arm; any tuning asymmetry therefore works against the structural margin rather than for it"
+ ],
+ "hyperparameter_search": {
+  "framework": "Optuna",
+  "trials_per_study": 90,
+  "studies": [
+   "full",
+   "ligand-only"
+  ],
+  "objective": "held-out BEDROC alpha=20",
+  "best_held_out_bedroc": {
+   "full": 0.4866,
+   "ligand-only": 0.4374
+  }
+ }
+}

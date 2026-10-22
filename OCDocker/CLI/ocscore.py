@@ -43,6 +43,8 @@ def register_ocscore_subparser(subparsers: argparse._SubParsersAction) -> None:
             "Subcommands mirror examples 14–16:\n"
             "  reduce           - shared PDBbind + DUDEz feature reduction\n"
             "  train            - staged Optuna from reduction output\n"
+            "  descriptors      - compute a target's receptor and pocket descriptors\n"
+            "  predict          - score a table with the shipped frozen models\n"
             "  validate/load/retrain/cross-validate/plot/architecture-plot/shap/score - export tools\n\n"
             'Requires optional ML dependencies: pip install "ocdocker[ml]"\n\n'
             "Note: ML subcommands do not use OCDocker docking config (--conf); "

@@ -12,7 +12,9 @@ from __future__ import annotations
 
 import argparse
 
+from OCDocker.OCScore.CLI import descriptors
 from OCDocker.OCScore.CLI import export_tools
+from OCDocker.OCScore.CLI import predict
 from OCDocker.OCScore.CLI import reduce
 from OCDocker.OCScore.CLI import train
 
@@ -31,7 +33,7 @@ See the LICENSE file for full terms.
 
 
 def register_subparsers(subparsers: argparse._SubParsersAction) -> None:
-    '''Register reduce, train, and export-tool subcommands.
+    '''Register reduce, train, descriptors, predict, and export-tool subcommands.
 
     Parameters
     ----------
@@ -41,4 +43,6 @@ def register_subparsers(subparsers: argparse._SubParsersAction) -> None:
 
     reduce.register_subparser(subparsers)
     train.register_subparser(subparsers)
+    descriptors.register_subparser(subparsers)
+    predict.register_subparser(subparsers)
     export_tools.register_subparsers(subparsers)
