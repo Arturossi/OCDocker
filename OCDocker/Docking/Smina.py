@@ -378,19 +378,32 @@ class Smina:
         return read_rescore_logs(rescoreLogPaths, onlyBest = onlyBest)
 
 
-    def run_prepare_ligand(self, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
-        '''Run the convert ligand command to pdbqt.
+    def run_prepare_ligand(self, logFile: str = "", useOpenBabel: bool = False, overwrite: bool = False) -> Union[int, str, Tuple[int, str]]:
+        '''Run 'prepare_ligand4' or openbabel to prepare the ligand.
+
+        Parameters
+        ----------
+        logFile : str
+            Path to the logFile. If empty, suppress the output.
+        useOpenBabel : bool
+            If True, use openbabel instead of prepare_ligand4.
+        overwrite : bool
+            If True, overwrite existing output file.
 
         Returns
         -------
-        int | Tuple[int, str]
-            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command.
+        int | str | Tuple[int, str]
+            The exit code of the command (based on the Error.py code table) or a tuple with the exit code and the stderr of the command. If fails, return the file extension.
         '''
+
+        # If True, use openbabel
+        if useOpenBabel:
+            return occonversion.convert_mols(self.input_ligand_path, self.prepared_ligand, overwrite=overwrite)
 
         return self.preparation_strategy.prepare_ligand(
             self.input_ligand_path,
             self.prepared_ligand,
-            "",
+            logFile,
             overwrite=overwrite
         )
 

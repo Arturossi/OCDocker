@@ -3,8 +3,9 @@
 # Description
 ###############################################################################
 '''
-End-to-end test running the real ``ocdocker vs`` command with AutoDock Vina on
-the bundled test_ptn1 complex (needs vina, obabel and dssp on PATH).
+End-to-end tests running the real ``ocdocker vs`` command with each docking
+engine on the bundled test_ptn1 complex (needs the engine, obabel and dssp on
+PATH; engines not found are skipped).
 '''
 
 # Imports
@@ -54,6 +55,7 @@ def _write_config(config_path: Path, data_dir: Path) -> None:
         "pca": str(data_dir / "pca"),
         "vina": shutil.which("vina") or "vina",
         "vina_split": shutil.which("vina_split") or "vina_split",
+        "smina": shutil.which("smina") or "smina",
         "obabel": shutil.which("obabel") or "obabel",
         "dssp": shutil.which("mkdssp") or shutil.which("dssp") or "dssp",
     }
@@ -70,19 +72,28 @@ def _write_config(config_path: Path, data_dir: Path) -> None:
 
 ## Public ##
 
+# Engine: (output directory, log reader, docked poses getter)
+ENGINES = {
+    "vina": ("vinaFiles", ocvinalike.read_vina_log, ocvinalike.get_vina_docked_poses),
+    "smina": ("sminaFiles", ocvinalike.read_smina_log, ocvinalike.get_smina_docked_poses),
+}
+
 
 @pytest.mark.external
 @pytest.mark.slow
-def test_vs_vina_docks_test_ptn1(tmp_path):
-    '''Dock test_ptn1 with ``ocdocker vs --engine vina`` and check the poses and scores.
+@pytest.mark.parametrize("engine", sorted(ENGINES))
+def test_vs_docks_test_ptn1(tmp_path, engine):
+    '''Dock test_ptn1 with ``ocdocker vs --engine <engine>`` and check the poses and scores.
 
     Parameters
     ----------
     tmp_path : pathlib.Path
         Temporary working directory.
+    engine : str
+        Docking engine passed to ``--engine``.
     '''
 
-    missing = [exe for exe in ("vina", "obabel") if shutil.which(exe) is None]
+    missing = [exe for exe in (engine, "obabel") if shutil.which(exe) is None]
     if shutil.which("mkdssp") is None and shutil.which("dssp") is None:
         missing.append("dssp")
     if missing:
@@ -105,7 +116,7 @@ def test_vs_vina_docks_test_ptn1(tmp_path):
         [
             sys.executable, "-c", "import sys; from OCDocker.CLI import main; sys.exit(main())",
             "vs",
-            "--engine", "vina",
+            "--engine", engine,
             "--receptor", str(receptor),
             "--ligand", str(ligand_dir / "ligand.smi"),
             "--box", str(ligand_dir / "boxes" / "box0.pdb"),
@@ -121,15 +132,16 @@ def test_vs_vina_docks_test_ptn1(tmp_path):
     output = f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
     assert result.returncode == 0, output
 
-    vina_dir = ligand_dir / "vinaFiles"
-    assert (vina_dir / "e2e.pdbqt").is_file(), output
+    files_dir_name, read_log, get_docked_poses = ENGINES[engine]
+    files_dir = ligand_dir / files_dir_name
+    assert (files_dir / "e2e.pdbqt").is_file(), output
 
     # Each pose maps {scoring function: affinity in kcal/mol}
-    poses = ocvinalike.read_vina_log(str(vina_dir / "e2e.log"))
+    poses = read_log(str(files_dir / "e2e.log"))
     assert poses, output
     affinities = [affinity for pose in poses.values() for affinity in pose.values()]
-    # Vina's search is stochastic, so lower-ranked poses can score positive; the best pose must bind
+    # The search is stochastic, so lower-ranked poses can score positive; the best pose must bind
     assert all(-30.0 < affinity < 30.0 for affinity in affinities), affinities
     assert min(affinities) < 0.0, affinities
 
-    assert len(ocvinalike.get_vina_docked_poses(str(vina_dir))) == len(poses)
+    assert len(get_docked_poses(str(files_dir))) == len(poses)
