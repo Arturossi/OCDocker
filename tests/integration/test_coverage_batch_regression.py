@@ -62,16 +62,11 @@ def test_preparation_helper_and_openbabel_smiles_branch(monkeypatch, tmp_path):
     in_file.write_text("abc", encoding="utf-8")
     out_file = tmp_path / "out.txt"
 
-    # Shared helper success path
-    rc_copy = helper._fallback_copy(str(in_file), str(out_file), "dummy")
-    assert rc_copy == ocerror.Error.ok()
-    assert out_file.read_text(encoding="utf-8") == "abc"
-
-    # Shared helper error path
-    monkeypatch.setattr(ocprep.shutil, "copyfile", lambda *_a, **_k: (_ for _ in ()).throw(OSError("deny")))
-    rc_copy_err = helper._fallback_copy(str(in_file), str(out_file), "dummy")
-    assert isinstance(rc_copy_err, int)
-    assert rc_copy_err != ocerror.Error.ok()
+    # Shared helper unavailable tool path
+    rc_unavailable = helper._tool_unavailable(str(in_file), "dummy")
+    assert isinstance(rc_unavailable, int)
+    assert rc_unavailable != ocerror.Error.ok()
+    assert not out_file.exists()
 
     # Existing output handling
     existing = tmp_path / "already.pdbqt"

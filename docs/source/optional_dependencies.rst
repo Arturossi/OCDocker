@@ -143,12 +143,7 @@ Runtime extras
    itself lives in ``[docking]``; plots live in ``[analysis]``.
 
 ``workflow``
-   Snakemake integration and logging plugins. Also enables the
-   ``vs_campaign`` job kind's ``engine="snakemake"`` option (real DAG
-   orchestration for multi-sample batches, see :doc:`OCDocker.Workbench` and
-   :doc:`OCDocker.MCP`) — invoked as ``python -m snakemake`` against the
-   same interpreter running ``ocdocker workbench serve``, not a bare
-   ``snakemake`` resolved from ``PATH``.
+   Snakemake integration and logging plugins.
 
    * ``snakemake``, ``snakemake-logger-plugin-snkmt``
 
@@ -157,34 +152,12 @@ Runtime extras
 
    * ``boto3``, ``google-cloud-storage``, ``dropbox``
 
-``gpu``
-   GPU array acceleration (non-macOS).
-
-   * ``cupy-cuda11x`` (platform marker excludes Darwin)
-
-``api``
-   FastAPI/uvicorn stack for the Workbench HTTP API.
-
-   * ``fastapi``, ``uvicorn``
-
-   Required for ``ocdocker workbench serve``. The Workbench browser dashboard
-   and JSON API are unavailable without this extra.
-
-``mcp``
-   MCP server exposing the Workbench API to LLM clients (Claude Code, Claude
-   Desktop, ...) over stdio.
-
-   * ``mcp``
-
-   Required for ``ocdocker mcp serve``. Requires a running
-   ``ocdocker workbench serve`` instance to connect to.
-
 Aggregate and tooling extras
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``all``
    Union of runtime extras: ``docking`` + ``db`` + ``ml`` + ``analysis`` +
-   ``workflow`` + ``cloud`` + ``gpu`` + ``api`` + ``mcp``. Use when you want
+   ``workflow`` + ``cloud``. Use when you want
    every runtime feature without documentation build tools.
 
 ``full``
@@ -241,12 +214,6 @@ Command and feature map
    * - Snakemake workflows
      - ``[workflow]``
      - External ``snakemake`` CLI still required on PATH
-   * - ``ocdocker workbench serve``
-     - ``[api]``
-     - FastAPI/uvicorn; dashboard is unavailable without it
-   * - ``ocdocker mcp serve``
-     - ``[mcp]``
-     - Connects to a running ``ocdocker workbench serve``; needs ``[api]`` there too
    * - Local Sphinx docs
      - ``[full]`` or ``[docs]`` + runtime as needed
      - See :doc:`installation`
@@ -295,7 +262,7 @@ before, or switch to ``[all]`` for parity with a full historical environment.
 
 ``requirements.txt`` in the repository root mirrors **core only**; optional stacks
 are selected via pip extras, not a monolithic requirements file. Packaged YAML
-protocols and Workbench static assets are declared under
+protocols are declared under
 ``[tool.setuptools.package-data]`` in ``pyproject.toml`` (see
 :doc:`OCDocker.OCScore.Protocols`).
 

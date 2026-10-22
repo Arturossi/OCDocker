@@ -417,6 +417,8 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # Check if all the ligands exist and load them
     loaded_ligands = []
+    # Name of each loaded molecule, in pipeline order, used when a molecule has no title (e.g. split docking poses)
+    molecule_names: List[str] = []
     for ligand in preparedLigandPath:
         # Extract format using os.path.splitext for robustness
         ligand_ext = os.path.splitext(ligand)[1]
@@ -439,6 +441,8 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             # Load the ligand into pipeline
             pipeline.load_ligands(ligand_format, ligand)
             loaded_ligands.append(ligand)
+            n_molecules = sum(1 for _ in od.toolkit.readfile(ligand_format, ligand))
+            molecule_names.extend([os.path.splitext(os.path.basename(ligand))[0]] * n_molecules)
         except StopIteration:
             return ocerror.Error.rescoring_failed(f"ODDT could not read ligand file '{ligand}'. The file appears to be empty.", level = ocerror.ReportLevel.ERROR)
         except Exception as e:
@@ -449,133 +453,6 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # Process each scoring function separately to handle failures gracefully
     # This allows other scoring functions to succeed even if one fails
-
-    # Patch ODDT's descriptor generator to handle 0-d arrays (ODDT bug workaround for PLEC)
-    # This needs to be done before any scoring functions are used
-    # NOTE: universal_descriptor imports sparse_to_csr_matrix from oddt.fingerprints, not oddt.scoring.descriptors
-    _patch_oddt_descriptors_for_plec = False
-    try:
-        from oddt.fingerprints import sparse_to_csr_matrix as original_sparse_to_csr_matrix
-        import numpy as np
-        from scipy.sparse import csr_matrix
-
-        def _patched_sparse_to_csr_matrix(fp, size, count_bits=True):
-            """Patched version that handles 0-d arrays (ODDT bug workaround)"""
-            fp_arr = np.asarray(fp, dtype=np.uint64)
-
-            # Fix 0-d arrays by converting to empty array
-            if fp_arr.ndim == 0:
-                fp_arr = np.array([], dtype=np.uint64)
-            elif fp_arr.ndim == 1 and fp_arr.size == 0:
-                fp_arr = np.array([], dtype=np.uint64)
-            elif fp_arr.ndim > 1:
-                raise ValueError("Input fingerprint must be a vector (1D)")
-            elif fp_arr.ndim == 1:
-                fp_arr = fp_arr.astype(np.uint64)
-
-            if fp_arr.size == 0:
-                return csr_matrix((1, size), dtype=np.uint8 if count_bits else bool)
-
-            try:
-                return original_sparse_to_csr_matrix(fp_arr, size=size, count_bits=count_bits)
-            except Exception:
-                return csr_matrix((1, size), dtype=np.uint8 if count_bits else bool)
-
-        # Patch oddt.fingerprints module (this is where universal_descriptor imports it from)
-        import oddt.fingerprints as oddt_fp
-        oddt_fp.sparse_to_csr_matrix = _patched_sparse_to_csr_matrix
-
-        # Patch universal_descriptor.build to normalize arrays before processing
-        from oddt.scoring.descriptors import universal_descriptor
-        from scipy.sparse import vstack as sparse_vstack
-        from oddt.utils import is_molecule
-
-        _original_universal_build = universal_descriptor.build
-
-        def _patched_universal_build(self, ligands, protein=None):
-            """Patched version that normalizes arrays before they reach sparse_to_csr_matrix"""
-            from oddt.fingerprints import sparse_to_csr_matrix as patched_stcsr
-
-            if protein:
-                self.protein = protein
-            if is_molecule(ligands):
-                ligands = [ligands]
-
-            out = []
-            for mol in ligands:
-                try:
-                    if self.protein is None:
-                        result = self.func(mol)
-                    else:
-                        result = self.func(mol, protein=self.protein)
-
-                    result_arr = np.asarray(result)
-
-                    # Handle 0-d arrays (scalars from PLEC when no contacts)
-                    if result_arr.ndim == 0:
-                        result_arr = np.array([], dtype=np.uint64)
-                    elif result_arr.ndim == 1 and result_arr.size == 0:
-                        result_arr = np.array([], dtype=np.uint64)
-                    elif result_arr.ndim == 1:
-                        result_arr = result_arr.astype(np.uint64)
-                    else:
-                        result_arr = result_arr.flatten().astype(np.uint64)
-
-                    out.append(result_arr)
-
-                except Exception as e:
-                    mol_title = getattr(mol, 'title', 'unknown')
-                    ocprint.print_warning(f"Descriptor generation failed for '{mol_title}': {e}. Using empty descriptor.")
-                    out.append(np.array([], dtype=np.uint64))
-
-            if self.sparse:
-                csr_matrices = []
-                for arr in out:
-                    try:
-                        if arr.size == 0:
-                            csr_mat = csr_matrix((1, self.shape), dtype=np.uint8)
-                        else:
-                            csr_mat = patched_stcsr(arr, size=self.shape, count_bits=True)
-                        csr_matrices.append(csr_mat)
-                    except Exception as e:
-                        ocprint.print_warning(f"CSR conversion failed: {e}. Using empty matrix.")
-                        csr_mat = csr_matrix((1, self.shape), dtype=np.uint8)
-                        csr_matrices.append(csr_mat)
-
-                if csr_matrices:
-                    try:
-                        return sparse_vstack(csr_matrices, format='csr')
-                    except Exception as e:
-                        ocprint.print_warning(f"sparse_vstack failed: {e}. Fixing matrices...")
-                        fixed = []
-                        for mat in csr_matrices:
-                            if not isinstance(mat, csr_matrix):
-                                mat = csr_matrix(mat)
-                            if mat.shape[1] != self.shape:
-                                mat = csr_matrix((1, self.shape), dtype=np.uint8)
-                            fixed.append(mat)
-                        return sparse_vstack(fixed, format='csr')
-                else:
-                    return csr_matrix((0, self.shape), dtype=np.uint8)
-            else:
-                normalized = []
-                for arr in out:
-                    if arr.size == 0:
-                        shape = self.shape if self.shape else 1
-                        normalized.append(np.zeros(shape, dtype=np.float32))
-                    else:
-                        normalized.append(arr)
-
-                if normalized:
-                    return np.vstack(normalized)
-                else:
-                    shape = self.shape if self.shape else 1
-                    return np.array([]).reshape(0, shape)
-
-        universal_descriptor.build = _patched_universal_build
-        _patch_oddt_descriptors_for_plec = True
-    except (ImportError, AttributeError) as patch_err:
-        ocprint.print_warning(f"Could not patch ODDT descriptor functions: {patch_err}")
 
     scoring_functions_loaded = []
     model_sf_map = {}  # Map model to scoring function for identification
@@ -665,11 +542,13 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             pipeline.score(sf, receptorObj)
 
         # Try to fetch results from all at once
-        for mol in pipeline.fetch():
+        for mol_index, mol in enumerate(pipeline.fetch()):
             # Transform the results into a dict
             data = mol.data.to_dict()
-            # Add the ligand name
+            # Add the ligand name (molecules without a usable title are named after their file, otherwise all of them would be merged into one row)
             data["ligand_name"] = ".".join(os.path.basename(mol.title).split(".")[:-1])
+            if not data["ligand_name"] and mol_index < len(molecule_names):
+                data["ligand_name"] = molecule_names[mol_index]
             # Set the blacklist keys
             blacklist_keys = ['OpenBabel Symmetry Classes', 'MOL Chiral Flag', 'PartialCharges', 'TORSDO', 'REMARK']
 
@@ -706,9 +585,11 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                     individual_pipeline.score(sf, receptorObj)
 
                     # Fetch results
-                    for mol in individual_pipeline.fetch():
+                    for mol_index, mol in enumerate(individual_pipeline.fetch()):
                         data = mol.data.to_dict()
                         data["ligand_name"] = ".".join(os.path.basename(mol.title).split(".")[:-1])
+                        if not data["ligand_name"] and mol_index < len(molecule_names):
+                            data["ligand_name"] = molecule_names[mol_index]
 
                         blacklist_keys = ['OpenBabel Symmetry Classes', 'MOL Chiral Flag', 'PartialCharges', 'TORSDO', 'REMARK']
 

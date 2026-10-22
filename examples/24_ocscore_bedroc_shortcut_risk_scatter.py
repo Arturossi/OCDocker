@@ -102,8 +102,9 @@ DEFAULT_LABEL_OFFSETS = {
     "shape_only": (10, 7),  # #22
 }
 
-# The paper renders this figure in Portuguese; the library ships English defaults,
-# so the localized strings live here, in the caller, and never in the library.
+# The paper renders this figure in Portuguese; the library ships generic English
+# defaults (e.g. "BEDROC (test)"), which do not match this figure's validation-set
+# axis. Both localized string sets live here, in the caller, and never in the library.
 PT_TEXT = {
     "title": "BEDROC de validação vs. risco de atalho (22 configurações)",
     "xlabel": "BEDROC (validação, DUDEz)",
@@ -115,6 +116,18 @@ PT_LEGEND = {
     "discarded": "Elegíveis: sem piora detectável ($p_{\\mathrm{Holm}}\\geq0{,}05$)\nDescartadas: risco $\\geq$ 20%",
     "retained": "Elegíveis: sem piora detectável ($p_{\\mathrm{Holm}}\\geq0{,}05$)\nMantidas: risco < 20%",
     "other": "Não elegíveis: piora significativa\n($p_{\\mathrm{Holm}}<0{,}05$)",
+}
+EN_TEXT = {
+    "title": "Validation BEDROC vs. shortcut risk (22 configurations)",
+    "xlabel": "BEDROC (validation, DUDEz)",
+    "ylabel": "Shortcut risk\n(max. % of SHAP importance in a single feature)",
+    "highlight_note": "recommended",
+}
+EN_LEGEND = {
+    "reference": "Full model (full_ocscore, reference)",
+    "discarded": "Eligible: no detectable degradation ($p_{\\mathrm{Holm}}\\geq0.05$)\nDiscarded: risk $\\geq$ 20%",
+    "retained": "Eligible: no detectable degradation ($p_{\\mathrm{Holm}}\\geq0.05$)\nRetained: risk < 20%",
+    "other": "Not eligible: significant degradation\n($p_{\\mathrm{Holm}}<0.05$)",
 }
 
 # The configuration recommended in the paper; called out with an arrow.
@@ -296,8 +309,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"Retained ({len(good_policies)}): {', '.join(good_policies)}")
     print(f"Discarded ({len(bad_policies)}): {', '.join(bad_policies)}")
 
-    text = PT_TEXT if args.lang == "pt" else {}
-    legend = PT_LEGEND if args.lang == "pt" else None
+    text = PT_TEXT if args.lang == "pt" else EN_TEXT
+    legend = PT_LEGEND if args.lang == "pt" else EN_LEGEND
 
     _use_paper_font()
     args.figures_dir.mkdir(parents=True, exist_ok=True)

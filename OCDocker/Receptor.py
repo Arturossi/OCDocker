@@ -114,7 +114,11 @@ class Receptor:
     InstabilityIndex : float
         Instability index.
     countA, countR, countN, ..., countV : int
-        Count of each amino acid type.
+        Count of each amino acid type among the surface-exposed residues only,
+        i.e. those whose DSSP relative accessible surface area is at least
+        ``relative_asa_cutoff`` (see :func:`count_surface_AA`). Buried residues
+        are not counted. :class:`OCDocker.Pocket.Pocket` uses the same names
+        for a different quantity (every pocket residue).
     TotalAALength : int
         Total number of amino acids.
     AvgAALength : float
@@ -913,8 +917,6 @@ def count_surface_AA(structure: Bio.PDB.Structure.Structure, structurePath: str,
         The structure to be loaded.
     structurePath: str
         The path of the structure.
-    cleanStructurePath: str
-        The path of the clean structure.
     cutoff: float, optional
         The cutoff to consider an AA as surface. Default is 0.7.
 

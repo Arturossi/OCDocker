@@ -782,8 +782,8 @@ class PDBbindOptunaStage:
 
         device = _resolve_device(self.config.use_gpu)
         storage, storage_path = resolve_optuna_storage(self.config.storage, context.ensure_output_dir())
-        sampler = TPESampler(
-            seed=self.config.sampler_seed if self.config.sampler_seed is not None else training_seed
+        sampler = _build_tpe_sampler(
+            self.config.sampler_seed if self.config.sampler_seed is not None else training_seed
         )
         pruner = _build_pdbbind_pruner(self.config)
         study = _create_study_with_sqlite_lock_retry(
@@ -1171,8 +1171,8 @@ class DUDEzOptunaStage:
 
         device = _resolve_device(self.config.use_gpu)
         storage, storage_path = resolve_optuna_storage(self.config.storage, context.ensure_output_dir())
-        sampler = TPESampler(
-            seed=self.config.sampler_seed if self.config.sampler_seed is not None else training_seed
+        sampler = _build_tpe_sampler(
+            self.config.sampler_seed if self.config.sampler_seed is not None else training_seed
         )
         pruner = optuna.pruners.MedianPruner(
             n_startup_trials=_median_pruner_n_startup_trials_default(self.config.n_trials),
@@ -1548,6 +1548,12 @@ def _build_pdbbind_pruner(config: PDBbindOptunaConfig) -> optuna.pruners.BasePru
         n_startup_trials=int(settings["n_startup_trials"]),
         n_warmup_steps=int(settings["n_warmup_steps"]),
     )
+
+
+def _build_tpe_sampler(seed: Optional[int]) -> TPESampler:
+    '''Build the TPE sampler with its search settings fixed, so they do not follow the installed Optuna defaults.'''
+
+    return TPESampler(seed=seed, multivariate=True, constant_liar=True)
 
 
 def _pdbbind_pruner_summary(config: PDBbindOptunaConfig) -> dict[str, Any]:

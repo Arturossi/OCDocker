@@ -12,12 +12,10 @@ Subpackages
    OCDocker.Docking
    OCDocker.CLI
    OCDocker.Console
-   OCDocker.MCP
    OCDocker.OCScore
    OCDocker.Processing
    OCDocker.Rescoring
    OCDocker.Toolbox
-   OCDocker.Workbench
 
 Submodules
 ----------
@@ -29,6 +27,7 @@ Submodules
    OCDocker.Error
    OCDocker.Initialise
    OCDocker.Ligand
+   OCDocker.Pocket
    OCDocker.Receptor
 
 Module contents

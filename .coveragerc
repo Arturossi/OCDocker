@@ -12,29 +12,14 @@ omit =
     # Omit heavyweight bootstrap that is not unit-test friendly
     OCDocker/Initialise.py
     */OCDocker/Initialise.py
-    # Omit Future directory (reference implementations for future work)
-    # Multiple patterns to catch all variations
-    OCDocker/Docking/Future/*
-    OCDocker/Docking/Future/**
-    Docking/Future/*
-    Docking/Future/**
-    **/Docking/Future/*
-    **/Docking/Future/**
     # Omit archival legacy trees removed from the package (historical patterns kept for safety)
     OCDocker/**/legacy/*
     OCDocker/**/legacy/**
     **/OCDocker/**/legacy/*
     **/OCDocker/**/legacy/**
-    # Omit future/reference implementation trees outside the active coverage target
-    OCDocker/**/future/*
-    OCDocker/**/future/**
-    **/OCDocker/**/future/*
-    **/OCDocker/**/future/**
     # Omit boilerplate entrypoints / empty namespace stubs
     OCDocker/Console/__main__.py
     */OCDocker/Console/__main__.py
-    OCDocker/OCScore/Dimensionality/__init__.py
-    */OCDocker/OCScore/Dimensionality/__init__.py
     OCDocker/Processing/Postprocessing/__init__.py
     */OCDocker/Processing/Postprocessing/__init__.py
 
@@ -47,24 +32,12 @@ omit =
     */conftest.py
     OCDocker/Initialise.py
     */OCDocker/Initialise.py
-    OCDocker/Docking/Future/*
-    OCDocker/Docking/Future/**
-    Docking/Future/*
-    Docking/Future/**
-    **/Docking/Future/*
-    **/Docking/Future/**
     OCDocker/**/legacy/*
     OCDocker/**/legacy/**
     **/OCDocker/**/legacy/*
     **/OCDocker/**/legacy/**
-    OCDocker/**/future/*
-    OCDocker/**/future/**
-    **/OCDocker/**/future/*
-    **/OCDocker/**/future/**
     OCDocker/Console/__main__.py
     */OCDocker/Console/__main__.py
-    OCDocker/OCScore/Dimensionality/__init__.py
-    */OCDocker/OCScore/Dimensionality/__init__.py
     OCDocker/Processing/Postprocessing/__init__.py
     */OCDocker/Processing/Postprocessing/__init__.py
 precision = 2

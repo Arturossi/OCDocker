@@ -12,8 +12,6 @@ import OCDocker.OCScore as ocscore
 Packages
 --------
 - Analysis: Analysis workflows and plotting.
-- DNN: Deep neural network utilities.
-- Dimensionality: Dimensionality reduction utilities.
 - Optimization: Model training and optimization pipelines.
 - Transformer: Transformer training utilities.
 - Utils: Shared OCScore utilities.

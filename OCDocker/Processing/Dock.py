@@ -774,7 +774,7 @@ def __run_plants(ligandPath: str, ligandDescriptorPath: str, receptorPath: str, 
                         return exit_code
 
                     # Append to the digest the results
-                        _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", plants.plants_log, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id if use_box_id else None)
+                    _ = ocplants.generate_digest(f"{ligandDir}/dockingDigest.json", plants.plants_log, overwrite = overwrite, digestFormat = digestFormat, box_id = box_id if use_box_id else None)
                 else:
                     errMsg = f"The PLANTS output for '{ptn}' run '{runNumber}' is already generated and you can check it at the '*/run/plants_<runNumber>.log' path. PLANTS execution will be avoided to save processing time. If you want to generate these files, set the overwrite flag to true."
 

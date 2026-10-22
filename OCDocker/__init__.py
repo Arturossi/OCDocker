@@ -16,12 +16,10 @@ Packages
 - Console: Interactive Python console with OCDocker pre-loaded.
 - DB: Database management utilities.
 - Docking: Docking routines.
-- MCP: Model Context Protocol server for LLM-driven orchestration.
 - OCScore: Scoring and ML utilities.
 - Processing: Pre/post-processing workflows.
 - Rescoring: Rescoring routines.
 - Toolbox: Shared toolbox utilities.
-- Workbench: Post-ablation analysis dashboard and API.
 
 Modules
 -------

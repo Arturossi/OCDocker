@@ -16,6 +16,7 @@ import pytest
 
 from pathlib import Path
 from rdkit import Chem
+from rdkit.Chem import AllChem
 
 import OCDocker.Ligand as ocl
 
@@ -39,7 +40,7 @@ See the LICENSE file for full terms.
 ## Public ##
 
 @pytest.fixture
-def sample_ligand():
+def sample_ligand(tmp_path):
     '''
     Fixture to create a sample Ligand instance using an RDKit molecule
     parsed from the SMILES of aspirin.
@@ -66,7 +67,7 @@ def sample_ligand():
 
     json_file = base / "compounds/ligands/ligand/test_ligand_descriptors.json"
 
-    boxes_dir = base / "boxes"
+    boxes_dir = tmp_path / "boxes"
 
     return {
         "ligand": ligand,
@@ -473,3 +474,47 @@ def test_ligand_clean_false_keeps_all_fragments(tmp_path):
 
     assert ligand.clean is False
     assert ligand.molecule.GetNumHeavyAtoms() == 19
+
+@pytest.mark.order(31)
+def test_load_mol_writes_mol2_by_default(tmp_path):
+    '''Test that a non-mol2 ligand is also written as mol2 next to it by default.'''
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol, randomSeed=7)
+    sdf_file = tmp_path / "ethanol.sdf"
+    Chem.MolToMolFile(mol, str(sdf_file))
+
+    path, loaded = ocl.load_mol(str(sdf_file))
+
+    assert loaded is not None
+    assert path == str(tmp_path / "ethanol.mol2")
+    assert (tmp_path / "ethanol.mol2").is_file()
+
+@pytest.mark.order(32)
+def test_load_mol_write_mol2_false_leaves_directory_untouched(tmp_path):
+    '''Test that write_mol2=False reads the ligand without writing any file.'''
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol, randomSeed=7)
+    sdf_file = tmp_path / "ethanol.sdf"
+    Chem.MolToMolFile(mol, str(sdf_file))
+
+    path, loaded = ocl.load_mol(str(sdf_file), write_mol2=False)
+
+    assert loaded is not None
+    assert path == str(sdf_file)
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["ethanol.sdf"]
+
+@pytest.mark.order(33)
+def test_get_centroid_does_not_write_mol2(tmp_path):
+    '''Test that computing a centroid from a file does not write a derived mol2.'''
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol, randomSeed=7)
+    sdf_file = tmp_path / "ethanol.sdf"
+    Chem.MolToMolFile(mol, str(sdf_file))
+
+    centroid = ocl.get_centroid(str(sdf_file))
+
+    assert hasattr(centroid, "x")
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["ethanol.sdf"]

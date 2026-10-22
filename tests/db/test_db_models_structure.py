@@ -14,6 +14,7 @@ import OCDocker.DB.Models.Complexes as occomplexes
 import OCDocker.DB.Models.Ligands as ocligands
 import OCDocker.DB.Models.Receptors as ocreceptors
 import OCDocker.DB.Models.PipelineRuns as ocpiperuns
+import OCDocker.DB.Models.Pockets as ocpockets
 
 # License
 ###############################################################################
@@ -97,4 +98,57 @@ def test_pipeline_runs_model_metadata_columns():
     )
     assert run.complex_id == 7
     assert run.representative_engine == "vina"
+
+@pytest.mark.order(415)
+def test_pockets_model_descriptor_catalog_and_columns():
+    assert ocpockets.Pockets.allDescriptors == ocpockets.ocpocket.Pocket.allDescriptors
+    assert "countA" in ocpockets.Pockets.allDescriptors
+    assert "NetCharge" in ocpockets.Pockets.allDescriptors
+    assert "countHBondDonors" in ocpockets.Pockets.allDescriptors
+
+    columns = ocpockets.Pockets.__table__.columns
+    for desc in ocpockets.Pockets.allDescriptors:
+        assert desc in columns
+    for meta in ["receptor_id", "reference_ligand", "cutoff", "residues"]:
+        assert meta in columns
+
+    assert hasattr(ocpockets.Pockets, "receptor")
+
+@pytest.mark.order(416)
+def test_pockets_reference_receptor_but_receptors_do_not_reference_pockets():
+    foreign_keys = {fk.target_fullname for fk in ocpockets.Pockets.__table__.foreign_keys}
+    assert foreign_keys == {"receptors.id"}
+
+    # A receptor may hold several pockets, so the receptor table has no pocket column
+    assert not any("pocket" in column.name for column in ocreceptors.Receptors.__table__.columns)
+    assert hasattr(ocreceptors.Receptors, "pockets")
+
+@pytest.mark.order(417)
+def test_receptor_holds_multiple_pockets_in_sqlite():
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from OCDocker.DB.Models.Base import Base
+
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+
+    with Session(engine) as s:
+        receptor = ocreceptors.Receptors(name="rec")
+        receptor.pockets = [
+            ocpockets.Pockets(name="rec_pocket0", reference_ligand="lig0.sdf", cutoff=8.0, residues="A:1::LYS", countK=1, NetCharge=1.0),
+            ocpockets.Pockets(name="rec_pocket1", reference_ligand="lig1.sdf", cutoff=8.0, residues="A:2::ASP", countD=1, NetCharge=-1.0),
+        ]
+        s.add(receptor)
+        s.commit()
+
+        stored = s.query(ocreceptors.Receptors).filter_by(name="rec").one()
+        assert sorted(p.name for p in stored.pockets) == ["rec_pocket0", "rec_pocket1"]
+        assert all(p.receptor_id == stored.id for p in stored.pockets)
+        assert s.query(ocpockets.Pockets).filter_by(name="rec_pocket1").one().countD == 1
+
+        # Deleting the receptor removes its pockets
+        s.delete(stored)
+        s.commit()
+        assert s.query(ocpockets.Pockets).count() == 0
 

@@ -30,7 +30,7 @@ jobs:
       - name: Vendor ODDT fork
         env:
           ODDT_VENDOR_REPO: https://github.com/Arturossi/oddt.git
-          ODDT_VENDOR_REF: 6e5629ed05aa4931421b14cace8f2fea5bff5bb6  # pragma: allowlist secret
+          ODDT_VENDOR_REF: b4288f03b6098860defd7913006d8beb540ed5ab  # pragma: allowlist secret
         run: |
           ./scripts/vendor_oddt.sh
 

@@ -14,6 +14,8 @@ Modules
 - Base: Declarative base and shared ORM helpers.
 - Complexes: Complexes table model.
 - Ligands: Ligands table model.
+- PipelineRuns: PipelineRuns table model.
+- Pockets: Pockets table model.
 - Receptors: Receptors table model.
 """
 

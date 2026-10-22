@@ -198,16 +198,6 @@ def test_rmsd_clustering_matplotlib_error_message():
         mod._require_matplotlib = original
 
 
-@pytest.mark.order(479)
-def test_workbench_static_files_are_declared_in_package_data():
-    '''Workbench dashboard assets ship with the OCDocker.Workbench package.'''
-
-    data = _load_pyproject()
-    package_data = data["tool"]["setuptools"]["package-data"]
-    assert "OCDocker.Workbench" in package_data
-    assert "static/*" in package_data["OCDocker.Workbench"]
-
-
 @pytest.mark.order(480)
 def test_ocscore_protocol_files_are_declared_in_package_data():
     '''Bundled OCScore protocol YAML files ship with the OCDocker.OCScore package.'''
@@ -227,10 +217,6 @@ def test_package_data_paths_exist_on_disk():
     root = Path("OCDocker")
     assert list(root.glob("OCScore/Protocols/*.yml")), "expected bundled training protocols"
     assert list(root.glob("OCScore/Protocols/Ablations/*.yml")), "expected bundled ablation policies"
-    static_dir = root / "Workbench" / "static"
-    assert static_dir.is_dir()
-    for name in ("index.html", "app.css", "app.js"):
-        assert (static_dir / name).is_file(), f"missing Workbench static asset: {name}"
 
 
 @pytest.mark.order(482)
@@ -247,7 +233,7 @@ def test_all_extra_is_superset_of_runtime_extras():
 
     extras = _load_pyproject()["project"]["optional-dependencies"]
     all_names = {_dep_name(dep) for dep in extras["all"]}
-    for group in ("analysis", "docking", "db", "ml", "workflow", "cloud", "gpu", "api", "mcp"):
+    for group in ("analysis", "docking", "db", "ml", "workflow", "cloud"):
         group_names = {_dep_name(dep) for dep in extras[group]}
         missing = group_names - all_names
         assert not missing, f"all extra missing packages from {group}: {sorted(missing)}"
@@ -290,34 +276,3 @@ def test_python_version_metadata_is_aligned():
     environment_text = Path("environment.yml").read_text(encoding="utf-8")
     assert "python=3.11" in environment_text
     assert "pyproject.toml" in environment_text
-
-
-@pytest.mark.order(486)
-def test_cli_parser_builds_without_api_or_mcp_extras():
-    '''The CLI parser (all commands) builds without the api/mcp extras installed.
-
-    OCDocker.Workbench.Server requires FastAPI (the `api` extra) and
-    OCDocker.MCP.Server requires the mcp/httpx stack (the `mcp` extra). Neither
-    should be required just to build the argparse parser or run unrelated
-    commands like `ocdocker vs --help`.
-    '''
-
-    script = (
-        "import sys, builtins\n"
-        "blocked = {'fastapi', 'uvicorn', 'starlette', 'mcp', 'httpx'}\n"
-        "_orig_import = builtins.__import__\n"
-        "def _guard(name, *a, **k):\n"
-        "    if name.split('.')[0] in blocked:\n"
-        "        raise ModuleNotFoundError(name)\n"
-        "    return _orig_import(name, *a, **k)\n"
-        "builtins.__import__ = _guard\n"
-        "from OCDocker.CLI.parser import build_parser\n"
-        "parser = build_parser()\n"
-        "for argv in (['workbench', 'serve', '--help'], ['mcp', 'serve', '--help'], ['vs', '--help']):\n"
-        "    try:\n"
-        "        parser.parse_args(argv)\n"
-        "    except SystemExit as exc:\n"
-        "        assert exc.code == 0, f'{argv} exited {exc.code}'\n"
-    )
-    result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
-    assert result.returncode == 0, result.stderr
