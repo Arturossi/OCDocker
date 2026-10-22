@@ -114,6 +114,24 @@ def _parse_engine_list(raw: Optional[str], *, rescoring: bool = False) -> List[s
     return [engine for engine in engines if engine in valid]
 
 
+def _oddt_requested(args: argparse.Namespace) -> bool:
+    '''Check whether ODDT is among the requested rescoring engines.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Pipeline CLI arguments.
+
+    Returns
+    -------
+    bool
+        True if ``--rescoring-engines`` (or ``--engines`` when it is not set) includes ODDT.
+    '''
+
+    raw = getattr(args, "rescoring_engines", None) or getattr(args, "engines", None)
+    return "oddt" in _parse_engine_list(raw, rescoring=True)
+
+
 def _prepare_stage_common(args: argparse.Namespace) -> Tuple[Path, str, Path, Path, Path, List[str]]:
     '''Resolve common stage paths and engine settings.
 
@@ -167,6 +185,7 @@ def _bootstrap_pipeline_stage(args: argparse.Namespace) -> None:
             setattr(globals_ns, attr, getattr(args, attr))
     setattr(globals_ns, "_ocdocker_init_db", bool(getattr(args, "store_db", False)))
     setattr(globals_ns, "_ocdocker_create_db_if_missing", bool(getattr(args, "store_db", False)))
+    setattr(globals_ns, "_ocdocker_init_oddt", _oddt_requested(args))
     _bootstrap_ocdocker_env(globals_ns)
     try:
         import OCDocker.Error as ocerror
@@ -757,6 +776,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
     store_db_requested = bool(getattr(args, "store_db", False))
     setattr(globals_ns, "_ocdocker_init_db", store_db_requested)
     setattr(globals_ns, "_ocdocker_create_db_if_missing", store_db_requested)
+    setattr(globals_ns, "_ocdocker_init_oddt", _oddt_requested(args))
     _bootstrap_ocdocker_env(globals_ns)
 
     # Configure logging according to CLI flags

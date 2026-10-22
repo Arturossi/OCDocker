@@ -19,7 +19,7 @@ from pathlib import Path
 
 from OCDocker.CLI.common import _preparse_global_args, _require_file
 from OCDocker.CLI.parser import build_parser
-from OCDocker.CLI.pipeline import cmd_pipeline
+from OCDocker.CLI.pipeline import _oddt_requested, cmd_pipeline
 from OCDocker.CLI.script import cmd_script
 
 # License
@@ -282,3 +282,10 @@ def test_pipeline_prepare_collect_export_artifact_stages(tmp_path):
     assert cmd_pipeline(export_args) == 0
     assert (outdir / "summary.json").is_file()
 
+
+@pytest.mark.order(82)
+def test_oddt_requested_follows_rescoring_engines():
+    assert _oddt_requested(argparse.Namespace(engines="vina", rescoring_engines="vina,oddt")) is True
+    assert _oddt_requested(argparse.Namespace(engines="vina,smina", rescoring_engines=None)) is False
+    assert _oddt_requested(argparse.Namespace(engines="vina")) is False
+    assert _oddt_requested(argparse.Namespace()) is False
