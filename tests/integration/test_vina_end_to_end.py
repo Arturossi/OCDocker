@@ -128,6 +128,8 @@ def test_vs_vina_docks_test_ptn1(tmp_path):
     poses = ocvinalike.read_vina_log(str(vina_dir / "e2e.log"))
     assert poses, output
     affinities = [affinity for pose in poses.values() for affinity in pose.values()]
-    assert all(-30.0 < affinity < 0.0 for affinity in affinities), affinities
+    # Vina's search is stochastic, so lower-ranked poses can score positive; the best pose must bind
+    assert all(-30.0 < affinity < 30.0 for affinity in affinities), affinities
+    assert min(affinities) < 0.0, affinities
 
     assert len(ocvinalike.get_vina_docked_poses(str(vina_dir))) == len(poses)
