@@ -370,6 +370,23 @@ def test_bootstrap_passes_init_db_flag_when_supported(monkeypatch):
     assert seen["init_db"] is False
 
 
+@pytest.mark.order(464)
+def test_bootstrap_passes_init_oddt_flag_when_supported(monkeypatch):
+    seen = {"init_oddt": None}
+
+    def _bootstrap(ns, init_db=True, init_oddt=True):
+        seen["init_oddt"] = init_oddt
+
+    fake_mod = types.SimpleNamespace(bootstrap=_bootstrap)
+    monkeypatch.setattr(importlib, "import_module", lambda _name: fake_mod)
+
+    cli_common._bootstrap_ocdocker_env(argparse.Namespace(config_file=None, _ocdocker_init_oddt=False))
+    assert seen["init_oddt"] is False
+
+    cli_common._bootstrap_ocdocker_env(argparse.Namespace(config_file=None))
+    assert seen["init_oddt"] is True
+
+
 @pytest.mark.order(465)
 def test_suggest_extra_for_missing_module_uses_ml_for_optuna():
     assert cli_common._suggest_extra_for_missing_module("optuna") == "ml"

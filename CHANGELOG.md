@@ -4,6 +4,17 @@ All notable changes to OCDocker are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `ocdocker vs` and `ocdocker pipeline` generated every missing ODDT model at startup even
+  when no ODDT rescoring was requested, which takes several minutes on the first run (a
+  `vs --skip-rescore` with Vina took over 4 minutes instead of 23 seconds). `bootstrap()`
+  gained `init_oddt: bool = True`; `vs` (which never rescores with ODDT) and `pipeline`
+  without `oddt` in `--rescoring-engines` set it to False. `run_oddt` still generates
+  missing models on demand.
+
 ## [0.17.0] - 2026-10-22
 
 ### Added
@@ -462,6 +473,7 @@ Compatibility and rewiring:
 - This is additive public API. If released publicly, it fits a minor version bump
   rather than a major version bump.
 
+[Unreleased]: https://github.com/Arturossi/OCDocker/compare/v0.17.0...HEAD
 [0.17.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.17.0
 [0.16.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.16.0
 [0.15.4]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.4

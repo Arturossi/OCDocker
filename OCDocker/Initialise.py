@@ -744,6 +744,7 @@ def bootstrap(
     ns: Optional[argparse.Namespace] = None,
     init_db: bool = True,
     create_db_if_missing: bool = False,
+    init_oddt: bool = True,
 ) -> None:
     '''Explicitly bootstrap OCDocker environment (config, DB, paths).
 
@@ -759,6 +760,9 @@ def bootstrap(
     create_db_if_missing : bool, optional
         If True, explicitly create missing PostgreSQL/MySQL databases during
         DB initialization. Defaults to False to avoid silent remote creation.
+    init_oddt : bool, optional
+        If True, generate the missing ODDT models. Set to False for workflows that do not
+        rescore with ODDT, since generating them takes several minutes on the first run.
     '''
 
     global bootstrapped
@@ -1024,7 +1028,7 @@ def bootstrap(
     set_config(config)
 
     # Ensure ODDT models folder contents (allow skipping for slim environments)
-    if not str(os.getenv('OCDOCKER_SKIP_ODDT', '')).lower() in ('1','true','yes','y'):
+    if init_oddt and not str(os.getenv('OCDOCKER_SKIP_ODDT', '')).lower() in ('1','true','yes','y'):
         try:
             initialise_oddt_models(config.oddt_models_dir, config.oddt.scoring_functions)
         except ModuleNotFoundError as exc:
