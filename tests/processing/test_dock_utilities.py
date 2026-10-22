@@ -902,8 +902,7 @@ def test_engine_run_happy_path_executes_prepare_and_run(monkeypatch, tmp_path, o
     assert "run_prepare_ligand" in created[0].events
     assert "run_prepare_receptor" in created[0].events
     assert run_method in created[0].events
-    if runner_name != "__run_plants":
-        assert digest_calls
+    assert digest_calls
 
 
 @pytest.mark.order(241)
@@ -1786,6 +1785,7 @@ def test_run_plants_mixed_box_outputs_warns_and_removes_stale_run_dir(monkeypatc
     monkeypatch.setattr(ocdock_helpers, "__needs_receptor_preparation", lambda *_a, **_k: False)
     monkeypatch.setattr(ocdock_helpers, "__receptor_file_lock", lambda *_a, **_k: nullcontext())
     monkeypatch.setattr(ocdock_helpers.ocplants, "PLANTS", _factory, raising=False)
+    monkeypatch.setattr(ocdock_helpers.ocplants, "generate_digest", lambda *_a, **_k: ocerror.ErrorCode.OK, raising=False)
     monkeypatch.setattr(ocdock_helpers.shutil, "rmtree", lambda p: removed_dirs.append(str(p)))
 
     rc = ocdock_helpers.__run_plants(

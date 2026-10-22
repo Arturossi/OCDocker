@@ -412,7 +412,7 @@ class Vina:
 
         # If True, use openbabel
         if useOpenBabel:
-            return occonversion.convert_mols(self.input_receptor_path, self.prepared_receptor)
+            return occonversion.convert_mols(self.input_receptor_path, self.prepared_receptor, rigid=True)
 
         return self.preparation_strategy.prepare_receptor(
             self.input_receptor_path,

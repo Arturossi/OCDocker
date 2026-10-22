@@ -4,6 +4,8 @@
 ###############################################################################
 """
 MCP server package exposing the OCDocker Workbench API to LLM clients.
+
+Status: experimental and feature-frozen (bug fixes only, no new tools).
 """
 
 # Imports

@@ -103,9 +103,10 @@ def register_subparser(subparsers: argparse._SubParsersAction) -> None:
             "(Claude Code, Claude Desktop, ...) can inspect a Workbench workspace "
             "and design, launch, and monitor jobs.\n\n"
             "Requires a separately running `ocdocker workbench serve` instance; "
-            "this command does not start one."
+            "this command does not start one.\n\n"
+            "Status: experimental and feature-frozen (bug fixes only, no new tools)."
         ),
-        help="Serve OCDocker as an MCP server for LLM clients",
+        help="Serve OCDocker as an MCP server for LLM clients (experimental)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.set_defaults(func=cmd_mcp)

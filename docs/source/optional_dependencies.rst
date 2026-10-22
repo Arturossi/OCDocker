@@ -172,7 +172,8 @@ Runtime extras
 
 ``mcp``
    MCP server exposing the Workbench API to LLM clients (Claude Code, Claude
-   Desktop, ...) over stdio.
+   Desktop, ...) over stdio. Experimental and feature-frozen (bug fixes
+   only, no new tools).
 
    * ``mcp``
 

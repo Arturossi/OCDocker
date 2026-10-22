@@ -40,7 +40,7 @@ See the LICENSE file for full terms.
 ## Public ##
 
 @pytest.fixture
-def sample_ligand():
+def sample_ligand(tmp_path):
     '''
     Fixture to create a sample Ligand instance using an RDKit molecule
     parsed from the SMILES of aspirin.
@@ -67,7 +67,7 @@ def sample_ligand():
 
     json_file = base / "compounds/ligands/ligand/test_ligand_descriptors.json"
 
-    boxes_dir = base / "boxes"
+    boxes_dir = tmp_path / "boxes"
 
     return {
         "ligand": ligand,
