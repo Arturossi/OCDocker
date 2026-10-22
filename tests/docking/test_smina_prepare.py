@@ -38,8 +38,8 @@ See the LICENSE file for full terms.
 ## Public ##
 
 @pytest.mark.order(94)
-def test_run_prepare_ligand_copy_fallback(tmp_path, monkeypatch):
-    # Force copy fallback (pythonsh not available) by mocking Config
+def test_run_prepare_ligand_unavailable_tool(tmp_path, monkeypatch):
+    # Force unavailable tool (pythonsh not available) by mocking Config
     from OCDocker.Config import get_config
     
     def mock_get_config():
@@ -57,6 +57,5 @@ def test_run_prepare_ligand_copy_fallback(tmp_path, monkeypatch):
     out_pdbqt = tmp_path / 'out' / 'lig.pdbqt'
 
     rc = smina.run_prepare_ligand(str(in_mol), str(out_pdbqt))
-    assert rc == 0
-    assert out_pdbqt.exists()
-    assert out_pdbqt.read_text() == 'mol2'
+    assert rc != 0
+    assert not out_pdbqt.exists()

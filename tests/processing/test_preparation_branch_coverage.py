@@ -76,17 +76,8 @@ def test_preparation_base_helper_branches(tmp_path, monkeypatch):
 
     input_file = tmp_path / "ligand.mol2"
     input_file.write_text("LIG", encoding="utf-8")
-    rc_copy = strategy._fallback_copy(str(input_file), str(out_file), "dummy")
-    assert rc_copy == ocerror.ErrorCode.OK
-    assert out_file.read_text(encoding="utf-8") == "LIG"
-
-    monkeypatch.setattr(
-        ocprep.shutil,
-        "copyfile",
-        lambda *_a, **_k: (_ for _ in ()).throw(OSError("copy failure")),
-    )
-    rc_copy_fail = strategy._fallback_copy(str(input_file), str(out_file), "dummy")
-    assert rc_copy_fail == ocerror.ErrorCode.SUBPROCESS
+    rc_unavailable = strategy._tool_unavailable(str(input_file), "dummy")
+    assert rc_unavailable == ocerror.ErrorCode.SUBPROCESS
 
     assert strategy.get_ligand_command("in", "out") == []
     assert strategy.get_receptor_command("in", "out") == []
@@ -176,11 +167,12 @@ def test_mgltools_prepare_early_return_and_unavailable_tool_paths(tmp_path, monk
 
     strategy2 = ocprep.MGLToolsPreparationStrategy()
     monkeypatch.setattr(strategy2, "_check_tool_available", lambda _exe: False)
-    monkeypatch.setattr(strategy2, "_fallback_copy", lambda *_a, **_k: 777)
     rc_l = strategy2.prepare_ligand(str(lig_in), str(tmp_path / "out_lig.pdbqt"))
     rc_r = strategy2.prepare_receptor(str(rec_in), str(tmp_path / "out_rec.pdbqt"))
-    assert rc_l == 777
-    assert rc_r == 777
+    assert rc_l == ocerror.ErrorCode.SUBPROCESS
+    assert rc_r == ocerror.ErrorCode.SUBPROCESS
+    assert not (tmp_path / "out_lig.pdbqt").exists()
+    assert not (tmp_path / "out_rec.pdbqt").exists()
 
 
 @pytest.mark.order(434)
