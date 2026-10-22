@@ -131,7 +131,6 @@ class _ReceptorStub:
 
 def _import_prepare(monkeypatch):
     importlib.import_module("OCDocker.Docking")
-    importlib.import_module("OCDocker.Docking.Future")
     importlib.import_module("OCDocker.Toolbox")
 
     rdkit_mod = types.ModuleType("rdkit")

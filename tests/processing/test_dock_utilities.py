@@ -107,7 +107,6 @@ class _FakeEngineObject:
 
 def _import_dock(monkeypatch):
     importlib.import_module("OCDocker.Docking")
-    importlib.import_module("OCDocker.Docking.Future")
     importlib.import_module("OCDocker.Toolbox")
 
     gnina = types.ModuleType("OCDocker.Docking.Gnina")
