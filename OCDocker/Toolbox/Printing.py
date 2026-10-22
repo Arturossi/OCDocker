@@ -13,6 +13,7 @@ import OCDocker.Toolbox.Printing as ocprint
 # Imports
 ###############################################################################
 import inspect
+import os
 from typing import Dict
 from datetime import datetime
 
@@ -65,6 +66,33 @@ def _caller_context(depth: int = 2) -> str:
             f"from file '{frame.f_code.co_filename}'.")
 
 
+def _write_log(message: str, logfile: str, mode: str) -> None:
+    '''Write a message into a log file, creating its directory if needed.
+
+    A log that cannot be written must not break the caller (most callers are
+    already reporting an error), so the message is printed as a warning instead.
+
+    Parameters
+    ----------
+    message : str
+        Formatted line to be written.
+    logfile : str
+        Log file to be used.
+    mode : str
+        Mode to open the file.
+    '''
+
+    try:
+        logdir = os.path.dirname(logfile)
+        if logdir:
+            os.makedirs(logdir, exist_ok=True)
+        with open(logfile, mode) as f:
+            f.write(message)
+    except OSError as e:
+        print_warning(f"Could not write to the log file '{logfile}': {e}. Message: {message.rstrip()}")
+    return
+
+
 ## Public ##
 
 def print_error(message: str, force: bool = False) -> None:
@@ -103,10 +131,9 @@ def print_error_log(message: str, logfile: str, mode: str = 'a') -> None:
     '''
 
     today = datetime.now()
-    with open(logfile, mode) as f:
-        context = _caller_context()
-        suffix = f" {context}" if context else ""
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] ERROR: {message}{suffix}\n")
+    context = _caller_context()
+    suffix = f" {context}" if context else ""
+    _write_log(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] ERROR: {message}{suffix}\n", logfile, mode)
     return
 
 def print_info(message: str, force: bool = False) -> None:
@@ -145,10 +172,9 @@ def print_info_log(message: str, logfile:str, mode: str = 'a') -> None:
     '''
 
     today = datetime.now()
-    with open(logfile, mode) as f:
-        context = _caller_context()
-        suffix = f" {context}" if context else ""
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] INFO: {message}{suffix}\n")
+    context = _caller_context()
+    suffix = f" {context}" if context else ""
+    _write_log(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] INFO: {message}{suffix}\n", logfile, mode)
     return
 
 def print_section(n: int, name: str, logName: str = "OCDocker_Progress.out") -> None:
@@ -182,11 +208,9 @@ def print_section(n: int, name: str, logName: str = "OCDocker_Progress.out") -> 
     if name:
         # Check if is the Runtime Arguments section
         if name == "Runtime Arguments":
-            with open(logName, 'w') as f:
-                f.write(f"{datetime.now().strftime('%H:%M:%S')}: Starting new OCDocker run\n")
+            _write_log(f"{datetime.now().strftime('%H:%M:%S')}: Starting new OCDocker run\n", logName, 'w')
         else:
-            with open(logName, 'a') as f:
-                f.write(f"\n{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n")
+            _write_log(f"\n{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n", logName, 'a')
     return
 
 def print_sorry()-> None:
@@ -230,8 +254,7 @@ def print_subsection(n: int, name: str, logName: str = "OCDocker_Progress.out") 
           clrs['n'])
 
     if name:
-        with open("OCDocker_Progress.out", 'a') as f:
-            f.write(f"{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n")
+        _write_log(f"{datetime.now().strftime('%H:%M:%S')}: {str(name)}...\n", logName, 'a')
     return
 
 def print_success(message: str, force: bool = False) -> None:
@@ -270,10 +293,9 @@ def print_success_log(message: str, logfile: str, mode: str = 'a') -> None:
     '''
 
     today = datetime.now()
-    with open(logfile, mode) as f:
-        context = _caller_context()
-        suffix = f" {context}" if context else ""
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] SUCCESS: {message}{suffix}\n")
+    context = _caller_context()
+    suffix = f" {context}" if context else ""
+    _write_log(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] SUCCESS: {message}{suffix}\n", logfile, mode)
     return
 
 def print_warning(message: str, force: bool = False) -> None:
@@ -313,10 +335,9 @@ def print_warning_log(message: str, logfile: str, mode: str = 'a') -> None:
     '''
 
     today = datetime.now()
-    with open(logfile, mode) as f:
-        context = _caller_context()
-        suffix = f" {context}" if context else ""
-        f.write(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] WARNING: {message}{suffix}\n")
+    context = _caller_context()
+    suffix = f" {context}" if context else ""
+    _write_log(f"[{today.strftime('%d-%m-%Y')}|{today.strftime('%H:%M:%S')}] WARNING: {message}{suffix}\n", logfile, mode)
     return
 
 def printv(message: str) -> None:
