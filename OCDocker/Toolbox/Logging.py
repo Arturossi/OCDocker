@@ -234,9 +234,12 @@ def configure(
         except (OSError, PermissionError):
             # Ignore errors if directory already exists or permission denied
             pass
-        fh = logging.FileHandler(log_file)
-        fh.setFormatter(logging.Formatter(_FMT, datefmt=_DATEFMT))
-        _STATE["logger"].addHandler(fh)
+        # Attach each log file once, otherwise configuring again writes every message again
+        log_path = os.path.abspath(log_file)
+        if not any(isinstance(h, logging.FileHandler) and h.baseFilename == log_path for h in _STATE["logger"].handlers):
+            fh = logging.FileHandler(log_file)
+            fh.setFormatter(logging.Formatter(_FMT, datefmt=_DATEFMT))
+            _STATE["logger"].addHandler(fh)
 
 
 def get_logger(name: Optional[str] = None) -> logging.Logger:
