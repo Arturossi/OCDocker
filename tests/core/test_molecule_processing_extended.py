@@ -44,6 +44,10 @@ def _atom_line(atom: str, res: str, chain: str = " ", element: str = "C", record
     return "".join(line) + "\n"
 
 
+def _residue_line(atom: str, res: str, resseq: int, chain: str = "A", altloc: str = " ", record: str = "ATOM  ") -> str:
+    return f"{record:<6}{1:>5}  {atom:<3}{altloc}{res:>3} {chain}{resseq:>4}    {1.0:>8.3f}{2.0:>8.3f}{3.0:>8.3f}{0.5:>6.2f}{10.0:>6.2f}           C  \n"
+
+
 ## Public ##
 
 @pytest.mark.order(220)
@@ -288,3 +292,68 @@ def test_split_poses_builds_expected_command(monkeypatch, tmp_path):
     assert captured["cmd"][5] == "--ligand"
     assert captured["cmd"][6].endswith("ligA_x")
     assert captured["logFile"] == "run.log"
+
+
+@pytest.mark.order(226)
+def test_clean_for_dssp_keeps_one_copy_per_atom(tmp_path):
+    pdb_path = tmp_path / "input.pdb"
+    pdb_path.write_text(
+        "MODEL        1\n"
+        + _residue_line("CA", "HIS", 246, altloc="A")
+        + _residue_line("CA", "HIS", 246, altloc="B")
+        + _residue_line("CB", "HIS", 246)
+        + "ENDMDL\n"
+        + "MODEL        2\n"
+        + _residue_line("CA", "HIS", 246)
+        + _residue_line("CB", "HIS", 246)
+        + "ENDMDL\n",
+        encoding="utf-8",
+    )
+
+    rc = ocmolproc.clean_for_dssp(str(pdb_path))
+    assert rc == ocerror.ErrorCode.OK
+
+    atoms = [line for line in pdb_path.read_text(encoding="utf-8").splitlines() if line.startswith("ATOM")]
+    assert [line[12:16] for line in atoms] == [" CA ", " CB "]
+    assert all(line[16] == " " for line in atoms)
+
+
+@pytest.mark.order(227)
+def test_clean_for_dssp_fixes_previously_cleaned_file_and_keeps_clean_file_untouched(tmp_path):
+    pdb_path = tmp_path / "receptor.pdb"
+    header = "HEADER    \nCRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n"
+    pdb_path.write_text(
+        header + _residue_line("CA", "HIS", 246, altloc="A") + _residue_line("CA", "HIS", 246, altloc="B"),
+        encoding="utf-8",
+    )
+
+    assert ocmolproc.clean_for_dssp(str(pdb_path)) == ocerror.ErrorCode.OK
+    cleaned = pdb_path.read_text(encoding="utf-8")
+    assert len([line for line in cleaned.splitlines() if line.startswith("ATOM")]) == 1
+
+    # A file that is already clean is not rewritten
+    mtime = os.stat(pdb_path).st_mtime_ns
+    os.utime(pdb_path, ns=(mtime - 10**9, mtime - 10**9))
+    assert ocmolproc.clean_for_dssp(str(pdb_path)) == ocerror.ErrorCode.OK
+    assert os.stat(pdb_path).st_mtime_ns == mtime - 10**9
+    assert pdb_path.read_text(encoding="utf-8") == cleaned
+
+
+@pytest.mark.order(228)
+def test_clean_pdb_file_keeps_one_copy_per_atom(tmp_path):
+    input_path = tmp_path / "input.pdb"
+    output_path = tmp_path / "output.pdb"
+    input_path.write_text(
+        _residue_line("CA", "HIS", 246, altloc="A")
+        + _residue_line("CA", "HIS", 246, altloc="B")
+        + _residue_line("O", "HOH", 301, record="HETATM")
+        + _residue_line("O", "HOH", 301, record="HETATM"),
+        encoding="utf-8",
+    )
+
+    rc = ocmolproc.clean_pdb_file(str(input_path), str(output_path), overwrite=True, keep_hetatm=True)
+    assert rc == ocerror.ErrorCode.OK
+
+    records = [line for line in output_path.read_text(encoding="utf-8").splitlines() if line.startswith(("ATOM", "HETATM"))]
+    assert [line[:6] for line in records] == ["ATOM  ", "HETATM"]
+    assert all(line[16] == " " for line in records)

@@ -103,6 +103,38 @@ def _format_atom_name(atom: str, element: str) -> str:
     return f"{atom:>4}"
 
 
+def _first_atom_copy(line: str, seenAtoms: Set[Tuple[str, str, str]]) -> str:
+    '''Keep only the first copy of each atom of a PDB ATOM/HETATM record.
+
+    Alternate locations and later MODELs repeat atoms that are already present, which leaves
+    overlapping copies in the receptor. The first copy is kept with its alternate location
+    indicator blanked.
+
+    Parameters
+    ----------
+    line : str
+        The ATOM/HETATM record.
+    seenAtoms : Set[Tuple[str, str, str]]
+        Atoms already kept, as (chain, residue number with insertion code, atom name). Updated in place.
+
+    Returns
+    -------
+    str
+        The record to keep, or an empty string when the atom was already kept.
+    '''
+
+    key = (line[21], line[22:27], line[12:16])
+    if key in seenAtoms:
+        return ""
+    seenAtoms.add(key)
+
+    # Blank the alternate location indicator of the kept copy
+    if line[16] != " ":
+        line = f"{line[:16]} {line[17:]}"
+
+    return line
+
+
 @lru_cache(maxsize=1)
 def build_charmm_to_canonical_map() -> Dict[AtomKey, AtomVal]:
     '''Build a complete CHARMM -> canonical mapping using PDB2PQR definitions and the CHARMM forcefield naming rules.
@@ -161,47 +193,51 @@ def clean_for_dssp(structurePath: str) -> int:
     # List of lines and dssp lines
     lines = []
 
+    # Atoms already kept (alternate locations and later models repeat them)
+    seenAtoms: Set[Tuple[str, str, str]] = set()
+
     # Check if structurePath is a valid file
     if os.path.isfile(structurePath):
-        # Skip the rewrite when the file already matches this function's own
-        # output shape. Every Receptor() construction calls this before DSSP,
-        # so without this check a shared receptor.pdb gets rewritten (and its
-        # mtime bumped) on every single job for that receptor, which under
-        # --rerun-triggers mtime makes every already-completed sibling target
-        # look stale again.
-        with open(structurePath, 'r') as pdbFile:
-            firstLine = pdbFile.readline()
-            secondLine = pdbFile.readline()
-        if firstLine == "HEADER    \n" and secondLine == "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n":
-            return ocerror.Error.ok()
-
         # Open it (for cleaning)
         with open(structurePath, 'r') as pdbFile:
-            # For each line in pdbFile
-            for line in pdbFile:
-                if not line.startswith("HEADER") and not hasHeader:
-                    # Set the hasHeader flag to True
-                    hasHeader = True
+            originalLines = pdbFile.readlines()
 
-                    # Add the line to the list
-                    lines.append("HEADER    \n")
+        # For each line in pdbFile
+        for line in originalLines:
+            if not line.startswith("HEADER") and not hasHeader:
+                # Set the hasHeader flag to True
+                hasHeader = True
 
-                if not line.startswith("CRYST1") and hasHeader and not hasCryst1:
-                    # Set the hasCryst1 flag to True
-                    hasCryst1 = True
+                # Add the line to the list
+                lines.append("HEADER    \n")
 
-                    # Add the line to the list
-                    lines.append("CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n")
+            if not line.startswith("CRYST1") and hasHeader and not hasCryst1:
+                # Set the hasCryst1 flag to True
+                hasCryst1 = True
 
-                # Check if the line starts with ATOM
-                if line.startswith("ATOM"):
-                    # Check if there is a chain in the line (all the lines should have a chain)
-                    if line[21] == " ":
-                        # Assume that the protein has only one chain and call it A
-                        line = f"{line[:21]}A{line[22:]}"
+                # Add the line to the list
+                lines.append("CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\n")
 
+            # Check if the line starts with ATOM
+            if line.startswith("ATOM"):
+                # Check if there is a chain in the line (all the lines should have a chain)
+                if line[21] == " ":
+                    # Assume that the protein has only one chain and call it A
+                    line = f"{line[:21]}A{line[22:]}"
+
+                # Keep only the first copy of each atom
+                line = _first_atom_copy(line, seenAtoms)
+                if line:
                     # Add the line to the list
                     lines.append(line)
+
+        # Skip the rewrite when the file is already clean. Every Receptor()
+        # construction calls this before DSSP, so without this check a shared
+        # receptor.pdb gets rewritten (and its mtime bumped) on every single
+        # job for that receptor, which under --rerun-triggers mtime makes every
+        # already-completed sibling target look stale again.
+        if lines == originalLines:
+            return ocerror.Error.ok()
 
         # Write atomically to avoid truncated/partial files being read by
         # concurrent DSSP calls. Readers will see either the old full file
@@ -267,6 +303,9 @@ def clean_pdb_file(
 
     lines: List[str] = []
 
+    # Atoms already kept (alternate locations and later models repeat them)
+    seenAtoms: Set[Tuple[str, str, str]] = set()
+
     try:
         with open(structurePath, 'r') as pdbFile:
             for line in pdbFile:
@@ -281,7 +320,9 @@ def clean_pdb_file(
                 if line.startswith("ATOM") or (keep_hetatm and line.startswith("HETATM")):
                     if line[21] == " ":
                         line = f"{line[:21]}A{line[22:]}"
-                    lines.append(line)
+                    line = _first_atom_copy(line, seenAtoms)
+                    if line:
+                        lines.append(line)
 
         # Write the cleaned output
         lock = Lock()
