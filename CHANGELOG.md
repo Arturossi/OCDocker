@@ -26,6 +26,18 @@ All notable changes to OCDocker are documented here. The format follows
 - `oclogging.configure(log_file=...)` attached a new file handler on every call, so
   configuring the same file again wrote every message once per call.
 
+### Added
+
+- End-to-end `ocdocker vs` tests for gnina and PLANTS. PLANTS runs everywhere with the
+  binaries in `bin/docking/plants`; gnina is skipped where it is not installed (as in CI).
+  Executables are looked up on PATH, then in `bin/docking`, then in the project's
+  `OCDocker.cfg` (or `OCDOCKER_CONFIG`).
+
+### Changed
+
+- CI uses the bundled `bin/docking/smina/smina` instead of downloading the same binary from
+  SourceForge.
+
 ## [0.17.0] - 2026-10-22
 
 ### Added
