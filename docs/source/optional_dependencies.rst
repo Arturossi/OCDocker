@@ -157,11 +157,6 @@ Runtime extras
 
    * ``boto3``, ``google-cloud-storage``, ``dropbox``
 
-``gpu``
-   GPU array acceleration (non-macOS).
-
-   * ``cupy-cuda11x`` (platform marker excludes Darwin)
-
 ``api``
    FastAPI/uvicorn stack for the Workbench HTTP API.
 
@@ -185,7 +180,7 @@ Aggregate and tooling extras
 
 ``all``
    Union of runtime extras: ``docking`` + ``db`` + ``ml`` + ``analysis`` +
-   ``workflow`` + ``cloud`` + ``gpu`` + ``api`` + ``mcp``. Use when you want
+   ``workflow`` + ``cloud`` + ``api`` + ``mcp``. Use when you want
    every runtime feature without documentation build tools.
 
 ``full``

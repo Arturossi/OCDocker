@@ -258,7 +258,7 @@ def test_all_extra_is_superset_of_runtime_extras():
 
     extras = _load_pyproject()["project"]["optional-dependencies"]
     all_names = {_dep_name(dep) for dep in extras["all"]}
-    for group in ("analysis", "docking", "db", "ml", "workflow", "cloud", "gpu", "api", "mcp"):
+    for group in ("analysis", "docking", "db", "ml", "workflow", "cloud", "api", "mcp"):
         group_names = {_dep_name(dep) for dep in extras[group]}
         missing = group_names - all_names
         assert not missing, f"all extra missing packages from {group}: {sorted(missing)}"
