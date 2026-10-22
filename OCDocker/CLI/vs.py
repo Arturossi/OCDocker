@@ -250,14 +250,14 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
         if not prep_done:
             # Receptor preparation
             if not (_os.path.isfile(prep_rec_path) and _os.path.getsize(prep_rec_path) > 0):
-                if eng in ("vina", "smina", "plants"):
+                if eng in ("vina", "plants"):
                     rc = runner.run_prepare_receptor(logFile=str(prep_rec_log))
                 else:
                     rc = runner.run_prepare_receptor(overwrite=args.overwrite)
                 if isinstance(rc, tuple):
                     rc = rc[0]
-                if rc != 0 and eng in ("vina", "smina"):
-                    # Fallback via OpenBabel
+                if rc != 0 and eng == "vina":
+                    # Fallback via OpenBabel (smina already prepares the receptor with OpenBabel)
                     rc_fb = runner.run_prepare_receptor(logFile=str(prep_rec_log), useOpenBabel=True)
                     if isinstance(rc_fb, tuple):
                         rc_fb = rc_fb[0]
