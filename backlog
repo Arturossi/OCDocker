@@ -9,13 +9,15 @@
 ### 0
 
 ### 1
-- Fix the log generation, sometimes the logs can reach 100mb. | 1
+- Fix the log generation, sometimes the logs can reach 100mb. Log writes no longer crash when the log directory is missing or not writable; the size growth itself is still open. | 1
 - Implement more docking software | 1
-- Update the pipeline, removing MGLtools and adding ADFR, also allowing the user to prepare the input with obabel (maybe it is interesting allowing obabel) | 1
+- Update the pipeline, removing MGLtools and adding ADFR, also allowing the user to prepare the input with obabel (maybe it is interesting allowing obabel). On hold. Note that smina also prepares ligands with MGLtools (only 'ocdocker vs' falls back to obabel). | 1
+- 'ocdocker vs --skip-rescore' still generates the missing ODDT models during bootstrap, which takes several minutes on the first run. | 1
+- Add end-to-end tests for gnina and PLANTS (vina and smina have one; the binaries are not available in CI). | 1
 
 ### 2
-- GNINA don't work with nohup, maybe it has something to do with GPU visibility. | 2
+- GNINA don't work with nohup, maybe it has something to do with GPU visibility. Needs the error output from a failed run. | 2
 
 ### 3
-- Add a cleanPDB routine to produce less PDB errors in the pipeline. | 3
+- Add a cleanPDB routine to produce less PDB errors in the pipeline. The routine exists (Receptor(clean=True), keeps only ATOM records) but is off by default and no pipeline step enables it. | 3
 - Improve robustness to ensure that every step run smoothly | 3

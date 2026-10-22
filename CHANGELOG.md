@@ -4,6 +4,77 @@ All notable changes to OCDocker are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-10-22
+
+### Added
+
+- `PDBbindSplit` gained the `protein_cluster_heldout` strategy, which assigns whole protein
+  clusters (`cluster_column`, `"protein_cluster"` by default) to train, validation and test,
+  balancing row counts rather than cluster counts, and checks that no cluster crosses
+  splits. A PDB code is not a protein-level independence boundary, so this is the
+  meaningful held-out split for PDBbind.
+- Ablation protocols `full_leak_safe` and `scoring_function_leak_safe`, which exclude the
+  ODDT features (RF-Score, NNScore and PLEC were trained on PDBbind).
+- `count_isomorphisms()` in `Toolbox/MoleculeProcessing.py` counts the heavy-atom graph
+  automorphisms that the symmetry-corrected RMSD would enumerate, stopping at a limit.
+  `get_rmsd_matrix()` raises `TooManyIsomorphisms` for ligands above 100000, instead of
+  spyrmsd holding every isomorphism in memory.
+- `Ligand.create_box()` gained `max_edge` (clamp the box edge, which grows with the radius
+  of gyration, with a warning) and `warn_edge` (warn above this edge, 40 A by default).
+- `FeatureReduction` treats `protein_cluster` and `smiles_source` as metadata columns and
+  `pocket_` columns as receptor-side.
+- End-to-end tests (`tests/integration/test_docking_end_to_end.py`) run the real
+  `ocdocker vs` command on `test_files/test_ptn1` with Vina and smina. CI installs Vina,
+  DSSP and the official smina static build (pinned by sha256) to run them.
+- CI runs the test suite on Python 3.12, 3.13 and 3.14, and a ruff job (syntax errors and
+  undefined names).
+
+### Fixed
+
+- `ocdocker vs --engine smina` failed at once with a `TypeError`: `cmd_vs` called smina's
+  preparation with Vina's arguments. smina's receptor is now prepared with Open Babel as
+  before, and `Smina.run_prepare_ligand()` takes the same `logFile` and `useOpenBabel`
+  arguments as Vina's, so `vs` falls back to Open Babel when MGLTools is not available.
+- `ocdocker pipeline --engines smina` failed with `UnboundLocalError` (a late local import
+  of `OCDocker.Docking.Smina` shadowed the module name in `_run_pipeline_for_box`).
+- Ligand and receptor preparation reported success when MGLTools (`pythonsh`) or SPORES was
+  missing: the unprepared input was copied to the prepared path, the docking engine then
+  failed on it and the Open Babel fallback never ran. An error is now returned. The Vina
+  Open Babel receptor preparation writes a rigid PDBQT, which Vina requires.
+- The PLANTS docking digest was never generated in batch docking (`generate_digest` was
+  indented under `return`).
+- `run_oddt` merged every pose into one row when the molecules had no title (split docking
+  poses), keeping only the last pose's scores. Rows without a usable name are now named
+  after their pose file; rescoring the 36 Vina poses of the test_ptn1 compounds gave 4 rows
+  before and 36 after.
+- `oddt_models_dir` from the config file was ignored, and generating any PLEC model failed
+  with `invalid literal for int() with base 10: 'rf'`.
+- The vendored ODDT fork (`ODDT_VENDOR_REF`) moves to Arturossi/oddt `b4288f0`, which works
+  with NumPy 2.4 (`np.in1d` removed), scikit-learn 1.6+ and recent SciPy. With the previous
+  ref every ODDT score failed under NumPy 2.4 and NNScore could not be trained.
+- Log writes (`print_*_log`, `print_section`, `print_subsection`) raised `OSError` when the
+  log directory was missing or not writable, so a run reporting an error (e.g. a docking
+  failure) died with `PermissionError` instead. They now create the directory and, if the
+  file still cannot be written, print the message as a warning. `print_subsection` now
+  honours its `logName` argument.
+- mypy failed on Python 3.12+ with the NumPy 2.5 type stubs (`PDBbindSplit`).
+- `tests/core/test_ligand.py` rewrote the tracked `test_files/test_ptn1/boxes/box0.pdb` on
+  every run.
+
+### Removed
+
+- The OCScore Workbench (dashboard, HTTP API, run specs and manifests), the MCP server, the
+  `workbench` and `mcp` CLI commands, and the `api` and `mcp` extras (fastapi, starlette,
+  uvicorn, mcp, httpx). playwright and py-mini-racer leave the `dev` extra. The code is kept
+  on the `archive/workbench-v0.16` branch.
+- The PLEC descriptor monkeypatch in `run_oddt`; the vendored ODDT fork fixes the cause
+  (`universal_descriptor.build` passing a lazy `map` to `scipy.sparse.vstack`). PLEC scores
+  are identical with and without it.
+- Unused code: `Docking/Future` (Dock3, Dock6, GEMDOCK, LeDock and rDock stubs),
+  `OCScore/DNN` and the empty `OCScore/Dimensionality` package.
+- The unused `cupy` dependency (`gpu` extra, also in `all` and `full`), which has no Python
+  3.14 wheels.
+
 ## [0.16.0] - 2026-09-24
 
 This release also covers the changes that were versioned 0.15.5 but never tagged or given
@@ -391,6 +462,7 @@ Compatibility and rewiring:
 - This is additive public API. If released publicly, it fits a minor version bump
   rather than a major version bump.
 
+[0.17.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.17.0
 [0.16.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.16.0
 [0.15.4]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.4
 [0.15.3]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.3
