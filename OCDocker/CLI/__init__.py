@@ -12,7 +12,6 @@ Main commands
 - init-config: creates a quick `OCDocker.cfg` or `OCDocker.yml` from the example file.
 - vs: runs docking and optional rescoring for one receptor/ligand/box using Vina, Smina, or PLANTS.
 - ocscore: staged OCScore ML pipeline (reduce, train, export tools, shap).
-- workbench: validates Workbench specs and emits command plans without execution.
 - pipeline: full multi-engine flow — run docking across engines, cluster poses by RMSD,
             pick the representative pose (medoid of the largest cluster), rescore and export results.
 
@@ -26,7 +25,7 @@ Modules
 - __init__: CLI entry points, command parsing, and dispatch.
 - parser: Argument parser construction.
 - common, workflow: Shared helpers for docking commands.
-- vs, pipeline, doctor, manifest, console, script, init_config, workbench: Command implementations.
+- vs, pipeline, doctor, manifest, console, script, init_config: Command implementations.
 - ocscore: OCScore command group registration.
 '''
 
