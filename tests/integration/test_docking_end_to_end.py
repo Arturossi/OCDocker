@@ -4,8 +4,9 @@
 ###############################################################################
 '''
 End-to-end tests running the real ``ocdocker vs`` command with each docking
-engine on the bundled test_ptn1 complex (needs the engine, obabel and dssp on
-PATH; engines not found are skipped).
+engine on the bundled test_ptn1 complex (needs the engine, obabel and dssp;
+engines not found are skipped). Executables are looked up on PATH, then in the
+project's OCDocker.cfg (or the file in OCDOCKER_CONFIG).
 '''
 
 # Imports
@@ -17,10 +18,12 @@ import subprocess
 import sys
 
 from pathlib import Path
+from typing import Dict, Optional, Tuple
 
 import pytest
 
 import OCDocker.Docking.BaseVinaLike as ocvinalike
+import OCDocker.Docking.PLANTS as ocplants
 
 # License
 ###############################################################################
@@ -35,9 +38,50 @@ See the LICENSE file for full terms.
 ###############################################################################
 ## Private ##
 
+# Config key: executable names to look for on PATH
+EXECUTABLES = {
+    "vina": ("vina",),
+    "vina_split": ("vina_split",),
+    "smina": ("smina",),
+    "gnina": ("gnina",),
+    "plants": ("plants", "PLANTS"),
+    "spores": ("spores", "SPORES"),
+    "obabel": ("obabel",),
+    "dssp": ("mkdssp", "dssp"),
+}
 
-def _write_config(config_path: Path, data_dir: Path) -> None:
-    '''Write a config file based on OCDocker.cfg.example using the tools found on PATH.
+
+def _find_executable(config_key: str) -> Optional[str]:
+    '''Find an executable on PATH or, failing that, in the user's OCDocker config.
+
+    Parameters
+    ----------
+    config_key : str
+        Config key of the executable (e.g. ``gnina``).
+
+    Returns
+    -------
+    str | None
+        Path of the executable, or None if it was not found.
+    '''
+
+    for name in EXECUTABLES[config_key]:
+        found = shutil.which(name)
+        if found:
+            return found
+
+    project_root = Path(__file__).resolve().parents[2]
+    config_file = Path(os.getenv("OCDOCKER_CONFIG", "") or project_root / "OCDocker.cfg")
+    if config_file.is_file():
+        match = re.search(rf"^{config_key} = (.+)$", config_file.read_text(), flags=re.MULTILINE)
+        if match and os.access(match.group(1).strip(), os.X_OK):
+            return match.group(1).strip()
+
+    return None
+
+
+def _write_config(config_path: Path, data_dir: Path, executables: Dict[str, str]) -> None:
+    '''Write a config file based on OCDocker.cfg.example using the given executables.
 
     Parameters
     ----------
@@ -45,6 +89,8 @@ def _write_config(config_path: Path, data_dir: Path) -> None:
         Path of the config file to write.
     data_dir : Path
         Directory for the data paths required by the config.
+    executables : Dict[str, str]
+        Config key and path of each executable found.
     '''
 
     project_root = Path(__file__).resolve().parents[2]
@@ -53,11 +99,7 @@ def _write_config(config_path: Path, data_dir: Path) -> None:
         "SQLITE_PATH": str(data_dir / "ocdocker.sqlite"),
         "ocdb": str(data_dir / "ocdb"),
         "pca": str(data_dir / "pca"),
-        "vina": shutil.which("vina") or "vina",
-        "vina_split": shutil.which("vina_split") or "vina_split",
-        "smina": shutil.which("smina") or "smina",
-        "obabel": shutil.which("obabel") or "obabel",
-        "dssp": shutil.which("mkdssp") or shutil.which("dssp") or "dssp",
+        **executables,
     }
 
     for directory in (data_dir, data_dir / "ocdb", data_dir / "pca"):
@@ -70,32 +112,26 @@ def _write_config(config_path: Path, data_dir: Path) -> None:
     config_path.write_text(text)
 
 
-## Public ##
-
-# Engine: (output directory, log reader, docked poses getter)
-ENGINES = {
-    "vina": ("vinaFiles", ocvinalike.read_vina_log, ocvinalike.get_vina_docked_poses),
-    "smina": ("sminaFiles", ocvinalike.read_smina_log, ocvinalike.get_smina_docked_poses),
-}
-
-
-@pytest.mark.external
-@pytest.mark.slow
-@pytest.mark.parametrize("engine", sorted(ENGINES))
-def test_vs_docks_test_ptn1(tmp_path, engine):
-    '''Dock test_ptn1 with ``ocdocker vs --engine <engine>`` and check the poses and scores.
+def _run_vs(tmp_path: Path, engine: str, required: Tuple[str, ...]) -> Tuple[Path, str]:
+    '''Run ``ocdocker vs --engine <engine>`` on a copy of test_ptn1, skipping if a tool is missing.
 
     Parameters
     ----------
-    tmp_path : pathlib.Path
+    tmp_path : Path
         Temporary working directory.
     engine : str
         Docking engine passed to ``--engine``.
+    required : Tuple[str, ...]
+        Config keys of the executables the engine needs.
+
+    Returns
+    -------
+    Tuple[Path, str]
+        The ligand directory of the copy and the command output.
     '''
 
-    missing = [exe for exe in (engine, "obabel") if shutil.which(exe) is None]
-    if shutil.which("mkdssp") is None and shutil.which("dssp") is None:
-        missing.append("dssp")
+    executables = {key: _find_executable(key) for key in (*required, "obabel", "dssp")}
+    missing = [key for key, path in executables.items() if path is None]
     if missing:
         pytest.skip(f"Missing external tools: {', '.join(missing)}")
 
@@ -106,7 +142,7 @@ def test_vs_docks_test_ptn1(tmp_path, engine):
     ligand_dir = tmp_path / "test_ptn1" / "compounds" / "ligands" / "ligand"
 
     config_path = tmp_path / "OCDocker.cfg"
-    _write_config(config_path, tmp_path / "data")
+    _write_config(config_path, tmp_path / "data", {key: str(path) for key, path in executables.items()})
 
     env = dict(os.environ)
     env["OCDOCKER_CONFIG"] = str(config_path)
@@ -132,7 +168,36 @@ def test_vs_docks_test_ptn1(tmp_path, engine):
     output = f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
     assert result.returncode == 0, output
 
-    files_dir_name, read_log, get_docked_poses = ENGINES[engine]
+    return ligand_dir, output
+
+
+## Public ##
+
+# Engine: (executables needed, output directory, log reader, docked poses getter)
+VINA_LIKE_ENGINES = {
+    "vina": (("vina", "vina_split"), "vinaFiles", ocvinalike.read_vina_log, ocvinalike.get_vina_docked_poses),
+    "smina": (("smina", "vina_split"), "sminaFiles", ocvinalike.read_smina_log, ocvinalike.get_smina_docked_poses),
+    "gnina": (("gnina", "vina_split"), "gninaFiles", ocvinalike.read_gnina_log, ocvinalike.get_gnina_docked_poses),
+}
+
+
+@pytest.mark.external
+@pytest.mark.slow
+@pytest.mark.parametrize("engine", sorted(VINA_LIKE_ENGINES))
+def test_vs_docks_test_ptn1(tmp_path, engine):
+    '''Dock test_ptn1 with ``ocdocker vs --engine <engine>`` and check the poses and scores.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary working directory.
+    engine : str
+        Docking engine passed to ``--engine``.
+    '''
+
+    required, files_dir_name, read_log, get_docked_poses = VINA_LIKE_ENGINES[engine]
+    ligand_dir, output = _run_vs(tmp_path, engine, required)
+
     files_dir = ligand_dir / files_dir_name
     assert (files_dir / "e2e.pdbqt").is_file(), output
 
@@ -145,3 +210,28 @@ def test_vs_docks_test_ptn1(tmp_path, engine):
     assert min(affinities) < 0.0, affinities
 
     assert len(get_docked_poses(str(files_dir))) == len(poses)
+
+
+@pytest.mark.external
+@pytest.mark.slow
+def test_vs_plants_docks_test_ptn1(tmp_path):
+    '''Dock test_ptn1 with ``ocdocker vs --engine plants`` and check the poses and scores.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary working directory.
+    '''
+
+    ligand_dir, output = _run_vs(tmp_path, "plants", ("plants", "spores"))
+
+    # PLANTS writes its ranking and the poses (mol2) in plantsFiles/run
+    run_dir = ligand_dir / "plantsFiles" / "run"
+    poses = ocplants.read_log(str(run_dir / "ranking.csv"))
+    assert poses, output
+
+    # ChemPLP scores are unitless and negative for a binding pose
+    total_scores = [pose["PLANTS_TOTAL_SCORE"] for pose in poses.values()]
+    assert min(total_scores) < 0.0, total_scores
+
+    assert len(ocplants.get_docked_poses(str(run_dir))) == len(poses)
