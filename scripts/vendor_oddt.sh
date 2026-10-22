@@ -3,7 +3,7 @@
 set -euo pipefail
 
 REPO_URL="${ODDT_VENDOR_REPO:-https://github.com/Arturossi/oddt.git}"
-REPO_REF="${ODDT_VENDOR_REF:-6e5629ed05aa4931421b14cace8f2fea5bff5bb6}"
+REPO_REF="${ODDT_VENDOR_REF:-b4288f03b6098860defd7913006d8beb540ed5ab}"
 DEST_DIR="${ODDT_VENDOR_DEST:-oddt}"
 
 tmp_dir="$(mktemp -d)"

@@ -64,7 +64,6 @@ class _FakePool:
 
 def _import_digest(monkeypatch):
     importlib.import_module("OCDocker.Docking")
-    importlib.import_module("OCDocker.Docking.Future")
     importlib.import_module("OCDocker.Toolbox")
 
     # Lightweight stubs for dependencies used by Digest.py

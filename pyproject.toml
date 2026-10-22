@@ -159,9 +159,6 @@ docs = [
   "sphinx-argparse>=0.5.2",
   "sphinx-rtd-theme>=3.0.2",
 ]
-gpu = [
-  "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
-]
 mcp = [
   # Directly imported by MCP.Server, not just a transitive dependency of mcp.
   "httpx>=0.28.1",
@@ -193,7 +190,6 @@ all = [
   "biopython>=1.84",
   "boto3>=1.35.31",
   "colorcet>=3.2.1",
-  "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
   "dcor>=0.6",
   "dropbox>=12.0.2",
   "fastapi>=0.115.0",
@@ -254,7 +250,6 @@ full = [
   "biopython>=1.84",
   "boto3>=1.35.31",
   "colorcet>=3.2.1",
-  "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
   "dcor>=0.6",
   "dropbox>=12.0.2",
   "fastapi>=0.115.0",
@@ -327,8 +322,6 @@ line-length = 120
 target-version = "py311"
 extend-exclude = [
   "**/legacy/**",
-  "**/future/**",
-  "OCDocker/Docking/Future/**",
 ]
 
 [tool.ruff.lint]
