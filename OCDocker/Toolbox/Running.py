@@ -361,7 +361,8 @@ def run(cmd: List[str], logFile: str = "", cwd: str = "", timeout: Optional[int]
         cmd_str = _format_cmd(cmd)
         tail_lines = _env_int("OCDOCKER_SUBPROCESS_TAIL_LINES", 20)
         stderr_text = proc.stderr.decode("utf-8", errors="replace")
-        stderr_tail = _tail_text(stderr_text, tail_lines)
+        # Bound the tail in bytes too, since a single line can be arbitrarily long
+        stderr_tail = _tail_text(stderr_text[-65536:], tail_lines)
         stdout_tail = _tail_file(logFile, tail_lines)
         cwd_display = os.path.abspath(cwd) if cwd else os.getcwd()
 
@@ -390,8 +391,10 @@ def run(cmd: List[str], logFile: str = "", cwd: str = "", timeout: Optional[int]
             report_lines.append(stdout_tail)
         else:
             report_lines.append("Stdout tail: <empty or unavailable>")
-        report_lines.append("Stderr:")
-        report_lines.append(stderr_text.strip() or "<empty>")
+        # Only the tail, as the stdout: this report is appended on every failure and a
+        # noisy tool (e.g. Open Babel warnings for every atom) would make it grow without bound
+        report_lines.append(f"Stderr tail (last {tail_lines} lines):")
+        report_lines.append(stderr_tail or "<empty>")
         if _env_flag("OCDOCKER_DEBUG_SUBPROCESS"):
             env_keys = [
                 "PATH",
