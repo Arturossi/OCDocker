@@ -147,7 +147,7 @@ def _make_runtime_config(tmp_path, tmp_dir=""):
     return config
 
 
-def _bootstrap_with_config(monkeypatch, tmp_path, config, namespace):
+def _bootstrap_with_config(monkeypatch, tmp_path, config, namespace, oddt_calls=None, **bootstrap_kwargs):
     '''Bootstrap OCDocker with a mocked config loader.
 
     Parameters
@@ -160,6 +160,11 @@ def _bootstrap_with_config(monkeypatch, tmp_path, config, namespace):
         Configuration returned by the mocked loader.
     namespace : argparse.Namespace
         Runtime namespace passed into bootstrap.
+    oddt_calls : list, optional
+        When given, ODDT model initialisation is not skipped by environment and each call is
+        recorded here, by default None.
+    **bootstrap_kwargs
+        Extra keyword arguments passed to ``bootstrap``.
 
     Returns
     -------
@@ -173,7 +178,10 @@ def _bootstrap_with_config(monkeypatch, tmp_path, config, namespace):
     cfg_path = tmp_path / "OCDocker.cfg"
     cfg_path.write_text("[paths]\nocdb_path = test\n", encoding="utf-8")
     ocinit.reset_runtime(cleanup=False)
-    monkeypatch.setenv("OCDOCKER_SKIP_ODDT", "1")
+    if oddt_calls is None:
+        monkeypatch.setenv("OCDOCKER_SKIP_ODDT", "1")
+    else:
+        monkeypatch.delenv("OCDOCKER_SKIP_ODDT", raising=False)
     monkeypatch.setenv("OCDOCKER_DB_BACKEND", "sqlite")
     monkeypatch.setattr(
         ocinit,
@@ -186,8 +194,8 @@ def _bootstrap_with_config(monkeypatch, tmp_path, config, namespace):
         classmethod(lambda cls, config_file: config),
     )
     monkeypatch.setattr(ocinit, "print_description", lambda: None)
-    monkeypatch.setattr(ocinit, "initialise_oddt_models", lambda *args, **kwargs: None)
-    ocinit.bootstrap(namespace, init_db=False)
+    monkeypatch.setattr(ocinit, "initialise_oddt_models", lambda *args, **kwargs: None if oddt_calls is None else oddt_calls.append(args))
+    ocinit.bootstrap(namespace, init_db=False, **bootstrap_kwargs)
     return ocinit
 
 ## Public ##
@@ -292,3 +300,29 @@ def test_bootstrap_clamps_invalid_scheduler_threads(monkeypatch, tmp_path):
     assert runtime.multiprocess is False
     ocinit.reset_runtime(cleanup=False)
 
+
+@pytest.mark.order(5)
+@pytest.mark.parametrize("init_oddt, expected_calls", [(True, 1), (False, 0)])
+def test_bootstrap_init_oddt_controls_model_initialisation(monkeypatch, tmp_path, init_oddt, expected_calls):
+    '''Bootstrap should only initialise the ODDT models when init_oddt is True.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Monkeypatch fixture.
+    tmp_path : pathlib.Path
+        Temporary test directory.
+    init_oddt : bool
+        Value passed to ``bootstrap``.
+    expected_calls : int
+        Expected number of ``initialise_oddt_models`` calls.
+    '''
+
+    namespace = _make_runtime_namespace(tmp_path)
+    config = _make_runtime_config(tmp_path)
+    oddt_calls: list = []
+
+    ocinit = _bootstrap_with_config(monkeypatch, tmp_path, config, namespace, oddt_calls = oddt_calls, init_oddt = init_oddt)
+
+    assert len(oddt_calls) == expected_calls
+    ocinit.reset_runtime(cleanup=False)
