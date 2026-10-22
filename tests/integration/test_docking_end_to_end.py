@@ -6,7 +6,8 @@
 End-to-end tests running the real ``ocdocker vs`` command with each docking
 engine on the bundled test_ptn1 complex (needs the engine, obabel and dssp;
 engines not found are skipped). Executables are looked up on PATH, then in the
-project's OCDocker.cfg (or the file in OCDOCKER_CONFIG).
+project's bin/docking folder, then in its OCDocker.cfg (or the file in
+OCDOCKER_CONFIG).
 '''
 
 # Imports
@@ -44,15 +45,15 @@ EXECUTABLES = {
     "vina_split": ("vina_split",),
     "smina": ("smina",),
     "gnina": ("gnina",),
-    "plants": ("plants", "PLANTS"),
-    "spores": ("spores", "SPORES"),
+    "plants": ("plants", "PLANTS", "PLANTS1.2_64bit"),
+    "spores": ("spores", "SPORES", "SPORES_64bit"),
     "obabel": ("obabel",),
     "dssp": ("mkdssp", "dssp"),
 }
 
 
 def _find_executable(config_key: str) -> Optional[str]:
-    '''Find an executable on PATH or, failing that, in the user's OCDocker config.
+    '''Find an executable on PATH, in the project's bin/docking folder or in the user's OCDocker config.
 
     Parameters
     ----------
@@ -71,6 +72,11 @@ def _find_executable(config_key: str) -> Optional[str]:
             return found
 
     project_root = Path(__file__).resolve().parents[2]
+    for name in EXECUTABLES[config_key]:
+        for bundled in sorted((project_root / "bin" / "docking").glob(f"*/{name}")):
+            if os.access(bundled, os.X_OK):
+                return str(bundled)
+
     config_file = Path(os.getenv("OCDOCKER_CONFIG", "") or project_root / "OCDocker.cfg")
     if config_file.is_file():
         match = re.search(rf"^{config_key} = (.+)$", config_file.read_text(), flags=re.MULTILINE)
