@@ -8,7 +8,7 @@ import importlib
 import inspect
 import os
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 def _bootstrap_ocdocker_env(ns: argparse.Namespace) -> None:
     '''Bootstrap OCDocker.Initialise explicitly (no import-time side effects).
@@ -26,14 +26,17 @@ def _bootstrap_ocdocker_env(ns: argparse.Namespace) -> None:
         os.environ["OCDOCKER_CONFIG"] = ns.config_file
     init_db = bool(getattr(ns, "_ocdocker_init_db", True))
     create_db_if_missing = bool(getattr(ns, "_ocdocker_create_db_if_missing", False))
+    init_oddt = bool(getattr(ns, "_ocdocker_init_oddt", True))
     init_mod = importlib.import_module("OCDocker.Initialise")
     if hasattr(init_mod, "bootstrap"):
         bootstrap = init_mod.bootstrap
         parameters = inspect.signature(bootstrap).parameters
+        kwargs: Dict[str, bool] = {"init_db": init_db}
         if "create_db_if_missing" in parameters:
-            bootstrap(ns, init_db=init_db, create_db_if_missing=create_db_if_missing)
-        else:
-            bootstrap(ns, init_db=init_db)
+            kwargs["create_db_if_missing"] = create_db_if_missing
+        if "init_oddt" in parameters:
+            kwargs["init_oddt"] = init_oddt
+        bootstrap(ns, **kwargs)
     else:
         raise RuntimeError("OCDocker.Initialise.bootstrap not found")
 
