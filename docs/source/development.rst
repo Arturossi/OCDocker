@@ -33,8 +33,7 @@ Packaging metadata
   requirement per line. Optional stacks use pip extras (see
   :doc:`optional_dependencies`).
 - ``[tool.setuptools.package-data]`` in ``pyproject.toml`` ships bundled OCScore
-  protocol YAML (``OCDocker/OCScore/Protocols/``) and Workbench static assets
-  (``OCDocker/Workbench/static/``). See :doc:`OCDocker.OCScore.Protocols`.
+  protocol YAML (``OCDocker/OCScore/Protocols/``). See :doc:`OCDocker.OCScore.Protocols`.
 
 Config and tooling files
 ~~~~~~~~~~~~~~~~~~~~~~~~
