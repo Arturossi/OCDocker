@@ -10,6 +10,8 @@ Tests for the VS/pipeline design assistant.
 ###############################################################################
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from OCDocker.Workbench.VSDesign import discover_vs_campaign_candidates

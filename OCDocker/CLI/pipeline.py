@@ -1287,7 +1287,6 @@ def cmd_pipeline(args: argparse.Namespace) -> int:  # pragma: no cover - heavy i
                         smina_dir.mkdir(parents=True, exist_ok=True)
                         smina_conf = smina_dir / "conf_smina.txt"
                         # Create a Smina object just to generate the config file
-                        import OCDocker.Docking.Smina as ocsmina
                         prep_r = outdir / "prepared_receptor.pdbqt"
                         prep_l = outdir / "prepared_ligand.pdbqt"
                         smina_obj = ocsmina.Smina(str(smina_conf), str(box_path), receptor, str(prep_r), ligand, str(prep_l), str(smina_dir / f"{name}.log"), str(smina_dir / f"{name}.pdbqt"), name=f"SMINA {name}", overwrite_config=True)
