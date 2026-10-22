@@ -14,6 +14,17 @@ All notable changes to OCDocker are documented here. The format follows
   gained `init_oddt: bool = True`; `vs` (which never rescores with ODDT) and `pipeline`
   without `oddt` in `--rescoring-engines` set it to False. `run_oddt` still generates
   missing models on demand.
+- Receptor cleaning (`clean_for_dssp`, run by every `Receptor()`, and `clean_pdb_file`)
+  kept every ATOM record, so alternate locations and the atoms of later MODELs ended up as
+  overlapping copies in the receptor that is docked into (5ar7: 12 His246 side-chain atoms
+  instead of 6). Each atom is now kept once, with its alternate location indicator blanked,
+  and receptors cleaned by earlier versions are fixed on their next run.
+- `subprocess_failures.log` stored the full stderr of every failed command, so a noisy tool
+  made it grow without bound (10 failures of a command writing 20000 warning lines: 11 MB).
+  It now keeps the same tail as the console summary (`OCDOCKER_SUBPROCESS_TAIL_LINES`, 20
+  lines by default, at most 64 KB): 0.02 MB for the same failures.
+- `oclogging.configure(log_file=...)` attached a new file handler on every call, so
+  configuring the same file again wrote every message once per call.
 
 ## [0.17.0] - 2026-10-22
 
