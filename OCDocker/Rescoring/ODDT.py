@@ -417,6 +417,8 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
 
     # Check if all the ligands exist and load them
     loaded_ligands = []
+    # Name of each loaded molecule, in pipeline order, used when a molecule has no title (e.g. split docking poses)
+    molecule_names: List[str] = []
     for ligand in preparedLigandPath:
         # Extract format using os.path.splitext for robustness
         ligand_ext = os.path.splitext(ligand)[1]
@@ -439,6 +441,8 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             # Load the ligand into pipeline
             pipeline.load_ligands(ligand_format, ligand)
             loaded_ligands.append(ligand)
+            n_molecules = sum(1 for _ in od.toolkit.readfile(ligand_format, ligand))
+            molecule_names.extend([os.path.splitext(os.path.basename(ligand))[0]] * n_molecules)
         except StopIteration:
             return ocerror.Error.rescoring_failed(f"ODDT could not read ligand file '{ligand}'. The file appears to be empty.", level = ocerror.ReportLevel.ERROR)
         except Exception as e:
@@ -665,11 +669,13 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
             pipeline.score(sf, receptorObj)
 
         # Try to fetch results from all at once
-        for mol in pipeline.fetch():
+        for mol_index, mol in enumerate(pipeline.fetch()):
             # Transform the results into a dict
             data = mol.data.to_dict()
-            # Add the ligand name
+            # Add the ligand name (molecules without a usable title are named after their file, otherwise all of them would be merged into one row)
             data["ligand_name"] = ".".join(os.path.basename(mol.title).split(".")[:-1])
+            if not data["ligand_name"] and mol_index < len(molecule_names):
+                data["ligand_name"] = molecule_names[mol_index]
             # Set the blacklist keys
             blacklist_keys = ['OpenBabel Symmetry Classes', 'MOL Chiral Flag', 'PartialCharges', 'TORSDO', 'REMARK']
 
@@ -706,9 +712,11 @@ def run_oddt(preparedReceptorPath: str, preparedLigandPath: Union[str, List[str]
                     individual_pipeline.score(sf, receptorObj)
 
                     # Fetch results
-                    for mol in individual_pipeline.fetch():
+                    for mol_index, mol in enumerate(individual_pipeline.fetch()):
                         data = mol.data.to_dict()
                         data["ligand_name"] = ".".join(os.path.basename(mol.title).split(".")[:-1])
+                        if not data["ligand_name"] and mol_index < len(molecule_names):
+                            data["ligand_name"] = molecule_names[mol_index]
 
                         blacklist_keys = ['OpenBabel Symmetry Classes', 'MOL Chiral Flag', 'PartialCharges', 'TORSDO', 'REMARK']
 

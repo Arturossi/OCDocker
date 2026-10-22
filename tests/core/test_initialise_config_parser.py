@@ -8,6 +8,9 @@ Regression tests for OCDocker.Initialise config parsing behavior.
 
 # Imports
 ###############################################################################
+import sys
+import types
+
 import pytest
 
 import OCDocker.Initialise as ocinit
@@ -165,3 +168,34 @@ def test_normalize_db_backend_aliases():
     assert ocinit._normalize_db_backend("mariadb") == "mysql"
     assert ocinit._normalize_db_backend("sqlite") == "sqlite"
     assert ocinit._normalize_db_backend("nope") is None
+
+
+def test_parse_config_reads_oddt_models_dir(tmp_path):
+    cfg = tmp_path / "OCDocker.cfg"
+    cfg.write_text(
+        "oddt_models_dir = /data/oddt_models\n"
+        "oddt_scoring_functions = rfscore_v1_pdbbind2016\n"
+    )
+
+    parsed = ocinit._parse_config_file(str(cfg))
+
+    assert parsed["oddt_models_dir"] == "/data/oddt_models"
+
+
+def test_inner_initialise_models_passes_plec_version_as_string(monkeypatch):
+    calls = []
+
+    class _FakePLECscore:
+        @staticmethod
+        def load(**kwargs):
+            calls.append(kwargs)
+
+    plec_mod = types.ModuleType("oddt.scoring.functions.PLECscore")
+    plec_mod.PLECscore = _FakePLECscore # type: ignore
+    for name in ("oddt", "oddt.scoring", "oddt.scoring.functions"):
+        monkeypatch.setitem(sys.modules, name, types.ModuleType(name))
+    monkeypatch.setitem(sys.modules, "oddt.scoring.functions.PLECscore", plec_mod)
+
+    getattr(ocinit, "__inner_initialise_models")("plecrf_p5_l1_pdbbind2016_s65536")
+
+    assert calls == [{"version": "rf", "depth_protein": 5, "depth_ligand": 1, "pdbbind_version": 2016, "size": 65536}]

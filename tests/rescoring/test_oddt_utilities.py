@@ -1678,3 +1678,86 @@ def test_run_oddt_merges_duplicate_ligand_rows_from_group_fetch(monkeypatch, tmp
     assert isinstance(result, pd.DataFrame)
     assert "rfscore_a" in result.columns
     assert "rfscore_b" in result.columns
+
+
+@pytest.mark.order(265)
+def test_run_oddt_keeps_one_row_per_untitled_pose(monkeypatch, tmp_path, ocoddt_helpers):
+    receptor_path, _ligand_path, output_dir, _models_dir = _prepare_run_oddt_inputs(monkeypatch, ocoddt_helpers, tmp_path)
+    _patch_valid_receptor_and_ligand(monkeypatch, ocoddt_helpers)
+
+    # Split docking poses (e.g. vina_split output) have no usable title (Open Babel reads '=' from an empty 'REMARK  Name =' line)
+    pose_paths = []
+    for i in (1, 2):
+        pose_path = tmp_path / f"lig_split_{i}.pdbqt"
+        pose_path.write_text("POSE", encoding="utf-8")
+        pose_paths.append(str(pose_path))
+
+    class _PosesPipeline:
+        def load_ligands(self, *_a, **_k):
+            return None
+
+        def score(self, *_a, **_k):
+            return None
+
+        def fetch(self):
+            return iter([_FakeMol("=", {"rfscore_v1": 6.0}), _FakeMol("", {"rfscore_v1": 7.0})])
+
+    monkeypatch.setattr(ocoddt_helpers, "vs", lambda *_a, **_k: _PosesPipeline())
+    monkeypatch.setattr(ocoddt_helpers, "scorer", SimpleNamespace(load=lambda *_a, **_k: object()))
+
+    result = ocoddt_helpers.run_oddt(
+        str(receptor_path),
+        pose_paths,
+        "lig",
+        str(output_dir),
+        returnData=True,
+        overwrite=True,
+    )
+
+    assert isinstance(result, pd.DataFrame)
+    assert result["rfscore_v1"].to_dict() == {"lig_split_1": 6.0, "lig_split_2": 7.0}
+
+
+@pytest.mark.order(266)
+def test_run_oddt_individual_fallback_keeps_one_row_per_untitled_pose(monkeypatch, tmp_path, ocoddt_helpers):
+    receptor_path, _ligand_path, output_dir, _models_dir = _prepare_run_oddt_inputs(monkeypatch, ocoddt_helpers, tmp_path)
+    _patch_valid_receptor_and_ligand(monkeypatch, ocoddt_helpers)
+
+    pose_paths = []
+    for i in (1, 2):
+        pose_path = tmp_path / f"lig_split_{i}.pdbqt"
+        pose_path.write_text("POSE", encoding="utf-8")
+        pose_paths.append(str(pose_path))
+
+    class _Pipeline:
+        def __init__(self, molecules):
+            self._molecules = molecules
+
+        def load_ligands(self, *_a, **_k):
+            return None
+
+        def score(self, *_a, **_k):
+            return None
+
+        def fetch(self):
+            return iter(self._molecules)
+
+    # The group pipeline returns nothing, so each scoring function is run individually
+    pipelines = [
+        _Pipeline([]),
+        _Pipeline([_FakeMol("=", {"rfscore_v1": 6.0}), _FakeMol("", {"rfscore_v1": 7.0})]),
+    ]
+    monkeypatch.setattr(ocoddt_helpers, "vs", lambda *_a, **_k: pipelines.pop(0))
+    monkeypatch.setattr(ocoddt_helpers, "scorer", SimpleNamespace(load=lambda *_a, **_k: object()))
+
+    result = ocoddt_helpers.run_oddt(
+        str(receptor_path),
+        pose_paths,
+        "lig",
+        str(output_dir),
+        returnData=True,
+        overwrite=True,
+    )
+
+    assert isinstance(result, pd.DataFrame)
+    assert result["rfscore_v1"].to_dict() == {"lig_split_1": 6.0, "lig_split_2": 7.0}

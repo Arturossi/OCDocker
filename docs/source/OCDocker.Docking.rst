@@ -1,14 +1,6 @@
 OCDocker.Docking package
 ========================
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   OCDocker.Docking.Future
-
 Submodules
 ----------
 
