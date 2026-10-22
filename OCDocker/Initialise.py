@@ -237,7 +237,7 @@ def __inner_initialise_models(oddt_sf: str) -> None:
     if oddt_sf.lower().startswith('rfscore'):
         from oddt.scoring.functions.RFScore import rfscore
         # Create the new kwargs dict
-        new_kwargs = {}
+        new_kwargs: Dict[str, Union[int, str]] = {}
         # For each bit in the oddt_sf string
         for bit in oddt_sf.lower().split('_'):
             # Fill the kwargs dict
@@ -270,7 +270,7 @@ def __inner_initialise_models(oddt_sf: str) -> None:
             if bit.startswith('pdbbind'):
                 new_kwargs['pdbbind_version'] = int(bit.replace('pdbbind', ''))
             elif bit.startswith('plec'):
-                new_kwargs['version'] = int(bit.replace('plec', ''))
+                new_kwargs['version'] = bit.replace('plec', '')
             elif bit.startswith('p'):
                 new_kwargs['depth_protein'] = int(bit.replace('p', ''))
             elif bit.startswith('l'):
@@ -669,6 +669,7 @@ def _parse_config_file(config_file: str) -> Dict[str, Any]:
         'oddt_seed': get_config('oddt_seed', ''),
         'oddt_chunk_size': get_config('oddt_chunk_size', ''),
         'oddt_scoring_functions': get_config('oddt_scoring_functions', [], list),
+        'oddt_models_dir': get_config('oddt_models_dir', ''),
 
         # Other software
         'chimera': get_config('chimera', ''),
