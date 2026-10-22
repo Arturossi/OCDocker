@@ -286,7 +286,7 @@ def _make_affinity_bins(
             if used_bins < 2:
                 raise ValueError("qcut produced <2 bins")
             counts = np.bincount(labels, minlength=used_bins)
-            if counts.min() < 2:
+            if np.min(counts) < 2:
                 raise ValueError("some bins have <2 samples; stratification may fail")
             return labels, np.asarray(edges, dtype=float), used_bins, notes
         except Exception as exc:
