@@ -210,11 +210,25 @@ class TestOpenBabelPreparationStrategy:
         
         # This may fail if openbabel is not available, but should handle gracefully
         result = strategy.prepare_receptor(sample_receptor, str(output), "")
-        
+
         # Result should be an int or tuple
         assert isinstance(result, (int, tuple))
 
-    
+
+    def test_prepare_receptor_writes_rigid_pdbqt(self, tmp_path, sample_receptor):
+        '''Test that the prepared receptor has no ligand torsion tree, which Vina rejects.'''
+
+        strategy = OpenBabelPreparationStrategy()
+        output = tmp_path / "output" / "receptor.pdbqt"
+
+        result = strategy.prepare_receptor(sample_receptor, str(output), "")
+
+        assert result == 0
+        records = {line.split()[0] for line in output.read_text().splitlines() if line.strip()}
+        assert "ATOM" in records
+        assert not records & {"ROOT", "BRANCH", "TORSDOF"}
+
+
     def test_strategy_instantiation(self):
         '''Test that OpenBabel strategy can be instantiated.'''
         

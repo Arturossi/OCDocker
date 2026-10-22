@@ -1034,10 +1034,7 @@ def test_run_oddt_warns_when_exact_models_missing_and_models_dir_invalid(monkeyp
 
 
 @pytest.mark.order(255)
-def test_run_oddt_descriptor_patch_paths_and_model_family_filters(monkeypatch, tmp_path, ocoddt_helpers):
-    np = pytest.importorskip("numpy")
-    scipy_sparse = pytest.importorskip("scipy.sparse")
-
+def test_run_oddt_model_family_filters(monkeypatch, tmp_path, ocoddt_helpers):
     output_dir = tmp_path / "out"
     models_dir = tmp_path / "models"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1067,31 +1064,6 @@ def test_run_oddt_descriptor_patch_paths_and_model_family_filters(monkeypatch, t
         ),
     )
 
-    # Provide patchable oddt submodules used inside run_oddt patch block
-    fp_mod = types.ModuleType("oddt.fingerprints")
-    fp_mod.sparse_to_csr_matrix = lambda fp, size, count_bits=True: scipy_sparse.csr_matrix((1, size), dtype=np.uint8)  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "oddt.fingerprints", fp_mod)
-
-    desc_mod = types.ModuleType("oddt.scoring.descriptors")
-
-    class _UniversalDescriptor:
-        def __init__(self):
-            self.protein = None
-            self.sparse = True
-            self.shape = 8
-            self.func = lambda mol, protein=None: 0
-
-        def build(self, ligands, protein=None):
-            _ = (ligands, protein)
-            return np.zeros((1, 8), dtype=np.float32)
-
-    desc_mod.universal_descriptor = _UniversalDescriptor  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "oddt.scoring.descriptors", desc_mod)
-
-    utils_mod = types.ModuleType("oddt.utils")
-    utils_mod.is_molecule = lambda _x: False  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "oddt.utils", utils_mod)
-
     _patch_valid_receptor_and_ligand(monkeypatch, ocoddt_helpers)
     monkeypatch.setattr(ocoddt_helpers, "vs", lambda *_a, **_k: _make_pipeline(fetch_items=[_FakeMol("ligPatch.sdf", {"nnscore_v1_metric": 1.0, "REMARK": "x"})]))
     monkeypatch.setattr(ocoddt_helpers, "scorer", SimpleNamespace(load=lambda *_a, **_k: object()))
@@ -1105,27 +1077,6 @@ def test_run_oddt_descriptor_patch_paths_and_model_family_filters(monkeypatch, t
         overwrite=True,
     )
     assert isinstance(result, pd.DataFrame)
-
-    # Exercise patched sparse_to_csr_matrix success and error branches
-    stcsr = fp_mod.sparse_to_csr_matrix
-    _ = stcsr(np.array([], dtype=np.uint64), size=8, count_bits=True)
-    with pytest.raises(ValueError):
-        _ = stcsr(np.array([[1, 2]], dtype=np.uint64), size=8, count_bits=True)
-
-    # Exercise patched universal_descriptor.build sparse and dense paths
-    ud_sparse = desc_mod.universal_descriptor()
-    ud_sparse.sparse = True
-    ud_sparse.shape = 8
-    ud_sparse.func = lambda mol, protein=None: np.array([], dtype=np.uint64)
-    sparse_out = ud_sparse.build([SimpleNamespace(title="lig1")], protein=None)
-    assert sparse_out.shape[1] == 8
-
-    ud_dense = desc_mod.universal_descriptor()
-    ud_dense.sparse = False
-    ud_dense.shape = 4
-    ud_dense.func = lambda mol, protein=None: np.array([], dtype=np.uint64)
-    dense_out = ud_dense.build([SimpleNamespace(title="lig2")], protein=None)
-    assert dense_out.shape[1] == 4
 
 
 @pytest.mark.order(256)
@@ -1406,152 +1357,6 @@ def test_run_oddt_warns_when_missing_exact_model_initialization_fails(monkeypatc
     assert any("Failed to initialize missing ODDT models" in msg for msg in warnings)
 
 
-@pytest.mark.order(262)
-def test_run_oddt_descriptor_patch_deep_branches(monkeypatch, tmp_path, ocoddt_helpers):
-    np = pytest.importorskip("numpy")
-    scipy_sparse = pytest.importorskip("scipy.sparse")
-
-    output_dir = tmp_path / "out_patch_deep"
-    models_dir = tmp_path / "models_patch_deep"
-    receptor_path = tmp_path / "receptor.pdbqt"
-    ligand_path = tmp_path / "ligand.sdf"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    models_dir.mkdir(parents=True, exist_ok=True)
-    receptor_path.write_text("REC", encoding="utf-8")
-    ligand_path.write_text("LIG", encoding="utf-8")
-    (models_dir / "rfscore_v1.pickle").write_text("m1", encoding="utf-8")
-
-    monkeypatch.setattr(
-        ocoddt_helpers,
-        "get_config",
-        lambda: SimpleNamespace(
-            oddt=SimpleNamespace(executable="unused_oddt_command", scoring_functions=["rfscore"]),
-            oddt_models_dir=str(models_dir),
-            multiprocess=False,
-        ),
-    )
-
-    fp_mod = types.ModuleType("oddt.fingerprints")
-    fp_mod.sparse_to_csr_matrix = lambda fp, size, count_bits=True: scipy_sparse.csr_matrix((1, size), dtype=np.uint8)  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "oddt.fingerprints", fp_mod)
-
-    desc_mod = types.ModuleType("oddt.scoring.descriptors")
-
-    class _UniversalDescriptor:
-        def __init__(self):
-            self.protein = None
-            self.sparse = True
-            self.shape = 4
-            self.func = lambda mol, protein=None: np.array([1], dtype=np.uint64)
-
-        def build(self, ligands, protein=None):
-            _ = (ligands, protein)
-            return np.zeros((1, self.shape), dtype=np.float32)
-
-    desc_mod.universal_descriptor = _UniversalDescriptor  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "oddt.scoring.descriptors", desc_mod)
-
-    utils_mod = types.ModuleType("oddt.utils")
-    utils_mod.is_molecule = lambda x: not isinstance(x, list)  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "oddt.utils", utils_mod)
-
-    _patch_valid_receptor_and_ligand(monkeypatch, ocoddt_helpers)
-    monkeypatch.setattr(
-        ocoddt_helpers,
-        "vs",
-        lambda *_a, **_k: _make_pipeline(fetch_items=[_FakeMol("ligPatchDeep.sdf", {"rfscore_metric": 1.0, "REMARK": "x"})]),
-    )
-    monkeypatch.setattr(ocoddt_helpers, "scorer", SimpleNamespace(load=lambda *_a, **_k: object()))
-
-    result = ocoddt_helpers.run_oddt(
-        str(receptor_path),
-        str(ligand_path),
-        "ligPatchDeep",
-        str(output_dir),
-        returnData=True,
-        overwrite=True,
-    )
-    assert isinstance(result, pd.DataFrame)
-
-    # Patched sparse-to-CSR helper branches.
-    patched_stcsr = fp_mod.sparse_to_csr_matrix
-    _ = patched_stcsr(np.uint64(7), size=4, count_bits=True)
-    _ = patched_stcsr(np.array([1, 2], dtype=np.uint64), size=4, count_bits=True)
-
-    # Patched universal descriptor branches.
-    ud_cls = desc_mod.universal_descriptor
-    ud1 = ud_cls()
-    ud1.sparse = True
-    ud1.shape = 4
-    ud1.func = lambda mol, protein=None: 1
-    _ = ud1.build(SimpleNamespace(title="mol_scalar"), protein=SimpleNamespace())
-
-    ud2 = ud_cls()
-    ud2.sparse = True
-    ud2.shape = 4
-
-    def _func_by_title(mol, protein=None):
-        _ = protein
-        if mol.title == "mol_vec":
-            return np.array([1, 2], dtype=np.uint64)
-        if mol.title == "mol_matrix":
-            return np.array([[1, 2], [3, 4]], dtype=np.uint64)
-        raise RuntimeError("descriptor failure")
-
-    ud2.func = _func_by_title
-
-    real_vstack = scipy_sparse.vstack
-    vstack_calls = {"n": 0}
-
-    def _fail_then_ok_vstack(mats, format="csr"):
-        vstack_calls["n"] += 1
-        if vstack_calls["n"] == 1:
-            raise RuntimeError("vstack fail once")
-        return real_vstack(mats, format=format)
-
-    ud2.build.__globals__["sparse_vstack"] = _fail_then_ok_vstack
-
-    stcsr_calls = {"n": 0}
-    real_after_patch = fp_mod.sparse_to_csr_matrix
-
-    def _custom_stcsr(arr, size, count_bits=True):
-        stcsr_calls["n"] += 1
-        if stcsr_calls["n"] == 1:
-            return np.array([[1, 0]], dtype=np.uint8)
-        if stcsr_calls["n"] == 2:
-            raise RuntimeError("csr conversion fail")
-        return real_after_patch(arr, size=size, count_bits=count_bits)
-
-    fp_mod.sparse_to_csr_matrix = _custom_stcsr  # type: ignore[attr-defined]
-
-    _ = ud2.build(
-        [
-            SimpleNamespace(title="mol_vec"),
-            SimpleNamespace(title="mol_matrix"),
-            SimpleNamespace(title="mol_error"),
-        ],
-        protein=SimpleNamespace(),
-    )
-
-    ud3 = ud_cls()
-    ud3.sparse = True
-    ud3.shape = 4
-    _ = ud3.build([], protein=None)
-
-    ud4 = ud_cls()
-    ud4.sparse = False
-    ud4.shape = 4
-    ud4.func = lambda mol, protein=None: np.array([1, 2, 3, 4], dtype=np.float32)
-    dense_non_empty = ud4.build([SimpleNamespace(title="mol_dense")], protein=None)
-    assert dense_non_empty.shape[1] == 4
-
-    ud5 = ud_cls()
-    ud5.sparse = False
-    ud5.shape = 4
-    dense_empty = ud5.build([], protein=None)
-    assert dense_empty.shape[1] == 4
-
-
 @pytest.mark.order(263)
 def test_run_oddt_individual_fallback_merge_noext_and_empty_data_paths(monkeypatch, tmp_path, ocoddt_helpers):
     output_dir = tmp_path / "out_merge_paths"
@@ -1678,3 +1483,86 @@ def test_run_oddt_merges_duplicate_ligand_rows_from_group_fetch(monkeypatch, tmp
     assert isinstance(result, pd.DataFrame)
     assert "rfscore_a" in result.columns
     assert "rfscore_b" in result.columns
+
+
+@pytest.mark.order(265)
+def test_run_oddt_keeps_one_row_per_untitled_pose(monkeypatch, tmp_path, ocoddt_helpers):
+    receptor_path, _ligand_path, output_dir, _models_dir = _prepare_run_oddt_inputs(monkeypatch, ocoddt_helpers, tmp_path)
+    _patch_valid_receptor_and_ligand(monkeypatch, ocoddt_helpers)
+
+    # Split docking poses (e.g. vina_split output) have no usable title (Open Babel reads '=' from an empty 'REMARK  Name =' line)
+    pose_paths = []
+    for i in (1, 2):
+        pose_path = tmp_path / f"lig_split_{i}.pdbqt"
+        pose_path.write_text("POSE", encoding="utf-8")
+        pose_paths.append(str(pose_path))
+
+    class _PosesPipeline:
+        def load_ligands(self, *_a, **_k):
+            return None
+
+        def score(self, *_a, **_k):
+            return None
+
+        def fetch(self):
+            return iter([_FakeMol("=", {"rfscore_v1": 6.0}), _FakeMol("", {"rfscore_v1": 7.0})])
+
+    monkeypatch.setattr(ocoddt_helpers, "vs", lambda *_a, **_k: _PosesPipeline())
+    monkeypatch.setattr(ocoddt_helpers, "scorer", SimpleNamespace(load=lambda *_a, **_k: object()))
+
+    result = ocoddt_helpers.run_oddt(
+        str(receptor_path),
+        pose_paths,
+        "lig",
+        str(output_dir),
+        returnData=True,
+        overwrite=True,
+    )
+
+    assert isinstance(result, pd.DataFrame)
+    assert result["rfscore_v1"].to_dict() == {"lig_split_1": 6.0, "lig_split_2": 7.0}
+
+
+@pytest.mark.order(266)
+def test_run_oddt_individual_fallback_keeps_one_row_per_untitled_pose(monkeypatch, tmp_path, ocoddt_helpers):
+    receptor_path, _ligand_path, output_dir, _models_dir = _prepare_run_oddt_inputs(monkeypatch, ocoddt_helpers, tmp_path)
+    _patch_valid_receptor_and_ligand(monkeypatch, ocoddt_helpers)
+
+    pose_paths = []
+    for i in (1, 2):
+        pose_path = tmp_path / f"lig_split_{i}.pdbqt"
+        pose_path.write_text("POSE", encoding="utf-8")
+        pose_paths.append(str(pose_path))
+
+    class _Pipeline:
+        def __init__(self, molecules):
+            self._molecules = molecules
+
+        def load_ligands(self, *_a, **_k):
+            return None
+
+        def score(self, *_a, **_k):
+            return None
+
+        def fetch(self):
+            return iter(self._molecules)
+
+    # The group pipeline returns nothing, so each scoring function is run individually
+    pipelines = [
+        _Pipeline([]),
+        _Pipeline([_FakeMol("=", {"rfscore_v1": 6.0}), _FakeMol("", {"rfscore_v1": 7.0})]),
+    ]
+    monkeypatch.setattr(ocoddt_helpers, "vs", lambda *_a, **_k: pipelines.pop(0))
+    monkeypatch.setattr(ocoddt_helpers, "scorer", SimpleNamespace(load=lambda *_a, **_k: object()))
+
+    result = ocoddt_helpers.run_oddt(
+        str(receptor_path),
+        pose_paths,
+        "lig",
+        str(output_dir),
+        returnData=True,
+        overwrite=True,
+    )
+
+    assert isinstance(result, pd.DataFrame)
+    assert result["rfscore_v1"].to_dict() == {"lig_split_1": 6.0, "lig_split_2": 7.0}

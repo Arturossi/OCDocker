@@ -148,3 +148,53 @@ def test_receptor_heldout_has_no_receptor_overlap():
     assert overlap["train∩test"] == 0
     assert overlap["validation∩test"] == 0
 
+
+
+@pytest.mark.order(290)
+def test_protein_cluster_heldout_keeps_clusters_whole():
+    df = _pdbbind_df(n=120)
+    # several PDB codes per cluster: the case receptor_heldout cannot separate
+    df["protein_cluster"] = [f"C{i % 6}" for i in range(len(df))]
+    df["receptor"] = [f"P{i}" for i in range(len(df))]
+    cfg = PDBbindSplitConfig(
+        strategy="protein_cluster_heldout",
+        target_column="experimental",
+        random_seed=11,
+        train_size=0.6,
+        validation_size=0.2,
+        test_size=0.2,
+    )
+    result = split_pdbbind_regression(df, cfg)
+
+    clusters = df["protein_cluster"].to_numpy()
+    train, val, test = (set(clusters[i].tolist()) for i in (result.train_idx, result.val_idx, result.test_idx))
+    assert not train & val
+    assert not train & test
+    assert not val & test
+    assert train | val | test == set(clusters.tolist())
+    assert result.diagnostics["strategy"] == "protein_cluster_heldout"
+    assert result.diagnostics["cluster_column"] == "protein_cluster"
+
+
+@pytest.mark.order(291)
+def test_protein_cluster_heldout_rejects_missing_cluster_column():
+    df = _pdbbind_df(n=90)
+    cfg = PDBbindSplitConfig(strategy="protein_cluster_heldout", target_column="experimental", random_seed=3)
+    with pytest.raises(ValueError, match="protein_cluster"):
+        split_pdbbind_regression(df, cfg)
+
+
+@pytest.mark.order(292)
+def test_receptor_heldout_unchanged_by_cluster_strategy():
+    df = _pdbbind_df(n=90)
+    cfg = PDBbindSplitConfig(
+        strategy="receptor_heldout",
+        target_column="experimental",
+        random_seed=11,
+        train_size=0.6,
+        validation_size=0.2,
+        test_size=0.2,
+    )
+    result = split_pdbbind_regression(df, cfg)
+    assert result.diagnostics["strategy"] == "receptor_heldout"
+    assert sum(result.diagnostics["receptor_overlap"].values()) == 0

@@ -10,6 +10,7 @@ Submodules
    OCDocker.DB.Models.Base
    OCDocker.DB.Models.Complexes
    OCDocker.DB.Models.Ligands
+   OCDocker.DB.Models.Pockets
    OCDocker.DB.Models.Receptors
 
 Module contents

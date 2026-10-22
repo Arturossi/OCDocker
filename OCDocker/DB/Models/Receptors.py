@@ -18,6 +18,7 @@ from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
 from OCDocker.DB.Models.Base import base
+from OCDocker.DB.Models.Pockets import Pockets
 
 if TYPE_CHECKING:
     import OCDocker.Receptor as ocr
@@ -53,6 +54,8 @@ class Receptors(base):
         Primary key.
     complexes : list[Complexes]
         Related docking complexes for this receptor.
+    pockets : list[Pockets]
+        Related pockets for this receptor (a receptor may hold several).
     allDescriptors : list[str]
         Names of dynamically mapped descriptor columns (class attribute).
     """
@@ -60,6 +63,9 @@ class Receptors(base):
     # Relationships
     complexes = relationship(
         "Complexes", back_populates="receptor", cascade="all, delete-orphan"
+    )
+    pockets = relationship(
+        "Pockets", back_populates="receptor", cascade="all, delete-orphan"
     )
 
     # Declare the descriptors names as class attributes

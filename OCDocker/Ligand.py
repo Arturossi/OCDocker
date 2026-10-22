@@ -259,7 +259,7 @@ class Ligand:
 
     ## Public ##
 
-    def create_box(self, centroid: Optional[Tuple[float, float, float]] = None, save_path: str = "", box_length: float = 2.9, overwrite: bool = False) -> Optional[int]:
+    def create_box(self, centroid: Optional[Tuple[float, float, float]] = None, save_path: str = "", box_length: float = 2.9, max_edge: Optional[float] = None, warn_edge: float = 40.0, overwrite: bool = False) -> Optional[int]:
         '''Create a box file to be used by docking software.
 
         Parameters
@@ -270,6 +270,14 @@ class Ligand:
             The path to save the box file. If not provided, the box file will be saved in the same path as the molecule. (default is "", which turns into self.box_path)
         box_length : float, optional
             The length of the box. (default is 2.9)
+        max_edge : float | None, optional
+            Upper bound in angstrom for the box edge. The edge grows linearly with the radius of
+            gyration, so a macrocycle or a peptide can produce a search space far larger than the
+            pocket. When set, the edge is clamped to this value and a warning is emitted. (default
+            is None, which leaves the edge unbounded)
+        warn_edge : float, optional
+            Edge in angstrom above which a warning is emitted even when no bound is applied.
+            (default is 40.0)
         overwrite : bool, optional
             Flag to allow, or not, the overwrite of the box file. (default is False)
 
@@ -343,7 +351,21 @@ class Ligand:
                 f"RadiusOfGyration from molecule '{identifier}' is not set; cannot create box.",
                 level = ocerror.ReportLevel.WARNING
             )
-        partialSize = (box_length * self.RadiusOfGyration) / 2
+        edge = box_length * self.RadiusOfGyration
+        identifier = self.name or self.path or "unknown"
+        if max_edge is not None and edge > max_edge:
+            ocprint.print_warning(
+                f"The box edge for '{identifier}' is {edge:.1f} A from a radius of gyration of "
+                f"{self.RadiusOfGyration:.2f} A; clamping to the {max_edge:.1f} A bound."
+            )
+            edge = max_edge
+        elif edge > warn_edge:
+            ocprint.print_warning(
+                f"The box edge for '{identifier}' is {edge:.1f} A from a radius of gyration of "
+                f"{self.RadiusOfGyration:.2f} A. Search spaces this large degrade docking "
+                f"accuracy; consider setting max_edge."
+            )
+        partialSize = edge / 2
 
         # Create the box using this Centroid
         box = {
@@ -1306,7 +1328,7 @@ def get_centroid(molecule: Union[str, rdkit.Chem.rdchem.Mol], sanitize: bool = T
     # Normalize to a concrete RDKit Mol before geometry operations.
     if isinstance(molecule, str):
         molecule_path = molecule
-        _, loaded = load_mol(molecule, sanitize = sanitize)
+        _, loaded = load_mol(molecule, sanitize = sanitize, write_mol2 = False)
         if loaded is None:
             ocerror.Error.parse_molecule(f"Could not load molecule from path: {molecule_path}")
             raise ValueError(f"Could not load molecule from path: {molecule_path}")
@@ -1368,7 +1390,8 @@ def load_mol(
         normalize_smiles_with_openbabel: bool = False,
         embed_max_attempts: int = 10,
         etkdg_max_attempts: int = 5000,
-        clean: bool = True
+        clean: bool = True,
+        write_mol2: bool = True
     ) -> Tuple[str, Optional[Chem.rdchem.Mol]]:
     ''' Load a molecule pdb/sdf/mol/mol2 if a path is provided or just assign the Mol object to the molecule.
 
@@ -1388,6 +1411,10 @@ def load_mol(
     clean : bool, optional
         If True, strip known salts/counter-ions and keep only the largest
         disconnected fragment, by default True.
+    write_mol2 : bool, optional
+        If True, a molecule read from a non-mol2 path is also written as
+        ``<basename>.mol2`` next to it, and that path is returned. If False,
+        nothing is written and the input path is returned, by default True.
 
     Returns
     -------
@@ -1623,8 +1650,8 @@ def load_mol(
                 catchErrors=True
             )
 
-        # If the molecule is not in mol2 format
-        if extension != ".mol2":
+        # If the molecule is not in mol2 format and the derived mol2 was requested
+        if extension != ".mol2" and write_mol2:
             # Use input directory to keep derived files alongside ligand
             output_dir = os.path.dirname(molecule) or "."
             try:

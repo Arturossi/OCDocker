@@ -16,7 +16,6 @@ from OCDocker.Toolbox.Preparation import MGLToolsPreparationStrategy
 # Imports
 ###############################################################################
 import os
-import shutil
 
 from abc import ABC, abstractmethod
 from typing import Tuple, Union
@@ -77,37 +76,30 @@ class PreparationStrategy(ABC):
 
         ensure_parent_dir(output_path)
 
-    def _fallback_copy(
+    def _tool_unavailable(
         self,
         input_path: str,
-        output_path: str,
         tool_name: str
-    ) -> Union[int, str, Tuple[int, str]]:
-        '''Fallback to copying file if tool unavailable (shared utility).
+    ) -> int:
+        '''Return an error if tool unavailable (shared utility).
 
         Parameters
         ----------
         input_path : str
             Path to the input file
-        output_path : str
-            Path to the output file
         tool_name : str
             Name of the tool
 
         Returns
         -------
-        Union[int, str, Tuple[int, str]]
-            Error code or tuple of (error_code, stderr)
+        int
+            Error code
         '''
 
-        try:
-            shutil.copyfile(input_path, output_path)
-            return ocerror.Error.ok()
-        except Exception as e:
-            return ocerror.Error.subprocess(
-                message=f"{tool_name} not available and copy failed: {e}",
-                level=ocerror.ReportLevel.ERROR
-            )
+        return ocerror.Error.subprocess(
+            message=f"{tool_name} not available, could not prepare '{input_path}'.",
+            level=ocerror.ReportLevel.ERROR
+        )
 
     def _handle_existing_output(
         self,
@@ -335,8 +327,7 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
         exe = str(config.tools.pythonsh)
 
         if not self._check_tool_available(exe):
-            self._ensure_output_dir(output_path)
-            return self._fallback_copy(input_path, output_path, "pythonsh")
+            return self._tool_unavailable(input_path, "pythonsh")
 
         # Print verbosity
         from OCDocker.Toolbox import Printing as ocprint
@@ -388,8 +379,7 @@ class MGLToolsPreparationStrategy(PreparationStrategy):
         exe = str(config.tools.pythonsh)
 
         if not self._check_tool_available(exe):
-            self._ensure_output_dir(output_path)
-            return self._fallback_copy(input_path, output_path, "pythonsh")
+            return self._tool_unavailable(input_path, "pythonsh")
 
         # Print verbosity
         from OCDocker.Toolbox import Printing as ocprint
@@ -434,8 +424,7 @@ class SPORESPreparationStrategy(PreparationStrategy):
         exe = str(config.tools.spores)
 
         if not self._check_tool_available(exe):
-            self._ensure_output_dir(output_path)
-            return self._fallback_copy(input_path, output_path, "SPORES")
+            return self._tool_unavailable(input_path, "SPORES")
 
         self._ensure_output_dir(output_path)
 
@@ -608,8 +597,8 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
             Command list that would be executed (OpenBabel conversion)
         '''
 
-        # Same as ligand for OpenBabel
-        return self.get_ligand_command(input_path, output_path)
+        # Same as ligand for OpenBabel, plus the rigid PDBQT write options
+        return self.get_ligand_command(input_path, output_path) + ["-xr", "-xc"]
 
     def prepare_ligand(
         self,
@@ -719,6 +708,6 @@ class OpenBabelPreparationStrategy(PreparationStrategy):
         if result is not None:
             return result
 
-        # Similar to ligand but for receptor
+        # Similar to ligand but for receptor, written rigid (no torsion tree)
         from OCDocker.Toolbox import Conversion as occonversion
-        return occonversion.convert_mols(input_path, output_path, return_molecule=False, overwrite=overwrite)
+        return occonversion.convert_mols(input_path, output_path, return_molecule=False, overwrite=overwrite, rigid=True)

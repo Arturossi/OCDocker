@@ -337,7 +337,7 @@ suppress_warnings = [
 ]
 
 # Do NOT mock your own modules
-autodoc_mock_imports = ["cupy", "torch", "oddt", "openbabel", "rdkit", "shap", "optuna"]
+autodoc_mock_imports = ["torch", "oddt", "openbabel", "rdkit", "shap", "optuna"]
 
 # RST substitutions
 rst_prolog = """

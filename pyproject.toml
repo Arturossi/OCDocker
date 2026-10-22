@@ -46,7 +46,6 @@ version = { attr = "OCDocker._version.__version__" }
 
 [tool.setuptools.package-data]
 "OCDocker.OCScore" = ["Protocols/*.yml", "Protocols/Ablations/*.yml"]
-"OCDocker.Workbench" = ["static/*", "Snakefiles/*.smk"]
 # Vendored ODDT fork (scripts/vendor_oddt.sh) is built by OCDocker's own
 # packaging config, not its own setup.py, so its data files (needed to train
 # RFScore/NNScore/PLECscore scoring functions on first run) must be declared
@@ -97,13 +96,6 @@ analysis = [
   "sympy>=1.13.3",
   "tifffile>=2024.9.20",
 ]
-api = [
-  "fastapi>=0.115.0",
-  # Directly imported by Workbench.Server (StarletteHTTPException, BaseHTTPMiddleware),
-  # not just a transitive dependency of fastapi.
-  "starlette>=1.3.1",
-  "uvicorn>=0.32.0",
-]
 build = [
   "build>=1.2.2.post1",
   "setuptools>=80.8.0",
@@ -118,7 +110,7 @@ cloud = [
 db = [
   "psycopg>=3.2.0",
   "pymysql>=1.1.1",
-  "sqlalchemy>=2.0.35",
+  "sqlalchemy>=2.0.35,<2.1",
   "sqlalchemy-utils>=0.41.2",
 ]
 dev = [
@@ -126,8 +118,6 @@ dev = [
   "detect-secrets>=1.5.0",
   "mypy>=1.0.0",
   "pre-commit>=4.0.1",
-  # Bare JS engine used by tests/workbench to syntax-check the dashboard's app.js.
-  "py-mini-racer>=0.6.0",
   "pytest>=8.3.3",
   "pytest-cov>=6.1.1",
   "pytest-order>=1.3.0",
@@ -141,7 +131,7 @@ docking = [
   # Used by Toolbox.MoleculeProcessing to build the CHARMM->canonical PDB atom-name map.
   "pdb2pqr>=3.7.1",
   "rdkit>=2024.09.1,!=2026.3.3",  # 2026.3.3 shipped a malformed rdkit-stubs/Chem/rdchem.pyi that mypy cannot parse
-  "scikit-learn>=1.5.2",
+  "scikit-learn==1.8.*",  # shipped OCScore scalers and calibrators are pickled with 1.8
   "scipy>=1.14.1",
   # Required by the vendored ODDT fork's rescoring module; vendoring copies its source
   # tree in directly rather than pip-installing it, so its own dependencies (like this
@@ -156,23 +146,15 @@ docs = [
   "sphinx-argparse>=0.5.2",
   "sphinx-rtd-theme>=3.0.2",
 ]
-gpu = [
-  "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
-]
-mcp = [
-  # Directly imported by MCP.Server, not just a transitive dependency of mcp.
-  "httpx>=0.28.1",
-  "mcp>=1.28.0,<2.0.0",  # 2.0.0 renamed mcp.server.fastmcp -> mcp.server.mcpserver
-]
 ml = [
   # Optional; ProductionBaselines falls back to "lightgbm not installed" when absent.
   "lightgbm>=4.6.0",
   "numpy>=1.26.4",
-  "optuna>=3.6.1",
-  "optuna-dashboard>=0.16.2",
-  "optuna-integration>=4.0.0",
+  "optuna==5.0.*",
+  "optuna-dashboard>=0.21.0",
+  "optuna-integration==5.0.*",
   "pandas>=2.2.3",
-  "scikit-learn>=1.5.2",
+  "scikit-learn==1.8.*",
   "scipy>=1.14.1",
   "torch>=2.4.1",
   "torchaudio>=2.4.1",
@@ -190,31 +172,27 @@ all = [
   "biopython>=1.84",
   "boto3>=1.35.31",
   "colorcet>=3.2.1",
-  "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
   "dcor>=0.6",
   "dropbox>=12.0.2",
-  "fastapi>=0.115.0",
   "fsspec>=2024.10.0",
   "gmpy2>=2.1.5",
   "google-cloud-storage>=2.18.2",
   "graphviz>=0.20.3",
   "h5py>=3.11.0",
-  "httpx>=0.28.1",
   "imageio>=2.35.1",
   "ipython>=8.28.0",
   "lightgbm>=4.6.0",
   "lime>=0.2.0.1",
   "llvmlite>=0.43.0",
   "matplotlib>=3.9.2",
-  "mcp>=1.28.0,<2.0.0",  # 2.0.0 renamed mcp.server.fastmcp -> mcp.server.mcpserver
   "mpmath>=1.3.0",
   "networkx>=3.3",
   "numba>=0.60.0",
   "numpy>=1.26.4",
   "openbabel-wheel>=3.1.0",
-  "optuna>=3.6.1",
-  "optuna-dashboard>=0.16.2",
-  "optuna-integration>=4.0.0",
+  "optuna==5.0.*",
+  "optuna-dashboard>=0.21.0",
+  "optuna-integration==5.0.*",
   "pandas>=2.2.3",
   "pdb2pqr>=3.7.1",
   "pillow>=10.4.0",
@@ -224,7 +202,7 @@ all = [
   "rdkit>=2024.09.1,!=2026.3.3",  # 2026.3.3 shipped a malformed rdkit-stubs/Chem/rdchem.pyi that mypy cannot parse
   "rustworkx>=0.15.1",
   "scikit-image>=0.24.0",
-  "scikit-learn>=1.5.2",
+  "scikit-learn==1.8.*",
   "scipy>=1.14.1",
   "seaborn>=0.13.2",
   "shap>=0.44.0",
@@ -232,9 +210,8 @@ all = [
   "snakemake>=7.32.4",
   "snakemake-logger-plugin-snkmt>=0.1.6",
   "spyrmsd>=0.8.0",
-  "sqlalchemy>=2.0.35",
+  "sqlalchemy>=2.0.35,<2.1",
   "sqlalchemy-utils>=0.41.2",
-  "starlette>=1.3.1",
   "statsmodels>=0.14.3",
   "sympy>=1.13.3",
   "tifffile>=2024.9.20",
@@ -243,7 +220,6 @@ all = [
   "torchsummary",
   "torchviz",
   "torchvision>=0.19.1",
-  "uvicorn>=0.32.0",
   "visualtorch>=0.2.3",
   "xgboost>=2.1.1",
 ]
@@ -251,33 +227,29 @@ full = [
   "biopython>=1.84",
   "boto3>=1.35.31",
   "colorcet>=3.2.1",
-  "cupy-cuda11x>=13.0.0; sys_platform != \"darwin\"",
   "dcor>=0.6",
   "dropbox>=12.0.2",
-  "fastapi>=0.115.0",
   "fsspec>=2024.10.0",
   "furo",
   "gmpy2>=2.1.5",
   "google-cloud-storage>=2.18.2",
   "graphviz>=0.20.3",
   "h5py>=3.11.0",
-  "httpx>=0.28.1",
   "imageio>=2.35.1",
   "ipython>=8.28.0",
   "lightgbm>=4.6.0",
   "lime>=0.2.0.1",
   "llvmlite>=0.43.0",
   "matplotlib>=3.9.2",
-  "mcp>=1.28.0,<2.0.0",  # 2.0.0 renamed mcp.server.fastmcp -> mcp.server.mcpserver
   "mpmath>=1.3.0",
   "myst-parser>=4.0.1",
   "networkx>=3.3",
   "numba>=0.60.0",
   "numpy>=1.26.4",
   "openbabel-wheel>=3.1.0",
-  "optuna>=3.6.1",
-  "optuna-dashboard>=0.16.2",
-  "optuna-integration>=4.0.0",
+  "optuna==5.0.*",
+  "optuna-dashboard>=0.21.0",
+  "optuna-integration==5.0.*",
   "pandas>=2.2.3",
   # pdb2pqr deliberately excluded from `full`: it hard-pins docutils<0.18, which
   # conflicts with myst-parser (docutils>=0.19/0.20 depending on version) -- the two
@@ -292,7 +264,7 @@ full = [
   "rdkit>=2024.09.1,!=2026.3.3",  # 2026.3.3 shipped a malformed rdkit-stubs/Chem/rdchem.pyi that mypy cannot parse
   "rustworkx>=0.15.1",
   "scikit-image>=0.24.0",
-  "scikit-learn>=1.5.2",
+  "scikit-learn==1.8.*",
   "scipy>=1.14.1",
   "seaborn>=0.13.2",
   "shap>=0.44.0",
@@ -303,9 +275,8 @@ full = [
   "sphinx>=8.2.3",
   "sphinx-argparse>=0.5.2",
   "sphinx-rtd-theme>=3.0.2",
-  "sqlalchemy>=2.0.35",
+  "sqlalchemy>=2.0.35,<2.1",
   "sqlalchemy-utils>=0.41.2",
-  "starlette>=1.3.1",
   "statsmodels>=0.14.3",
   "sympy>=1.13.3",
   "tifffile>=2024.9.20",
@@ -314,7 +285,6 @@ full = [
   "torchsummary",
   "torchviz",
   "torchvision>=0.19.1",
-  "uvicorn>=0.32.0",
   "visualtorch>=0.2.3",
   "xgboost>=2.1.1",
 ]
@@ -324,8 +294,6 @@ line-length = 120
 target-version = "py311"
 extend-exclude = [
   "**/legacy/**",
-  "**/future/**",
-  "OCDocker/Docking/Future/**",
 ]
 
 [tool.ruff.lint]

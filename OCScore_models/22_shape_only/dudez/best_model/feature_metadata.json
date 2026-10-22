@@ -1,0 +1,126 @@
+{
+  "feature_order": [
+    "ligand_NPR1",
+    "ligand_NPR2",
+    "ligand_PMI1",
+    "ligand_PMI2",
+    "ligand_SpherocityIndex"
+  ],
+  "feature_policy": {
+    "candidate_duplicate_assignments": {},
+    "candidate_feature_count_before_policy": 460,
+    "candidate_features_before_policy_hash": "86d80c1ac654eb1c6600bc43c984a972469b0f05a5036c75a9834e31220f4299",
+    "candidate_metadata_columns": [
+      "receptor",
+      "name",
+      "dataset",
+      "kind",
+      "label",
+      "Protein",
+      "resolution",
+      "release_year",
+      "-logKd/Ki",
+      "Ki/Kd",
+      "Ki/Kd_relation",
+      "Ki/Kd_value",
+      "Ki/Kd_order",
+      "Ki/Kd_raw_value",
+      "Ki/Kd_raw_unit",
+      "dG",
+      "dG_kcal_mol",
+      "reference",
+      "ligand_name",
+      "index_comment"
+    ],
+    "candidate_target_columns": [
+      "experimental"
+    ],
+    "candidate_unmatched_columns": [
+      "database",
+      "target"
+    ],
+    "excluded_features_found": [],
+    "excluded_features_requested": [],
+    "excluded_patterns_requested": [],
+    "feature_policy_description": "Use only the core ligand 3D shape descriptors.",
+    "feature_policy_hash": "5d3bfb619dc10902f268584f544c7b7c23b98864b995737924c9d3fc409df1ff",
+    "feature_policy_lookup_dirs": [
+      "/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/Protocols/Ablations"
+    ],
+    "feature_policy_name": "shape_only",
+    "feature_policy_source_kind": "bundled",
+    "feature_policy_source_path": "/data/hd4tb/OCDocker/OCDocker/OCDocker/OCScore/Protocols/Ablations/shape_only.yml",
+    "final_candidate_features_before_reduction": [
+      "ligand_NPR1",
+      "ligand_NPR2",
+      "ligand_PMI1",
+      "ligand_PMI2",
+      "ligand_PMI3",
+      "ligand_Asphericity",
+      "ligand_Eccentricity",
+      "ligand_InertialShapeFactor",
+      "ligand_RadiusOfGyration",
+      "ligand_SpherocityIndex"
+    ],
+    "final_candidate_features_before_reduction_hash": "9984d1525e7bbaae0f8706d6c072c55b8e216af0d09ce1b9f6152bc59b308049",
+    "included_features_found": [
+      "ligand_NPR1",
+      "ligand_NPR2",
+      "ligand_PMI1",
+      "ligand_PMI2",
+      "ligand_PMI3",
+      "ligand_Asphericity",
+      "ligand_Eccentricity",
+      "ligand_InertialShapeFactor",
+      "ligand_RadiusOfGyration",
+      "ligand_SpherocityIndex"
+    ],
+    "included_features_requested": [
+      "ligand_PMI1",
+      "ligand_PMI2",
+      "ligand_PMI3",
+      "ligand_NPR1",
+      "ligand_NPR2",
+      "ligand_Asphericity",
+      "ligand_Eccentricity",
+      "ligand_InertialShapeFactor",
+      "ligand_RadiusOfGyration",
+      "ligand_SpherocityIndex"
+    ],
+    "included_patterns_requested": [],
+    "missing_exclude_features": [],
+    "missing_include_features": [],
+    "patterns_with_no_matches": [],
+    "removed_features_after_train_only_reduction": [
+      "ligand_PMI3",
+      "ligand_Asphericity",
+      "ligand_Eccentricity",
+      "ligand_InertialShapeFactor",
+      "ligand_RadiusOfGyration"
+    ],
+    "removed_features_after_train_only_reduction_hash": "9d1185e705fcd5009b7909cf3d508a6a85cdfe2221664c7b1b56b42c84593fa6",
+    "selected_features_after_train_only_reduction": [
+      "ligand_NPR1",
+      "ligand_NPR2",
+      "ligand_PMI1",
+      "ligand_PMI2",
+      "ligand_SpherocityIndex"
+    ],
+    "selected_features_after_train_only_reduction_hash": "9660460439ec04fcf028966d7f2cf4e2f8cb9c867ad0f5d306c1684fb0a75e17"
+  },
+  "forbidden_evaluation_dataset_hashes": [
+    "6912353c6812981fb4160476d3500e5e50284f9a1906e4b4b851908c46e8eef6",
+    "ad3d9d42ba27c0c1571b27579a7bcec5a97f025dac205e0f4d92fc3d6cb899ac",
+    "b64d848fa208eae1c73cc1ecf1bc6ebf475c3cfaead002c2690272c47aa2a7de"
+  ],
+  "input_size": 5,
+  "selected_features": [
+    "ligand_NPR1",
+    "ligand_NPR2",
+    "ligand_PMI1",
+    "ligand_PMI2",
+    "ligand_SpherocityIndex"
+  ],
+  "selected_features_hash": "9660460439ec04fcf028966d7f2cf4e2f8cb9c867ad0f5d306c1684fb0a75e17",
+  "task": "dudez_screening"
+}

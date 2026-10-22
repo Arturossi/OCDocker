@@ -90,7 +90,7 @@ def clip_probabilities(probabilities: np.ndarray) -> np.ndarray:
     '''
 
     probs = np.asarray(probabilities, dtype=float).reshape(-1)
-    return cast(np.ndarray, np.clip(probs, PROBABILITY_CLIP_EPSILON, 1.0 - PROBABILITY_CLIP_EPSILON))
+    return np.asarray(np.clip(probs, PROBABILITY_CLIP_EPSILON, 1.0 - PROBABILITY_CLIP_EPSILON), dtype=float)
 
 
 def expected_calibration_error(
