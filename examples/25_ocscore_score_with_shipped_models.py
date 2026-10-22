@@ -3,27 +3,37 @@
 # Description
 ###############################################################################
 '''
-Example: score raw pipeline data with one of the pretrained OCScore models
-shipped in ``OCScore_models/`` (all 22 configurations #01-#22 from the
-DUDEz ablation study).
+Example: score a docked library with the pretrained OCScore models shipped in
+``OCScore_models/gen3b/``.
 
-Each shipped configuration is a DUDEz-screening ``best_model/`` export bundle
-transfer-linked to its own PDBbind ``best_model/`` export bundle (see
-``OCDocker.OCScore.Optimization.ModelExport.predict_from_export``). The script
-reads ``OCScore_models/manifest.json`` to resolve both bundle paths for the
-requested configuration, then scores a raw pipeline archive the same way
-``ocdocker ocscore score`` does.
+Nothing is trained here. The frozen release model, the eight-arm block ablation, the
+randomised-label control and the reference baselines are applied to a merged OCDocker results
+table, and every model is reported per seed and as a three-seed rank ensemble.
 
 Usage:
 
     python examples/25_ocscore_score_with_shipped_models.py \\
-        --config 03 \\
-        --raw-archive /path/to/pipeline_results.csv \\
-        --output-csv /path/to/predictions.csv
+        --csv /path/to/merged_results_all.csv \\
+        --output-dir /path/to/results
 
-List the shipped configurations without scoring anything:
+The same run is available from the command line as::
+
+    ocdocker ocscore predict --csv <table>.csv --output-dir <dir>
+
+List what the bundle ships without scoring anything:
 
     python examples/25_ocscore_score_with_shipped_models.py --list
+
+Two properties of the feature contract constrain the input. Scores and ligand descriptors are
+standardised within receptor, so a whole library is ranked against one target at a time and a
+single compound cannot be scored on its own. The 55 receptor and pocket descriptors describe the
+target rather than any compound, so a new target needs them computed once; pass them with
+``--receptor-descriptors`` when the table does not already carry them.
+
+Read the control before reading the ranking. The control model never saw a true label, so on a
+sound evaluation set it must land at chance. When it does not, the labels are partly predictable
+from the inputs without any activity supervision, and the ranking of the other models says
+nothing about the models.
 '''
 
 # Imports
@@ -32,19 +42,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 
-from pathlib import Path
-from typing import Sequence
+from typing import Optional
 
-_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_PROJECT_ROOT = os.path.dirname(_SCRIPT_DIR)
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT)
-
-import OCDocker.OCScore.Optimization.ModelExport as ocexport
-import OCDocker.OCScore.Utils.IO as ocscoreio
+import OCDocker.OCScore.Release.Catalog as ocrelcatalog
+import OCDocker.OCScore.Release.Inference as ocrelinference
 
 # License
 ###############################################################################
@@ -55,86 +58,13 @@ SPDX-License-Identifier: BSD-3-Clause
 See the LICENSE file for full terms.
 '''
 
-# Constants
-###############################################################################
-DEFAULT_MODELS_DIR = Path(_PROJECT_ROOT) / "OCScore_models"
-
 
 # Functions
 ###############################################################################
 ## Private ##
 
-def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    '''Parse command-line arguments.
-
-    Parameters
-    ----------
-    argv : sequence[str] | None, optional
-        Command-line arguments.
-
-    Returns
-    -------
-    argparse.Namespace
-        Parsed arguments.
-    '''
-
-    parser = argparse.ArgumentParser(
-        description="Score raw pipeline data with a shipped OCScore_models configuration.",
-    )
-    parser.add_argument(
-        "--models-dir",
-        type=Path,
-        default=DEFAULT_MODELS_DIR,
-        help="Directory containing manifest.json and the numbered config folders (default: %(default)s).",
-    )
-    parser.add_argument(
-        "--config",
-        type=str,
-        default="03",
-        choices=tuple(f"{i:02d}" for i in range(1, 23)),
-        help="Shipped configuration to score with (default: %(default)s; #03 is the configuration recommended in the paper).",
-    )
-    parser.add_argument(
-        "--raw-archive",
-        type=str,
-        default=None,
-        help="Raw pipeline input: a .csv file, directory, or tar.gz containing pipeline_results.csv or DUDEz.csv.",
-    )
-    parser.add_argument(
-        "--archive-member",
-        type=str,
-        default=None,
-        help="Explicit tar member path when multiple pipeline CSV files exist.",
-    )
-    parser.add_argument(
-        "--output-csv",
-        type=str,
-        default=None,
-        help="Path for the predictions CSV output.",
-    )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default="cpu",
-        help="Torch device for inference (default: %(default)s).",
-    )
-    parser.add_argument(
-        "--list",
-        action="store_true",
-        help="Print the manifest for every shipped configuration and exit.",
-    )
-    return parser.parse_args(argv)
-
-
-## Public ##
-
-def main(argv: Sequence[str] | None = None) -> int:
-    '''Score a raw pipeline archive with a shipped OCScore_models configuration.
-
-    Parameters
-    ----------
-    argv : sequence[str] | None, optional
-        Command-line arguments.
+def _list_models() -> int:
+    '''Print the models shipped in the bundle.
 
     Returns
     -------
@@ -142,39 +72,62 @@ def main(argv: Sequence[str] | None = None) -> int:
         Process exit code.
     '''
 
-    args = _parse_args(argv)
-    manifest = json.loads((args.models_dir / "manifest.json").read_text(encoding="utf-8"))
+    specs = ocrelcatalog.discover()
+    print(f"{len(specs)} models in {ocrelcatalog.default_root()}\n")
+    print(f"{'model':28s} {'family':10s} {'blocks':8s} seeds")
+    for spec in specs:
+        print(f"{spec.name:28s} {spec.family:10s} {spec.live_blocks:8s} "
+              f"{', '.join(str(s) for s in spec.seeds)}")
+    print("\nBaselines scored alongside them: mean and median consensus, ridge and elastic-net "
+          "at three feature arms, ECFP4 memorisation (needs --smiles-column), random ranking.")
+    return 0
+
+
+## Public ##
+
+def main(argv: Optional[list[str]] = None) -> int:
+    '''Run the example.
+
+    Parameters
+    ----------
+    argv : list[str], optional
+        Optional argument list for testing or programmatic execution.
+
+    Returns
+    -------
+    int
+        Process exit code. Zero indicates success.
+    '''
+
+    parser = argparse.ArgumentParser(
+        description="Score a docked library with the shipped OCScore models.",
+    )
+    parser.add_argument("--list", action="store_true",
+                        help="List the shipped models and exit.")
+    parser.add_argument("--csv", help="Merged OCDocker results table to score.")
+    parser.add_argument("--output-dir", help="Directory for predictions, metrics and report.")
+    parser.add_argument("--receptor-descriptors", default=None,
+                        help="JSON with the target's receptor and pocket descriptors.")
+    parser.add_argument("--smiles-column", default=None,
+                        help="Column holding SMILES, needed only for the ECFP4 baseline.")
+    args = parser.parse_args(argv)
 
     if args.list:
-        print(json.dumps(manifest, indent=2, sort_keys=True))
-        return 0
+        return _list_models()
+    if not args.csv or not args.output_dir:
+        parser.error("--csv and --output-dir are required unless --list is given")
 
-    if not args.raw_archive or not args.output_csv:
-        print("--raw-archive and --output-csv are required unless --list is given.", file=sys.stderr)
-        return 2
+    report = ocrelinference.run_prediction(ocrelinference.PredictionConfig(
+        csv=args.csv,
+        output_dir=args.output_dir,
+        receptor_descriptors=args.receptor_descriptors,
+        smiles_column=args.smiles_column,
+        command=list(sys.argv),
+    ))
 
-    entry = manifest[args.config]
-    dudez_export_dir = args.models_dir / entry["dudez_best_model_dir"]
-    pdbbind_export_dir = args.models_dir / entry["pdbbind_best_model_dir"]
-
-    raw = ocscoreio.load_pipeline_results_from_archive(args.raw_archive, member_name=args.archive_member)
-    dataframe = ocscoreio.prepare_dudez_dataframe(raw)
-
-    predictions = ocexport.predict_from_export(
-        dudez_export_dir,
-        dataframe,
-        device=args.device,
-        pdbbind_export_dir=pdbbind_export_dir,
-    )
-
-    output_csv = Path(args.output_csv)
-    output_csv.parent.mkdir(parents=True, exist_ok=True)
-    predictions.to_csv(output_csv, index=False)
-
-    print(
-        f"Scored {len(predictions)} rows with config #{args.config} "
-        f"({entry['feature_policy_name']}) -> {output_csv}"
-    )
+    print(json.dumps(report, indent=2, sort_keys=True))
+    if report["control_check"].get("status") == "FAIL":
+        print(f"\nWARNING: {report['control_check']['message']}", file=sys.stderr)
     return 0
 
 

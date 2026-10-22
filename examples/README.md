@@ -188,7 +188,7 @@ Run: `python examples/11_python_api_complete_ocscore_pipeline.py`
 
 ### 13. CSV Inference (`13_python_api_inference_from_csv.py`)
 Example of OCScore inference loading features directly from a `.csv` file:
-- Resolving model artifacts from `OCScore_models` (or custom directory)
+- Resolving model artifacts from a models directory (see `OCScore_models/gen3b/` for the current generation)
 - Loading OCDocker config to enforce `reference_column_order`
 - Optional mask loading
 - Optional scaler loading for consistent preprocessing
@@ -266,12 +266,14 @@ Compares OCScore to individual scoring functions, **descriptor aggregates** (`de
 
 ### 25. Score with shipped pretrained models (`25_ocscore_score_with_shipped_models.py`)
 
-Scores a raw pipeline archive with one of the four pretrained configurations shipped in [`OCScore_models/`](../OCScore_models/README.md) (`#03`, `#05`, `#09`, `#12` from the DUDEz ablation study; `#03` is the paper's recommended configuration). Reads `OCScore_models/manifest.json` to resolve the DUDEz bundle and its transfer-linked PDBbind bundle, then scores through `predict_from_export` exactly like `ocdocker ocscore score`.
+Scores a docked library with the pretrained models shipped in [`OCScore_models/gen3b/`](../OCScore_models/gen3b/README.md): the frozen M1.1 release, the eight-arm block ablation, the randomised-label control and the reference baselines, each reported per seed and as a three-seed rank ensemble. Equivalent to `ocdocker ocscore predict`.
+
+Read the control before the ranking. It never saw a true label, so it must land at chance; when it does not, the evaluation set's labels are partly predictable without activity supervision and the ranking of the other models is not about the models.
 
 ```bash
 python examples/25_ocscore_score_with_shipped_models.py --list
 python examples/25_ocscore_score_with_shipped_models.py \
-  --config 03 --raw-archive /path/to/pipeline_results.csv --output-csv /path/to/predictions.csv
+  --csv /path/to/merged_results_all.csv --output-dir /path/to/results
 ```
 
 ## Getting Started
