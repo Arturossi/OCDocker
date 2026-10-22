@@ -8,6 +8,8 @@ MCP server exposing the OCDocker Workbench API as LLM-callable tools.
 Read/plan/preview tools are always available. Job-execute tools
 (``run_job``, ``cancel_job``) require ``confirm=True`` and the Workbench job
 bearer token; see :mod:`OCDocker.Workbench.Auth`.
+
+Status: experimental and feature-frozen (bug fixes only, no new tools).
 """
 
 # Imports

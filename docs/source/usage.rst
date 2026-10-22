@@ -149,7 +149,7 @@ Commands
      ocdocker workbench schema ocscore_study --output ocscore_study.schema.json
      ocdocker workbench plan study.yml --run-id run-001 --output plan.json
 
-- mcp: Serve OCDocker over the Model Context Protocol (MCP) for LLM clients (Claude Code, Claude Desktop, ...), proxying tool calls to a running ``ocdocker workbench serve`` API over stdio. Workspace inspection, ablation design preview/plan, and job listing/logs are always-available read tools; ``run_job``/``cancel_job`` require the Workbench job bearer token and an explicit confirmation from the calling LLM before anything is launched or cancelled. See :mod:`OCDocker.MCP`.
+- mcp (experimental, feature-frozen): Serve OCDocker over the Model Context Protocol (MCP) for LLM clients (Claude Code, Claude Desktop, ...), proxying tool calls to a running ``ocdocker workbench serve`` API over stdio. Workspace inspection, ablation design preview/plan, and job listing/logs are always-available read tools; ``run_job``/``cancel_job`` require the Workbench job bearer token and an explicit confirmation from the calling LLM before anything is launched or cancelled. See :mod:`OCDocker.MCP`.
 
   .. code-block:: bash
 
