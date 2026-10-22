@@ -201,3 +201,19 @@ def test_set_level_from_report_ignores_handlers_without_setlevel():
     finally:
         if dummy in logger.handlers:
             logger.handlers.remove(dummy)
+
+
+@pytest.mark.order(123)
+def test_configure_same_log_file_twice_writes_each_message_once(tmp_path):
+    log_file = tmp_path / "run.log"
+    logger = oclogging._STATE["logger"]
+    try:
+        for _ in range(3):
+            oclogging.configure(level=ocerror.ReportLevel.INFO, log_file=str(log_file), to_stdout=True, use_rich=False)
+        oclogging.get_logger("dup").warning("only once")
+
+        assert log_file.read_text(encoding="utf-8").count("only once") == 1
+    finally:
+        for handler in [h for h in logger.handlers if isinstance(h, logging.FileHandler) and h.baseFilename == str(log_file)]:
+            logger.removeHandler(handler)
+            handler.close()
