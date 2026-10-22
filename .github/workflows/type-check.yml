@@ -44,12 +44,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y openbabel libopenbabel-dev swig cmake g++ autodock-vina dssp
 
-    - name: Install smina (official static build, checksum pinned)
-      run: |
-        curl -sSL --retry 3 -o smina "https://sourceforge.net/projects/smina/files/smina.static/download"
-        echo "ffe5e1e78c947f76b0df8805e2c54383d0bbaf2e827a633b643a708cf682a958  smina" | sha256sum -c -
-        sudo install -m 755 smina /usr/local/bin/smina
-
     - name: Make OpenBabel visible under /usr/local (for PyPI openbabel build)
       run: |
         # Headers: apt puts them in /usr/include/openbabel3, but PyPI build guesses /usr/local/include/openbabel3
