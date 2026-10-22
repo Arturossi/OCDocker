@@ -107,7 +107,6 @@ dependencies:
       - dropbox==12.0.2
       - emoji==2.15.0
       - executing==2.2.1
-      - fastapi==0.139.0
       - fastjsonschema==2.21.2
       - fastrlock==0.8.3
       - filelock==3.20.3
@@ -172,7 +171,6 @@ dependencies:
       - markupsafe==3.0.3
       - matplotlib==3.10.8
       - matplotlib-inline==0.2.1
-      - mcp==1.28.1
       - mdit-py-plugins==0.5.0
       - mdurl==0.1.2
       - mmcif-pdbx==2.0.1
@@ -220,7 +218,6 @@ dependencies:
       - pillow==12.1.0
       - pingouin==0.5.5
       - platformdirs==4.5.1
-      - playwright==1.61.0
       - pluggy==1.6.0
       - ply==3.11
       - pre-commit==4.5.1
@@ -234,7 +231,6 @@ dependencies:
       - ptyprocess==0.7.0
       - pulp==3.3.0
       - pure-eval==0.2.3
-      - py-mini-racer==0.6.0
       - pyasn1==0.6.2
       - pyasn1-modules==0.4.2
       - pycparser==3.0
@@ -335,7 +331,6 @@ dependencies:
       - typing-inspection==0.4.2
       - uc-micro-py==1.0.3
       - urllib3==2.6.3
-      - uvicorn==0.49.0
       - virtualenv==20.36.1
       - visualtorch==0.2.4
       - wcwidth==0.5.0
