@@ -146,8 +146,9 @@ def test_box_to_vina_read_error(tmp_path):
         conf_file=str(conf_file),
         receptor="rec.pdbqt"
     )
-    # Should either succeed (if it handles gracefully) or return error
-    assert isinstance(result, int)
+    # A box without the center and dimensions lines can not give a conf file
+    assert result == ocerror.ErrorCode.READ_FILE
+    assert not conf_file.exists()
 
 @pytest.mark.order(38)
 def test_box_to_vina_write_error_handling(tmp_path, monkeypatch):
