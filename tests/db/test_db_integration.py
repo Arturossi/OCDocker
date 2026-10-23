@@ -107,6 +107,8 @@ def test_database_cleanup_on_exit(sqlite_engine):
     # Cleanup should work
     cleanup_session(session)
     cleanup_engine(sqlite_engine)
+    assert not session.registry.has()
+    assert sqlite_engine.pool.checkedin() == 0
 
     # Cleanup again should be safe (idempotent)
     cleanup_session(session)
@@ -223,6 +225,10 @@ def test_sqlite_connection_pooling(sqlite_engine):
             s2.execute(text("SELECT 2"))
         with session() as s3:
             s3.execute(text("SELECT 3"))
+
+        # The sessions share one connection, returned to the pool after each use
+        assert sqlite_engine.pool.checkedout() == 0
+        assert sqlite_engine.pool.checkedin() == 1
     finally:
         cleanup_session(session)
 
