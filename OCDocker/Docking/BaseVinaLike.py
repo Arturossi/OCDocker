@@ -557,7 +557,19 @@ def read_vina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, floa
 
     # Call the generic read log function with the Vina scoring key
     config = get_config()
-    return _read_log_generic(path, config.vina.scoring, "vina", "vina_read_log_ERROR.log", onlyBest)
+    data = _read_log_generic(path, config.vina.scoring, "vina", "vina_read_log_ERROR.log", onlyBest)
+
+    # Vina 1.2 lists modes more than energy_range above the best one in its log, but does not
+    # write them to the output, so keep only the modes that have a pose
+    try:
+        energy_range = float(getattr(config.vina, "energy_range", ""))
+    except (TypeError, ValueError):
+        return data
+    if data:
+        best = min(score for pose in data.values() for score in pose.values())
+        data = {pose_idx: pose for pose_idx, pose in data.items() if all(score - best <= energy_range for score in pose.values())}
+
+    return data
 
 
 def read_gnina_log(path: str, onlyBest: bool = False) -> Dict[int, Dict[str, float]]:
