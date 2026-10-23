@@ -287,6 +287,8 @@ def _required_tools_by_test() -> dict[str, set[str]]:
     return {
         "test_smina.py::test_run_prepare_ligand": mgltools,
         "test_smina.py::test_run_smina": mgltools,
+        "test_smina.py::test_smina_instance_run_prepare_ligand": mgltools,
+        "test_smina.py::test_smina_instance_run_smina": mgltools,
         "test_vina.py::test_run_prepare_ligand": mgltools,
         "test_vina.py::test_run_prepare_receptor": mgltools,
         "test_vina.py::test_run_vina": mgltools,
