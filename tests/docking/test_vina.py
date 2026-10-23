@@ -489,14 +489,15 @@ def test_run_vina(vina_inputs):
     Run docking using test ligand, receptor, and box files.
     '''
 
-    _ = ocvina.run_vina(
+    result = ocvina.run_vina(
         confFile=vina_inputs["config"],
         ligand=vina_inputs["prepared_ligand_path"],
         outPath=str(vina_inputs["output_file"]),
         logFile=vina_inputs["vina_log"]
     )
 
-    assert Path(vina_inputs['output_file']), "Expected output files were not created"
+    assert result == ocerror.Error.ok(), f"Vina docking failed. Error code: {result}" # type: ignore
+    assert Path(vina_inputs['output_file']).exists(), "Expected output files were not created"
 
 @pytest.mark.order(35)
 def test_run_vina_stub_file_creation(tmp_path, monkeypatch):
