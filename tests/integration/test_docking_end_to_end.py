@@ -12,6 +12,7 @@ OCDOCKER_CONFIG).
 
 # Imports
 ###############################################################################
+import math
 import os
 import re
 import shutil
@@ -211,8 +212,10 @@ def test_vs_docks_test_ptn1(tmp_path, engine):
     poses = read_log(str(files_dir / "e2e.log"))
     assert poses, output
     affinities = [affinity for pose in poses.values() for affinity in pose.values()]
-    # The search is stochastic, so lower-ranked poses can score positive; the best pose must bind
-    assert all(-30.0 < affinity < 30.0 for affinity in affinities), affinities
+    # The scale depends on the scoring function (e.g. ad4_scoring, the gnina default in
+    # OCDocker.cfg.example, gives about -40 where vina gives -7.5 for test_ptn1), so only check
+    # that every score was parsed and the best pose binds
+    assert all(math.isfinite(affinity) for affinity in affinities), affinities
     assert min(affinities) < 0.0, affinities
 
     assert len(get_docked_poses(str(files_dir))) == len(poses)
