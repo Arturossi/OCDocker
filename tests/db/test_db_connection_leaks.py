@@ -91,13 +91,16 @@ def test_cleanup_with_exception(tmp_path):
     engine = create_engine(url)
     session = create_session(engine)
     
-    # Use session
-    with session() as s:
-        s.execute(text("SELECT 1"))
+    # Use a session without a context manager, so it keeps its connection
+    s = session()
+    s.execute(text("SELECT 1"))
+    assert engine.pool.checkedout() == 1
     
     # Cleanup should handle any exceptions
     cleanup_session(session)
     cleanup_engine(engine)
+    assert engine.pool.checkedout() == 0
+    assert not session.registry.has()
     
     # Cleanup again (should be safe)
     cleanup_session(session)
@@ -170,16 +173,16 @@ def test_engine_pool_size_after_cleanup(tmp_path):
     with session() as s:
         s.execute(text("SELECT 1"))
     
+    # The connection goes back to the pool when the session closes
+    assert engine.pool.checkedin() == 1
+    
     # Cleanup
     cleanup_session(session)
     cleanup_engine(engine)
     
-    # Engine should be disposed (verify it doesn't raise on dispose)
-    try:
-        engine.dispose(close=True)
-    except Exception:
-        # Already disposed is fine
-        pass
+    # Engine should be disposed (no connection left in the pool)
+    assert engine.pool.checkedin() == 0
+    assert engine.pool.checkedout() == 0
 
 
 @pytest.mark.order(29)
@@ -199,9 +202,13 @@ def test_multiple_sessions_cleanup(tmp_path):
     with session() as s3:
         s3.execute(text("SELECT 3"))
     
+    # Each session released its connection
+    assert engine.pool.checkedout() == 0
+    
     # All should be cleaned up
     cleanup_session(session)
     cleanup_engine(engine)
+    assert not session.registry.has()
 
 
 @pytest.mark.order(26)
