@@ -39,6 +39,8 @@ See the LICENSE file for full terms.
 # Functions
 ###############################################################################
 ## Private ##
+# Commands kept in the console history file
+_HISTORY_LENGTH = 1000
 
 
 def _setup_readline(namespace: Mapping[str, Any]) -> None:
@@ -52,6 +54,10 @@ def _setup_readline(namespace: Mapping[str, Any]) -> None:
         readline.set_completer(completer.complete)
         readline.parse_and_bind("tab: complete")
         hist = os.path.expanduser("~/.ocdocker_console_history")
+        # read_history_file appends to the history already in memory, so loading it again in
+        # the same process (another session, or the console tests) would save it doubled
+        readline.clear_history()
+        readline.set_history_length(_HISTORY_LENGTH)
         try:
             readline.read_history_file(hist)
         except (OSError, FileNotFoundError):
