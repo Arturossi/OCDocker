@@ -845,6 +845,10 @@ def gen_gnina_conf(box_file: str, conf_file: str, receptor: str) -> int:
     except Exception as e:
         return ocerror.Error.read_file(message=f"Found a problem while reading the box file: {e}", level = ocerror.ReportLevel.ERROR)
 
+    # Check if the center and dimensions lines were found (before the conf file is opened, so it is not truncated)
+    if len(lines) < 2:
+        return ocerror.Error.read_file(message=f"The box file '{box_file}' does not have the center and dimensions REMARK lines.", level = ocerror.ReportLevel.ERROR)
+
     ocprint.printv(f"Creating gnina conf file in the path '{conf_file}'.")
 
     try:
