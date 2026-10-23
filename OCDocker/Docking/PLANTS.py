@@ -493,8 +493,8 @@ class PLANTS:
             # Check if the dir is empty or no output file has been generated (the double of the number of cluster structures, being 2 for each structure)
             config = get_config()
             if len(os.listdir(run_folder)) == 0 or (len(glob(f"{run_folder}/{self.input_ligand.name}*.mol2")) < config.plants.cluster_structures * 2):
-                # Remove it
-                os.rmdir(run_folder)
+                # Remove it (an incomplete run may have left files in it)
+                shutil.rmtree(run_folder)
 
         # Print verboosity
         ocprint.printv(f"Running PLANTS using the '{self.config}' configurations.")
