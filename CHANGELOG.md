@@ -25,6 +25,15 @@ All notable changes to OCDocker are documented here. The format follows
   lines by default, at most 64 KB): 0.02 MB for the same failures.
 - `oclogging.configure(log_file=...)` attached a new file handler on every call, so
   configuring the same file again wrote every message once per call.
+- `read_vina_log` returned modes that Vina lists in its log but does not write to the
+  output (Vina 1.2 lists modes more than `energy_range` above the best one), so the digest
+  held scores for poses that do not exist (a test_ptn1 run logged a third mode at
+  +12.16 kcal/mol with only two poses written). Modes beyond `vina_energy_range` from the
+  best are now dropped.
+- The console history (`~/.ocdocker_console_history`) was loaded on top of the history
+  already in memory and had no length limit, so each console session started in the same
+  process (e.g. the console tests) saved it doubled; it reached 871 MB and stalled the test
+  suite. The history is now cleared before loading and limited to 1000 commands.
 
 ### Added
 

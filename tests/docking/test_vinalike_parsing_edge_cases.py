@@ -481,3 +481,25 @@ def test_vina_log_and_rescoring_parsing(tmp_path, monkeypatch):
     # Top level contains base keys and pose keys as strings
     assert "vina_affinity" in j
     assert "1" in j and j["1"][vina_scoring] == -7.5  # type: ignore
+
+
+def test_vina_log_drops_modes_beyond_energy_range(tmp_path, monkeypatch):
+    # Vina 1.2 lists modes outside energy_range in its log but does not write them to the
+    # output pdbqt (table from a test_ptn1 run: mode 3 is 19.5 kcal/mol above the best)
+    _setup_basevina_stubs(monkeypatch, tmp_path)
+    import OCDocker.Docking.BaseVinaLike as basevina  # type: ignore
+    config = basevina.get_config()
+    config.vina.energy_range = "10"
+    monkeypatch.setattr(basevina, "get_config", lambda: config)
+    log = tmp_path / "vina.log"
+    log.write_text('''mode |   affinity | dist from best mode
+     | (kcal/mol) | rmsd l.b.| rmsd u.b.
+-----+------------+----------+----------
+   1       -7.349          0          0
+   2       -7.259      2.053      3.268
+   3        12.16      2.162      3.971
+''')
+
+    data = basevina.read_vina_log(str(log))
+    assert set(data.keys()) == {1, 2}
+    assert set(basevina.read_vina_log(str(log), onlyBest=True).keys()) == {1}
