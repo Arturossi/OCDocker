@@ -15,6 +15,7 @@ pytest tests/test_Smina.py
 import pytest
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Error as ocerror
@@ -38,6 +39,38 @@ See the LICENSE file for full terms.
 # Functions
 ###############################################################################
 ## Private ##
+
+def _record_smina_runs(monkeypatch, log_text: str = "Affinity    -7.00 (kcal/mol)\n") -> list:
+    '''Replace the smina run by a stub that records the command and writes the given log.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        The pytest monkeypatch fixture.
+    log_text : str, optional
+        The text written to the log file (--log) of each run.
+
+    Returns
+    -------
+    list
+        The commands run, filled as the runs happen.
+    '''
+
+    commands = []
+
+    def fake_run(cmd, logFile = "", **_kwargs):
+        commands.append(cmd)
+        Path(_option(cmd, "--log")).write_text(log_text)
+        return ocerror.Error.ok()
+
+    monkeypatch.setattr(ocsmina.ocrun, "run", fake_run)
+    return commands
+
+
+def _option(cmd: list, name: str) -> str:
+    '''Return the value following an option in a command list.'''
+
+    return cmd[cmd.index(name) + 1]
 
 ## Public ##
 
@@ -224,8 +257,9 @@ def test_gen_smina_conf_write_error_handling(tmp_path):
         receptor="rec.pdbqt"
     )
     
-    # Should handle gracefully (may succeed if parent dir is auto-created, or return error)
-    assert isinstance(result, int)
+    # The conf file is not written when its directory does not exist
+    assert result == ocerror.ErrorCode.WRITE_FILE
+    assert not conf_file.exists()
 
 @pytest.mark.order(20)
 def test_get_pose_index_from_file_path():
@@ -259,8 +293,7 @@ def test_read_rescore_logs_list(tmp_path):
     log2.write_text("Affinity    -6.50 (kcal/mol)\n")
     
     result = ocsmina.read_rescore_logs([str(log1), str(log2)])
-    assert isinstance(result, dict)
-    assert len(result) > 0
+    assert result == {"rescoring_vinardo_1": -7.23, "rescoring_vinardo_2": -6.5}
 
 @pytest.mark.order(24)
 def test_read_rescore_logs_only_best(tmp_path):
@@ -273,7 +306,7 @@ def test_read_rescore_logs_only_best(tmp_path):
     log2.write_text("Affinity    -6.50 (kcal/mol)\n")
     
     result = ocsmina.read_rescore_logs([str(log1), str(log2)], onlyBest=True)
-    assert isinstance(result, dict)
+    assert result == {"rescoring_vinardo_1": -7.23}
 
 @pytest.mark.order(23)
 def test_read_rescore_logs_string(tmp_path):
@@ -283,7 +316,7 @@ def test_read_rescore_logs_string(tmp_path):
     log1.write_text("Affinity    -7.23 (kcal/mol)\n")
     
     result = ocsmina.read_rescore_logs(str(log1))
-    assert isinstance(result, dict)
+    assert result == {"rescoring_vinardo_1": -7.23}
 
 @pytest.mark.order(5)
 def test_run_gen_smina_conf(smina_inputs):
@@ -335,23 +368,22 @@ def test_run_prepare_receptor(smina_inputs):
 
 @pytest.mark.order(27)
 def test_run_rescore_list_ligands(smina_inputs, tmp_path, monkeypatch):
-    '''Test standalone run_rescore function with list of ligands.'''
-    
-    # Create mock config file
+    '''Test standalone run_rescore scores every ligand of a list with the given scoring function.'''
+
     conf_file = tmp_path / "conf.txt"
     conf_file.write_text("receptor = rec.pdbqt\ncenter_x = 0\ncenter_y = 0\ncenter_z = 0\nsize_x = 10\nsize_y = 10\nsize_z = 10\n")
-    
-    # Create output directory
+
     out_path = tmp_path / "rescoring"
     out_path.mkdir()
-    
-    # Create already split ligands (no splitting needed)
+
+    # Already split ligands (no splitting needed)
     lig1 = out_path / "lig_split_1.pdbqt"
     lig1.write_text("MODEL 1\nATOM\nENDMDL\n")
     lig2 = out_path / "lig_split_2.pdbqt"
     lig2.write_text("MODEL 1\nATOM\nENDMDL\n")
-    
-    # Test with list of ligands, splitLigand=False
+
+    commands = _record_smina_runs(monkeypatch)
+
     result = ocsmina.run_rescore(
         confFile=str(conf_file),
         ligands=[str(lig1), str(lig2)],
@@ -361,30 +393,29 @@ def test_run_rescore_list_ligands(smina_inputs, tmp_path, monkeypatch):
         splitLigand=False,
         overwrite=False
     )
-    # Function returns None
     assert result is None
+    assert [_option(cmd, "--ligand") for cmd in commands] == [str(lig1), str(lig2)]
+    assert all("--score_only" in cmd and _option(cmd, "--scoring") == "vinardo" and _option(cmd, "--config") == str(conf_file) for cmd in commands)
+    assert ocsmina.read_rescore_logs(ocsmina.get_rescore_log_paths(str(out_path))) == {"rescoring_vinardo_1": -7.0, "rescoring_vinardo_2": -7.0}
 
 @pytest.mark.order(28)
 def test_run_rescore_overwrite_false_existing_log(tmp_path, monkeypatch):
-    '''Test run_rescore with overwrite=False when log file already exists.'''
-    
-    # Create mock config file
+    '''Test run_rescore with overwrite=False skips a ligand whose log file already exists.'''
+
     conf_file = tmp_path / "conf.txt"
     conf_file.write_text("receptor = rec.pdbqt\ncenter_x = 0\ncenter_y = 0\ncenter_z = 0\nsize_x = 10\nsize_y = 10\nsize_z = 10\n")
-    
-    # Create output directory
+
     out_path = tmp_path / "rescoring"
     out_path.mkdir()
-    
-    # Create already split ligand
+
     lig1 = out_path / "lig_split_1.pdbqt"
     lig1.write_text("MODEL 1\nATOM\nENDMDL\n")
-    
-    # Create existing log file
+
     log_file = out_path / "lig_split_1_vinardo_rescoring.log"
     log_file.write_text("Affinity    -7.5 (kcal/mol)\n")
-    
-    # Test with overwrite=False (should skip)
+
+    commands = _record_smina_runs(monkeypatch)
+
     result = ocsmina.run_rescore(
         confFile=str(conf_file),
         ligands=[str(lig1)],
@@ -394,38 +425,35 @@ def test_run_rescore_overwrite_false_existing_log(tmp_path, monkeypatch):
         splitLigand=False,
         overwrite=False
     )
-    # Function returns None (should skip when log exists and overwrite=False)
     assert result is None
+    assert commands == []
+    assert ocsmina.read_rescoring_log(str(log_file)) == -7.5
 
 @pytest.mark.order(29)
 def test_run_rescore_overwrite_true(tmp_path, monkeypatch):
-    '''Test run_rescore with overwrite=True.'''
-    
-    # Create mock config file
+    '''Test run_rescore with overwrite=True rescores a ligand whose log file already exists.'''
+
     conf_file = tmp_path / "conf.txt"
     conf_file.write_text("receptor = rec.pdbqt\ncenter_x = 0\ncenter_y = 0\ncenter_z = 0\nsize_x = 10\nsize_y = 10\nsize_z = 10\n")
-    
-    # Create a ligand file for splitting
+
     ligand_file = tmp_path / "ligand.pdbqt"
     ligand_file.write_text("MODEL 1\nATOM\nENDMDL\n")
-    
-    # Create output directory
+
     out_path = tmp_path / "rescoring"
     out_path.mkdir()
-    
-    # Create existing log file (should be overwritten)
+
+    # Existing log file (should be overwritten)
     log_file = out_path / "ligand_split_1_vinardo_rescoring.log"
     log_file.write_text("Old content\n")
-    
-    # Mock split_poses
+
     def mock_split_poses(ligand, name, outPath, logFile="", suffix=""):
         split_file = out_path / f"{name}{suffix}1.pdbqt"
         split_file.write_text("MODEL 1\nATOM\nENDMDL\n")
         return 0
-    
+
     monkeypatch.setattr(ocsmina.ocmolproc, 'split_poses', mock_split_poses)
-    
-    # Test with overwrite=True (should process even if log exists)
+    commands = _record_smina_runs(monkeypatch)
+
     result = ocsmina.run_rescore(
         confFile=str(conf_file),
         ligands=str(ligand_file),
@@ -436,24 +464,24 @@ def test_run_rescore_overwrite_true(tmp_path, monkeypatch):
         overwrite=True
     )
     assert result is None
+    assert [_option(cmd, "--ligand") for cmd in commands] == [str(out_path / "ligand_split_1.pdbqt")]
+    assert ocsmina.read_rescoring_log(str(log_file)) == -7.0
 
 @pytest.mark.order(30)
-def test_run_rescore_split_ligand_false(tmp_path):
-    '''Test run_rescore with splitLigand=False.'''
-    
-    # Create mock config file
+def test_run_rescore_removes_failed_log(tmp_path, monkeypatch):
+    '''Test run_rescore removes the log file of a run that did not give an affinity.'''
+
     conf_file = tmp_path / "conf.txt"
     conf_file.write_text("receptor = rec.pdbqt\ncenter_x = 0\ncenter_y = 0\ncenter_z = 0\nsize_x = 10\nsize_y = 10\nsize_z = 10\n")
-    
-    # Create output directory
+
     out_path = tmp_path / "rescoring"
     out_path.mkdir()
-    
-    # Create already split ligands
+
     lig1 = out_path / "lig_split_1.pdbqt"
     lig1.write_text("MODEL 1\nATOM\nENDMDL\n")
-    
-    # Test with splitLigand=False (should use ligands as-is)
+
+    commands = _record_smina_runs(monkeypatch, log_text = "Error: parse error\n")
+
     result = ocsmina.run_rescore(
         confFile=str(conf_file),
         ligands=[str(lig1)],
@@ -464,31 +492,30 @@ def test_run_rescore_split_ligand_false(tmp_path):
         overwrite=False
     )
     assert result is None
+    assert len(commands) == 1
+    assert not (out_path / "lig_split_1_vinardo_rescoring.log").exists()
 
 @pytest.mark.order(26)
 def test_run_rescore_string_ligand(smina_inputs, tmp_path, monkeypatch):
-    '''Test standalone run_rescore function with string ligand (not list).'''
-    
-    # Create mock config file
+    '''Test standalone run_rescore splits a single ligand file and scores its poses.'''
+
     conf_file = tmp_path / "conf.txt"
     conf_file.write_text("receptor = rec.pdbqt\ncenter_x = 0\ncenter_y = 0\ncenter_z = 0\nsize_x = 10\nsize_y = 10\nsize_z = 10\n")
-    
-    # Create a ligand file
+
     ligand_file = tmp_path / "ligand.pdbqt"
     ligand_file.write_text("MODEL 1\nATOM\nENDMDL\n")
-    
-    # Create output directory
+
     out_path = tmp_path / "rescoring"
     out_path.mkdir()
-    
-    # Mock split_poses to avoid actual splitting
+
     def mock_split_poses(ligand, name, outPath, logFile="", suffix=""):
         split_file = out_path / f"{name}{suffix}1.pdbqt"
         split_file.write_text("MODEL 1\nATOM\nENDMDL\n")
         return 0
-    
+
     monkeypatch.setattr(ocsmina.ocmolproc, 'split_poses', mock_split_poses)
-    
+    commands = _record_smina_runs(monkeypatch)
+
     # Test with string ligand (should be converted to list)
     result = ocsmina.run_rescore(
         confFile=str(conf_file),
@@ -499,8 +526,8 @@ def test_run_rescore_string_ligand(smina_inputs, tmp_path, monkeypatch):
         splitLigand=True,
         overwrite=False
     )
-    # Function returns None
     assert result is None
+    assert [_option(cmd, "--ligand") for cmd in commands] == [str(out_path / "ligand_split_1.pdbqt")]
 
 @pytest.mark.order(6)
 def test_run_smina(tmp_path, smina_inputs):
@@ -697,7 +724,7 @@ def test_smina_get_docked_poses(smina_inputs, tmp_path):
     )
     
     result = smina_instance.get_docked_poses()
-    assert isinstance(result, list)
+    assert sorted(result) == [str(output_dir / "ligand_split_1.pdbqt"), str(output_dir / "ligand_split_2.pdbqt")]
 
 @pytest.mark.order(7)
 def test_smina_get_input_ligand_path(smina_inputs):
@@ -716,8 +743,7 @@ def test_smina_get_input_ligand_path(smina_inputs):
     )
     
     result = smina_instance.get_input_ligand_path()
-    assert isinstance(result, str)
-    assert len(result) > 0
+    assert result == str(Path(smina_inputs["converted_ligand_file"]).parent)
 
 @pytest.mark.order(8)
 def test_smina_get_input_receptor_path(smina_inputs):
@@ -736,8 +762,7 @@ def test_smina_get_input_receptor_path(smina_inputs):
     )
     
     result = smina_instance.get_input_receptor_path()
-    assert isinstance(result, str)
-    assert len(result) > 0
+    assert result == str(Path(smina_inputs["receptor_file"]).parent)
 
 @pytest.mark.order(17)
 def test_smina_instance_run_prepare_ligand(smina_inputs):
@@ -756,7 +781,8 @@ def test_smina_instance_run_prepare_ligand(smina_inputs):
     )
     
     result = smina_instance.run_prepare_ligand()
-    assert isinstance(result, (int, tuple))
+    assert result == ocerror.Error.ok(), f"Preparation of ligand failed. Error code: {result}" # type: ignore
+    assert Path(smina_inputs["ligand_path"]).is_file()
 
 @pytest.mark.order(18)
 def test_smina_instance_run_prepare_receptor(smina_inputs):
@@ -775,7 +801,8 @@ def test_smina_instance_run_prepare_receptor(smina_inputs):
     )
     
     result = smina_instance.run_prepare_receptor()
-    assert isinstance(result, (int, tuple))
+    assert result == ocerror.Error.ok(), f"Preparation of receptor failed. Error code: {result}" # type: ignore
+    assert Path(smina_inputs["receptor_path"]).is_file()
 
 @pytest.mark.order(19)
 def test_smina_instance_run_smina(smina_inputs, tmp_path):
@@ -795,7 +822,8 @@ def test_smina_instance_run_smina(smina_inputs, tmp_path):
     
     log_file = tmp_path / "smina_exec.log"
     result = smina_instance.run_smina(str(log_file))
-    assert isinstance(result, (int, tuple))
+    assert result == ocerror.Error.ok(), f"Smina docking failed. Error code: {result}" # type: ignore
+    assert (tmp_path / "smina_out.pdbqt").is_file()
 
 @pytest.mark.order(35)
 def test_smina_instance_run_smina_stub(smina_inputs, tmp_path, monkeypatch):
@@ -882,8 +910,11 @@ def test_smina_read_log(smina_inputs, tmp_path):
     # Create a mock log file
     log_file = tmp_path / "smina.log"
     log_file.write_text(
-        "REMARK SMINA RESULT:    -7.5      0.000\n"
-        "REMARK SMINA RESULT:    -6.8      0.000\n"
+        "mode |   affinity | dist from best mode\n"
+        "     | (kcal/mol) | rmsd l.b.| rmsd u.b.\n"
+        "-----+------------+----------+----------\n"
+        "1       -7.5       0.000      0.000\n"
+        "2       -6.8       1.234      2.345\n"
     )
     
     smina_instance = ocsmina.Smina(
@@ -898,8 +929,11 @@ def test_smina_read_log(smina_inputs, tmp_path):
         name="test"
     )
     
+    from OCDocker.Config import get_config
+    smina_scoring = get_config().smina.scoring
+
     result = smina_instance.read_log()
-    assert isinstance(result, dict)
+    assert result == {1: {smina_scoring: -7.5}, 2: {smina_scoring: -6.8}}
 
 @pytest.mark.order(11)
 def test_smina_read_log_only_best(smina_inputs, tmp_path):
@@ -907,8 +941,11 @@ def test_smina_read_log_only_best(smina_inputs, tmp_path):
 
     log_file = tmp_path / "smina.log"
     log_file.write_text(
-        "REMARK SMINA RESULT:    -7.5      0.000\n"
-        "REMARK SMINA RESULT:    -6.8      0.000\n"
+        "mode |   affinity | dist from best mode\n"
+        "     | (kcal/mol) | rmsd l.b.| rmsd u.b.\n"
+        "-----+------------+----------+----------\n"
+        "1       -7.5       0.000      0.000\n"
+        "2       -6.8       1.234      2.345\n"
     )
     
     smina_instance = ocsmina.Smina(
@@ -923,8 +960,11 @@ def test_smina_read_log_only_best(smina_inputs, tmp_path):
         name="test"
     )
     
+    from OCDocker.Config import get_config
+    smina_scoring = get_config().smina.scoring
+
     result = smina_instance.read_log(onlyBest=True)
-    assert isinstance(result, dict)
+    assert result == {1: {smina_scoring: -7.5}}
 
 @pytest.mark.order(12)
 def test_smina_read_rescore_logs(smina_inputs, tmp_path):
@@ -953,7 +993,7 @@ def test_smina_read_rescore_logs(smina_inputs, tmp_path):
     )
     
     result = smina_instance.read_rescore_logs(str(out_path))
-    assert isinstance(result, dict)
+    assert result == {"rescoring_vinardo_1": -7.23, "rescoring_vinardo_2": -6.5}
 
 @pytest.mark.order(13)
 def test_smina_read_rescore_logs_only_best(smina_inputs, tmp_path):
@@ -982,7 +1022,7 @@ def test_smina_read_rescore_logs_only_best(smina_inputs, tmp_path):
     )
     
     result = smina_instance.read_rescore_logs(str(out_path), onlyBest=True)
-    assert isinstance(result, dict)
+    assert result == {"rescoring_vinardo_1": -7.23}
 
 @pytest.mark.order(33)
 def test_smina_run_rescore_instance_method(smina_inputs, tmp_path, monkeypatch):
@@ -1006,10 +1046,11 @@ def test_smina_run_rescore_instance_method(smina_inputs, tmp_path, monkeypatch):
     split_lig = split_dir / "lig_split_1.pdbqt"
     split_lig.write_text("MODEL 1\nATOM\nENDMDL\n")
     
-    # Mock get_docked_poses to return our mock split file
-    monkeypatch.setattr(smina_instance, 'get_docked_poses', lambda: [str(split_lig)])
+    calls = []
+    monkeypatch.setattr(ocsmina, 'get_config', lambda: SimpleNamespace(smina=SimpleNamespace(scoring="vinardo", scoring_functions=["vinardo", "dkoes_scoring"])))
+    monkeypatch.setattr(ocsmina, 'run_rescore', lambda confFile, ligand, outPath, scoring_function, **kwargs: calls.append(scoring_function))
     
-    # Test run_rescore with skipDefaultScoring=True
+    # Test run_rescore with skipDefaultScoring=True (the default scoring function was used in the docking)
     result = smina_instance.run_rescore(
         outPath=str(split_dir),
         ligand=str(split_lig),
@@ -1017,6 +1058,7 @@ def test_smina_run_rescore_instance_method(smina_inputs, tmp_path, monkeypatch):
         skipDefaultScoring=True,
         overwrite=False
     )
+    assert calls == ["dkoes_scoring"]
     # Method returns None
     assert result is None
 
@@ -1041,16 +1083,20 @@ def test_smina_run_rescore_overwrite_true(smina_inputs, tmp_path, monkeypatch):
     split_lig = split_dir / "lig_split_1.pdbqt"
     split_lig.write_text("MODEL 1\nATOM\nENDMDL\n")
     
-    monkeypatch.setattr(smina_instance, 'get_docked_poses', lambda: [str(split_lig)])
+    calls = []
+    monkeypatch.setattr(ocsmina, 'get_config', lambda: SimpleNamespace(smina=SimpleNamespace(scoring="vinardo", scoring_functions=["vinardo", "dkoes_scoring"])))
+    monkeypatch.setattr(ocsmina, 'run_rescore', lambda confFile, ligand, outPath, scoring_function, splitLigand, overwrite, **kwargs: calls.append((scoring_function, splitLigand, overwrite)))
     
-    # Test run_rescore with overwrite=True
+    # Test run_rescore with overwrite=True (the ligand is split only for the first scoring function)
     result = smina_instance.run_rescore(
         outPath=str(split_dir),
         ligand=str(split_lig),
         logFile="",
         skipDefaultScoring=False,
+        splitLigand=True,
         overwrite=True
     )
+    assert calls == [("vinardo", True, True), ("dkoes_scoring", False, True)]
     assert result is None
 
 @pytest.mark.order(14)
@@ -1077,7 +1123,9 @@ def test_smina_split_poses(smina_inputs, tmp_path):
     out_path.mkdir()
     
     result = smina_instance.split_poses(str(out_path))
-    assert isinstance(result, int)
+    assert result == ocerror.Error.ok() # type: ignore
+    name = smina_instance.input_ligand.name
+    assert sorted(f.name for f in out_path.iterdir()) == [f"{name}_split_1.pdbqt", f"{name}_split_2.pdbqt"]
 
 @pytest.mark.order(15)
 def test_smina_split_poses_default_path(smina_inputs, tmp_path):
@@ -1099,4 +1147,6 @@ def test_smina_split_poses_default_path(smina_inputs, tmp_path):
     )
     
     result = smina_instance.split_poses()
-    assert isinstance(result, int)
+    assert result == ocerror.Error.ok() # type: ignore
+    # The poses are written next to the smina output
+    assert (tmp_path / f"{smina_instance.input_ligand.name}_split_1.pdbqt").is_file()
