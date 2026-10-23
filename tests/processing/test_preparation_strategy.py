@@ -22,6 +22,8 @@ from pathlib import Path
 import OCDocker.Docking.PLANTS as ocplants
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina
+import OCDocker.Error as ocerror
+import OCDocker.Toolbox.Conversion as occonversion
 
 from OCDocker.Toolbox.Preparation import MGLToolsPreparationStrategy, OpenBabelPreparationStrategy, PreparationStrategy, SPORESPreparationStrategy
 
@@ -51,6 +53,15 @@ def sample_ligand(test_files):
 
     return str(test_files['ligand'])
 
+
+@pytest.fixture
+def sample_ligand_mol2(tmp_path, sample_ligand):
+    '''Convert the test ligand to mol2, the input the preparation tools read.'''
+
+    mol2 = tmp_path / "input" / "ligand.mol2"
+    mol2.parent.mkdir()
+    assert occonversion.convert_mols(sample_ligand, str(mol2)) == ocerror.Error.ok() # type: ignore
+    return str(mol2)
 
 @pytest.fixture
 def sample_receptor(test_files):
@@ -103,41 +114,43 @@ class TestMGLToolsPreparationStrategy:
     """Test MGLTools preparation strategy."""
 
     
-    def test_prepare_ligand(self, tmp_path, sample_ligand):
-        '''Test ligand preparation with tools.'''
+    def test_prepare_ligand(self, tmp_path, sample_ligand_mol2):
+        '''Test ligand preparation with MGLTools writes a flexible pdbqt.'''
         
         strategy = MGLToolsPreparationStrategy()
         output = tmp_path / "output" / "ligand.pdbqt"
         
-        result = strategy.prepare_ligand(sample_ligand, str(output), "")
-        
-        # Result should be an int or tuple (may succeed or fail depending on tool availability)
-        assert isinstance(result, (int, tuple))
+        result = strategy.prepare_ligand(sample_ligand_mol2, str(output), "")
+        assert result == ocerror.Error.ok(), f"Preparation failed. Error code: {result}" # type: ignore
+        assert "ROOT" in output.read_text()
 
     
     def test_prepare_receptor(self, tmp_path, sample_receptor):
-        '''Test receptor preparation with tools.'''
+        '''Test receptor preparation with MGLTools writes a pdbqt.'''
         
         strategy = MGLToolsPreparationStrategy()
         output = tmp_path / "output" / "receptor.pdbqt"
         
         result = strategy.prepare_receptor(sample_receptor, str(output), "")
-        
-        # Result should be an int or tuple (may succeed or fail depending on tool availability)
-        assert isinstance(result, (int, tuple))
+        assert result == ocerror.Error.ok(), f"Preparation failed. Error code: {result}" # type: ignore
+        assert "ATOM" in output.read_text()
 
     
-    def test_shared_utilities(self):
+    def test_shared_utilities(self, tmp_path):
         '''Test that shared utility methods work correctly.'''
+        
+        import sys
 
         strategy = MGLToolsPreparationStrategy()
         
         # Test tool availability check
-        assert isinstance(strategy._check_tool_available("/nonexistent"), bool)
+        assert strategy._check_tool_available("/nonexistent") is False
+        assert strategy._check_tool_available(sys.executable) is True
         
         # Test directory creation
-        test_path = "/tmp/test_prep/output.pdbqt"
-        strategy._ensure_output_dir(test_path)
+        test_path = tmp_path / "test_prep" / "output.pdbqt"
+        strategy._ensure_output_dir(str(test_path))
+        assert test_path.parent.is_dir()
 
     
     def test_strategy_instantiation(self):
@@ -153,28 +166,26 @@ class TestSPORESPreparationStrategy:
     """Test SPORES preparation strategy."""
 
     
-    def test_prepare_ligand(self, tmp_path, sample_ligand):
-        '''Test ligand preparation with tools.'''
+    def test_prepare_ligand(self, tmp_path, sample_ligand_mol2):
+        '''Test ligand preparation with SPORES writes a mol2 file.'''
         
         strategy = SPORESPreparationStrategy()
         output = tmp_path / "output" / "ligand.mol2"
         
-        result = strategy.prepare_ligand(sample_ligand, str(output), "")
-        
-        # Result should be an int or tuple (may succeed or fail depending on tool availability)
-        assert isinstance(result, (int, tuple))
+        result = strategy.prepare_ligand(sample_ligand_mol2, str(output), "")
+        assert result == ocerror.Error.ok(), f"Preparation failed. Error code: {result}" # type: ignore
+        assert "@<TRIPOS>ATOM" in output.read_text()
 
     
     def test_prepare_receptor(self, tmp_path, sample_receptor):
-        '''Test receptor preparation with tools.'''
+        '''Test receptor preparation with SPORES writes a mol2 file.'''
         
         strategy = SPORESPreparationStrategy()
         output = tmp_path / "output" / "receptor.mol2"
         
         result = strategy.prepare_receptor(sample_receptor, str(output), "")
-        
-        # Result should be an int or tuple (may succeed or fail depending on tool availability)
-        assert isinstance(result, (int, tuple))
+        assert result == ocerror.Error.ok(), f"Preparation failed. Error code: {result}" # type: ignore
+        assert "@<TRIPOS>ATOM" in output.read_text()
 
     
     def test_strategy_instantiation(self):
@@ -189,31 +200,39 @@ class TestOpenBabelPreparationStrategy:
     """Test OpenBabel preparation strategy."""
 
     
-    def test_prepare_ligand_with_valid_file(self, tmp_path, sample_ligand):
-        '''Test ligand preparation with valid mol2 file.'''
+    def test_prepare_ligand_with_valid_file(self, tmp_path, sample_ligand_mol2):
+        '''Test ligand preparation with valid mol2 file writes a flexible pdbqt.'''
         
         strategy = OpenBabelPreparationStrategy()
         output = tmp_path / "output" / "ligand.pdbqt"
         
-        # This may fail if openbabel is not available, but should handle gracefully
-        result = strategy.prepare_ligand(sample_ligand, str(output), "")
+        result = strategy.prepare_ligand(sample_ligand_mol2, str(output), "")
+        assert result == ocerror.Error.ok(), f"Preparation failed. Error code: {result}" # type: ignore
+        assert "ROOT" in output.read_text()
+
+    
+    def test_prepare_ligand_smiles_without_mol2(self, tmp_path):
+        '''Test ligand preparation from a smiles file needs the ligand.mol2 next to it.'''
         
-        # Result should be an int or tuple
-        assert isinstance(result, (int, tuple))
+        strategy = OpenBabelPreparationStrategy()
+        smiles = tmp_path / "ligand.smi"
+        smiles.write_text("CCO\n")
+        output = tmp_path / "output" / "ligand.pdbqt"
+        
+        result = strategy.prepare_ligand(str(smiles), str(output), "")
+        assert result == ocerror.ErrorCode.FILE_NOT_EXIST
+        assert not output.exists()
 
     
     def test_prepare_receptor_with_valid_file(self, tmp_path, sample_receptor):
-        '''Test receptor preparation with valid pdb file.'''
+        '''Test receptor preparation with valid pdb file writes a pdbqt.'''
         
         strategy = OpenBabelPreparationStrategy()
         output = tmp_path / "output" / "receptor.pdbqt"
         
-        # This may fail if openbabel is not available, but should handle gracefully
         result = strategy.prepare_receptor(sample_receptor, str(output), "")
-
-        # Result should be an int or tuple
-        assert isinstance(result, (int, tuple))
-
+        assert result == ocerror.Error.ok(), f"Preparation failed. Error code: {result}" # type: ignore
+        assert "ATOM" in output.read_text()
 
     def test_prepare_receptor_writes_rigid_pdbqt(self, tmp_path, sample_receptor):
         '''Test that the prepared receptor has no ligand torsion tree, which Vina rejects.'''
