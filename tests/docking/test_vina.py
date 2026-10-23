@@ -15,6 +15,7 @@ pytest tests/test_Vina.py
 import pytest
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import OCDocker.Docking.Vina as ocvina
 import OCDocker.Error as ocerror
@@ -39,6 +40,38 @@ See the LICENSE file for full terms.
 # Functions
 ###############################################################################
 ## Private ##
+
+def _record_vina_runs(monkeypatch, log_text: str = "Estimated Free Energy of Binding    -7.00 (kcal/mol)\n") -> list:
+    '''Replace the vina run by a stub that records the command and writes the given log.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        The pytest monkeypatch fixture.
+    log_text : str, optional
+        The text written to the log file of each run.
+
+    Returns
+    -------
+    list
+        The commands run, filled as the runs happen.
+    '''
+
+    commands = []
+
+    def fake_run(cmd, logFile = "", **_kwargs):
+        commands.append(cmd)
+        Path(logFile).write_text(log_text)
+        return ocerror.Error.ok()
+
+    monkeypatch.setattr(ocvina.ocrun, "run", fake_run)
+    return commands
+
+
+def _option(cmd: list, name: str) -> str:
+    '''Return the value following an option in a command list.'''
+
+    return cmd[cmd.index(name) + 1]
 
 ## Public ##
 
@@ -113,12 +146,13 @@ def test_box_to_vina_read_error(tmp_path):
         conf_file=str(conf_file),
         receptor="rec.pdbqt"
     )
-    # Should either succeed (if it handles gracefully) or return error
-    assert isinstance(result, int)
+    # A box without the center and dimensions lines can not give a conf file
+    assert result == ocerror.ErrorCode.READ_FILE
+    assert not conf_file.exists()
 
 @pytest.mark.order(38)
 def test_box_to_vina_write_error_handling(tmp_path, monkeypatch):
-    '''Test box_to_vina handles write errors gracefully.'''
+    '''Test box_to_vina creates the missing parent directory of the conf file.'''
     
     box_file = tmp_path / "box.pdb"
     box_file.write_text(
@@ -135,8 +169,9 @@ def test_box_to_vina_write_error_handling(tmp_path, monkeypatch):
         receptor="rec.pdbqt"
     )
     
-    # Should handle write error gracefully (may succeed if parent dir is auto-created, or return error)
-    assert isinstance(result, int)
+    # The missing parent directory is created
+    assert result == ocerror.Error.ok() # type: ignore
+    assert "center_x = 1.0" in conf_file.read_text()
 
 @pytest.mark.order(2)
 def test_convert_smi_to_mol2(vina_inputs):
@@ -174,8 +209,10 @@ def test_generate_vina_files_database(vina_inputs, tmp_path):
         protein=protein_path,
         boxPath=box_path
     )
-    # Function returns None, so just check it doesn't raise
     assert result is None
+    conf = (tmp_path / "vinaFiles" / "conf_vina.conf").read_text()
+    assert f"receptor = {protein_path}" in conf
+    assert "center_x = 32.698" in conf
 
 @pytest.mark.order(29)
 def test_generate_vina_files_database_default_box(vina_inputs, tmp_path):
@@ -198,6 +235,9 @@ def test_generate_vina_files_database_default_box(vina_inputs, tmp_path):
         boxPath=""
     )
     assert result is None
+    conf = (tmp_path / "vinaFiles" / "conf_vina.conf").read_text()
+    assert "center_x = 1.0" in conf
+    assert "size_z = 6.0" in conf
 
 @pytest.mark.order(7)
 def test_get_pose_index_from_file_path():
@@ -227,8 +267,7 @@ def test_read_rescore_logs_list(tmp_path):
     log2.write_text("Estimated Free Energy of Binding    -6.50 (kcal/mol)\n")
     
     result = ocvina.read_rescore_logs([str(log1), str(log2)])
-    assert isinstance(result, dict)
-    assert len(result) > 0
+    assert result == {"rescoring_vina_1": -7.23, "rescoring_vina_2": -6.5}
 
 @pytest.mark.order(27)
 def test_read_rescore_logs_only_best(tmp_path):
@@ -241,7 +280,7 @@ def test_read_rescore_logs_only_best(tmp_path):
     log2.write_text("Estimated Free Energy of Binding    -6.50 (kcal/mol)\n")
     
     result = ocvina.read_rescore_logs([str(log1), str(log2)], onlyBest=True)
-    assert isinstance(result, dict)
+    assert result == {"rescoring_vina_1": -7.23}
 
 @pytest.mark.order(26)
 def test_read_rescore_logs_string(tmp_path):
@@ -251,7 +290,7 @@ def test_read_rescore_logs_string(tmp_path):
     log1.write_text("Estimated Free Energy of Binding    -7.23 (kcal/mol)\n")
     
     result = ocvina.read_rescore_logs(str(log1))
-    assert isinstance(result, dict)
+    assert result == {"rescoring_vina_1": -7.23}
 
 @pytest.mark.order(9)
 def test_read_rescoring_log(tmp_path):
@@ -315,23 +354,22 @@ def test_run_prepare_receptor(vina_inputs):
 
 @pytest.mark.order(31)
 def test_run_rescore_list_ligands(vina_inputs, tmp_path, monkeypatch):
-    '''Test standalone run_rescore function with list of ligands.'''
-    
-    # Create mock config file
+    '''Test standalone run_rescore scores every ligand of a list with the given scoring function.'''
+
     conf_file = tmp_path / "conf.txt"
     conf_file.write_text("receptor = rec.pdbqt\ncenter_x = 0\ncenter_y = 0\ncenter_z = 0\nsize_x = 10\nsize_y = 10\nsize_z = 10\n")
-    
-    # Create output directory
+
     out_path = tmp_path / "rescoring"
     out_path.mkdir()
-    
-    # Create already split ligands (no splitting needed)
+
+    # Already split ligands (no splitting needed)
     lig1 = out_path / "lig_split_1.pdbqt"
     lig1.write_text("MODEL 1\nATOM\nENDMDL\n")
     lig2 = out_path / "lig_split_2.pdbqt"
     lig2.write_text("MODEL 1\nATOM\nENDMDL\n")
-    
-    # Test with list of ligands, splitLigand=False
+
+    commands = _record_vina_runs(monkeypatch)
+
     result = ocvina.run_rescore(
         confFile=str(conf_file),
         ligands=[str(lig1), str(lig2)],
@@ -341,30 +379,29 @@ def test_run_rescore_list_ligands(vina_inputs, tmp_path, monkeypatch):
         splitLigand=False,
         overwrite=False
     )
-    # Function returns None
     assert result is None
+    assert [_option(cmd, "--ligand") for cmd in commands] == [str(lig1), str(lig2)]
+    assert all("--score_only" in cmd and _option(cmd, "--scoring") == "vina" and _option(cmd, "--config") == str(conf_file) for cmd in commands)
+    assert ocvina.read_rescore_logs(ocvina.get_rescore_log_paths(str(out_path))) == {"rescoring_vina_1": -7.0, "rescoring_vina_2": -7.0}
 
 @pytest.mark.order(32)
 def test_run_rescore_overwrite_false_existing_log(tmp_path, monkeypatch):
-    '''Test run_rescore with overwrite=False when log file already exists.'''
-    
-    # Create mock config file
+    '''Test run_rescore with overwrite=False skips a ligand whose log file already exists.'''
+
     conf_file = tmp_path / "conf.txt"
     conf_file.write_text("receptor = rec.pdbqt\ncenter_x = 0\ncenter_y = 0\ncenter_z = 0\nsize_x = 10\nsize_y = 10\nsize_z = 10\n")
-    
-    # Create output directory
+
     out_path = tmp_path / "rescoring"
     out_path.mkdir()
-    
-    # Create already split ligand
+
     lig1 = out_path / "lig_split_1.pdbqt"
     lig1.write_text("MODEL 1\nATOM\nENDMDL\n")
-    
-    # Create existing log file
+
     log_file = out_path / "lig_split_1_vina_rescoring.log"
     log_file.write_text("Estimated Free Energy of Binding    -7.5 (kcal/mol)\n")
-    
-    # Test with overwrite=False (should skip)
+
+    commands = _record_vina_runs(monkeypatch)
+
     result = ocvina.run_rescore(
         confFile=str(conf_file),
         ligands=[str(lig1)],
@@ -374,38 +411,35 @@ def test_run_rescore_overwrite_false_existing_log(tmp_path, monkeypatch):
         splitLigand=False,
         overwrite=False
     )
-    # Function returns None (should skip when log exists and overwrite=False)
     assert result is None
+    assert commands == []
+    assert ocvina.read_rescoring_log(str(log_file)) == -7.5
 
 @pytest.mark.order(33)
 def test_run_rescore_overwrite_true(tmp_path, monkeypatch):
-    '''Test run_rescore with overwrite=True.'''
-    
-    # Create mock config file
+    '''Test run_rescore with overwrite=True rescores a ligand whose log file already exists.'''
+
     conf_file = tmp_path / "conf.txt"
     conf_file.write_text("receptor = rec.pdbqt\ncenter_x = 0\ncenter_y = 0\ncenter_z = 0\nsize_x = 10\nsize_y = 10\nsize_z = 10\n")
-    
-    # Create a ligand file for splitting
+
     ligand_file = tmp_path / "ligand.pdbqt"
     ligand_file.write_text("MODEL 1\nATOM\nENDMDL\n")
-    
-    # Create output directory
+
     out_path = tmp_path / "rescoring"
     out_path.mkdir()
-    
-    # Create existing log file (should be overwritten)
+
+    # Existing log file (should be overwritten)
     log_file = out_path / "ligand_split_1_vina_rescoring.log"
     log_file.write_text("Old content\n")
-    
-    # Mock split_poses
+
     def mock_split_poses(ligand, name, outPath, logFile="", suffix=""):
         split_file = out_path / f"{name}{suffix}1.pdbqt"
         split_file.write_text("MODEL 1\nATOM\nENDMDL\n")
         return 0
-    
+
     monkeypatch.setattr(ocvina.ocmolproc, 'split_poses', mock_split_poses)
-    
-    # Test with overwrite=True (should process even if log exists)
+    commands = _record_vina_runs(monkeypatch)
+
     result = ocvina.run_rescore(
         confFile=str(conf_file),
         ligands=str(ligand_file),
@@ -416,24 +450,24 @@ def test_run_rescore_overwrite_true(tmp_path, monkeypatch):
         overwrite=True
     )
     assert result is None
+    assert [_option(cmd, "--ligand") for cmd in commands] == [str(out_path / "ligand_split_1.pdbqt")]
+    assert ocvina.read_rescoring_log(str(log_file)) == -7.0
 
 @pytest.mark.order(34)
-def test_run_rescore_split_ligand_false(tmp_path):
-    '''Test run_rescore with splitLigand=False.'''
-    
-    # Create mock config file
+def test_run_rescore_removes_failed_log(tmp_path, monkeypatch):
+    '''Test run_rescore removes the log file of a run that did not give a binding energy.'''
+
     conf_file = tmp_path / "conf.txt"
     conf_file.write_text("receptor = rec.pdbqt\ncenter_x = 0\ncenter_y = 0\ncenter_z = 0\nsize_x = 10\nsize_y = 10\nsize_z = 10\n")
-    
-    # Create output directory
+
     out_path = tmp_path / "rescoring"
     out_path.mkdir()
-    
-    # Create already split ligands
+
     lig1 = out_path / "lig_split_1.pdbqt"
     lig1.write_text("MODEL 1\nATOM\nENDMDL\n")
-    
-    # Test with splitLigand=False (should use ligands as-is)
+
+    commands = _record_vina_runs(monkeypatch, log_text = "Error: parse error\n")
+
     result = ocvina.run_rescore(
         confFile=str(conf_file),
         ligands=[str(lig1)],
@@ -444,6 +478,8 @@ def test_run_rescore_split_ligand_false(tmp_path):
         overwrite=False
     )
     assert result is None
+    assert len(commands) == 1
+    assert not (out_path / "lig_split_1_vina_rescoring.log").exists()
 
 @pytest.mark.order(30)
 def test_run_rescore_string_ligand(vina_inputs, tmp_path, monkeypatch):
@@ -469,6 +505,7 @@ def test_run_rescore_string_ligand(vina_inputs, tmp_path, monkeypatch):
         return 0
     
     monkeypatch.setattr(ocvina.ocmolproc, 'split_poses', mock_split_poses)
+    commands = _record_vina_runs(monkeypatch)
     
     # Test with string ligand (should be converted to list)
     result = ocvina.run_rescore(
@@ -480,8 +517,8 @@ def test_run_rescore_string_ligand(vina_inputs, tmp_path, monkeypatch):
         splitLigand=True,
         overwrite=False
     )
-    # Function returns None
     assert result is None
+    assert [_option(cmd, "--ligand") for cmd in commands] == [str(out_path / "ligand_split_1.pdbqt")]
 
 @pytest.mark.order(6)
 def test_run_vina(vina_inputs):
@@ -589,8 +626,7 @@ def test_vina_get_docked_poses(vina_inputs, tmp_path):
     )
     
     result = vina_instance.get_docked_poses()
-    assert isinstance(result, list)
-    # Result may be empty if no poses found, but should be a list
+    assert sorted(result) == [str(output_dir / "ligand_split_1.pdbqt"), str(output_dir / "ligand_split_2.pdbqt")]
 
 @pytest.mark.order(11)
 def test_vina_get_input_ligand_path(vina_inputs):
@@ -609,8 +645,7 @@ def test_vina_get_input_ligand_path(vina_inputs):
     )
     
     result = vina_instance.get_input_ligand_path()
-    assert isinstance(result, str)
-    assert len(result) > 0
+    assert result == str(Path(vina_inputs["converted_ligand_file"]).parent)
 
 @pytest.mark.order(12)
 def test_vina_get_input_receptor_path(vina_inputs):
@@ -629,8 +664,7 @@ def test_vina_get_input_receptor_path(vina_inputs):
     )
     
     result = vina_instance.get_input_receptor_path()
-    assert isinstance(result, str)
-    assert len(result) > 0
+    assert result == str(Path(vina_inputs["receptor_file"]).parent)
 
 @pytest.mark.order(1)
 def test_vina_instantiation(vina_inputs):
@@ -680,8 +714,11 @@ def test_vina_read_log(vina_inputs, tmp_path):
     # Create a mock log file
     log_file = tmp_path / "vina.log"
     log_file.write_text(
-        "REMARK VINA RESULT:    -7.5      0.000\n"
-        "REMARK VINA RESULT:    -6.8      0.000\n"
+        "mode |   affinity | dist from best mode\n"
+        "     | (kcal/mol) | rmsd l.b.| rmsd u.b.\n"
+        "-----+------------+----------+----------\n"
+        "   1         -7.5      0.000      0.000\n"
+        "   2         -6.8      1.234      2.345\n"
     )
     
     vina_instance = ocvina.Vina(
@@ -696,8 +733,11 @@ def test_vina_read_log(vina_inputs, tmp_path):
         name="test"
     )
     
+    from OCDocker.Config import get_config
+    vina_scoring = get_config().vina.scoring
+
     result = vina_instance.read_log()
-    assert isinstance(result, dict)
+    assert result == {1: {vina_scoring: -7.5}, 2: {vina_scoring: -6.8}}
 
 @pytest.mark.order(15)
 def test_vina_read_log_only_best(vina_inputs, tmp_path):
@@ -705,8 +745,11 @@ def test_vina_read_log_only_best(vina_inputs, tmp_path):
 
     log_file = tmp_path / "vina.log"
     log_file.write_text(
-        "REMARK VINA RESULT:    -7.5      0.000\n"
-        "REMARK VINA RESULT:    -6.8      0.000\n"
+        "mode |   affinity | dist from best mode\n"
+        "     | (kcal/mol) | rmsd l.b.| rmsd u.b.\n"
+        "-----+------------+----------+----------\n"
+        "   1         -7.5      0.000      0.000\n"
+        "   2         -6.8      1.234      2.345\n"
     )
     
     vina_instance = ocvina.Vina(
@@ -721,8 +764,11 @@ def test_vina_read_log_only_best(vina_inputs, tmp_path):
         name="test"
     )
     
+    from OCDocker.Config import get_config
+    vina_scoring = get_config().vina.scoring
+
     result = vina_instance.read_log(onlyBest=True)
-    assert isinstance(result, dict)
+    assert result == {1: {vina_scoring: -7.5}}
 
 @pytest.mark.order(16)
 def test_vina_read_rescore_logs(vina_inputs, tmp_path):
@@ -751,7 +797,7 @@ def test_vina_read_rescore_logs(vina_inputs, tmp_path):
     )
     
     result = vina_instance.read_rescore_logs(str(out_path))
-    assert isinstance(result, dict)
+    assert result == {"rescoring_vina_1": -7.23, "rescoring_vina_2": -6.5}
 
 @pytest.mark.order(17)
 def test_vina_read_rescore_logs_only_best(vina_inputs, tmp_path):
@@ -780,11 +826,13 @@ def test_vina_read_rescore_logs_only_best(vina_inputs, tmp_path):
     )
     
     result = vina_instance.read_rescore_logs(str(out_path), onlyBest=True)
-    assert isinstance(result, dict)
+    assert result == {"rescoring_vina_1": -7.23}
 
 @pytest.mark.order(21)
-def test_vina_run_prepare_ligand_openbabel(vina_inputs):
-    '''Test run_prepare_ligand with useOpenBabel=True.'''
+def test_vina_run_prepare_ligand_openbabel(vina_inputs, tmp_path):
+    '''Test run_prepare_ligand with useOpenBabel=True writes a flexible ligand.'''
+
+    prepared_ligand = tmp_path / "prepared_ligand.pdbqt"
 
     vina_instance = ocvina.Vina(
         config_path=vina_inputs["config"],
@@ -792,24 +840,28 @@ def test_vina_run_prepare_ligand_openbabel(vina_inputs):
         receptor=vina_inputs["receptor"],
         prepared_receptor_path=vina_inputs["receptor_path"],
         ligand=vina_inputs["ligand"],
-        prepared_ligand_path=vina_inputs["ligand_path"],
+        prepared_ligand_path=str(prepared_ligand),
         vina_log=vina_inputs["vina_log"],
         output_vina=vina_inputs["output_dir"],
         name="test"
     )
     
     result = vina_instance.run_prepare_ligand(useOpenBabel=True)
-    assert isinstance(result, (int, str, tuple))
+    assert result == ocerror.Error.ok() # type: ignore
+    # A ligand pdbqt has a torsion tree
+    assert "ROOT" in prepared_ligand.read_text()
 
 @pytest.mark.order(22)
-def test_vina_run_prepare_receptor_openbabel(vina_inputs):
-    '''Test run_prepare_receptor with useOpenBabel=True.'''
+def test_vina_run_prepare_receptor_openbabel(vina_inputs, tmp_path):
+    '''Test run_prepare_receptor with useOpenBabel=True writes a rigid receptor.'''
+
+    prepared_receptor = tmp_path / "prepared_receptor.pdbqt"
 
     vina_instance = ocvina.Vina(
         config_path=vina_inputs["config"],
         box_file=vina_inputs["box"],
         receptor=vina_inputs["receptor"],
-        prepared_receptor_path=vina_inputs["receptor_path"],
+        prepared_receptor_path=str(prepared_receptor),
         ligand=vina_inputs["ligand"],
         prepared_ligand_path=vina_inputs["ligand_path"],
         vina_log=vina_inputs["vina_log"],
@@ -818,7 +870,10 @@ def test_vina_run_prepare_receptor_openbabel(vina_inputs):
     )
     
     result = vina_instance.run_prepare_receptor(useOpenBabel=True)
-    assert isinstance(result, (int, str, tuple))
+    assert result == ocerror.Error.ok() # type: ignore
+    # A rigid receptor has atoms but no torsion tree
+    text = prepared_receptor.read_text()
+    assert "ATOM" in text and "ROOT" not in text
 
 @pytest.mark.order(39)
 def test_vina_run_rescore_instance_method(vina_inputs, tmp_path, monkeypatch):
@@ -842,13 +897,11 @@ def test_vina_run_rescore_instance_method(vina_inputs, tmp_path, monkeypatch):
     split_lig = split_dir / "lig_split_1.pdbqt"
     split_lig.write_text("MODEL 1\nATOM\nENDMDL\n")
     
-    # Mock get_docked_poses to return our mock split file
-    def mock_get_docked_poses(path):
-        return [str(split_lig)]
+    calls = []
+    monkeypatch.setattr(ocvina, 'get_config', lambda: SimpleNamespace(vina=SimpleNamespace(scoring="vina", scoring_functions=["vina", "vinardo"])))
+    monkeypatch.setattr(ocvina, 'run_rescore', lambda confFile, ligand, outPath, scoring_function, **kwargs: calls.append(scoring_function))
     
-    monkeypatch.setattr(vina_instance, 'get_docked_poses', lambda: [str(split_lig)])
-    
-    # Test run_rescore with skipDefaultScoring=True
+    # Test run_rescore with skipDefaultScoring=True (the default scoring function was used in the docking)
     result = vina_instance.run_rescore(
         outPath=str(split_dir),
         ligand=str(split_lig),
@@ -856,8 +909,8 @@ def test_vina_run_rescore_instance_method(vina_inputs, tmp_path, monkeypatch):
         skipDefaultScoring=True,
         overwrite=False
     )
-    # Method returns None
     assert result is None
+    assert calls == ["vinardo"]
 
 @pytest.mark.order(40)
 def test_vina_run_rescore_overwrite_true(vina_inputs, tmp_path, monkeypatch):
@@ -880,17 +933,21 @@ def test_vina_run_rescore_overwrite_true(vina_inputs, tmp_path, monkeypatch):
     split_lig = split_dir / "lig_split_1.pdbqt"
     split_lig.write_text("MODEL 1\nATOM\nENDMDL\n")
     
-    monkeypatch.setattr(vina_instance, 'get_docked_poses', lambda: [str(split_lig)])
+    calls = []
+    monkeypatch.setattr(ocvina, 'get_config', lambda: SimpleNamespace(vina=SimpleNamespace(scoring="vina", scoring_functions=["vina", "vinardo"])))
+    monkeypatch.setattr(ocvina, 'run_rescore', lambda confFile, ligand, outPath, scoring_function, splitLigand, overwrite, **kwargs: calls.append((scoring_function, splitLigand, overwrite)))
     
-    # Test run_rescore with overwrite=True
+    # Test run_rescore with overwrite=True (the ligand is split only for the first scoring function)
     result = vina_instance.run_rescore(
         outPath=str(split_dir),
         ligand=str(split_lig),
         logFile="",
         skipDefaultScoring=False,
+        splitLigand=True,
         overwrite=True
     )
     assert result is None
+    assert calls == [("vina", True, True), ("vinardo", False, True)]
 
 @pytest.mark.order(18)
 def test_vina_split_poses(vina_inputs, tmp_path):
@@ -916,7 +973,9 @@ def test_vina_split_poses(vina_inputs, tmp_path):
     out_path.mkdir()
     
     result = vina_instance.split_poses(str(out_path))
-    assert isinstance(result, int)
+    assert result == ocerror.Error.ok() # type: ignore
+    name = vina_instance.input_ligand.name
+    assert sorted(f.name for f in out_path.iterdir()) == [f"{name}_split_1.pdbqt", f"{name}_split_2.pdbqt"]
 
 @pytest.mark.order(19)
 def test_vina_split_poses_default_path(vina_inputs, tmp_path):
@@ -938,7 +997,9 @@ def test_vina_split_poses_default_path(vina_inputs, tmp_path):
     )
     
     result = vina_instance.split_poses()
-    assert isinstance(result, int)
+    assert result == ocerror.Error.ok() # type: ignore
+    # The poses are written next to the vina output
+    assert (tmp_path / f"{vina_instance.input_ligand.name}_split_1.pdbqt").is_file()
 
 @pytest.fixture
 def vina_inputs():

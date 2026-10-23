@@ -103,15 +103,16 @@ def test_box_to_plants(plants_inputs):
         box_file=plants_inputs["box"],
         conf_file=str(plants_inputs["config"]),
         receptor=plants_inputs["receptor_path"],
-        ligand=plants_inputs["ligand_file"],
+        # PLANTS docks the prepared mol2 ligand (it skips a smi file)
+        ligand=plants_inputs["ligand_path"],
         output_plants=plants_inputs["plants_files_dir"],
         center=None,
         binding_site_radius=None,
         spacing=2.9
     )
 
-    assert result == 0 or result is True
-    assert Path(plants_inputs["config"]).exists()
+    assert result == ocerror.Error.ok() # type: ignore
+    assert "bindingsite_center 32.698 38.446 58.497" in Path(plants_inputs["config"]).read_text()
 
 
 @pytest.mark.order(42)
@@ -227,6 +228,9 @@ def test_plants_generate_plants_files_database(plants_inputs, tmp_path):
         boxPath=box_path
     )
     assert result is None
+    conf = (tmp_path / "plantsFiles" / "conf_plants.conf").read_text()
+    assert f"protein_file {protein_path}" in conf
+    assert "bindingsite_center 32.698 38.446 58.497" in conf
 
 
 @pytest.mark.order(28)
@@ -236,15 +240,10 @@ def test_plants_generate_plants_files_database_default_box(plants_inputs, tmp_pa
     protein_path = str(plants_inputs["receptor_file"])
     ligand_path = str(plants_inputs["ligand_file"])
     
-    # Create boxes directory
+    # Create boxes directory (the default boxPath) with a copy of the test box
     boxes_dir = tmp_path / "boxes"
     boxes_dir.mkdir()
-    box_file = boxes_dir / "box0.pdb"
-    box_file.write_text(
-        "REMARK    CENTER (X Y Z)        1.000  2.000  3.000\n"
-        "HEADER    MIN (X Y Z)           0.000  1.000  2.000\n"
-        "HEADER    MAX (X Y Z)           2.000  3.000  4.000\n"
-    )
+    shutil.copy(plants_inputs["box"], boxes_dir / "box0.pdb")
     
     result = ocplants.generate_plants_files_database(
         path=str(tmp_path),
@@ -253,6 +252,7 @@ def test_plants_generate_plants_files_database_default_box(plants_inputs, tmp_pa
         boxPath=""
     )
     assert result is None
+    assert "bindingsite_center 32.698 38.446 58.497" in (tmp_path / "plantsFiles" / "conf_plants.conf").read_text()
 
 
 @pytest.mark.order(12)
@@ -356,7 +356,8 @@ def test_plants_get_rescore_log_paths(plants_inputs, tmp_path):
     )
     
     result = plants_instance.get_rescore_log_paths(onlyBest=True)
-    assert isinstance(result, list)
+    # Only run_chemplp has a bestranking.csv
+    assert result == [str(run_chemplp / "bestranking.csv")]
 
 
 @pytest.mark.order(41)
@@ -378,9 +379,8 @@ def test_plants_init_invalid_ligand(plants_inputs):
         name="test"
     )
     
-    # Object is created but in invalid state (__init__ returns None but Python ignores it)
-    # The error handling path (lines 122-124) is tested
-    assert plants_instance is not None  # Object is created
+    # __init__ stops at the ligand check
+    assert not hasattr(plants_instance, "input_ligand")
 
 
 @pytest.mark.order(40)
@@ -402,9 +402,8 @@ def test_plants_init_invalid_receptor(plants_inputs):
         name="test"
     )
     
-    # Object is created but in invalid state (__init__ returns None but Python ignores it)
-    # The error handling path (lines 110-111) is tested
-    assert plants_instance is not None  # Object is created
+    # __init__ stops at the receptor check
+    assert not hasattr(plants_instance, "input_receptor")
 
 
 @pytest.mark.order(39)
@@ -462,8 +461,9 @@ def test_plants_instance_run_prepare_ligand(plants_inputs):
         name="test"
     )
     
-    result = plants_instance.run_prepare_ligand()
-    assert isinstance(result, (int, tuple))
+    result = plants_instance.run_prepare_ligand(overwrite=True)
+    assert result == ocerror.Error.ok(), f"Preparation of ligand failed. Error code: {result}" # type: ignore
+    assert Path(plants_instance.prepared_ligand).is_file()
 
 
 @pytest.mark.order(21)
@@ -482,8 +482,9 @@ def test_plants_instance_run_prepare_receptor(plants_inputs):
         name="test"
     )
     
-    result = plants_instance.run_prepare_receptor()
-    assert isinstance(result, (int, tuple))
+    result = plants_instance.run_prepare_receptor(overwrite=True)
+    assert result == ocerror.Error.ok(), f"Preparation of receptor failed. Error code: {result}" # type: ignore
+    assert Path(plants_instance.prepared_receptor).is_file()
 
 
 @pytest.mark.order(37)
@@ -518,6 +519,8 @@ def test_plants_instance_run_rescore(plants_inputs, tmp_path, monkeypatch):
         return MockConfig()
     
     monkeypatch.setattr(ocplants, 'get_config', mock_get_config)
+    calls = []
+    monkeypatch.setattr(ocplants, 'run_rescore', lambda confFile, pose_list_file, outPath, proteinFile, scoring_function, *args, **kwargs: calls.append((scoring_function, outPath, kwargs["overwrite"])))
     
     result = plants_instance.run_rescore(
         pose_list=str(pose_list),
@@ -526,8 +529,15 @@ def test_plants_instance_run_rescore(plants_inputs, tmp_path, monkeypatch):
         overwrite=False
     )
     
-    # Instance method returns None
     assert result is None
+    # Each scoring function writes to its own run folder
+    output = tmp_path / "output"
+    assert calls == [("chemplp", f"{output}/run_chemplp", False), ("plp", f"{output}/run_plp", False)]
+
+    # skipDefaultScoring leaves out the scoring function used in the docking
+    calls.clear()
+    plants_instance.run_rescore(pose_list=str(pose_list), skipDefaultScoring=True)
+    assert [call[0] for call in calls] == ["plp"]
 
 
 @pytest.mark.order(38)
@@ -562,6 +572,8 @@ def test_plants_instance_run_rescore_overwrite(plants_inputs, tmp_path, monkeypa
         return MockConfig()
     
     monkeypatch.setattr(ocplants, 'get_config', mock_get_config)
+    calls = []
+    monkeypatch.setattr(ocplants, 'run_rescore', lambda confFile, pose_list_file, outPath, proteinFile, scoring_function, *args, **kwargs: calls.append((scoring_function, kwargs["overwrite"])))
     
     result = plants_instance.run_rescore(
         pose_list=str(pose_list),
@@ -570,8 +582,8 @@ def test_plants_instance_run_rescore_overwrite(plants_inputs, tmp_path, monkeypa
         overwrite=True  # Should overwrite
     )
     
-    # Instance method returns None
     assert result is None
+    assert calls == [("chemplp", True)]
 
 
 @pytest.mark.order(1)
@@ -624,7 +636,8 @@ def test_plants_read_log(plants_inputs, tmp_path):
     '''Test read_log method.'''
 
     output_dir = tmp_path / "plants_output"
-    csv_dir = output_dir / "test_lig"
+    # The ranking files are read from the run folder
+    csv_dir = output_dir / "run"
     csv_dir.mkdir(parents=True)
     
     # Create mock ranking CSV file with PLANTS format
@@ -647,7 +660,8 @@ def test_plants_read_log(plants_inputs, tmp_path):
     )
     
     result = plants_instance.read_log()
-    assert isinstance(result, dict)
+    # The best pose keeps each score in a list
+    assert result == {1: {key: [value] for key, value in {"PLANTS_TOTAL_SCORE": -7.5, "PLANTS_SCORE_RB_PEN": -1.2, "PLANTS_SCORE_NORM_HEVATOMS": 2.5, "PLANTS_SCORE_NORM_CRT_HEVATOMS": 1.8, "PLANTS_SCORE_NORM_WEIGHT": 3.0, "PLANTS_SCORE_NORM_CRT_WEIGHT": 2.2, "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": -0.8}.items()}}
 
 
 @pytest.mark.order(14)
@@ -655,7 +669,8 @@ def test_plants_read_log_all_poses(plants_inputs, tmp_path):
     '''Test read_log method with onlyBest=False.'''
 
     output_dir = tmp_path / "plants_output"
-    csv_dir = output_dir / "test_lig"
+    # The ranking files are read from the run folder
+    csv_dir = output_dir / "run"
     csv_dir.mkdir(parents=True)
     
     # Create mock ranking CSV file with PLANTS format
@@ -679,7 +694,9 @@ def test_plants_read_log_all_poses(plants_inputs, tmp_path):
     )
     
     result = plants_instance.read_log(onlyBest=False)
-    assert isinstance(result, dict)
+    assert result[1] == {"PLANTS_TOTAL_SCORE": -7.5, "PLANTS_SCORE_RB_PEN": -1.2, "PLANTS_SCORE_NORM_HEVATOMS": 2.5, "PLANTS_SCORE_NORM_CRT_HEVATOMS": 1.8, "PLANTS_SCORE_NORM_WEIGHT": 3.0, "PLANTS_SCORE_NORM_CRT_WEIGHT": 2.2, "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": -0.8}
+    assert sorted(result) == [1, 2]
+    assert result[2]["PLANTS_TOTAL_SCORE"] == -6.8
 
 
 @pytest.mark.order(16)
@@ -709,7 +726,7 @@ def test_plants_read_rescore_logs(plants_inputs, tmp_path):
     )
     
     result = plants_instance.read_rescore_logs(onlyBest=True)
-    assert isinstance(result, dict)
+    assert result == {"plants_chemplp": {"PLANTS_TOTAL_SCORE": -7.5, "PLANTS_SCORE_RB_PEN": -1.2, "PLANTS_SCORE_NORM_HEVATOMS": 2.5, "PLANTS_SCORE_NORM_CRT_HEVATOMS": 1.8, "PLANTS_SCORE_NORM_WEIGHT": 3.0, "PLANTS_SCORE_NORM_CRT_WEIGHT": 2.2, "PLANTS_SCORE_RB_PEN_NORM_CRT_HEVATOMS": -0.8}}
 
 
 @pytest.mark.order(25)
@@ -778,7 +795,10 @@ def test_plants_write_config_file(plants_inputs):
     )
     
     result = plants_instance.write_config_file()
-    assert isinstance(result, int)
+    assert result == ocerror.Error.ok() # type: ignore
+    conf = Path(plants_instance.config).read_text()
+    assert "bindingsite_center 32.698 38.446 58.497" in conf
+    assert f"ligand_file {plants_instance.prepared_ligand}" in conf
 
 
 @pytest.mark.order(17)
@@ -806,7 +826,10 @@ def test_plants_write_pose_list(plants_inputs, tmp_path):
     )
     
     result = plants_instance.write_pose_list()
-    assert result is None or isinstance(result, str)
+    assert result == str(output_dir / "pose_list.txt")
+    assert sorted(Path(result).read_text().split("\n")) == [str(run_dir / "ligand_0001.mol2"), str(run_dir / "ligand_0002.mol2")]
+    # An existing pose list is kept
+    assert plants_instance.write_pose_list() is None
 
 
 @pytest.mark.order(18)
@@ -832,8 +855,10 @@ def test_plants_write_pose_list_overwrite(plants_inputs, tmp_path):
         name="test"
     )
     
+    (output_dir / "pose_list.txt").write_text("old list")
     result = plants_instance.write_pose_list(overwrite=True)
-    assert result is None or isinstance(result, str)
+    assert result == str(output_dir / "pose_list.txt")
+    assert Path(result).read_text() == str(run_dir / "ligand_0001.mol2")
 
 
 @pytest.mark.order(6)
@@ -862,8 +887,12 @@ def test_run_plants(plants_inputs):
         logFile=plants_inputs["plants_log"]
     )
 
-    assert result is True or isinstance(result, int)
+    assert result == ocerror.Error.ok(), f"PLANTS docking failed. Error code: {result}" # type: ignore
     assert Path(plants_inputs["plants_log"]).exists(), "PLANTS log file not generated"
+    # PLANTS writes its ranking and one mol2 file per pose
+    poses = ocplants.read_log(str(plants_run_dir / "ranking.csv"))
+    assert poses and min(pose["PLANTS_TOTAL_SCORE"] for pose in poses.values()) < 0
+    assert len(ocplants.get_docked_poses(str(plants_run_dir))) == len(poses)
 
 
 @pytest.mark.order(33)
@@ -1011,7 +1040,7 @@ def test_run_prepare_ligand(plants_inputs):
         input_ligand_path=plants_inputs["converted_ligand_file"],
         output_ligand=plants_inputs["ligand_path"]
     )
-    assert result is True or isinstance(result, int)
+    assert result == ocerror.Error.ok(), f"Preparation of ligand failed. Error code: {result}" # type: ignore
     assert Path(plants_inputs["ligand_path"]).exists()
 
 
@@ -1025,7 +1054,7 @@ def test_run_prepare_receptor(plants_inputs):
         input_receptor_path=str(plants_inputs["receptor_file"]),
         output_receptor=str(plants_inputs["receptor_path"])
     )
-    assert result is True or isinstance(result, int)
+    assert result == ocerror.Error.ok(), f"Preparation of receptor failed. Error code: {result}" # type: ignore
     assert Path(plants_inputs["receptor_path"]).exists()
 
 
