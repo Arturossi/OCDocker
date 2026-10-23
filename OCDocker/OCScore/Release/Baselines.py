@@ -26,7 +26,7 @@ from __future__ import annotations
 # Imports
 ###############################################################################
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -65,7 +65,9 @@ def _popcount_table() -> np.ndarray:
         Number of set bits for every byte value.
     '''
 
-    return np.unpackbits(np.arange(256, dtype=np.uint8)[:, None], axis=1).sum(1).astype(np.int32)
+    # Annotated so the return is typed with both the NumPy 2.4 and 2.5 stubs
+    table: np.ndarray = np.unpackbits(np.arange(256, dtype=np.uint8)[:, None], axis=1).sum(1).astype(np.int32)
+    return table
 
 
 def _max_tanimoto(query: np.ndarray, reference: np.ndarray) -> np.ndarray:
@@ -202,11 +204,13 @@ def score_ecfp4(root: Union[str, Path], smiles: pd.Series) -> dict[str, np.ndarr
         return {}
 
     try:
-        from rdkit import Chem, DataStructs, RDLogger
+        from rdkit import Chem, DataStructs, RDLogger as _RDLogger
         from rdkit.Chem import rdFingerprintGenerator
     except ImportError:
         return {}
 
+    # The rdkit stubs do not declare DisableLog
+    RDLogger: Any = _RDLogger
     RDLogger.DisableLog("rdApp.*")
     generator = rdFingerprintGenerator.GetMorganGenerator(
         radius=FINGERPRINT_RADIUS, fpSize=FINGERPRINT_BITS
