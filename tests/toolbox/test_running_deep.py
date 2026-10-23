@@ -291,3 +291,18 @@ def test_failure_report_keeps_only_the_stderr_tail(monkeypatch, tmp_path, stderr
     assert kept in report
     assert dropped is None or dropped not in report
     assert len(report) < 70_000
+
+
+@pytest.mark.order(110)
+def test_failure_report_rotates_by_size(monkeypatch, tmp_path):
+    import OCDocker.Toolbox.Logging as oclogging
+
+    monkeypatch.setattr(oclogging, "_log_limits", lambda: (200, 1, 10), raising=False)
+    report_path = tmp_path / "subprocess_failures.log"
+    monkeypatch.setattr(ocrun, "_failure_report_path", lambda: str(report_path))
+
+    for i in range(10):
+        ocrun._write_failure_report(f"failure {i}: " + "x" * 90)
+
+    assert sorted(path.name for path in tmp_path.iterdir()) == ["subprocess_failures.log", "subprocess_failures.log.1"]
+    assert "failure 9" in report_path.read_text(encoding="utf-8")

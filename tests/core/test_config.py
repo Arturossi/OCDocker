@@ -228,3 +228,20 @@ def test_singleton_set_get_and_reset():
 
     occfg.reset_config()
     assert occfg.get_config() is not custom
+
+
+@pytest.mark.order(113)
+def test_from_config_file_reads_log_limits_with_defaults(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "OCDocker.cfg").write_text("[dummy]\n", encoding="utf-8")
+    monkeypatch.delenv("OCDOCKER_CONFIG", raising=False)
+    _install_fake_initialise(monkeypatch, lambda _path: {"log_max_mb": "2.5", "log_backups": "1", "log_archives": "bad"})
+
+    cfg = occfg.OCDockerConfig.from_config_file("")
+
+    assert cfg.log_max_mb == 2.5
+    assert cfg.log_backups == 1
+    # An invalid value keeps the default
+    assert cfg.log_archives == 10
+    defaults = occfg.OCDockerConfig()
+    assert (defaults.log_max_mb, defaults.log_backups, defaults.log_archives) == (10.0, 3, 10)

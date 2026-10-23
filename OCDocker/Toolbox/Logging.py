@@ -14,13 +14,15 @@ import OCDocker.Toolbox.Logging as oclogging
 ###############################################################################
 import inspect
 import logging
+import logging.handlers
 import os
+import re
 import shutil
 import sys
 import time
 
 from glob import glob
-from typing import Any, Optional, TypedDict
+from typing import Any, Optional, Tuple, TypedDict
 
 import OCDocker.Error as ocerror
 
@@ -160,6 +162,25 @@ def _ensure_configured(to_stdout: bool = True, use_rich: Optional[bool] = None) 
     _STATE["stream_handler"] = handler
 
 
+def _log_limits() -> Tuple[int, int, int]:
+    '''Get the log size limits from the config (log_max_mb, log_backups, log_archives).
+
+    Returns
+    -------
+    Tuple[int, int, int]
+        Bytes at which a log rolls over (0 disables it), rolled-over copies kept per log and
+        past run reports kept per log in read_log_past (0 keeps all).
+    '''
+
+    try:
+        from OCDocker.Config import get_config
+        config = get_config()
+        return int(float(config.log_max_mb) * 1024 * 1024), int(config.log_backups), int(config.log_archives)
+    except (ImportError, AttributeError, RuntimeError, TypeError, ValueError):
+        # Without a usable config, keep every log as it is
+        return 0, 0, 0
+
+
 ## Public ##
 
 def backup_log(logname: str) -> None:
@@ -181,11 +202,31 @@ def backup_log(logname: str) -> None:
             # Ignore errors when creating archive directory
             return
         dst = os.path.join(dst_dir, f"{logname}_{time.strftime('%d%m%Y-%H%M%S')}.log")
+        # Two backups within the same second would overwrite each other
+        copy = 1
+        while os.path.exists(dst):
+            dst = os.path.join(dst_dir, f"{logname}_{time.strftime('%d%m%Y-%H%M%S')}_{copy}.log")
+            copy += 1
         try:
             os.rename(src, dst)
         except (OSError, PermissionError):
             # Ignore errors when archiving logs
-            pass
+            return
+
+        # Keep only the newest archived reports of this log
+        archives = _log_limits()[2]
+        if archives > 0:
+            pattern = re.compile(rf"^{re.escape(logname)}_\d{{8}}-\d{{6}}(_\d+)?\.log$")
+            past = sorted(
+                (os.path.join(dst_dir, name) for name in os.listdir(dst_dir) if pattern.match(name)),
+                key=os.path.getmtime,
+            )
+            for old in past[:-archives]:
+                try:
+                    os.remove(old)
+                except OSError:
+                    # Ignore errors when removing old archives
+                    pass
 
 
 def clear_past_logs() -> None:
@@ -237,7 +278,8 @@ def configure(
         # Attach each log file once, otherwise configuring again writes every message again
         log_path = os.path.abspath(log_file)
         if not any(isinstance(h, logging.FileHandler) and h.baseFilename == log_path for h in _STATE["logger"].handlers):
-            fh = logging.FileHandler(log_file)
+            max_bytes, backups, _ = _log_limits()
+            fh = logging.handlers.RotatingFileHandler(log_file, maxBytes=max_bytes, backupCount=backups)
             fh.setFormatter(logging.Formatter(_FMT, datefmt=_DATEFMT))
             _STATE["logger"].addHandler(fh)
 
@@ -270,6 +312,33 @@ def is_rich_enabled() -> bool:
         True when Rich is enabled for console logging.
     '''
     return _STATE["use_rich"]
+
+
+def rotate_log(logfile: str) -> None:
+    '''Roll a log file over to <logfile>.1 (shifting older copies) once it reaches log_max_mb.
+
+    Parameters
+    ----------
+    logfile : str
+        The log file about to be appended to.
+    '''
+
+    max_bytes, backups, _ = _log_limits()
+    if max_bytes <= 0:
+        return
+    try:
+        if not os.path.isfile(logfile) or os.path.getsize(logfile) < max_bytes:
+            return
+        if backups <= 0:
+            os.remove(logfile)
+            return
+        for index in range(backups - 1, 0, -1):
+            if os.path.isfile(f"{logfile}.{index}"):
+                os.replace(f"{logfile}.{index}", f"{logfile}.{index + 1}")
+        os.replace(logfile, f"{logfile}.1")
+    except OSError:
+        # Ignore rotation errors (e.g. another process rotated it first)
+        pass
 
 
 def set_level_from_report(level: ocerror.ReportLevel) -> None:
