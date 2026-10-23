@@ -34,6 +34,19 @@ All notable changes to OCDocker are documented here. The format follows
   already in memory and had no length limit, so each console session started in the same
   process (e.g. the console tests) saved it doubled; it reached 871 MB and stalled the test
   suite. The history is now cleared before loading and limited to 1000 commands.
+- `PLANTS.run_plants` removed an incomplete `run` folder (fewer poses than expected, e.g.
+  after an interrupted run) with `os.rmdir`, which fails on a folder that still has files,
+  so the next run crashed with `Directory not empty`. The folder is now removed with its
+  contents.
+- `box_to_vina`, `gen_smina_conf` and `gen_gnina_conf` opened the conf file before checking
+  that the box had its CENTER and DIMENSIONS lines. A box without them truncated the conf
+  file to its `receptor` line and returned `WRITE_FILE`, and the docking classes, which only
+  rebuild a missing conf file, kept reusing it. They now return `READ_FILE` and leave the
+  conf file untouched (PLANTS already did).
+- `get_score` without `data` read the complexes from the database but looked up each
+  descriptor by its lower-case name (`smina_vina`), while the columns are named after the
+  descriptors (`SMINA_VINA`), so every docking score was dropped and the model was given no
+  features (`(1, 0)` instead of `(1, 2)` for a complex with two scores).
 
 ### Added
 
@@ -54,6 +67,11 @@ All notable changes to OCDocker are documented here. The format follows
 
 - CI uses the bundled `bin/docking/smina/smina` instead of downloading the same binary from
   SourceForge.
+- The Vina, Smina and PLANTS test files now run in CI: they were skipped as a whole when
+  MGLTools or `plants` was missing, and now only the tests that run the MGLTools scripts
+  need it, with the bundled smina, PLANTS and SPORES on PATH (1263 to 1385 tests run).
+  Many of their checks were also strengthened to test the values returned instead of their
+  types.
 
 ## [0.17.0] - 2026-10-22
 
