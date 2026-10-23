@@ -54,6 +54,17 @@ prepare_receptor = /data/hd4tb/OCDocker/mgltools/MGLToolsPckgs/AutoDockTools/Uti
 # Open Babel path
 obabel = /home/artur/miniconda3/envs/ocdocker/bin/obabel
 
+##################### LOGGING #######################
+
+# Size in MB at which a log file rolls over to <log>.1 (0 disables it)
+log_max_mb = 10
+
+# Rolled-over copies kept for each log file (<log>.1 ... <log>.N)
+log_backups = 3
+
+# Past run reports kept in logs/read_log_past for each log (0 keeps all)
+log_archives = 10
+
 ############# DATABASE FETCH PARAMETERS #############
 
 # DUDEz download link

@@ -104,3 +104,20 @@ def test_printv_gated_by_level(capsys, caplog):
     captured2 = capsys.readouterr()
     out2 = f"{captured2.out}\n{captured2.err}\n{caplog.text}"
     assert "hidden" not in out2
+
+
+@pytest.mark.order(84)
+def test_print_to_log_rotates_by_size(monkeypatch, tmp_path):
+    import OCDocker.Toolbox.Logging as oclogging
+
+    monkeypatch.setattr(oclogging, "_log_limits", lambda: (500, 2, 10), raising=False)
+    log = tmp_path / "report.log"
+    for i in range(100):
+        ocprint.print_error_log(f"failure {i:03d}", str(log))
+
+    files = sorted(path.name for path in tmp_path.iterdir())
+    assert files == ["report.log", "report.log.1", "report.log.2"]
+    # A file only rolls over once it reaches the limit, so it holds at most one line more
+    longest_line = max(len(line) + 1 for path in tmp_path.iterdir() for line in path.read_text(encoding="utf-8").splitlines())
+    assert all(path.stat().st_size < 500 + longest_line for path in tmp_path.iterdir())
+    assert "failure 099" in log.read_text(encoding="utf-8")

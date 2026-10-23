@@ -21,6 +21,7 @@ import time
 from typing import Dict, List, Optional, Tuple, Union
 
 import OCDocker.Error as ocerror
+import OCDocker.Toolbox.Logging as oclogging
 import OCDocker.Toolbox.Printing as ocprint
 
 
@@ -249,6 +250,7 @@ def _write_failure_report(report: str) -> str:
     path = _failure_report_path()
     if not path:
         return ""
+    oclogging.rotate_log(path)
     try:
         with open(path, "a", encoding="utf-8") as handle:
             handle.write(report)
