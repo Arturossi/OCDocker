@@ -192,7 +192,7 @@ def test_plants_run_plants_cleanup_paths(monkeypatch, tmp_path):
     inst.plants_log = str(tmp_path / "plants.log")
     inst.plants_cmd = ["plants", "--mode", "screen", inst.config]
 
-    removed = {"rmtree": 0, "rmdir": 0}
+    removed = {"rmtree": 0}
 
     monkeypatch.setattr(ocplants, "get_config", lambda: _cfg(tmp_path))
     monkeypatch.setattr(ocplants.shutil, "rmtree", lambda *_a, **_k: removed.__setitem__("rmtree", removed["rmtree"] + 1))
@@ -209,16 +209,40 @@ def test_plants_run_plants_cleanup_paths(monkeypatch, tmp_path):
     assert rc_overwrite == 0
     assert removed["rmtree"] >= 1
 
+    removed["rmtree"] = 0
     monkeypatch.setattr(ocplants.os.path, "isdir", lambda p: p == str(run_dir))
     monkeypatch.setattr(ocplants.os, "listdir", lambda _p: [])
-    monkeypatch.setattr(ocplants.os, "rmdir", lambda _p: removed.__setitem__("rmdir", removed["rmdir"] + 1))
     monkeypatch.setattr(ocplants.os, "makedirs", lambda *_a, **_k: None)
     monkeypatch.setattr(ocplants, "glob", lambda _p: [])
     monkeypatch.setattr(ocplants.ocrun, "run", lambda *_a, **_k: 0)
 
     rc_no_overwrite = inst.run_plants(overwrite=False)
     assert rc_no_overwrite == 0
-    assert removed["rmdir"] >= 1
+    assert removed["rmtree"] == 1
+
+
+def test_plants_run_plants_removes_incomplete_run_folder(monkeypatch, tmp_path):
+    # A previous run left a run folder with fewer poses than expected (e.g. it was interrupted)
+    out_dir = tmp_path / "plants_out"
+    run_dir = out_dir / "run"
+    run_dir.mkdir(parents=True)
+    (run_dir / "ranking.csv").write_text("LIGAND_ENTRY,TOTAL_SCORE\n")
+    (run_dir / "ligX_entry_00001_conf_01.mol2").write_text("")
+
+    inst = object.__new__(ocplants.PLANTS)
+    inst.output_plants = str(out_dir)
+    inst.input_ligand = _dummy_ligand("lig.smi", name="ligX")
+    inst.config = str(tmp_path / "cfg.txt")
+    inst.plants_log = str(tmp_path / "plants.log")
+    inst.plants_cmd = ["plants", "--mode", "screen", inst.config]
+
+    run_dir_at_run = []
+    monkeypatch.setattr(ocplants, "get_config", lambda: _cfg(tmp_path))
+    monkeypatch.setattr(ocplants.ocrun, "run", lambda *_a, **_k: run_dir_at_run.append(run_dir.exists()) or 0)
+
+    assert inst.run_plants(overwrite=False) == 0
+    # The incomplete run folder must be removed before PLANTS runs again
+    assert run_dir_at_run == [False]
 
 
 def test_plants_box_binding_read_and_digest_paths(monkeypatch, tmp_path):
