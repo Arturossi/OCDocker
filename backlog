@@ -9,7 +9,6 @@
 ### 0
 
 ### 1
-- Fix the log generation, sometimes the logs can reach 100mb. Log writes no longer crash when the log directory is missing or not writable, subprocess_failures.log keeps only the stderr tail of each failure and --log-file no longer duplicates lines. Still open: each batch run moves the previous run reports to logs/read_log_past, which is never cleaned (clear_past_logs() exists but nothing calls it). | 1
 - Implement more docking software | 1
 - Update the pipeline, removing MGLtools and adding ADFR, also allowing the user to prepare the input with obabel (maybe it is interesting allowing obabel). On hold. Note that smina also prepares ligands with MGLtools (only 'ocdocker vs' falls back to obabel). | 1
 

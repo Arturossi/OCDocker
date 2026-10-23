@@ -86,6 +86,8 @@ def _write_log(message: str, logfile: str, mode: str) -> None:
         logdir = os.path.dirname(logfile)
         if logdir:
             os.makedirs(logdir, exist_ok=True)
+        if "a" in mode:
+            oclogging.rotate_log(logfile)
         with open(logfile, mode) as f:
             f.write(message)
     except OSError as e:

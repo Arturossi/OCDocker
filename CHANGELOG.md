@@ -37,6 +37,14 @@ All notable changes to OCDocker are documented here. The format follows
 
 ### Added
 
+- Log size limits, set in `OCDocker.cfg` (code defaults in brackets): `log_max_mb` [10]
+  rolls a log over to `<log>.1` ... `<log>.N` once it reaches that size, `log_backups` [3]
+  sets N, and `log_archives` [10] keeps that many past run reports per log in
+  `logs/read_log_past` (which was never cleaned). They apply to the run reports,
+  `subprocess_failures.log` and `--log-file`, so each log stays under about
+  `log_max_mb * (log_backups + 1)`: 150000 error lines gave one 35 MB report before, and
+  a 3.9 MB report plus three 10.5 MB copies now. Two archives made in the same second no
+  longer overwrite each other.
 - End-to-end `ocdocker vs` tests for gnina and PLANTS. PLANTS runs everywhere with the
   binaries in `bin/docking/plants`; gnina is skipped where it is not installed (as in CI).
   Executables are looked up on PATH, then in `bin/docking`, then in the project's
