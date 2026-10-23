@@ -28,7 +28,7 @@ import json
 import tempfile
 
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 # License
 ###############################################################################
@@ -146,7 +146,7 @@ def load_context(path: Union[str, Path]) -> dict[str, Any]:
     '''
 
     with open(path, encoding="utf-8") as handle:
-        return json.load(handle)
+        return cast(dict[str, Any], json.load(handle))
 
 
 def is_multi_target(descriptors: dict[str, Any]) -> bool:

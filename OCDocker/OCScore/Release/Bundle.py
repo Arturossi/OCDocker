@@ -27,7 +27,7 @@ from __future__ import annotations
 import json
 
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -134,7 +134,7 @@ class TunedNet(nn.Module):
         z = (self.br_aff if which == "aff" else self.br_scr)(h)
         if self.use_cons:
             z = torch.cat([z, cons], 1)
-        return (self.aff if which == "aff" else self.scr)(z).squeeze(-1)
+        return cast(torch.Tensor, (self.aff if which == "aff" else self.scr)(z).squeeze(-1))
 
 
 class FeatureContract:
