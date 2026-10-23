@@ -52,7 +52,7 @@ class DummyURL:
 @pytest.fixture()
 def dbminimal(monkeypatch):
     project_root = Path(__file__).resolve().parents[2]
-    sys.path.insert(0, str(project_root / "OCDocker"))
+    monkeypatch.syspath_prepend(str(project_root / "OCDocker"))
 
     sqlalchemy = types.ModuleType("sqlalchemy")
     engine_mod = types.ModuleType("sqlalchemy.engine")
@@ -90,15 +90,16 @@ def dbminimal(monkeypatch):
     # Ensure package hierarchy exists for import
     pkg = sys.modules.get("OCDocker", types.ModuleType("OCDocker"))
     pkg.__path__ = [str(project_root / "OCDocker")]
-    sys.modules["OCDocker"] = pkg
+    monkeypatch.setitem(sys.modules, "OCDocker", pkg)
     db_pkg = sys.modules.get("OCDocker.DB", types.ModuleType("OCDocker.DB"))
     db_pkg.__path__ = [str(project_root / "OCDocker" / "DB")]
-    sys.modules["OCDocker.DB"] = db_pkg
+    monkeypatch.setitem(sys.modules, "OCDocker.DB", db_pkg)
 
     db_file = project_root / "OCDocker" / "DB" / "DBMinimal.py"
     spec = importlib.util.spec_from_file_location("OCDocker.DB.DBMinimal", db_file)
     module = importlib.util.module_from_spec(spec)  # type: ignore
-    sys.modules["OCDocker.DB.DBMinimal"] = module
+    # Restored after the test, so later tests import the real module
+    monkeypatch.setitem(sys.modules, "OCDocker.DB.DBMinimal", module)
     assert spec.loader is not None  # type: ignore
     spec.loader.exec_module(module)  # type: ignore
     return module

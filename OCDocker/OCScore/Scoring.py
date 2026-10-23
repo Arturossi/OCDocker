@@ -161,9 +161,9 @@ def _build_dataframe_from_complexes_query(
     for complex_obj in _iter_query_rows(query, batch_size=batch_size):
         row: Dict[str, Any] = {}
         for desc in descriptors:
-            desc_attr = desc.lower()
-            if hasattr(complex_obj, desc_attr):
-                value = getattr(complex_obj, desc_attr)
+            # The model columns are named after the descriptors (e.g. SMINA_VINA)
+            if hasattr(complex_obj, desc):
+                value = getattr(complex_obj, desc)
                 if value is not None:
                     row[desc] = value
 
