@@ -225,3 +225,38 @@ def test_console_run_interactive_ipython_path(monkeypatch):
     assert calls[0]["user_ns"]["x"] == 1
     assert calls[0]["colors"] == "Linux"
 
+
+
+def test_console_history_does_not_grow_across_sessions(monkeypatch, tmp_path):
+    readline = pytest.importorskip("readline")
+    from OCDocker.Console import session
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    history = tmp_path / ".ocdocker_console_history"
+    history.write_text("help\nexit\n", encoding="utf-8")
+    try:
+        # Each console test (or session in one process) loads and saves the history
+        for _ in range(5):
+            session._setup_readline({})
+            session._save_readline_history()
+        lines = history.read_text(encoding="utf-8").splitlines()
+        assert [line for line in lines if not line.startswith("_HiStOrY_")] == ["help", "exit"]
+    finally:
+        readline.clear_history()
+
+
+def test_console_history_is_bounded(monkeypatch, tmp_path):
+    readline = pytest.importorskip("readline")
+    from OCDocker.Console import session
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    history = tmp_path / ".ocdocker_console_history"
+    history.write_text("".join(f"command {i}\n" for i in range(5000)), encoding="utf-8")
+    try:
+        session._setup_readline({})
+        session._save_readline_history()
+        lines = [line for line in history.read_text(encoding="utf-8").splitlines() if not line.startswith("_HiStOrY_")]
+        assert len(lines) <= 1000
+        assert lines[-1] == "command 4999"
+    finally:
+        readline.clear_history()
