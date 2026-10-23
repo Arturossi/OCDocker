@@ -205,3 +205,4 @@ def test_validation_exceptions_handled(tmp_path):
     
     # Should handle exception gracefully
     result = ocvalidation.is_molecule_valid(str(invalid_file))
+    assert result is False

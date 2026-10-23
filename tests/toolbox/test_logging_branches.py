@@ -195,9 +195,14 @@ def test_set_level_from_report_ignores_handlers_without_setlevel():
         pass
 
     dummy = _NoLevel()
-    logger.handlers.append(dummy)  # type: ignore[arg-type]
+    # First in the list, so the handlers after it must still get the level
+    logger.handlers.insert(0, dummy)  # type: ignore[arg-type]
+    logger.setLevel(logging.WARNING)
     try:
         oclogging.set_level_from_report(ocerror.ReportLevel.INFO)
+        assert logger.level == logging.INFO
+        real_handlers = [h for h in logger.handlers if h is not dummy]
+        assert real_handlers and all(h.level == logging.INFO for h in real_handlers)
     finally:
         if dummy in logger.handlers:
             logger.handlers.remove(dummy)
