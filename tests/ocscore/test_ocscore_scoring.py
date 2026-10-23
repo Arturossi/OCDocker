@@ -433,67 +433,54 @@ def test_get_score_normalize_tuple_return_branch(monkeypatch, tmp_path):
 
 @pytest.mark.order(402)
 def test_get_score_reads_db_data_and_adds_unknown_db_column(monkeypatch, tmp_path):
+    '''Read the docking scores of a complex from a real SQLite database and score it.'''
+
+    import OCDocker.Initialise as ocinit
+
+    from sqlalchemy.engine.url import URL
+
+    from OCDocker.DB.DBMinimal import cleanup_engine, cleanup_session, create_engine, create_session
+    from OCDocker.DB.Models.Complexes import Complexes
+    from OCDocker.DB.Models.Ligands import Ligands
+    from OCDocker.DB.Models.Receptors import Receptors
+
     model_path = _model_file(tmp_path)
     model = _CapturePredictModel()
     monkeypatch.setattr(ocscoring.ocscoreio, "load_object", lambda *_a, **_k: model)
 
-    class _Complexes:
-        allDescriptors = ["D1"]
+    engine = create_engine(URL.create(drivername="sqlite", database=str(tmp_path / "ocdocker.sqlite")))
+    Complexes.metadata.create_all(engine)
+    session = create_session(engine)
+    monkeypatch.setattr(ocinit, "session", session)
 
-    lig = SimpleNamespace(name="ligA")
-    rec = SimpleNamespace(name="recA")
-    db_row = SimpleNamespace(d1=2.5, ligand=lig, receptor=rec)
+    with session() as s:
+        ligand = Ligands(name="ligA")
+        receptor = Receptors(name="recA")
+        s.add_all([ligand, receptor])
+        s.flush()
+        s.add(Complexes(name="ligA_recA", ligand=ligand, receptor=receptor, SMINA_VINA=-7.25, PLANTS_CHEMPLP=-80.0))
+        s.commit()
 
-    class _Session:
-        def query(self, _model):
-            class _Query:
-                @staticmethod
-                def all():
-                    return [db_row]
-            return _Query()
-
-    class _SessionCtx:
-        def __enter__(self):
-            return _Session()
-
-        def __exit__(self, exc_type, exc, tb):
-            _ = (exc_type, exc, tb)
-            return False
-
-    init_mod = types.ModuleType("OCDocker.Initialise")
-    init_mod.session = lambda: _SessionCtx()  # type: ignore[attr-defined]
-    db_mod = types.ModuleType("OCDocker.DB")
-    db_mod.__path__ = []  # type: ignore[attr-defined]
-    db_models_mod = types.ModuleType("OCDocker.DB.Models")
-    db_models_mod.__path__ = []  # type: ignore[attr-defined]
-    complexes_mod = types.ModuleType("OCDocker.DB.Models.Complexes")
-    complexes_mod.Complexes = _Complexes  # type: ignore[attr-defined]
-
-    monkeypatch.setitem(sys.modules, "OCDocker.Initialise", init_mod)
-    monkeypatch.setitem(sys.modules, "OCDocker.DB", db_mod)
-    monkeypatch.setitem(sys.modules, "OCDocker.DB.Models", db_models_mod)
-    monkeypatch.setitem(sys.modules, "OCDocker.DB.Models.Complexes", complexes_mod)
-    import OCDocker as ocpkg
-    monkeypatch.setattr(ocpkg, "Initialise", init_mod, raising=False)
-    monkeypatch.setattr(ocpkg, "DB", db_mod, raising=False)
-    monkeypatch.setattr(db_mod, "Models", db_models_mod, raising=False)
-    monkeypatch.setattr(db_models_mod, "Complexes", complexes_mod, raising=False)
-
-    out = ocscoring.get_score(
-        model_path=str(model_path),
-        data=None,
-        normalize=False,
-        invert_conditionally=False,
-        enforce_reference_column_order=False,
-        use_gpu=False,
-    )
+    try:
+        out = ocscoring.get_score(
+            model_path=str(model_path),
+            data=None,
+            normalize=False,
+            invert_conditionally=False,
+            enforce_reference_column_order=False,
+            use_gpu=False,
+        )
+    finally:
+        cleanup_session(session)
+        cleanup_engine(engine)
 
     assert isinstance(out, pd.DataFrame)
     assert out["receptor"].tolist() == ["recA"]
     assert out["ligand"].tolist() == ["ligA"]
     assert out["db"].tolist() == ["UNKNOWN"]
-    assert out["predicted_score"].tolist() == [2.5]
-    assert model.seen_shape == (1, 1)
+    # The model gets the two docking scores stored for the complex
+    assert model.seen_shape == (1, 2)
+    assert out["predicted_score"].tolist() == [-87.25]
 
 
 @pytest.mark.order(403)
