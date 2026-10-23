@@ -30,7 +30,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Optional, Sequence, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -211,10 +211,10 @@ def _labels_from(dataframe: pd.DataFrame, label_column: Optional[str],
     if label_column and label_column in dataframe.columns:
         series = dataframe[label_column]
         if pd.api.types.is_numeric_dtype(series):
-            return series.to_numpy(dtype=float).astype(int)
+            return cast(np.ndarray, series.to_numpy(dtype=float).astype(int))
     if kind_column in dataframe.columns:
         normalised = dataframe[kind_column].astype(str).str.strip().str.lower()
-        return normalised.isin(ACTIVE_TOKENS).to_numpy().astype(int)
+        return cast(np.ndarray, normalised.isin(ACTIVE_TOKENS).to_numpy().astype(int))
     return None
 
 
