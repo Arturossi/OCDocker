@@ -60,6 +60,12 @@ jobs:
 
         sudo ldconfig
     
+    - name: Put the bundled smina, PLANTS and SPORES on PATH
+      run: |
+        sudo ln -sf "$PWD/bin/docking/smina/smina" /usr/local/bin/smina
+        sudo ln -sf "$PWD/bin/docking/plants/PLANTS1.2_64bit" /usr/local/bin/plants
+        sudo ln -sf "$PWD/bin/docking/plants/SPORES_64bit" /usr/local/bin/spores
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
