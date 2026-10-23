@@ -60,8 +60,9 @@ jobs:
 
         sudo ldconfig
     
-    - name: Put the bundled PLANTS and SPORES on PATH
+    - name: Put the bundled smina, PLANTS and SPORES on PATH
       run: |
+        sudo ln -sf "$PWD/bin/docking/smina/smina" /usr/local/bin/smina
         sudo ln -sf "$PWD/bin/docking/plants/PLANTS1.2_64bit" /usr/local/bin/plants
         sudo ln -sf "$PWD/bin/docking/plants/SPORES_64bit" /usr/local/bin/spores
 
