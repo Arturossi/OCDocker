@@ -209,6 +209,7 @@ def _missing_external_tools() -> Set[str]:
             "vina": (getattr(cfg.vina, "executable", "") or "vina"),
             "smina": (getattr(cfg.smina, "executable", "") or "smina"),
             "plants": (getattr(cfg.plants, "executable", "") or "plants"),
+            "spores": (getattr(cfg.tools, "spores", "") or "spores"),
             "prepare_ligand4": (getattr(cfg.tools, "prepare_ligand", "") or "prepare_ligand4.py"),
             "prepare_receptor4": (getattr(cfg.tools, "prepare_receptor", "") or "prepare_receptor4.py"),
             "obabel": (getattr(cfg.tools, "obabel", "") or "obabel"),
@@ -218,6 +219,7 @@ def _missing_external_tools() -> Set[str]:
             "vina": "vina",
             "smina": "smina",
             "plants": "plants",
+            "spores": "spores",
             "prepare_ligand4": "prepare_ligand4.py",
             "prepare_receptor4": "prepare_receptor4.py",
             "obabel": "obabel",
@@ -264,16 +266,30 @@ def _missing_external_tools() -> Set[str]:
 def _required_tools_by_test_file() -> dict[str, set[str]]:
     '''Return the map of test modules to external tool requirements.'''
     return {
-        "test_vina_prepare.py": {"prepare_ligand4", "prepare_receptor4"},
-        "test_smina.py": {"smina", "prepare_ligand4", "prepare_receptor4", "openbabel-py", "dssp"},
+        "test_smina.py": {"smina", "openbabel-py", "dssp"},
         "test_smina_utilities.py": {"dssp"},
-        "test_plants.py": {"plants", "obabel", "openbabel-py", "dssp"},
-        "test_vina.py": {"vina", "prepare_ligand4", "prepare_receptor4", "openbabel-py", "dssp"},
+        "test_plants.py": {"plants", "spores", "obabel", "openbabel-py", "dssp"},
+        "test_vina.py": {"vina", "openbabel-py", "dssp"},
         "test_preparation_strategy.py": {"dssp"},
         "test_integration_docking_workflow.py": {"dssp"},
-        "test_plants_prepare.py": {"plants", "obabel"},
         "test_receptor.py": {"openbabel-py", "dssp"},
         "test_gnina_rescore.py": {"openbabel-py"},
+    }
+
+
+def _required_tools_by_test() -> dict[str, set[str]]:
+    '''Return the map of single tests (file::test) to external tool requirements.
+
+    Only the tests that run the MGLTools scripts (or use their outputs) need them,
+    so the rest of their files still runs without MGLTools.
+    '''
+    mgltools = {"prepare_ligand4", "prepare_receptor4"}
+    return {
+        "test_smina.py::test_run_prepare_ligand": mgltools,
+        "test_smina.py::test_run_smina": mgltools,
+        "test_vina.py::test_run_prepare_ligand": mgltools,
+        "test_vina.py::test_run_prepare_receptor": mgltools,
+        "test_vina.py::test_run_vina": mgltools,
     }
 
 
@@ -361,6 +377,7 @@ def pytest_collection_modifyitems(config, items):
                 reason=f"Missing external tools/binaries: {', '.join(sorted(missing))}"
             )
             required_by_file = _required_tools_by_test_file()
+            required_by_test = _required_tools_by_test()
 
             for item in items:
                 fpath = str(item.fspath)
@@ -368,6 +385,10 @@ def pytest_collection_modifyitems(config, items):
                     if fpath.endswith(filename) and (missing & required):
                         item.add_marker(skip_external)
                         break
+                else:
+                    required = required_by_test.get(f"{Path(fpath).name}::{item.name}", set())
+                    if missing & required:
+                        item.add_marker(skip_external)
 
     archived_marker = pytest.mark.archived
     for item in items:
