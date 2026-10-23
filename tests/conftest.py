@@ -278,7 +278,7 @@ def _required_tools_by_test_file() -> dict[str, set[str]]:
 
 
 def _required_tools_by_test() -> dict[str, set[str]]:
-    '''Return the map of single tests (file::test) to external tool requirements.
+    '''Return the map of single tests (file::test or file::Class::test) to external tool requirements.
 
     Only the tests that run the MGLTools scripts (or use their outputs) need them,
     so the rest of their files still runs without MGLTools.
@@ -292,6 +292,10 @@ def _required_tools_by_test() -> dict[str, set[str]]:
         "test_vina.py::test_run_prepare_ligand": mgltools,
         "test_vina.py::test_run_prepare_receptor": mgltools,
         "test_vina.py::test_run_vina": mgltools,
+        "test_preparation_strategy.py::TestMGLToolsPreparationStrategy::test_prepare_ligand": mgltools,
+        "test_preparation_strategy.py::TestMGLToolsPreparationStrategy::test_prepare_receptor": mgltools,
+        "test_preparation_strategy.py::TestSPORESPreparationStrategy::test_prepare_ligand": {"spores"},
+        "test_preparation_strategy.py::TestSPORESPreparationStrategy::test_prepare_receptor": {"spores"},
     }
 
 
@@ -388,7 +392,8 @@ def pytest_collection_modifyitems(config, items):
                         item.add_marker(skip_external)
                         break
                 else:
-                    required = required_by_test.get(f"{Path(fpath).name}::{item.name}", set())
+                    # Node id from the file name on (file::test or file::Class::test)
+                    required = required_by_test.get(item.nodeid.split("/")[-1], set())
                     if missing & required:
                         item.add_marker(skip_external)
 
