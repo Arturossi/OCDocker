@@ -167,6 +167,39 @@ def ensure_clean_test_state(tmp_path):
     yield tmp_path
 
 
+@pytest.fixture(scope="session")
+def project_config():
+    '''Load the OCDocker config file the external tool check reads (OCDOCKER_CONFIG or the project OCDocker.cfg).
+
+    Returns
+    -------
+    OCDockerConfig | None
+        The loaded configuration, or None if there is no config file (as in CI).
+    '''
+
+    config_file = os.getenv("OCDOCKER_CONFIG", "") or str(Path(__file__).resolve().parent.parent / "OCDocker.cfg")
+    if not os.path.isfile(config_file):
+        return None
+
+    from OCDocker.Config import OCDockerConfig
+    return OCDockerConfig.from_config_file(config_file)
+
+
+@pytest.fixture(autouse=True)
+def use_project_config(project_config):
+    '''Run each test with the tools of the config file, the ones the external tool check found.
+
+    Without it, get_config() returns the defaults (bare names looked up on PATH), so a tool
+    configured by its full path counted as available but could not be run by the tests.
+    '''
+
+    if project_config is not None:
+        from OCDocker.Config import set_config
+        set_config(project_config)
+
+    yield
+
+
 def _exe_available(path: Optional[str]) -> bool:
     if not path:
         return False
@@ -210,6 +243,8 @@ def _missing_external_tools() -> Set[str]:
             "smina": (getattr(cfg.smina, "executable", "") or "smina"),
             "plants": (getattr(cfg.plants, "executable", "") or "plants"),
             "spores": (getattr(cfg.tools, "spores", "") or "spores"),
+            "pythonsh": (getattr(cfg.tools, "pythonsh", "") or "pythonsh"),
+            "vina_split": (getattr(cfg.vina, "split_executable", "") or "vina_split"),
             "prepare_ligand4": (getattr(cfg.tools, "prepare_ligand", "") or "prepare_ligand4.py"),
             "prepare_receptor4": (getattr(cfg.tools, "prepare_receptor", "") or "prepare_receptor4.py"),
             "obabel": (getattr(cfg.tools, "obabel", "") or "obabel"),
@@ -220,6 +255,8 @@ def _missing_external_tools() -> Set[str]:
             "smina": "smina",
             "plants": "plants",
             "spores": "spores",
+            "pythonsh": "pythonsh",
+            "vina_split": "vina_split",
             "prepare_ligand4": "prepare_ligand4.py",
             "prepare_receptor4": "prepare_receptor4.py",
             "obabel": "obabel",
@@ -283,7 +320,7 @@ def _required_tools_by_test() -> dict[str, set[str]]:
     Only the tests that run the MGLTools scripts (or use their outputs) need them,
     so the rest of their files still runs without MGLTools.
     '''
-    mgltools = {"prepare_ligand4", "prepare_receptor4"}
+    mgltools = {"pythonsh", "prepare_ligand4", "prepare_receptor4"}
     return {
         "test_smina.py::test_run_prepare_ligand": mgltools,
         "test_smina.py::test_run_smina": mgltools,
@@ -292,6 +329,10 @@ def _required_tools_by_test() -> dict[str, set[str]]:
         "test_vina.py::test_run_prepare_ligand": mgltools,
         "test_vina.py::test_run_prepare_receptor": mgltools,
         "test_vina.py::test_run_vina": mgltools,
+        "test_smina.py::test_smina_split_poses": {"vina_split"},
+        "test_smina.py::test_smina_split_poses_default_path": {"vina_split"},
+        "test_vina.py::test_vina_split_poses": {"vina_split"},
+        "test_vina.py::test_vina_split_poses_default_path": {"vina_split"},
         "test_preparation_strategy.py::TestMGLToolsPreparationStrategy::test_prepare_ligand": mgltools,
         "test_preparation_strategy.py::TestMGLToolsPreparationStrategy::test_prepare_receptor": mgltools,
         "test_preparation_strategy.py::TestSPORESPreparationStrategy::test_prepare_ligand": {"spores"},
