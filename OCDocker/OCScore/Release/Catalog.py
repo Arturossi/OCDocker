@@ -7,7 +7,7 @@ Discovery of the OCScore model families shipped with a generation bundle.
 
 The Gen3B generation ships three families. ``release`` is the frozen M1.1 model, the one a
 screening result should normally be reported from. ``ablation`` is the eight-arm block factorial,
-each arm trained on the same data with some input blocks zeroed, which exists to attribute
+each arm taking only some of the input blocks and trained on the same data, which exists to attribute
 performance to the blocks rather than to be reported as an alternative scorer. ``control`` is the
 randomised-training-label model: it never saw a true label, so on a sound evaluation set it must
 land at chance, and anything else is a warning about the set rather than a result.
@@ -50,7 +50,7 @@ FAMILIES = ("release", "ablation", "control")
 
 @dataclass(frozen=True)
 class ModelSpec:
-    '''One shipped model: a family, its input mask, and its seed checkpoints.'''
+    '''One shipped model: a family, the input blocks it takes, and its seed checkpoints.'''
 
     name: str
     family: str
@@ -66,7 +66,7 @@ class ModelSpec:
         Returns
         -------
         bool
-            True when no block is masked away.
+            True when the model takes every block.
         '''
 
         return set(self.live_blocks) == {"A", "B", "C", "D"}

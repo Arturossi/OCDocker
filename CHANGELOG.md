@@ -6,6 +6,40 @@ All notable changes to OCDocker are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `ocdocker ocscore predict` scores a merged results table with the pretrained Gen3B models
+  shipped in `OCScore_models/gen3b/`: the M1.1 release model, the eight block-ablation arms,
+  a randomised-label control and nine baselines (mean and median consensus, ridge and
+  elastic-net at three feature arms, maximum ECFP4 similarity to the training actives,
+  random ranking). Every network is reported per seed and as a three-seed rank ensemble.
+  Each ablation arm takes only the features of its own blocks, so a table needs only the
+  blocks of the models it is scored with; by default every requested model must be scorable,
+  and `--skip-unavailable` scores the ones the table supports and reports the rest. Score
+  columns in the pipeline's upper-case convention and unprefixed ligand descriptors are
+  mapped onto the model's names automatically. Writes `ocscore_predictions.csv`,
+  `ocscore_metrics.csv` when the table carries labels, and `ocscore_prediction_report.json`,
+  whose `control_check` fails when the randomised-label control reaches a ROC-AUC above
+  0.60, which means the evaluation labels are partly predictable without any activity
+  supervision.
+- `ocdocker ocscore descriptors` computes the 29 receptor and 26 pocket descriptors a new
+  target needs before it can be scored, from the receptor structure and a ligand defining
+  the site. `--target-id` collects several targets in one JSON, and `predict` then applies
+  each target's descriptors to its own rows; a receptor in the table but absent from the
+  file is an error.
+- `OCDocker.OCScore.Release`, the inference package behind both commands.
+
+### Changed
+
+- `examples/25_ocscore_score_with_shipped_models.py` scores with the Gen3B models.
+
+### Removed
+
+- The 22 DUDEz ablation configurations (`OCScore_models/01_*` to `22_*`) and their
+  `OCScore_models/manifest.json`, superseded by `OCScore_models/gen3b/`. They were export
+  bundles in the `ModelExport` format; `ocdocker ocscore score` and
+  `ocdocker ocscore external-blind` still read bundles in that format.
+
 ### Fixed
 
 - `ocdocker vs` and `ocdocker pipeline` generated every missing ODDT model at startup even

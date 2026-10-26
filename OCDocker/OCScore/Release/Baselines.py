@@ -50,6 +50,7 @@ TRAIN_ACTIVE_FINGERPRINTS = "train_active_fingerprints.npz"
 FINGERPRINT_RADIUS = 2
 FINGERPRINT_BITS = 2048
 RANDOM_SEED = 0
+BLOCK_OF_TOKEN = {"S": "A", "L": "B", "R": "C", "P": "D"}
 
 # Functions
 ###############################################################################
@@ -95,6 +96,24 @@ def _max_tanimoto(query: np.ndarray, reference: np.ndarray) -> np.ndarray:
         union = n_query[start:stop, None] + n_reference[None, :] - inter
         out[start:stop] = np.max(np.where(union > 0, inter / np.maximum(union, 1), 0.0), axis=1)
     return out
+
+
+def _linear_blocks(name: str) -> str:
+    '''Block letters a shipped linear baseline was fitted on, from its name.
+
+    Parameters
+    ----------
+    name : str
+        Stored model name such as ``"ridge S+L"``.
+
+    Returns
+    -------
+    str
+        Sorted block letters, for example ``"AB"``.
+    '''
+
+    arm = name.split(" ", 1)[1]
+    return "".join(sorted(BLOCK_OF_TOKEN[t] for t in arm.split("+")))
 
 
 ## Public ##
@@ -145,11 +164,35 @@ def score_consensus(contract: ocrelbundle.FeatureContract, features: np.ndarray)
     }
 
 
-def score_linear(root: Union[str, Path], features: np.ndarray) -> dict[str, np.ndarray]:
+def baseline_requirements(root: Union[str, Path]) -> dict[str, str]:
+    '''Block letters each shipped baseline reads, keyed by its output name.
+
+    Parameters
+    ----------
+    root : str or pathlib.Path
+        Generation bundle directory.
+
+    Returns
+    -------
+    dict of str to str
+        Output name to the blocks it needs; an empty string means it needs none.
+    '''
+
+    out = {"consensus_mean": "A", "consensus_median": "A", "random_ranking": ""}
+    path = baselines_dir(root) / LINEAR_COEFFICIENTS
+    if path.is_file():
+        for key in (k for k in np.load(path).files if k.endswith("|coef")):
+            name = key.split("|")[0]
+            out[name.replace(" ", "_")] = _linear_blocks(name)
+    return out
+
+
+def score_linear(root: Union[str, Path], features: np.ndarray,
+                 available: str = "ABCD") -> dict[str, np.ndarray]:
     '''Score the shipped ridge and elastic-net models.
 
-    Their coefficient vectors span the full contract and are zero outside the blocks each arm was
-    fitted on, so no additional masking is needed.
+    Their coefficient vectors span the full contract and are exactly zero outside the blocks each
+    model was fitted on. A model is scored only when all of its blocks are available.
 
     Parameters
     ----------
@@ -157,11 +200,13 @@ def score_linear(root: Union[str, Path], features: np.ndarray) -> dict[str, np.n
         Generation bundle directory.
     features : numpy.ndarray
         Preprocessed feature matrix.
+    available : str, optional
+        Block letters present in the table.
 
     Returns
     -------
     dict of str to numpy.ndarray
-        One decision function per shipped linear model.
+        One decision function per scored linear model.
     '''
 
     path = baselines_dir(root) / LINEAR_COEFFICIENTS
@@ -172,6 +217,8 @@ def score_linear(root: Union[str, Path], features: np.ndarray) -> dict[str, np.n
     out: dict[str, np.ndarray] = {}
     for key in (k for k in store.files if k.endswith("|coef")):
         name = key.split("|")[0]
+        if not set(_linear_blocks(name)) <= set(available):
+            continue
         coefficients = store[key]
         if coefficients.shape[0] != features.shape[1]:
             raise ValueError(
@@ -257,7 +304,8 @@ def score_baselines(contract: ocrelbundle.FeatureContract,
                     root: Union[str, Path],
                     features: np.ndarray,
                     smiles: Optional[pd.Series] = None,
-                    seed: int = RANDOM_SEED) -> dict[str, np.ndarray]:
+                    seed: int = RANDOM_SEED,
+                    available: str = "ABCD") -> dict[str, np.ndarray]:
     '''Score every available baseline.
 
     Parameters
@@ -272,6 +320,8 @@ def score_baselines(contract: ocrelbundle.FeatureContract,
         SMILES per compound; the ECFP4 baseline is skipped when absent.
     seed : int, optional
         Seed for the random ranking.
+    available : str, optional
+        Block letters present in the table; baselines needing any other block are skipped.
 
     Returns
     -------
@@ -280,8 +330,9 @@ def score_baselines(contract: ocrelbundle.FeatureContract,
     '''
 
     out: dict[str, np.ndarray] = {}
-    out.update(score_consensus(contract, features))
-    out.update(score_linear(root, features))
+    if "A" in available:
+        out.update(score_consensus(contract, features))
+    out.update(score_linear(root, features, available))
     if smiles is not None:
         out.update(score_ecfp4(root, smiles))
     out.update(score_random(len(features), seed))
@@ -292,6 +343,7 @@ __all__ = [
     "BASELINES_SUBDIR",
     "LINEAR_COEFFICIENTS",
     "TRAIN_ACTIVE_FINGERPRINTS",
+    "baseline_requirements",
     "baselines_dir",
     "score_baselines",
     "score_consensus",
