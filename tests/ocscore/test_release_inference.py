@@ -92,12 +92,8 @@ def test_contract_mask_selects_only_live_blocks() -> None:
     assert contract.mask("AC").sum() == len(groups["A_scores"]) + len(groups["C_receptor"])
 
 
-def test_ablation_scores_ignore_masked_blocks() -> None:
-    '''An ablation arm must not react to blocks it was never trained on.
-
-    This is the invariant that makes an ablation result meaningful: feeding an arm the blocks it
-    never saw silently turns it into a different model.
-    '''
+def test_ablation_scores_ignore_columns_outside_their_blocks() -> None:
+    '''An ablation arm must not react to columns outside the blocks it takes.'''
 
     contract = _bundle_or_skip()
     specs = [s for s in ocrelcatalog.discover(families=("ablation",)) if s.live_blocks == "A"]
@@ -244,3 +240,80 @@ def test_attach_context_requires_groups_for_a_keyed_mapping() -> None:
 
     with pytest.raises(ValueError, match="keyed by receptor"):
         ocrelinference.attach_context(frame, {"A": {"receptor": {}, "pocket": {}}}, contract)
+
+
+def test_ablation_checkpoints_declare_their_inputs() -> None:
+    '''Each shipped arm takes exactly the contract columns of its blocks, in contract order.'''
+
+    contract = _bundle_or_skip()
+    for spec in ocrelcatalog.discover(families=("ablation",)):
+        names = contract.columns(spec.live_blocks)
+        for path in spec.checkpoints:
+            net, payload = ocrelbundle.load_network(path)
+            assert payload["d_in"] == len(names)
+            assert list(payload["input_features"]) == names
+            assert net.trunk[0].in_features == len(names)
+
+
+def test_featurize_computes_only_requested_blocks() -> None:
+    '''Unrequested blocks need not be present and are left at zero.'''
+
+    contract = _bundle_or_skip()
+    frame = _synthetic_frame(contract)
+    keep = contract.columns("AB")
+    partial = frame[keep + ["receptor"]]
+    features = contract.featurize(partial, partial["receptor"].to_numpy(), blocks="AB")
+
+    live = contract.mask("AB").astype(bool)
+    assert np.all(features[:, ~live] == 0)
+    with pytest.raises(ValueError, match="required feature columns are absent"):
+        contract.featurize(partial, partial["receptor"].to_numpy(), blocks="ABC")
+
+
+def test_baseline_requirements_follow_each_arm() -> None:
+    '''Linear baselines need exactly the blocks of their arm; consensus needs only the scores.'''
+
+    _bundle_or_skip()
+    needs = ocrelbaselines.baseline_requirements(ocrelcatalog.default_root())
+    assert needs["consensus_mean"] == "A"
+    assert needs["random_ranking"] == ""
+    if "ridge_S" in needs:
+        assert needs["ridge_S"] == "A"
+        assert needs["ridge_S+L"] == "AB"
+        assert needs["ridge_S+L+R+P"] == "ABCD"
+
+
+def _write_table_without_pocket(contract: ocrelbundle.FeatureContract, path) -> None:
+    '''Write a labelled table that carries every block except the pocket descriptors.'''
+
+    frame = _synthetic_frame(contract, rows=40)
+    frame = frame[contract.columns("ABC") + ["receptor"]].copy()
+    frame["kind"] = ["active"] * 8 + ["inactive"] * 32
+    frame.to_csv(path, index=False)
+
+
+def test_run_prediction_refuses_a_table_missing_a_needed_block(tmp_path) -> None:
+    '''By default every requested model must be scorable.'''
+
+    contract = _bundle_or_skip()
+    table = tmp_path / "table.csv"
+    _write_table_without_pocket(contract, table)
+    config = ocrelinference.PredictionConfig(csv=table, output_dir=tmp_path / "out")
+    with pytest.raises(ValueError, match="does not carry every block"):
+        ocrelinference.run_prediction(config)
+
+
+def test_run_prediction_can_skip_models_the_table_cannot_support(tmp_path) -> None:
+    '''With skipping enabled, only models whose blocks are present run, and the gap is reported.'''
+
+    contract = _bundle_or_skip()
+    table = tmp_path / "table.csv"
+    _write_table_without_pocket(contract, table)
+    config = ocrelinference.PredictionConfig(csv=table, output_dir=tmp_path / "out",
+                                             skip_unavailable=True)
+    report = ocrelinference.run_prediction(config)
+
+    assert report["blocks_present"] == "ABC"
+    assert all("P" not in name.split("_", 1)[-1] for name in report["models_scored"])
+    assert "release_m1_1" in report["models_skipped"]
+    assert report["control_check"]["status"] == "not_run"

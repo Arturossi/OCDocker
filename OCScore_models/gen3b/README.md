@@ -38,8 +38,9 @@ zero outside their arm. The ECFP4 and random rows are controls in the same sense
 randomised-label network: ECFP4 asks whether a ranking could have come from recognising familiar
 chemistry rather than from the target.
 
-Arm directories name the blocks they were trained with: `S` scores, `L` ligand descriptors,
-`R` receptor descriptors, `P` pocket descriptors. `S_L_R_P` is the full input and reproduces the
+Arm directories name the blocks each arm takes: `S` scores, `L` ligand descriptors, `R` receptor
+descriptors, `P` pocket descriptors. An arm reads only the columns of its own blocks, so `S` is
+an 11-input network and `S_L` a 310-input one. `S_L_R_P` is the full input and reproduces the
 release.
 
 Each model is reported per seed and as a three-seed ensemble, the ensemble being the mean of
@@ -79,9 +80,14 @@ A merged OCDocker results table, one row per docked compound. Required columns:
 - `receptor`, naming the target each row was docked against
 - `kind`, naming each compound `active` or `inactive`, when metrics are wanted
 
-A table that cannot satisfy the contract is refused with the missing columns named per block, so
-it is clear whether what is absent is a score, a ligand descriptor or a context block. Rows that
-carry every column but leave some of them empty are dropped and counted in the report.
+A table needs only the blocks of the models it is scored with. By default every requested model
+must be scorable, and a table that falls short is refused with the missing columns named per
+block, so it is clear whether what is absent is a score, a ligand descriptor or a context block.
+With `--skip-unavailable` the models the table can support are scored and the rest are listed in
+the report; a table without context columns still gets the `S` and `S_L` arms and the baselines
+that read only scores and ligand descriptors. The release model and the control take every
+block, so a run that skips them has no control check. Rows that carry every needed column but
+leave some of them empty are dropped and counted in the report.
 
 ## Two properties of the contract that constrain use
 

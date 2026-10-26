@@ -11,9 +11,7 @@ shared by every model family shipped beside it. Scores and ligand descriptors ar
 within receptor, so a whole library is ranked against one target at a time and a single compound
 on its own cannot be scored.
 
-Ablation families were trained with their absent blocks zeroed after preprocessing. The mask is
-recorded in each checkpoint and applied here, because feeding an ablation model the blocks it
-never saw silently produces a different model.
+Each model declares the feature blocks it takes, and is fed only the columns of those blocks.
 
 Usage:
 
@@ -178,34 +176,55 @@ class FeatureContract:
         return {k: list(v) for k, v in self.manifest["groups"].items()}
 
     def mask(self, live_blocks: str) -> np.ndarray:
-        '''Build the input mask for an ablation family.
+        '''Mark the contract columns that belong to the given blocks.
 
         Parameters
         ----------
         live_blocks : str
-            Block letters the family was trained with, for example ``"ABCD"`` or ``"AC"``.
+            Block letters, for example ``"ABCD"`` or ``"AC"``.
 
         Returns
         -------
         numpy.ndarray
-            Float vector of ones on live columns and zeros elsewhere.
+            Float vector of ones on the columns of those blocks and zeros elsewhere.
         '''
 
         return np.isin(self.block_letter, list(live_blocks)).astype(np.float32)
 
-    def featurize(self, dataframe: pd.DataFrame, groups: Any) -> np.ndarray:
+    def columns(self, live_blocks: str) -> list[str]:
+        '''Name the contract columns that belong to the given blocks, in contract order.
+
+        Parameters
+        ----------
+        live_blocks : str
+            Block letters, for example ``"ABCD"`` or ``"AC"``.
+
+        Returns
+        -------
+        list of str
+            Column names of those blocks.
+        '''
+
+        keep = self.mask(live_blocks).astype(bool)
+        return [c for c, k in zip(self.feature_order, keep) if k]
+
+    def featurize(self, dataframe: pd.DataFrame, groups: Any,
+                  blocks: str = "ABCD") -> np.ndarray:
         '''Apply the training-time transforms recorded in the bundle.
 
         Scores are negated so that higher is better, then scores and ligand descriptors are
         standardised within receptor. Context columns use the standardisation fitted on PDBbind
-        during training.
+        during training. Only the requested blocks are computed; the columns of the others are
+        left at zero and must not be read by any model.
 
         Parameters
         ----------
         dataframe : pandas.DataFrame
-            Table carrying every column named in the manifest.
+            Table carrying every column of the requested blocks.
         groups : array-like
             Receptor identifier per row, defining the within-receptor standardisation.
+        blocks : str, optional
+            Block letters to compute; all four by default.
 
         Returns
         -------
@@ -213,7 +232,8 @@ class FeatureContract:
             Float32 matrix with one column per manifest feature, in manifest order.
         '''
 
-        missing = [c for c in self.feature_order if c not in dataframe.columns]
+        wanted = set(self.columns(blocks))
+        missing = [c for c in self.feature_order if c in wanted and c not in dataframe.columns]
         if missing:
             raise ValueError(
                 f"{len(missing)} required feature columns are absent, first few: {missing[:8]}"
@@ -222,16 +242,21 @@ class FeatureContract:
         g = np.asarray(groups)
         cols: dict[str, np.ndarray] = {}
         for c in self.manifest["groups"]["A_scores"]:
-            cols[c] = self._z_within(-dataframe[c].astype(float).to_numpy(), g)
+            if c in wanted:
+                cols[c] = self._z_within(-dataframe[c].astype(float).to_numpy(), g)
         for c in self.manifest["groups"]["B_ligand"]:
-            cols[c] = self._z_within(dataframe[c].astype(float).to_numpy(), g)
+            if c in wanted:
+                cols[c] = self._z_within(dataframe[c].astype(float).to_numpy(), g)
 
         cmean = dict(zip(self.ctx_columns, self.ctx_mean))
         cstd = dict(zip(self.ctx_columns, self.ctx_std))
         for c in self.manifest["groups"]["C_receptor"] + self.manifest["groups"]["D_pocket"]:
-            cols[c] = (dataframe[c].astype(float).to_numpy() - cmean[c]) / (cstd[c] + 1e-12)
+            if c in wanted:
+                cols[c] = (dataframe[c].astype(float).to_numpy() - cmean[c]) / (cstd[c] + 1e-12)
 
-        return np.stack([cols[c] for c in self.feature_order], axis=1).astype(np.float32)
+        empty = np.zeros(len(dataframe))
+        return np.stack([cols.get(c, empty) for c in self.feature_order],
+                        axis=1).astype(np.float32)
 
     @staticmethod
     def _z_within(values: np.ndarray, groups: np.ndarray) -> np.ndarray:

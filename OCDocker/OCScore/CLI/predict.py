@@ -100,6 +100,15 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         help="Comma-separated kinds to score; pass an empty string to score every row.",
     )
     parser.add_argument(
+        "--skip-unavailable",
+        action="store_true",
+        help=(
+            "Score only the models whose input blocks the table carries, instead of refusing the "
+            "table. Skipped models are listed in the report; when the control is among them the "
+            "control check cannot run."
+        ),
+    )
+    parser.add_argument(
         "--smiles-column",
         default=None,
         help="Column holding each compound's SMILES; needed only for the ECFP4 baseline.",
@@ -164,6 +173,7 @@ def main_from_args(args: argparse.Namespace) -> int:
         label_column=args.label_column,
         kind_column=args.kind_column,
         smiles_column=args.smiles_column,
+        skip_unavailable=args.skip_unavailable,
         keep_kinds=keep,
         device=args.device,
         bedroc_alpha=args.bedroc_alpha,
@@ -172,12 +182,15 @@ def main_from_args(args: argparse.Namespace) -> int:
     report = ocrelinference.run_prediction(config)
 
     print(json.dumps({k: report[k] for k in (
-        "models_scored", "baselines_scored", "n_rows_scored", "n_rows_dropped_incomplete", "n_receptors",
+        "blocks_present", "models_scored", "models_skipped", "baselines_scored",
+        "n_rows_scored", "n_rows_dropped_incomplete", "n_receptors",
         "predictions_csv", "metrics_csv", "control_check")}, indent=2))
 
     check = report["control_check"]
     if check.get("status") == "FAIL":
         print(f"\nWARNING: {check['message']}", file=sys.stderr)
+    elif report["models_skipped"] and any(n.startswith("control_") for n in report["models_skipped"]):
+        print(f"\nWARNING: {check['reason']}", file=sys.stderr)
     return 0
 
 

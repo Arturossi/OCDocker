@@ -80,6 +80,7 @@ class PredictionConfig:
     label_column: Optional[str] = None
     kind_column: str = "kind"
     smiles_column: Optional[str] = None
+    skip_unavailable: bool = False
     keep_kinds: tuple[str, ...] = ("active", "inactive")
     device: str = "cpu"
     bedroc_alpha: float = 20.0
@@ -334,11 +335,12 @@ def score_models(contract: ocrelbundle.FeatureContract,
                  specs: Sequence[ocrelcatalog.ModelSpec],
                  dataframe: pd.DataFrame,
                  groups: Any,
-                 device: str = "cpu") -> pd.DataFrame:
+                 device: str = "cpu",
+                 features: Optional[np.ndarray] = None) -> pd.DataFrame:
     '''Score a prepared table with every requested model.
 
-    Each ablation arm is scored through its own input mask, so a model only ever sees the blocks
-    it was trained with.
+    Each model is fed only the columns of the blocks it takes, and its checkpoint is checked
+    against them before scoring.
 
     Parameters
     ----------
@@ -347,11 +349,13 @@ def score_models(contract: ocrelbundle.FeatureContract,
     specs : sequence of OCDocker.OCScore.Release.Catalog.ModelSpec
         Models to run.
     dataframe : pandas.DataFrame
-        Table carrying every contract column.
+        Table carrying the columns of every block the models take.
     groups : array-like
         Receptor identifier per row.
     device : str, optional
         Torch device.
+    features : numpy.ndarray, optional
+        Output of ``FeatureContract.featurize``; computed when omitted.
 
     Returns
     -------
@@ -359,21 +363,35 @@ def score_models(contract: ocrelbundle.FeatureContract,
         One column per model seed plus one per rank ensemble, aligned to the input rows.
     '''
 
-    features = contract.featurize(dataframe, groups)
+    if features is None:
+        used = "".join(sorted({b for spec in specs for b in spec.live_blocks}))
+        features = contract.featurize(dataframe, groups, blocks=used)
     out: dict[str, np.ndarray] = {}
 
     for spec in specs:
-        mask = contract.mask(spec.live_blocks)
-        tensor = torch.tensor(features * mask, device=device)
+        keep = contract.mask(spec.live_blocks).astype(bool)
+        names = contract.columns(spec.live_blocks)
+        tensor = torch.tensor(np.ascontiguousarray(features[:, keep]), device=device)
         cons = torch.zeros((len(features), 1), device=device)
         seed_scores: list[np.ndarray] = []
         for path, seed in zip(spec.checkpoints, spec.seeds):
             net, payload = ocrelbundle.load_network(path, device=device)
+            if int(payload["d_in"]) != len(names):
+                raise ValueError(
+                    f"{spec.name} seed {seed}: checkpoint takes {payload['d_in']} inputs but blocks "
+                    f"{spec.live_blocks!r} have {len(names)} columns."
+                )
             recorded = payload.get("live_blocks")
             if recorded is not None and "".join(sorted(recorded)) != spec.live_blocks:
                 raise ValueError(
-                    f"{spec.name} seed {seed}: checkpoint records live blocks {recorded!r} but "
-                    f"the catalogue derived {spec.live_blocks!r}."
+                    f"{spec.name} seed {seed}: checkpoint records blocks {recorded!r} but the "
+                    f"catalogue derived {spec.live_blocks!r}."
+                )
+            declared = payload.get("input_features")
+            if declared is not None and list(declared) != names:
+                raise ValueError(
+                    f"{spec.name} seed {seed}: checkpoint input features do not match the "
+                    "contract columns of its blocks."
                 )
             with torch.no_grad():
                 values = net(tensor, "scr", cons).cpu().numpy()
@@ -488,10 +506,13 @@ def run_prediction(config: PredictionConfig) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     contract = ocrelbundle.FeatureContract(ocrelcatalog.contract_dir(config.models_root))
+    root = ocrelcatalog.contract_dir(config.models_root).parent
+    run_baselines = config.families is None or BASELINE_FAMILY in config.families
     checkpoint_families = (tuple(f for f in config.families if f != BASELINE_FAMILY)
                            if config.families else None)
-    specs = ocrelcatalog.discover(config.models_root, checkpoint_families)
-    if not specs:
+    specs = (ocrelcatalog.discover(config.models_root, checkpoint_families)
+             if checkpoint_families != () else [])
+    if not specs and not run_baselines:
         raise FileNotFoundError("No OCScore models found in the generation bundle.")
 
     table = pd.read_csv(config.csv, low_memory=False)
@@ -512,33 +533,50 @@ def run_prediction(config: PredictionConfig) -> dict[str, Any]:
                                groups=table[config.group_column].to_numpy())
 
     absent = _missing_by_block(table, contract)
-    if absent:
+    present = "".join(sorted(ocrelbundle.BLOCK_LETTERS[b] for b in contract.groups
+                             if b not in absent))
+    needs = {spec.name: spec.live_blocks for spec in specs}
+    baseline_needs = ocrelbaselines.baseline_requirements(root) if run_baselines else {}
+    needs.update(baseline_needs)
+    unmet = {name: "".join(sorted(set(blocks) - set(present)))
+             for name, blocks in needs.items() if not set(blocks) <= set(present)}
+
+    if unmet and not config.skip_unavailable:
         summary = "; ".join(f"{b}: {len(v)} of {len(contract.groups[b])} missing, "
                             f"e.g. {v[:3]}" for b, v in absent.items())
         raise ValueError(
-            f"The table does not satisfy the feature contract. {summary}. Context blocks "
-            "describe the receptor rather than any compound: compute them once for the target "
-            "and supply them as prefixed columns or with --receptor-descriptors."
+            f"The table does not carry every block the requested models take. {summary}. "
+            f"{len(unmet)} requested model(s) need them, e.g. {sorted(unmet)[:4]}. Context "
+            "blocks describe the receptor rather than any compound: compute them once for the "
+            "target with 'ocdocker ocscore descriptors' and supply them as prefixed columns or "
+            "with --receptor-descriptors, or pass --skip-unavailable to score only the models "
+            "this table supports."
         )
 
-    complete = table[contract.feature_order].notna().all(axis=1)
+    specs = [spec for spec in specs if spec.name not in unmet]
+    used = "".join(sorted({b for name, blocks in needs.items() if name not in unmet
+                           for b in blocks}))
+    if not specs and not any(name not in unmet for name in baseline_needs):
+        raise ValueError("No requested model can be scored with the columns this table carries.")
+
+    required = contract.columns(used) if used else []
+    complete = (table[required].notna().all(axis=1) if required
+                else pd.Series(True, index=table.index))
     dropped = int((~complete).sum())
     table = table[complete].reset_index(drop=True)
     if table.empty:
-        raise ValueError("No rows carry a complete set of contract features.")
+        raise ValueError("No rows carry a complete set of the features the models take.")
 
     groups = table[config.group_column].to_numpy()
-    predictions = score_models(contract, specs, table, groups, device=config.device)
+    features = contract.featurize(table, groups, blocks=used)
+    predictions = score_models(contract, specs, table, groups, device=config.device,
+                               features=features)
 
-    if config.families is None or BASELINE_FAMILY in config.families:
+    if run_baselines:
         smiles = (table[config.smiles_column]
                   if config.smiles_column and config.smiles_column in table.columns else None)
-        extra = ocrelbaselines.score_baselines(
-            contract,
-            ocrelcatalog.contract_dir(config.models_root).parent,
-            contract.featurize(table, groups),
-            smiles=smiles,
-        )
+        extra = ocrelbaselines.score_baselines(contract, root, features, smiles=smiles,
+                                               available=present)
         for name, values in extra.items():
             predictions[name] = values
 
@@ -556,11 +594,21 @@ def run_prediction(config: PredictionConfig) -> dict[str, Any]:
         metrics_path = output_dir / METRICS_CSV
         metrics.to_csv(metrics_path, index=False)
         verdict = control_verdict(metrics)
+    skipped_controls = sorted(n for n in unmet if n.startswith("control_"))
+    if skipped_controls:
+        verdict = {
+            "status": "not_run",
+            "reason": (f"{', '.join(skipped_controls)} needs block(s) "
+                       f"{unmet[skipped_controls[0]]!r} that the table does not carry, so the "
+                       "ranking of the other models cannot be checked against it."),
+        }
 
     report = {
         "generation": ocrelcatalog.GENERATION,
         "models_root": str(ocrelcatalog.contract_dir(config.models_root).parent),
+        "blocks_present": present,
         "models_scored": [s.name for s in specs],
+        "models_skipped": unmet,
         "baselines_scored": sorted({c.split("|")[0] for c in predictions.columns
                                     if "|" in c and c.split("|")[1] in
                                     ("rule", "linear", "similarity", "control")}),
