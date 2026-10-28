@@ -144,7 +144,7 @@ def write_context(descriptors: dict[str, Any], path: Union[str, Path]) -> None:
 
 
 __all__ = [
-    "DEFAULT_CUTOFF",
+    "DEFAULT_RADIUS",
     "DEFAULT_GRAVY_SCALE",
     "DEFAULT_PH",
     "compute_context",
