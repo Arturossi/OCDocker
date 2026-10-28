@@ -109,7 +109,7 @@ def test_pockets_model_descriptor_catalog_and_columns():
     columns = ocpockets.Pockets.__table__.columns
     for desc in ocpockets.Pockets.allDescriptors:
         assert desc in columns
-    for meta in ["receptor_id", "reference_ligand", "cutoff", "residues"]:
+    for meta in ["receptor_id", "center", "radius", "residues"]:
         assert meta in columns
 
     assert hasattr(ocpockets.Pockets, "receptor")
@@ -136,8 +136,8 @@ def test_receptor_holds_multiple_pockets_in_sqlite():
     with Session(engine) as s:
         receptor = ocreceptors.Receptors(name="rec")
         receptor.pockets = [
-            ocpockets.Pockets(name="rec_pocket0", reference_ligand="lig0.sdf", cutoff=8.0, residues="A:1::LYS", countK=1, NetCharge=1.0),
-            ocpockets.Pockets(name="rec_pocket1", reference_ligand="lig1.sdf", cutoff=8.0, residues="A:2::ASP", countD=1, NetCharge=-1.0),
+            ocpockets.Pockets(name="rec_pocket0", center="1.0,2.0,3.0", radius=12.0, residues="A:1::LYS", countK=1, NetCharge=1.0),
+            ocpockets.Pockets(name="rec_pocket1", center="4.0,5.0,6.0", radius=12.0, residues="A:2::ASP", countD=1, NetCharge=-1.0),
         ]
         s.add(receptor)
         s.commit()

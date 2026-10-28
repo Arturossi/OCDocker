@@ -8,10 +8,11 @@ Run them with:
 
     ocdocker ocscore predict --csv <table>.csv --output-dir <dir>
 
-For a target whose table lacks the context columns, compute them once from the structure first:
+For a target whose table lacks the context columns, compute them once from the structure and
+the docking centre first (`--box <box>.pdb` reads the centre from an OCDocker docking box):
 
     ocdocker ocscore descriptors --receptor <protein>.pdb \
-        --reference-ligand <site>.pdb --ligand-resname <RES> --out context.json
+        --center <x> <y> <z> --out context.json
     ocdocker ocscore predict --csv <table>.csv --receptor-descriptors context.json \
         --output-dir <dir>
 
@@ -97,9 +98,10 @@ row per target produces nothing meaningful.
 
 The 55 context features describe the receptor, not the compound. A new target needs them computed
 once before its table can be scored, with `ocdocker ocscore descriptors`, which takes the
-receptor structure and a ligand defining the site. Receptor and pocket descriptors are not
-interchangeable -- the receptor set describes the whole protein and the pocket set only the
-residues lining the site, and none of the 24 shared names agree between them.
+receptor structure and the docking centre of the site; no reference ligand is needed. Receptor and
+pocket descriptors are not interchangeable -- the receptor set describes the whole protein and the
+pocket set only the residues within 12 angstroms of the docking centre, and none of the 24 shared
+names agree between them.
 
 ## Output
 

@@ -11,8 +11,8 @@ full pipeline run already carries them; a table assembled any other way usually 
 this is how they are produced from a structure.
 
 Receptor and pocket descriptors are not interchangeable. The receptor set describes the whole
-protein and the pocket set only the residues lining the binding site, selected by a cutoff around
-a reference ligand. The two sets share 24 of their names and none of the shared values agree, so
+protein and the pocket set only the residues within a radius of the docking centre, so no
+reference ligand is needed. The two sets share 24 of their names and none of the shared values agree, so
 a table carrying one of them is still missing the other.
 
 Usage:
@@ -25,10 +25,9 @@ from __future__ import annotations
 # Imports
 ###############################################################################
 import json
-import tempfile
 
 from pathlib import Path
-from typing import Any, Optional, Union, cast
+from typing import Any, Sequence, Union, cast
 
 # License
 ###############################################################################
@@ -41,52 +40,19 @@ See the LICENSE file for full terms.
 
 # Constants
 ###############################################################################
-DEFAULT_CUTOFF = 8.0
+DEFAULT_RADIUS = 12.0
 DEFAULT_PH = 7.4
 DEFAULT_GRAVY_SCALE = "KyteDoolitle"
 
 # Functions
 ###############################################################################
-## Private ##
-
-
-def _extract_resname(pdb_path: Union[str, Path], resname: str) -> str:
-    '''Write one residue's HETATM records to a temporary PDB.
-
-    Parameters
-    ----------
-    pdb_path : str or pathlib.Path
-        Structure containing the reference ligand.
-    resname : str
-        HETATM residue name to extract.
-
-    Returns
-    -------
-    str
-        Path of the temporary single-residue PDB.
-    '''
-
-    with open(pdb_path, encoding="utf-8") as handle:
-        lines = [line for line in handle
-                 if line.startswith("HETATM") and line[17:20].strip() == resname]
-    if not lines:
-        raise ValueError(f"No HETATM records for residue {resname!r} in {pdb_path}.")
-
-    holder = tempfile.NamedTemporaryFile("w", suffix=".pdb", delete=False)
-    holder.writelines(lines)
-    holder.write("END\n")
-    holder.close()
-    return holder.name
-
-
 ## Public ##
 
 
 def compute_context(receptor: Union[str, Path],
-                    reference_ligand: Union[str, Path],
+                    center: Union[Sequence[float], str, Path],
                     name: str = "receptor",
-                    ligand_resname: Optional[str] = None,
-                    cutoff: float = DEFAULT_CUTOFF,
+                    radius: float = DEFAULT_RADIUS,
                     ph: float = DEFAULT_PH,
                     gravy_scale: str = DEFAULT_GRAVY_SCALE) -> dict[str, dict[str, Any]]:
     '''Compute the whole-protein and binding-site descriptor sets for one target.
@@ -95,15 +61,12 @@ def compute_context(receptor: Union[str, Path],
     ----------
     receptor : str or pathlib.Path
         Receptor structure, protein only.
-    reference_ligand : str or pathlib.Path
-        Ligand defining the binding site: its own file, or a structure to pull a residue from
-        when ``ligand_resname`` is given.
+    center : sequence of float, str or pathlib.Path
+        Docking centre as ``(x, y, z)``, or an OCDocker docking box file holding it.
     name : str, optional
         Name recorded on the receptor and pocket objects.
-    ligand_resname : str, optional
-        HETATM residue name to extract from ``reference_ligand``.
-    cutoff : float, optional
-        Angstrom cutoff around the reference ligand defining the pocket.
+    radius : float, optional
+        Angstrom radius around the centre defining the pocket.
     ph : float, optional
         pH used for the pocket protonation.
     gravy_scale : str, optional
@@ -118,12 +81,11 @@ def compute_context(receptor: Union[str, Path],
     import OCDocker.Pocket as ocpocket
     import OCDocker.Receptor as ocreceptor
 
-    ligand_path = (_extract_resname(reference_ligand, ligand_resname)
-                   if ligand_resname else str(reference_ligand))
+    pocket_center = str(center) if isinstance(center, Path) else center
 
     receptor_object = ocreceptor.Receptor(str(receptor), name=name, gravy_scale=gravy_scale)
-    pocket_object = ocpocket.Pocket(str(receptor), reference_ligand=ligand_path, name=name,
-                                    cutoff=cutoff, ph=ph, gravy_scale=gravy_scale)
+    pocket_object = ocpocket.Pocket(str(receptor), center=pocket_center, name=name,
+                                    radius=radius, ph=ph, gravy_scale=gravy_scale)
     return {
         "receptor": {f"receptor_{k}": v for k, v in receptor_object.get_descriptors().items()},
         "pocket": {f"pocket_{k}": v for k, v in pocket_object.get_descriptors().items()},
