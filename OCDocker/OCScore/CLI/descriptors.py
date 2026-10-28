@@ -6,7 +6,7 @@
 CLI to compute the receptor and pocket descriptors a target needs before it can be scored.
 
 The 55 context features describe the target rather than any compound, so they are computed once
-per receptor from its structure and a ligand defining the binding site. The result feeds
+per receptor from its structure and the docking centre of its binding site. The result feeds
 ``ocdocker ocscore predict --receptor-descriptors``.
 '''
 
@@ -49,11 +49,11 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
     parser.add_argument("--receptor", required=True,
                         help="Receptor structure, protein only.")
-    parser.add_argument("--reference-ligand", required=True,
-                        help=("Ligand defining the binding site: its own file, or a structure to "
-                              "pull a residue from with --ligand-resname."))
-    parser.add_argument("--ligand-resname", default=None,
-                        help="HETATM residue name to extract from --reference-ligand.")
+    site = parser.add_mutually_exclusive_group(required=True)
+    site.add_argument("--center", type=float, nargs=3, metavar=("X", "Y", "Z"),
+                      help="Docking centre of the binding site, in angstroms.")
+    site.add_argument("--box", default=None,
+                      help="OCDocker docking box file holding the docking centre.")
     parser.add_argument("--out", required=True,
                         help="Destination JSON, consumed by 'ocscore predict'.")
     parser.add_argument("--target-id", default=None,
@@ -62,8 +62,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                               "already exists, which is how several targets share one file."))
     parser.add_argument("--name", default="receptor",
                         help="Name recorded on the receptor and pocket objects.")
-    parser.add_argument("--cutoff", type=float, default=ocrelcontext.DEFAULT_CUTOFF,
-                        help="Angstrom cutoff around the reference ligand defining the pocket.")
+    parser.add_argument("--radius", type=float, default=ocrelcontext.DEFAULT_RADIUS,
+                        help="Angstrom radius around the docking centre defining the pocket.")
     parser.add_argument("--ph", type=float, default=ocrelcontext.DEFAULT_PH,
                         help="pH used for the pocket protonation.")
     parser.add_argument("--gravy-scale", default=ocrelcontext.DEFAULT_GRAVY_SCALE,
@@ -106,10 +106,9 @@ def main_from_args(args: argparse.Namespace) -> int:
 
     computed = ocrelcontext.compute_context(
         receptor=args.receptor,
-        reference_ligand=args.reference_ligand,
+        center=args.box if args.box else args.center,
         name=args.name,
-        ligand_resname=args.ligand_resname,
-        cutoff=args.cutoff,
+        radius=args.radius,
         ph=args.ph,
         gravy_scale=args.gravy_scale,
     )

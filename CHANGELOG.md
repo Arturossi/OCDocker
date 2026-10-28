@@ -23,8 +23,8 @@ All notable changes to OCDocker are documented here. The format follows
   0.60, which means the evaluation labels are partly predictable without any activity
   supervision.
 - `ocdocker ocscore descriptors` computes the 29 receptor and 26 pocket descriptors a new
-  target needs before it can be scored, from the receptor structure and a ligand defining
-  the site. `--target-id` collects several targets in one JSON, and `predict` then applies
+  target needs before it can be scored, from the receptor structure and the docking centre
+  of the site (`--center X Y Z` or `--box`). `--target-id` collects several targets in one JSON, and `predict` then applies
   each target's descriptors to its own rows; a receptor in the table but absent from the
   file is an error.
 - `OCDocker.OCScore.Release`, the inference package behind both commands.
@@ -32,6 +32,22 @@ All notable changes to OCDocker are documented here. The format follows
 ### Changed
 
 - `examples/25_ocscore_score_with_shipped_models.py` scores with the Gen3B models.
+- The binding pocket is defined by the docking centre alone: every standard residue with a
+  heavy atom within `radius` angstroms of the centre, 12 by default, so no reference ligand is
+  needed. `Pocket(structure, center, name, radius=12.0)` takes the centre as `(x, y, z)` or as
+  an OCDocker docking box file (`read_box_center`), replacing `reference_ligand` and `cutoff`.
+  The radius was chosen on 2,072 PDBbind complexes, one per protein cluster: fixed radii of
+  10 to 12 angstroms keep the variation between targets of a ligand-defined pocket, radii
+  scaled to protein size mostly repeat the receptor descriptors, and 12 angstroms agrees best
+  with the ligand-defined pocket. The descriptor JSON stores `Center` and `Radius`, and files
+  written for a ligand-defined pocket (`ReferenceLigand`, `Cutoff`) are rejected.
+  `ocdocker ocscore descriptors` takes `--center` or `--box` and `--radius`,
+  `OCScore.Release.Context.compute_context` takes `center` and `radius`, and
+  `scripts/compute_pocket_descriptors.py` reads the centre from each receptor's docking box.
+  The `pockets` table stores `center` and `radius` in place of `reference_ligand` and
+  `cutoff`; a database created before this change needs its `pockets` table recreated. The
+  shipped models that use the pocket block were trained on the ligand-defined pocket and
+  are being retrained on this definition.
 
 ### Removed
 

@@ -56,10 +56,10 @@ class Pockets(base):
         Primary key.
     receptor_id : sqlalchemy.Integer
         Foreign key to :class:`Receptors`.
-    reference_ligand : sqlalchemy.String
-        Reference ligand used to define the pocket.
-    cutoff : sqlalchemy.Float
-        Heavy-atom distance cutoff (angstroms) used to define the pocket.
+    center : sqlalchemy.String
+        Docking centre defining the pocket, as ``x,y,z`` in angstroms.
+    radius : sqlalchemy.Float
+        Heavy-atom distance (angstroms) from the centre defining the pocket.
     residues : sqlalchemy.Text
         Pocket residues as ``chain:number:insertion:resname`` joined by ``;``.
     receptor : Receptors
@@ -74,8 +74,8 @@ class Pockets(base):
     receptor = relationship("Receptors", back_populates="pockets")
 
     # Pocket definition
-    reference_ligand = Column(String(760), server_default=None)
-    cutoff = Column(Float, server_default=None)
+    center = Column(String(64), server_default=None)
+    radius = Column(Float, server_default=None)
     residues = Column(Text, server_default=None)
 
     # Declare the descriptors names as class attributes

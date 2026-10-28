@@ -6,10 +6,10 @@
 Sets of classes and functions that are used to process all content related to
 the binding pocket of a receptor.
 
-A pocket is defined by a reference ligand: every standard receptor residue with
-at least one heavy atom within a distance cutoff of any reference-ligand heavy
-atom belongs to the pocket. One receptor may hold several pockets, each built
-from its own reference ligand.
+A pocket is defined by the docking centre alone: every standard receptor
+residue with at least one heavy atom within a radius of that centre belongs to
+the pocket, so no reference ligand is needed. One receptor may hold several
+pockets, each built from its own centre.
 
 Usage:
 
@@ -23,6 +23,7 @@ from __future__ import annotations
 import Bio
 import json
 import os
+import re
 
 import numpy as np
 
@@ -30,11 +31,9 @@ from Bio.PDB import SASA
 from Bio.PDB.NeighborSearch import NeighborSearch
 from Bio.SeqUtils import seq1
 from Bio.SeqUtils.IsoelectricPoint import negative_pKs, positive_pKs
-from rdkit import Chem
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union, cast
 
 import OCDocker.Error as ocerror
-import OCDocker.Ligand as ocl
 import OCDocker.Receptor as ocr
 
 import OCDocker.Toolbox.Printing as ocprint
@@ -51,11 +50,10 @@ See the LICENSE file for full terms.
 # Classes
 ###############################################################################
 class Pocket:
-    """Represents a receptor binding pocket defined by a reference ligand.
+    """Represents a receptor binding pocket defined by its docking centre.
 
     The pocket is the set of standard receptor residues with at least one
-    heavy atom within ``cutoff`` angstroms of any heavy atom of the reference
-    ligand. Descriptors are computed on those residues only: residue counts,
+    heavy atom within ``radius`` angstroms of the docking centre. Descriptors are computed on those residues only: residue counts,
     number of chains contributing, solvent accessible surface area in the
     context of the full receptor, GRAVY, aromaticity, side-chain net charge and
     side-chain hydrogen-bond donor and acceptor atoms lining the pocket.
@@ -64,13 +62,14 @@ class Pocket:
     ----------
     structure : str | Bio.PDB.Structure.Structure
         Path to a PDB/mmCIF file or a BioPython Structure object of the receptor.
-    reference_ligand : str | rdkit.Chem.rdchem.Mol
-        Path to the reference ligand (pdb/sdf/mol/mol2) or an RDKit Mol with 3D
-        coordinates. Not required when ``from_json_descriptors`` is given.
+    center : Sequence[float] | str
+        Docking centre as ``(x, y, z)`` in angstroms, or the path to an OCDocker
+        docking box file holding it. Not required when ``from_json_descriptors``
+        is given.
     name : str
         Name identifier for the pocket.
-    cutoff : float, optional
-        Heavy-atom distance cutoff in angstroms defining the pocket, by default 8.0.
+    radius : float, optional
+        Heavy-atom distance from the centre in angstroms defining the pocket, by default 12.0.
     ph : float, optional
         pH used to compute the side-chain net charge, by default 7.4.
     gravy_scale : str, optional
@@ -91,16 +90,16 @@ class Pocket:
         Name of the pocket.
     path : str
         Path to the receptor structure file.
-    reference_ligand_path : str
-        Path to the reference ligand used to define the pocket.
+    center : Tuple[float, float, float]
+        Docking centre defining the pocket, in angstroms.
     structure : Bio.PDB.Structure.Structure
         BioPython structure object of the receptor.
     residues : str
         One-letter sequence of the pocket residues, in structure order.
     residue_ids : list[str]
         Pocket residues as ``chain:number:insertion:resname`` identifiers.
-    cutoff : float
-        Heavy-atom distance cutoff in angstroms.
+    radius : float
+        Heavy-atom distance from the centre in angstroms.
     SASA : float
         Solvent accessible surface area of the pocket residues, computed in
         the context of the full receptor.
@@ -119,9 +118,9 @@ class Pocket:
     countChain : int
         Number of chains contributing residues to the pocket.
     countHBondDonors : int
-        Side-chain hydrogen-bond donor atoms within ``cutoff`` of the reference ligand.
+        Side-chain hydrogen-bond donor atoms within ``radius`` of the centre.
     countHBondAcceptors : int
-        Side-chain hydrogen-bond acceptor atoms within ``cutoff`` of the reference ligand.
+        Side-chain hydrogen-bond acceptor atoms within ``radius`` of the centre.
     """
 
     # Declare the amino acid count descriptors (relevant for pockets)
@@ -138,19 +137,19 @@ class Pocket:
     # Generate all descriptors dynamically
     allDescriptors = [f"count{i}" for i in descriptors_names["count"]] + single_descriptors
 
-    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], reference_ligand: Union[str, Chem.rdchem.Mol], name: str, cutoff: float = 8.0, ph: float = 7.4, gravy_scale: str = "KyteDoolitle", from_json_descriptors: str = "", overwrite: bool = False, clean: bool = False, canonicalize_pdb: Union[bool, str] = "auto") -> None:
+    def __init__(self, structure: Union[str, Bio.PDB.Structure.Structure], center: Union[Sequence[float], str], name: str, radius: float = 12.0, ph: float = 7.4, gravy_scale: str = "KyteDoolitle", from_json_descriptors: str = "", overwrite: bool = False, clean: bool = False, canonicalize_pdb: Union[bool, str] = "auto") -> None:
         '''Constructor of the class Pocket.
 
         Parameters
         ----------
         structure : str | Bio.PDB.Structure.Structure
             Path to the receptor structure file OR Bio.PDB.Structure.Structure object.
-        reference_ligand : str | rdkit.Chem.rdchem.Mol
-            Path to the reference ligand OR RDKit Mol with 3D coordinates.
+        center : Sequence[float] | str
+            Docking centre as ``(x, y, z)`` OR path to an OCDocker docking box file.
         name : str
             Name of the pocket.
-        cutoff : float, optional
-            Heavy-atom distance cutoff in angstroms defining the pocket, by default 8.0.
+        radius : float, optional
+            Heavy-atom distance from the centre in angstroms defining the pocket, by default 12.0.
         ph : float, optional
             pH used to compute the side-chain net charge, by default 7.4.
         gravy_scale : str, optional
@@ -169,11 +168,11 @@ class Pocket:
         # Name must come first
         self.name: str = ""
         self.path: str = ""
-        self.reference_ligand_path: str = os.fspath(reference_ligand) if isinstance(reference_ligand, (str, os.PathLike)) else ""
+        self.center: Optional[Tuple[float, float, float]] = None
         self.structure: Optional[Bio.PDB.Structure.Structure] = None
         self.residues: str = ""
         self.residue_ids: List[str] = []
-        self.cutoff: float = float(cutoff)
+        self.radius: float = float(radius)
         # Descriptor-related fields
         self.__ph: float = float(ph)
         self.__gravy_scale: str = gravy_scale
@@ -227,8 +226,8 @@ class Pocket:
                 return None
 
             self.name = str(data["Name"])
-            self.cutoff = float(cast(float, data["Cutoff"]))
-            self.reference_ligand_path = str(data.get("ReferenceLigand", self.reference_ligand_path))
+            self.radius = float(cast(float, data["Radius"]))
+            self.center = cast(Tuple[float, float, float], tuple(float(v) for v in cast(List[float], data["Center"])))
             self.residue_ids = [rid for rid in str(data["Residues"]).split(";") if rid]
             self.residues = "".join(seq1(rid.split(":")[-1]) for rid in self.residue_ids)
             self.sasa = _to_float(data["SASA"])
@@ -247,16 +246,17 @@ class Pocket:
                 return None
             self.name = name.replace(" ", "_")
 
-            # Get the reference ligand heavy-atom coordinates
-            ligand_coordinates = get_ligand_heavy_atom_coordinates(reference_ligand)
-            if ligand_coordinates is None:
-                ocprint.print_error(f"Could not read the reference ligand coordinates: '{reference_ligand}'.")
+            # Get the docking centre
+            center_array = _as_center(center)
+            if center_array is None:
+                ocprint.print_error(f"Could not read the pocket centre: '{center}'.")
                 return None
+            self.center = cast(Tuple[float, float, float], tuple(float(v) for v in center_array))
 
             # Select the pocket residues
-            pocket_residues = select_pocket_residues(self.structure, ligand_coordinates, self.cutoff)
+            pocket_residues = select_pocket_residues(self.structure, center_array, self.radius)
             if not pocket_residues:
-                ocprint.print_error(f"No receptor residue within {self.cutoff} A of the reference ligand '{reference_ligand}'.")
+                ocprint.print_error(f"No receptor residue within {self.radius} A of the centre {self.center}.")
                 return None
 
             self.residue_ids = [_residue_id(residue) for residue in pocket_residues]
@@ -268,7 +268,7 @@ class Pocket:
             self.GRAVY = ocr.compute_gravy(self.residues, scale=self.__gravy_scale)
             self.aromaticity = ocr.compute_aromaticity(self.residues)
             self.netCharge = compute_net_charge(self.residues, ph=self.__ph)
-            self.countHBondDonors, self.countHBondAcceptors = count_hbond_atoms(pocket_residues, ligand_coordinates, self.cutoff)
+            self.countHBondDonors, self.countHBondAcceptors = count_hbond_atoms(pocket_residues, center_array, self.radius)
 
         # Set the individual AA counts
         for aa in self.descriptors_names["count"]:
@@ -289,12 +289,12 @@ class Pocket:
         '''
 
         # Create new dict
-        properties: Dict[str, Union[str, float, int, None]] = dict()
-        # Set Name, Path, reference ligand, cutoff and residues
+        properties: Dict[str, Any] = dict()
+        # Set Name, Path, centre, radius and residues
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
-        properties["ReferenceLigand"] = self.reference_ligand_path if self.reference_ligand_path else "-"
-        properties["Cutoff"] = self.cutoff
+        properties["Center"] = list(self.center) if self.center is not None else None
+        properties["Radius"] = self.radius
         properties["Residues"] = ";".join(self.residue_ids)
 
         return {**properties, **self.get_descriptors()}
@@ -354,15 +354,15 @@ class Pocket:
     def print_attributes(self) -> None:
         '''Print all attributes of the pocket to stdout.
 
-        Displays the pocket's name, receptor and reference ligand paths, cutoff
+        Displays the pocket's name, receptor path, centre, radius
         and all computed descriptors in a formatted table.
         '''
 
         attributes: Dict[str, Any] = {
             "Name": self.name,
             "Structure path": self.path,
-            "Reference ligand": self.reference_ligand_path,
-            "Cutoff (A)": self.cutoff,
+            "Center (A)": self.center,
+            "Radius (A)": self.radius,
             "Structure": self.structure,
             "Pocket residues": self.residues,
             "# of residues": self.totalAALength,
@@ -395,12 +395,12 @@ class Pocket:
         '''
 
         # Create new dict
-        properties: Dict[str, Union[str, float, int, None]] = dict()
-        # Set Name, Path, reference ligand and molecule
+        properties: Dict[str, Any] = dict()
+        # Set Name, Path, centre, radius and molecule
         properties["Name"] = self.name if self.name is not None else "-"
         properties["Path"] = self.path if self.path is not None else "-"
-        properties["ReferenceLigand"] = self.reference_ligand_path if self.reference_ligand_path else "-"
-        properties["Cutoff"] = self.cutoff
+        properties["Center"] = list(self.center) if self.center is not None else None
+        properties["Radius"] = self.radius
         properties["Residues"] = ";".join(self.residue_ids)
         properties["Structure"] = str(self.structure) if self.structure is not None else "-"
 
@@ -464,6 +464,32 @@ _HBOND_ACCEPTORS: Dict[str, Tuple[str, ...]] = {
     "THR": ("OG1",),
     "TYR": ("OH",),
 }
+
+def _as_center(center: Union[Sequence[float], str]) -> Optional[np.ndarray]:
+    '''Normalize a pocket centre given as coordinates or as a docking box file.
+
+    Parameters
+    ----------
+    center : Sequence[float] | str
+        The centre as ``(x, y, z)`` or the path to an OCDocker docking box file.
+
+    Returns
+    -------
+    np.ndarray | None
+        The centre, shape ``(3,)``, or None if it cannot be read.
+    '''
+
+    if isinstance(center, (str, os.PathLike)):
+        return read_box_center(os.fspath(center))
+    try:
+        array = np.asarray(center, dtype=float).reshape(-1)
+    except (TypeError, ValueError):
+        _ = ocerror.Error.wrong_type(f"Expected (x, y, z) or a box file path, got {center!r}.")
+        return None
+    if array.shape != (3,) or not np.all(np.isfinite(array)):
+        _ = ocerror.Error.wrong_type(f"The pocket centre must be three finite coordinates, got {center!r}.")
+        return None
+    return array
 
 def _residue_id(residue: Bio.PDB.Residue.Residue) -> str:
     '''Build a stable identifier for a residue.
@@ -596,21 +622,20 @@ def compute_pocket_sasa(structure: Bio.PDB.Structure.Structure, residues: List[B
         _ = ocerror.Error.unknown(f"Could not compute the pocket SASA for protein '{structure.id}'. Error: {e}", level = ocerror.ReportLevel.ERROR)
     return None
 
-def count_hbond_atoms(residues: List[Bio.PDB.Residue.Residue], ligand_coordinates: np.ndarray, cutoff: float = 8.0) -> Tuple[int, int]:
+def count_hbond_atoms(residues: List[Bio.PDB.Residue.Residue], center: np.ndarray, radius: float = 12.0) -> Tuple[int, int]:
     '''Count side-chain hydrogen-bond donor and acceptor atoms lining the pocket.
 
-    Only side-chain heavy atoms within ``cutoff`` of any reference-ligand heavy
-    atom are counted. Atoms that can both donate and accept (e.g. SER OG) are
+    Only side-chain heavy atoms within ``radius`` of the centre are counted. Atoms that can both donate and accept (e.g. SER OG) are
     counted in both groups.
 
     Parameters
     ----------
     residues : List[Bio.PDB.Residue.Residue]
         The pocket residues.
-    ligand_coordinates : np.ndarray
-        The reference ligand heavy-atom coordinates, shape ``(n, 3)``.
-    cutoff : float, optional
-        The distance cutoff in angstroms, by default 8.0.
+    center : np.ndarray
+        The pocket centre, shape ``(3,)``.
+    radius : float, optional
+        The distance from the centre in angstroms, by default 12.0.
 
     Returns
     -------
@@ -629,7 +654,7 @@ def count_hbond_atoms(residues: List[Bio.PDB.Residue.Residue], ligand_coordinate
             if not is_donor and not is_acceptor:
                 continue
             # Keep only the atoms that line the pocket
-            if float(np.min(np.linalg.norm(ligand_coordinates - atom.get_coord(), axis=1))) > cutoff:
+            if float(np.linalg.norm(np.asarray(center, dtype=float) - atom.get_coord())) > radius:
                 continue
             donors += int(is_donor)
             acceptors += int(is_acceptor)
@@ -660,51 +685,34 @@ def count_pocket_AAs(residues: List[Bio.PDB.Residue.Residue]) -> Dict[str, int]:
             aas["X"] += 1
     return aas
 
-def get_ligand_heavy_atom_coordinates(reference_ligand: Union[str, Chem.rdchem.Mol]) -> Optional[np.ndarray]:
-    '''Get the heavy-atom coordinates of the reference ligand.
-
-    The ligand is loaded without sanitization, since only its coordinates are
-    needed and charge-state issues must not discard a valid pocket.
+def read_box_center(box_path: str) -> Optional[np.ndarray]:
+    '''Read the docking centre from an OCDocker docking box file.
 
     Parameters
     ----------
-    reference_ligand : str | rdkit.Chem.rdchem.Mol
-        The reference ligand path or an RDKit Mol with 3D coordinates.
+    box_path : str
+        Path to a box file written by OCDocker (``REMARK    CENTER (X Y Z)`` line).
 
     Returns
     -------
     np.ndarray | None
-        The heavy-atom coordinates, shape ``(n, 3)``, or None if they cannot be read.
+        The centre, shape ``(3,)``, or None if it cannot be read.
     '''
 
-    # Normalize to a concrete RDKit Mol
-    if isinstance(reference_ligand, Chem.rdchem.Mol):
-        mol = reference_ligand
-    elif isinstance(reference_ligand, (str, os.PathLike)):
-        _, loaded = ocl.load_mol(os.fspath(reference_ligand), sanitize = False, write_mol2 = False)
-        if loaded is None:
-            _ = ocerror.Error.parse_molecule(f"Could not load the reference ligand '{reference_ligand}'.")
-            return None
-        mol = loaded
-    else:
-        _ = ocerror.Error.wrong_type(f"Expected a path or an RDKit Mol, got {type(reference_ligand)}.")
+    try:
+        with open(box_path, 'r') as f:
+            for line in f:
+                if line.startswith("REMARK") and "CENTER" in line:
+                    # Fixed-width columns can run together, e.g. "10.468-136.627"
+                    values = re.findall(r"[-+]?\d+(?:\.\d*)?", line.split(")", 1)[-1])
+                    if len(values) < 3:
+                        break
+                    return np.asarray([float(v) for v in values[:3]], dtype=float)
+    except Exception as e:
+        _ = ocerror.Error.read_file(f"Could not read the box file '{box_path}'. Error: {e}")
         return None
-
-    # A conformer with real coordinates is required
-    if mol.GetNumConformers() == 0:
-        _ = ocerror.Error.parse_molecule(f"The reference ligand '{reference_ligand}' has no conformer.")
-        return None
-
-    conformer = mol.GetConformer()
-    coordinates = [
-        list(conformer.GetAtomPosition(atom.GetIdx()))
-        for atom in mol.GetAtoms()
-        if atom.GetAtomicNum() > 1
-    ]
-    if not coordinates:
-        _ = ocerror.Error.parse_molecule(f"The reference ligand '{reference_ligand}' has no heavy atoms.")
-        return None
-    return np.asarray(coordinates, dtype=float)
+    _ = ocerror.Error.data_not_found(f"No CENTER line in the box file '{box_path}'.")
+    return None
 
 def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[Union[Dict[str, Union[str, float, int]], Tuple[Union[str, float, int], ...]]]:
     '''Read the descriptors from a json file.
@@ -719,8 +727,8 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[
     Returns
     -------
     Dict[str, str | float | int] | Tuple[str | float | int, ...] | None
-        The descriptors dictionary (or a tuple ordered as ``Name``, ``Cutoff``,
-        ``Residues`` followed by :attr:`Pocket.allDescriptors`) or None if any
+        The descriptors dictionary (or a tuple ordered as ``Name``, ``Center``,
+        ``Radius``, ``Residues`` followed by :attr:`Pocket.allDescriptors`) or None if any
         error occurs.
     '''
 
@@ -732,7 +740,7 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[
             data = json.load(f)
 
         # Expected keys to have in the json file
-        keys = ["Name", "Cutoff", "Residues"] + Pocket.allDescriptors
+        keys = ["Name", "Center", "Radius", "Residues"] + Pocket.allDescriptors
         missing = [key for key in keys if key not in data]
 
         # If missing list is not empty
@@ -755,8 +763,8 @@ def read_descriptors_from_json(path: str, returnData: bool = False) -> Optional[
         ocprint.print_error(f"Could not read the file '{path}'. Error: {e}")
     return None
 
-def select_pocket_residues(structure: Bio.PDB.Structure.Structure, ligand_coordinates: np.ndarray, cutoff: float = 8.0) -> List[Bio.PDB.Residue.Residue]:
-    '''Select the standard residues with any heavy atom within the cutoff of the ligand.
+def select_pocket_residues(structure: Bio.PDB.Structure.Structure, center: np.ndarray, radius: float = 12.0) -> List[Bio.PDB.Residue.Residue]:
+    '''Select the standard residues with any heavy atom within the radius of the centre.
 
     Only the first model is considered, water and hetero residues are
     ignored, and hydrogens are excluded from the distance search.
@@ -765,10 +773,10 @@ def select_pocket_residues(structure: Bio.PDB.Structure.Structure, ligand_coordi
     ----------
     structure : Bio.PDB.Structure.Structure
         The receptor structure.
-    ligand_coordinates : np.ndarray
-        The reference ligand heavy-atom coordinates, shape ``(n, 3)``.
-    cutoff : float, optional
-        The distance cutoff in angstroms, by default 8.0.
+    center : np.ndarray
+        The pocket centre, shape ``(3,)``.
+    radius : float, optional
+        The distance from the centre in angstroms, by default 12.0.
 
     Returns
     -------
@@ -789,9 +797,6 @@ def select_pocket_residues(structure: Bio.PDB.Structure.Structure, ligand_coordi
         return []
 
     search = NeighborSearch(atoms)
-    selected = set()
-    for coordinate in ligand_coordinates:
-        for residue in search.search(np.asarray(coordinate, dtype="f"), cutoff, level="R"):
-            selected.add(residue.get_full_id())
+    selected = {residue.get_full_id() for residue in search.search(np.asarray(center, dtype="f").reshape(3), radius, level="R")}
 
     return [residue for residue in model.get_residues() if residue.get_full_id() in selected]

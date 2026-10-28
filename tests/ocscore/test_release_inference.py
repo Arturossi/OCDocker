@@ -13,6 +13,8 @@ import pandas as pd
 
 import pytest
 
+from pathlib import Path
+
 import OCDocker.OCScore.Release.Baselines as ocrelbaselines
 import OCDocker.OCScore.Release.Bundle as ocrelbundle
 import OCDocker.OCScore.Release.Context as ocrelcontext
@@ -199,6 +201,51 @@ def test_context_mapping_shape_is_detected() -> None:
     assert not ocrelcontext.is_multi_target({"receptor": {}, "pocket": {}})
     assert ocrelcontext.is_multi_target({"A": {"receptor": {}, "pocket": {}}})
     assert ocrelcontext.is_multi_target({})
+
+
+def test_compute_context_takes_the_pocket_from_the_docking_centre(tmp_path) -> None:
+    '''The pocket comes from the docking centre alone, given as coordinates or as a box file.'''
+
+    import OCDocker.Pocket as ocpocket
+    import OCDocker.Receptor as ocreceptor
+
+    receptor_file = Path(__file__).resolve().parents[2] / "test_files" / "test_ptn1" / "receptor.pdb"
+    _, structure = ocreceptor.load_mol(str(receptor_file), name="receptor", compute_sasa=False, clean=False, canonicalize_pdb=False)
+    first = next(r for r in structure[0].get_residues() if r.id[0] == ' ')
+    center = tuple(float(v) for v in first["CA"].get_coord())
+    box_file = tmp_path / "box0.pdb"
+    box_file.write_text(f"REMARK    CENTER (X Y Z)      {center[0]:8.3f}{center[1]:8.3f}{center[2]:8.3f}\n")
+
+    from_center = ocrelcontext.compute_context(receptor_file, center)
+    from_box = ocrelcontext.compute_context(receptor_file, box_file)
+
+    assert ocrelcontext.DEFAULT_RADIUS == pytest.approx(12.0)
+    assert set(from_center["pocket"]) == {f"pocket_{d}" for d in ocpocket.Pocket.allDescriptors}
+    assert all(k.startswith("receptor_") for k in from_center["receptor"])
+    assert from_center["pocket"]["pocket_TotalAALength"] >= 1
+    assert from_box["pocket"] == pytest.approx(from_center["pocket"], abs=1e-3)
+
+
+def test_descriptors_cli_takes_one_docking_centre() -> None:
+    '''The descriptors command needs the centre or a box, never both and never a ligand.'''
+
+    import argparse
+
+    import OCDocker.OCScore.CLI.descriptors as ocdescriptors
+
+    parser = argparse.ArgumentParser()
+    ocdescriptors.add_arguments(parser)
+
+    args = parser.parse_args(["--receptor", "r.pdb", "--out", "o.json", "--center", "1", "2", "3"])
+    assert args.center == [1.0, 2.0, 3.0] and args.box is None
+    assert args.radius == pytest.approx(12.0)
+    assert parser.parse_args(["--receptor", "r.pdb", "--out", "o.json", "--box", "box0.pdb"]).box == "box0.pdb"
+
+    for argv in (["--receptor", "r.pdb", "--out", "o.json"],
+                 ["--receptor", "r.pdb", "--out", "o.json", "--center", "1", "2", "3", "--box", "box0.pdb"],
+                 ["--receptor", "r.pdb", "--out", "o.json", "--reference-ligand", "l.sdf"]):
+        with pytest.raises(SystemExit):
+            parser.parse_args(argv)
 
 
 def test_attach_context_applies_per_receptor_values() -> None:
