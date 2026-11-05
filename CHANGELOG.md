@@ -6,10 +6,12 @@ All notable changes to OCDocker are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-05
+
 ### Added
 
 - `ocdocker ocscore predict` scores a merged results table with the pretrained Gen3B models
-  shipped in `OCScore_models/gen3b/`: the M1.1 release model, the eight block-ablation arms,
+  shipped in `OCDocker/OCScore_models/gen3b/`: the M1.1 release model, the eight block-ablation arms,
   a randomised-label control and nine baselines (mean and median consensus, ridge and
   elastic-net at three feature arms, maximum ECFP4 similarity to the training actives,
   random ranking). Every network is reported per seed and as a three-seed rank ensemble.
@@ -31,6 +33,12 @@ All notable changes to OCDocker are documented here. The format follows
 
 ### Changed
 
+- The shipped model bundles moved from `OCScore_models/` at the repository root to
+  `OCDocker/OCScore_models/`, inside the package, so that they are installed with the wheel
+  and `ocdocker ocscore predict` finds them in an installed environment and not only in a
+  source checkout. `OCSCORE_MODELS_DIR` still overrides the location.
+  `OCScore.Utils.IO.get_models_dir`, which is where a user's own trained models are written,
+  is unchanged and still resolves to the project root.
 - `examples/25_ocscore_score_with_shipped_models.py` scores with the Gen3B models.
 - The binding pocket is defined by the docking centre alone: every standard residue with a
   heavy atom within `radius` angstroms of the centre, 12 by default, so no reference ligand is
@@ -45,9 +53,13 @@ All notable changes to OCDocker are documented here. The format follows
   `OCScore.Release.Context.compute_context` takes `center` and `radius`, and
   `scripts/compute_pocket_descriptors.py` reads the centre from each receptor's docking box.
   The `pockets` table stores `center` and `radius` in place of `reference_ligand` and
-  `cutoff`; a database created before this change needs its `pockets` table recreated. The
-  shipped models that use the pocket block were trained on the ligand-defined pocket and
-  are being retrained on this definition.
+  `cutoff`; a database created before this change needs its `pockets` table recreated.
+- Every model in `OCDocker/OCScore_models/gen3b/` was retrained on the centre-defined pocket: the
+  release model, the eight ablation arms, the randomised-label control and the linear
+  baselines, together with the feature contract and the context standardisation. The
+  earlier weights read a pocket the code no longer produces, so they are not
+  interchangeable with these. The feature order is unchanged, the arms that read no pocket
+  block are unaffected by the redefinition, and the ECFP4 baseline is untouched.
 
 ### Removed
 
@@ -581,9 +593,10 @@ Compatibility and rewiring:
 - This is additive public API. If released publicly, it fits a minor version bump
   rather than a major version bump.
 
-[Unreleased]: https://github.com/Arturossi/OCDocker/compare/v0.17.0...HEAD
-[0.17.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.17.0
-[0.16.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.16.0
+[Unreleased]: https://github.com/Arturossi/OCDocker/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.18.0
+[0.17.0]: https://github.com/Arturossi/OCDocker/commit/eb48b03fe945367008748345483b67eafb7f7541
+[0.16.0]: https://github.com/Arturossi/OCDocker/commit/ac2157ccf6c35f462264d5d7c4c7ad1c11627f1a
 [0.15.4]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.4
 [0.15.3]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.3
 [0.15.2]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.2
