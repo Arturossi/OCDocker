@@ -4,7 +4,7 @@
 ###############################################################################
 '''
 Example: score a docked library with the pretrained OCScore models shipped in
-``OCScore_models/gen3b/``.
+``OCDocker/OCScore_models/gen3b/``.
 
 Nothing is trained here. The frozen release model, the eight-arm block ablation, the
 randomised-label control and the reference baselines are applied to a merged OCDocker results

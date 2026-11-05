@@ -46,6 +46,10 @@ version = { attr = "OCDocker._version.__version__" }
 
 [tool.setuptools.package-data]
 "OCDocker.OCScore" = ["Protocols/*.yml", "Protocols/Ablations/*.yml"]
+# The shipped OCScore bundles live inside the package so that `ocdocker ocscore predict`
+# finds them in a wheel, not only in a source checkout.
+"OCDocker" = ["OCScore_models/**/*.pt", "OCScore_models/**/*.npz", "OCScore_models/**/*.json",
+              "OCScore_models/**/SHA256SUMS", "OCScore_models/**/*.md"]
 # Vendored ODDT fork (scripts/vendor_oddt.sh) is built by OCDocker's own
 # packaging config, not its own setup.py, so its data files (needed to train
 # RFScore/NNScore/PLECscore scoring functions on first run) must be declared

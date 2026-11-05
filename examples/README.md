@@ -188,7 +188,7 @@ Run: `python examples/11_python_api_complete_ocscore_pipeline.py`
 
 ### 13. CSV Inference (`13_python_api_inference_from_csv.py`)
 Example of OCScore inference loading features directly from a `.csv` file:
-- Resolving model artifacts from a models directory (see `OCScore_models/gen3b/` for the current generation)
+- Resolving model artifacts from a models directory (see `OCDocker/OCScore_models/gen3b/` for the current generation)
 - Loading OCDocker config to enforce `reference_column_order`
 - Optional mask loading
 - Optional scaler loading for consistent preprocessing
@@ -266,7 +266,7 @@ Compares OCScore to individual scoring functions, **descriptor aggregates** (`de
 
 ### 25. Score with shipped pretrained models (`25_ocscore_score_with_shipped_models.py`)
 
-Scores a docked library with the pretrained models shipped in [`OCScore_models/gen3b/`](../OCScore_models/gen3b/README.md): the frozen M1.1 release, the eight-arm block ablation, the randomised-label control and the reference baselines, each reported per seed and as a three-seed rank ensemble. Equivalent to `ocdocker ocscore predict`.
+Scores a docked library with the pretrained models shipped in [`OCDocker/OCScore_models/gen3b/`](../OCDocker/OCScore_models/gen3b/README.md): the frozen M1.1 release, the eight-arm block ablation, the randomised-label control and the reference baselines, each reported per seed and as a three-seed rank ensemble. Equivalent to `ocdocker ocscore predict`.
 
 Read the control before the ranking. It never saw a true label, so it must land at chance; when it does not, the evaluation set's labels are partly predictable without activity supervision and the ranking of the other models is not about the models.
 

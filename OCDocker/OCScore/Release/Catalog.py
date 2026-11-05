@@ -139,7 +139,7 @@ def default_root() -> Path:
     '''Resolve the shipped generation bundle directory.
 
     The environment variable named by ``MODELS_DIR_ENV`` wins when set, otherwise the bundle is
-    taken from ``OCScore_models/<generation>`` beside the installed package.
+    taken from ``OCScore_models/<generation>`` inside the installed package.
 
     Returns
     -------
@@ -150,7 +150,7 @@ def default_root() -> Path:
     override = os.environ.get(MODELS_DIR_ENV)
     if override:
         return Path(override).expanduser().resolve() / GENERATION
-    return Path(__file__).resolve().parents[3] / "OCScore_models" / GENERATION
+    return Path(__file__).resolve().parents[2] / "OCScore_models" / GENERATION
 
 
 def contract_dir(root: Optional[Union[str, Path]] = None) -> Path:
