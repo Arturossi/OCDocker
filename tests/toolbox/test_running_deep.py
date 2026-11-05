@@ -235,7 +235,9 @@ def test_run_nonzero_exit_returns_tuple_and_report(monkeypatch, tmp_path):
 
     report = captured["report"]
     assert "Stderr tail (last" in report
-    assert "e2\ne3" in report and "e1" not in report
+    # Checked on the tail alone, as the environment snapshot may carry "e1" inside a path
+    stderr_tail = report.split("Stderr tail (last", 1)[1].split("Environment snapshot:", 1)[0]
+    assert "e2\ne3" in stderr_tail and "e1" not in stderr_tail
     assert "o2\no3" in report
     assert "Environment snapshot:" in report
 
