@@ -56,6 +56,8 @@ def cmd_vs(args: argparse.Namespace) -> int:  # pragma: no cover - heavy integra
     store_db_requested = bool(getattr(args, "store_db", False))
     setattr(globals_ns, "_ocdocker_init_db", store_db_requested)
     setattr(globals_ns, "_ocdocker_create_db_if_missing", store_db_requested)
+    # vs never rescores with ODDT, so do not generate its models
+    setattr(globals_ns, "_ocdocker_init_oddt", False)
     _bootstrap_ocdocker_env(globals_ns)
 
     # Configure logging according to CLI flags

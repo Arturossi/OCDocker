@@ -195,9 +195,65 @@ def test_set_level_from_report_ignores_handlers_without_setlevel():
         pass
 
     dummy = _NoLevel()
-    logger.handlers.append(dummy)  # type: ignore[arg-type]
+    # First in the list, so the handlers after it must still get the level
+    logger.handlers.insert(0, dummy)  # type: ignore[arg-type]
+    logger.setLevel(logging.WARNING)
     try:
         oclogging.set_level_from_report(ocerror.ReportLevel.INFO)
+        assert logger.level == logging.INFO
+        real_handlers = [h for h in logger.handlers if h is not dummy]
+        assert real_handlers and all(h.level == logging.INFO for h in real_handlers)
     finally:
         if dummy in logger.handlers:
             logger.handlers.remove(dummy)
+
+
+@pytest.mark.order(123)
+def test_configure_same_log_file_twice_writes_each_message_once(tmp_path):
+    log_file = tmp_path / "run.log"
+    logger = oclogging._STATE["logger"]
+    try:
+        for _ in range(3):
+            oclogging.configure(level=ocerror.ReportLevel.INFO, log_file=str(log_file), to_stdout=True, use_rich=False)
+        oclogging.get_logger("dup").warning("only once")
+
+        assert log_file.read_text(encoding="utf-8").count("only once") == 1
+    finally:
+        for handler in [h for h in logger.handlers if isinstance(h, logging.FileHandler) and h.baseFilename == str(log_file)]:
+            logger.removeHandler(handler)
+            handler.close()
+
+
+@pytest.mark.order(124)
+def test_backup_log_keeps_only_the_newest_archives(monkeypatch, tmp_path):
+    monkeypatch.setattr(oclogging, "_default_logdir", lambda: str(tmp_path))
+    monkeypatch.setattr(oclogging, "_log_limits", lambda: (0, 0, 3), raising=False)
+
+    # Five runs within the same second, each archiving the previous report
+    for run in range(5):
+        report = tmp_path / "job.log"
+        report.write_text(f"run {run}", encoding="utf-8")
+        os.utime(report, (1_000_000 + run, 1_000_000 + run))
+        oclogging.backup_log("job")
+
+    archived = sorted((tmp_path / "read_log_past").iterdir())
+    assert sorted(path.read_text(encoding="utf-8") for path in archived) == ["run 2", "run 3", "run 4"]
+
+
+@pytest.mark.order(125)
+def test_configure_log_file_rotates_by_size(monkeypatch, tmp_path):
+    from logging.handlers import RotatingFileHandler
+
+    monkeypatch.setattr(oclogging, "_log_limits", lambda: (1234, 2, 10), raising=False)
+    log_file = tmp_path / "rotating.log"
+    logger = oclogging._STATE["logger"]
+    try:
+        oclogging.configure(level=ocerror.ReportLevel.INFO, log_file=str(log_file), to_stdout=True, use_rich=False)
+        handlers = [h for h in logger.handlers if isinstance(h, logging.FileHandler) and h.baseFilename == str(log_file)]
+        assert len(handlers) == 1
+        assert isinstance(handlers[0], RotatingFileHandler)
+        assert (handlers[0].maxBytes, handlers[0].backupCount) == (1234, 2)
+    finally:
+        for handler in [h for h in logger.handlers if isinstance(h, logging.FileHandler) and h.baseFilename == str(log_file)]:
+            logger.removeHandler(handler)
+            handler.close()

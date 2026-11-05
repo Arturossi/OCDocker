@@ -52,9 +52,10 @@ See the LICENSE file for full terms.
 def get_models_dir() -> str:
     ''' Get the path to the OCScore models directory.
 
-    This directory is used to store models and masks that are shipped with the code.
-    The directory is located at the project root level (same level as ODDT_models),
-    separate from the code folder. The directory is created if it doesn't exist.
+    This directory is used to store the models and masks a user trains, and is created if it
+    does not exist. It is located at the project root level (same level as ODDT_models),
+    separate from the code folder, and so from the read-only bundles shipped inside the
+    package, which `OCScore.Release.Catalog.default_root` resolves instead.
 
     Returns
     -------

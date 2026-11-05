@@ -18,8 +18,10 @@ import types
 
 from pathlib import Path
 
+import OCDocker.Docking.Gnina as ocgnina
 import OCDocker.Docking.Smina as ocsmina
 import OCDocker.Docking.Vina as ocvina
+import OCDocker.Error as ocerror
 
 # License
 ###############################################################################
@@ -158,3 +160,18 @@ def test_gen_smina_conf_with_custom_flags(tmp_path, monkeypatch):
     assert 'user_grid_lambda = 0.5' in txt
     assert 'center_x = 32.698' in txt
     assert 'size_z = 13.851' in txt
+
+
+@pytest.mark.order(99)
+@pytest.mark.parametrize("gen_conf", [ocvina.box_to_vina, ocsmina.gen_smina_conf, ocgnina.gen_gnina_conf])
+def test_conf_writers_keep_conf_when_box_has_no_remarks(tmp_path, gen_conf):
+    '''Check that a box without the center and dimensions lines fails without touching the conf file.'''
+
+    box = tmp_path / 'box.pdb'
+    box.write_text('INVALID FORMAT\n')
+    conf = tmp_path / 'conf.txt'
+    conf.write_text('previous conf\n')
+
+    rc = gen_conf(str(box), str(conf), 'rec.pdbqt')
+    assert rc == ocerror.ErrorCode.READ_FILE
+    assert conf.read_text() == 'previous conf\n'

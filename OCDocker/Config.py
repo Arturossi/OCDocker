@@ -1064,6 +1064,12 @@ class OCDockerConfig:
         Overwrite existing output files, by default ``False``.
     tmp_dir : str, optional
         Temporary working directory, by default ``""``.
+    log_max_mb : float, optional
+        Size in MB at which a log file rolls over, by default ``10.0`` (0 disables it).
+    log_backups : int, optional
+        Rolled-over copies kept for each log file, by default ``3``.
+    log_archives : int, optional
+        Past run reports kept in ``read_log_past`` for each log, by default ``10`` (0 keeps all).
     """
 
     # Docking engines
@@ -1089,6 +1095,11 @@ class OCDockerConfig:
     multiprocess: bool = True
     overwrite: bool = False
     tmp_dir: str = ""
+
+    # Log size limits
+    log_max_mb: float = 10.0
+    log_backups: int = 3
+    log_archives: int = 10
 
     # Runtime paths (computed during bootstrap)
     ocdocker_path: str = ""
@@ -1349,6 +1360,11 @@ class OCDockerConfig:
         if "oddt_models_dir" in cfg:
             config.oddt_models_dir = cfg.get("oddt_models_dir", "")
 
+        # Log size limits (optional, invalid values keep the defaults)
+        config.log_max_mb = _get_number(cfg, "log_max_mb", config.log_max_mb, float)
+        config.log_backups = _get_number(cfg, "log_backups", config.log_backups, int)
+        config.log_archives = _get_number(cfg, "log_archives", config.log_archives, int)
+
         return config
 
     @classmethod
@@ -1432,6 +1448,32 @@ def _get_exhaustiveness(cfg: Dict[str, Any], key: str, default: Any) -> Any:
         return int(val)
     except (ValueError, TypeError):
         return str(val)
+
+
+def _get_number(cfg: Dict[str, Any], key: str, default: Any, cast: Any) -> Any:
+    """Get a numeric value from configuration, keeping the default when it is missing or invalid.
+
+    Parameters
+    ----------
+    cfg : Dict[str, Any]
+        Parsed configuration dictionary.
+    key : str
+        The configuration key to retrieve.
+    default : Any
+        The value returned when the key is missing or cannot be converted.
+    cast : Any
+        The numeric type to convert to (int or float).
+
+    Returns
+    -------
+    Any
+        The converted value, or the default.
+    """
+
+    try:
+        return cast(cfg.get(key, default))
+    except (ValueError, TypeError):
+        return default
 
 
 # Singleton Pattern

@@ -7,12 +7,12 @@ Computes pocket descriptors for every receptor of one or more OCDocker
 database roots (PDBbind, DUDEz, LIT-PCBA ocdb2 layouts) and caches them as
 ``pocket_descriptors.json`` next to each ``receptor.pdb``.
 
-Each receptor holds one pocket, defined by its reference ligand: every
-standard residue with a heavy atom within ``--cutoff`` angstroms of any
-reference-ligand heavy atom (see :class:`OCDocker.Pocket.Pocket`). The
-reference ligand is looked up in the same order the pipeline uses to centre
-the docking box (``reference_ligand.pdb``, then ``reference_ligand.sdf``), so
-the pocket is the site every compound of that receptor was docked into.
+Each receptor holds one pocket, defined by its docking centre: every
+standard residue with a heavy atom within ``--radius`` angstroms of the centre
+(see :class:`OCDocker.Pocket.Pocket`). The centre is read from the receptor's
+docking box (``boxes/box0.pdb``, otherwise the first compound box), so the
+pocket is the site every compound of that receptor was docked into and no
+reference ligand is used.
 
 Existing ``pocket_descriptors.json`` files are kept unless ``--overwrite`` is
 given, so an interrupted run can be resumed. A TSV report with one line per
@@ -52,10 +52,10 @@ See the LICENSE file for full terms.
 
 # Constants
 ###############################################################################
-# Same lookup order the pipeline uses to centre the docking box
-REFERENCE_LIGAND_FILENAMES = ("reference_ligand.pdb", "reference_ligand.sdf")
+# Receptor-level box first; every compound box of a receptor shares its centre
+BOX_FILE = os.path.join("boxes", "box0.pdb")
 
-DEFAULT_CUTOFF = 8.0
+DEFAULT_RADIUS = 12.0
 DEFAULT_WORKERS = 4
 POCKET_NAME = "pocket"
 
@@ -63,8 +63,8 @@ POCKET_NAME = "pocket"
 ###############################################################################
 ## Private ##
 
-def _find_reference_ligand(receptor_dir: str) -> Optional[str]:
-    '''Return the reference ligand path of a receptor directory.
+def _find_box(receptor_dir: str) -> Optional[str]:
+    '''Return the docking box file holding the centre of a receptor directory.
 
     Parameters
     ----------
@@ -74,24 +74,37 @@ def _find_reference_ligand(receptor_dir: str) -> Optional[str]:
     Returns
     -------
     str | None
-        The reference ligand path, or None if none exists.
+        The box file path, or None if none exists.
     '''
 
-    for filename in REFERENCE_LIGAND_FILENAMES:
-        path = os.path.join(receptor_dir, filename)
-        if os.path.isfile(path):
-            return path
+    receptor_box = os.path.join(receptor_dir, BOX_FILE)
+    if os.path.isfile(receptor_box):
+        return receptor_box
+
+    # Stop at the first compound box, since a receptor can hold many thousands of compounds
+    compounds_dir = os.path.join(receptor_dir, "compounds")
+    if not os.path.isdir(compounds_dir):
+        return None
+    for kind in sorted(os.listdir(compounds_dir)):
+        kind_dir = os.path.join(compounds_dir, kind)
+        if not os.path.isdir(kind_dir):
+            continue
+        with os.scandir(kind_dir) as entries:
+            for entry in entries:
+                box = os.path.join(entry.path, BOX_FILE)
+                if os.path.isfile(box):
+                    return box
     return None
 
-def _compute_one(receptor_dir: str, cutoff: float, overwrite: bool) -> Tuple[str, str, str]:
+def _compute_one(receptor_dir: str, radius: float, overwrite: bool) -> Tuple[str, str, str]:
     '''Compute and cache the pocket descriptors of one receptor directory.
 
     Parameters
     ----------
     receptor_dir : str
         The receptor directory (containing ``receptor.pdb``).
-    cutoff : float
-        The pocket distance cutoff in angstroms.
+    radius : float
+        The pocket radius around the docking centre in angstroms.
     overwrite : bool
         Whether an existing ``pocket_descriptors.json`` is recomputed.
 
@@ -107,16 +120,16 @@ def _compute_one(receptor_dir: str, cutoff: float, overwrite: bool) -> Tuple[str
     if os.path.isfile(output_json) and not overwrite:
         return receptor_dir, "skipped", "already computed"
 
-    reference_ligand = _find_reference_ligand(receptor_dir)
-    if reference_ligand is None:
-        return receptor_dir, "failed", "no reference ligand"
+    box = _find_box(receptor_dir)
+    if box is None:
+        return receptor_dir, "failed", "no docking box"
 
     try:
         pocket = ocpocket.Pocket(
             os.path.join(receptor_dir, "receptor.pdb"),
-            reference_ligand,
+            box,
             name=POCKET_NAME,
-            cutoff=cutoff,
+            radius=radius,
             canonicalize_pdb=False,
         )
     except Exception as e:
@@ -166,7 +179,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--database-dir", action="append", required=True, help="Database root (one subdir per receptor, each containing receptor.pdb). Repeat for several databases.")
     parser.add_argument("--report", required=True, help="TSV report written with one line per receptor (directory, status, reason).")
-    parser.add_argument("--cutoff", type=float, default=DEFAULT_CUTOFF, help=f"Pocket heavy-atom distance cutoff in angstroms. Default {DEFAULT_CUTOFF}.")
+    parser.add_argument("--radius", type=float, default=DEFAULT_RADIUS, help=f"Pocket radius around the docking centre in angstroms. Default {DEFAULT_RADIUS}.")
     parser.add_argument("--workers", type=int, default=DEFAULT_WORKERS, help=f"Number of worker processes. Default {DEFAULT_WORKERS}.")
     parser.add_argument("--overwrite", action="store_true", help="Recompute receptors that already have pocket_descriptors.json.")
     return parser
@@ -191,10 +204,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     receptor_dirs = collect_receptor_dirs(args.database_dir)
     print(f"      {len(receptor_dirs)} receptors across {len(args.database_dir)} database roots.")
 
-    print(f"[2/2] Computing pockets (cutoff {args.cutoff} A, {args.workers} workers)...")
+    print(f"[2/2] Computing pockets (radius {args.radius} A, {args.workers} workers)...")
     results: List[Tuple[str, str, str]] = []
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
-        futures = [executor.submit(_compute_one, d, args.cutoff, args.overwrite) for d in receptor_dirs]
+        futures = [executor.submit(_compute_one, d, args.radius, args.overwrite) for d in receptor_dirs]
         for i, future in enumerate(as_completed(futures), start=1):
             results.append(future.result())
             if i % 500 == 0 or i == len(futures):

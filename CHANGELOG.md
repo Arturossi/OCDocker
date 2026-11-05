@@ -4,6 +4,137 @@ All notable changes to OCDocker are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.18.0] - 2026-11-05
+
+### Added
+
+- `ocdocker ocscore predict` scores a merged results table with the pretrained Gen3B models
+  shipped in `OCDocker/OCScore_models/gen3b/`: the M1.1 release model, the eight block-ablation arms,
+  a randomised-label control and nine baselines (mean and median consensus, ridge and
+  elastic-net at three feature arms, maximum ECFP4 similarity to the training actives,
+  random ranking). Every network is reported per seed and as a three-seed rank ensemble.
+  Each ablation arm takes only the features of its own blocks, so a table needs only the
+  blocks of the models it is scored with; by default every requested model must be scorable,
+  and `--skip-unavailable` scores the ones the table supports and reports the rest. Score
+  columns in the pipeline's upper-case convention and unprefixed ligand descriptors are
+  mapped onto the model's names automatically. Writes `ocscore_predictions.csv`,
+  `ocscore_metrics.csv` when the table carries labels, and `ocscore_prediction_report.json`,
+  whose `control_check` fails when the randomised-label control reaches a ROC-AUC above
+  0.60, which means the evaluation labels are partly predictable without any activity
+  supervision.
+- `ocdocker ocscore descriptors` computes the 29 receptor and 26 pocket descriptors a new
+  target needs before it can be scored, from the receptor structure and the docking centre
+  of the site (`--center X Y Z` or `--box`). `--target-id` collects several targets in one JSON, and `predict` then applies
+  each target's descriptors to its own rows; a receptor in the table but absent from the
+  file is an error.
+- `OCDocker.OCScore.Release`, the inference package behind both commands.
+
+### Changed
+
+- The shipped model bundles moved from `OCScore_models/` at the repository root to
+  `OCDocker/OCScore_models/`, inside the package, so that they are installed with the wheel
+  and `ocdocker ocscore predict` finds them in an installed environment and not only in a
+  source checkout. `OCSCORE_MODELS_DIR` still overrides the location.
+  `OCScore.Utils.IO.get_models_dir`, which is where a user's own trained models are written,
+  is unchanged and still resolves to the project root.
+- `examples/25_ocscore_score_with_shipped_models.py` scores with the Gen3B models.
+- The binding pocket is defined by the docking centre alone: every standard residue with a
+  heavy atom within `radius` angstroms of the centre, 12 by default, so no reference ligand is
+  needed. `Pocket(structure, center, name, radius=12.0)` takes the centre as `(x, y, z)` or as
+  an OCDocker docking box file (`read_box_center`), replacing `reference_ligand` and `cutoff`.
+  The radius was chosen on 2,072 PDBbind complexes, one per protein cluster: fixed radii of
+  10 to 12 angstroms keep the variation between targets of a ligand-defined pocket, radii
+  scaled to protein size mostly repeat the receptor descriptors, and 12 angstroms agrees best
+  with the ligand-defined pocket. The descriptor JSON stores `Center` and `Radius`, and files
+  written for a ligand-defined pocket (`ReferenceLigand`, `Cutoff`) are rejected.
+  `ocdocker ocscore descriptors` takes `--center` or `--box` and `--radius`,
+  `OCScore.Release.Context.compute_context` takes `center` and `radius`, and
+  `scripts/compute_pocket_descriptors.py` reads the centre from each receptor's docking box.
+  The `pockets` table stores `center` and `radius` in place of `reference_ligand` and
+  `cutoff`; a database created before this change needs its `pockets` table recreated.
+- Every model in `OCDocker/OCScore_models/gen3b/` was retrained on the centre-defined pocket: the
+  release model, the eight ablation arms, the randomised-label control and the linear
+  baselines, together with the feature contract and the context standardisation. The
+  earlier weights read a pocket the code no longer produces, so they are not
+  interchangeable with these. The feature order is unchanged, the arms that read no pocket
+  block are unaffected by the redefinition, and the ECFP4 baseline is untouched.
+
+### Removed
+
+- The 22 DUDEz ablation configurations (`OCScore_models/01_*` to `22_*`) and their
+  `OCScore_models/manifest.json`, superseded by `OCScore_models/gen3b/`. They were export
+  bundles in the `ModelExport` format; `ocdocker ocscore score` and
+  `ocdocker ocscore external-blind` still read bundles in that format.
+
+### Fixed
+
+- `ocdocker vs` and `ocdocker pipeline` generated every missing ODDT model at startup even
+  when no ODDT rescoring was requested, which takes several minutes on the first run (a
+  `vs --skip-rescore` with Vina took over 4 minutes instead of 23 seconds). `bootstrap()`
+  gained `init_oddt: bool = True`; `vs` (which never rescores with ODDT) and `pipeline`
+  without `oddt` in `--rescoring-engines` set it to False. `run_oddt` still generates
+  missing models on demand.
+- Receptor cleaning (`clean_for_dssp`, run by every `Receptor()`, and `clean_pdb_file`)
+  kept every ATOM record, so alternate locations and the atoms of later MODELs ended up as
+  overlapping copies in the receptor that is docked into (5ar7: 12 His246 side-chain atoms
+  instead of 6). Each atom is now kept once, with its alternate location indicator blanked,
+  and receptors cleaned by earlier versions are fixed on their next run.
+- `subprocess_failures.log` stored the full stderr of every failed command, so a noisy tool
+  made it grow without bound (10 failures of a command writing 20000 warning lines: 11 MB).
+  It now keeps the same tail as the console summary (`OCDOCKER_SUBPROCESS_TAIL_LINES`, 20
+  lines by default, at most 64 KB): 0.02 MB for the same failures.
+- `oclogging.configure(log_file=...)` attached a new file handler on every call, so
+  configuring the same file again wrote every message once per call.
+- `read_vina_log` returned modes that Vina lists in its log but does not write to the
+  output (Vina 1.2 lists modes more than `energy_range` above the best one), so the digest
+  held scores for poses that do not exist (a test_ptn1 run logged a third mode at
+  +12.16 kcal/mol with only two poses written). Modes beyond `vina_energy_range` from the
+  best are now dropped.
+- The console history (`~/.ocdocker_console_history`) was loaded on top of the history
+  already in memory and had no length limit, so each console session started in the same
+  process (e.g. the console tests) saved it doubled; it reached 871 MB and stalled the test
+  suite. The history is now cleared before loading and limited to 1000 commands.
+- `PLANTS.run_plants` removed an incomplete `run` folder (fewer poses than expected, e.g.
+  after an interrupted run) with `os.rmdir`, which fails on a folder that still has files,
+  so the next run crashed with `Directory not empty`. The folder is now removed with its
+  contents.
+- `box_to_vina`, `gen_smina_conf` and `gen_gnina_conf` opened the conf file before checking
+  that the box had its CENTER and DIMENSIONS lines. A box without them truncated the conf
+  file to its `receptor` line and returned `WRITE_FILE`, and the docking classes, which only
+  rebuild a missing conf file, kept reusing it. They now return `READ_FILE` and leave the
+  conf file untouched (PLANTS already did).
+- `get_score` without `data` read the complexes from the database but looked up each
+  descriptor by its lower-case name (`smina_vina`), while the columns are named after the
+  descriptors (`SMINA_VINA`), so every docking score was dropped and the model was given no
+  features (`(1, 0)` instead of `(1, 2)` for a complex with two scores).
+
+### Added
+
+- Log size limits, set in `OCDocker.cfg` (code defaults in brackets): `log_max_mb` [10]
+  rolls a log over to `<log>.1` ... `<log>.N` once it reaches that size, `log_backups` [3]
+  sets N, and `log_archives` [10] keeps that many past run reports per log in
+  `logs/read_log_past` (which was never cleaned). They apply to the run reports,
+  `subprocess_failures.log` and `--log-file`, so each log stays under about
+  `log_max_mb * (log_backups + 1)`: 150000 error lines gave one 35 MB report before, and
+  a 3.9 MB report plus three 10.5 MB copies now. Two archives made in the same second no
+  longer overwrite each other.
+- End-to-end `ocdocker vs` tests for gnina and PLANTS. PLANTS runs everywhere with the
+  binaries in `bin/docking/plants`; gnina is skipped where it is not installed (as in CI).
+  Executables are looked up on PATH, then in `bin/docking`, then in the project's
+  `OCDocker.cfg` (or `OCDOCKER_CONFIG`).
+
+### Changed
+
+- CI uses the bundled `bin/docking/smina/smina` instead of downloading the same binary from
+  SourceForge.
+- The Vina, Smina and PLANTS test files now run in CI: they were skipped as a whole when
+  MGLTools or `plants` was missing, and now only the tests that run the MGLTools scripts
+  need it, with the bundled smina, PLANTS and SPORES on PATH (1263 to 1385 tests run).
+  Many of their checks were also strengthened to test the values returned instead of their
+  types.
+
 ## [0.17.0] - 2026-10-22
 
 ### Added
@@ -462,8 +593,10 @@ Compatibility and rewiring:
 - This is additive public API. If released publicly, it fits a minor version bump
   rather than a major version bump.
 
-[0.17.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.17.0
-[0.16.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.16.0
+[Unreleased]: https://github.com/Arturossi/OCDocker/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/Arturossi/OCDocker/releases/tag/v0.18.0
+[0.17.0]: https://github.com/Arturossi/OCDocker/commit/eb48b03fe945367008748345483b67eafb7f7541
+[0.16.0]: https://github.com/Arturossi/OCDocker/commit/ac2157ccf6c35f462264d5d7c4c7ad1c11627f1a
 [0.15.4]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.4
 [0.15.3]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.3
 [0.15.2]: https://github.com/Arturossi/OCDocker/releases/tag/v0.15.2
